@@ -16,5 +16,6 @@ module other_mod1 {
 }
 
 module test_use2 {
+    #[test_only]
     use module other_mod1::{other_mod2::{other_mod3::{other_mod4::{other_mod5::{SomeOtherStruct5}, SomeOtherStruct4}}}};
 }
