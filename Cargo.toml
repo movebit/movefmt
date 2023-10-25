@@ -1,0 +1,56 @@
+[package]
+name = "move-analyzer"
+version = "1.1.0"
+authors = ["Diem Association <opensource@diem.com>"]
+description = "A language server for Move"
+repository = "https://github.com/move-language/move"
+license = "Apache-2.0"
+publish = false
+edition = "2021"
+
+[dependencies]
+cfg-if = "1.0.0"
+lazy_static = "1.4.0"
+wait-timeout = "0.2.0"
+regex = "1.5.5"
+bisection = "0.1.0"
+anyhow = "1.0.52"
+codespan-reporting = "0.11.1"
+derivative = "2.2.0"
+dunce = "1.0.2"
+im = "15.1.0"
+lsp-server = "0.7.0"
+lsp-types = "0.94.0"
+petgraph = "0.5.1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0.64"
+tempfile = "3.2.0"
+url = "2.2.2"
+clap = { version = "3.1.8", features = ["derive"] }
+crossbeam = "0.8"
+move-command-line-common = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "876bec7dd4f3366bacde4d052e8fe43809fa57ec", package = "move-command-line-common" }
+move-compiler = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "876bec7dd4f3366bacde4d052e8fe43809fa57ec", package = "move-compiler" }
+move-ir-types = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "876bec7dd4f3366bacde4d052e8fe43809fa57ec", package = "move-ir-types" }
+move-package = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "876bec7dd4f3366bacde4d052e8fe43809fa57ec", package = "move-package" }
+move-symbol-pool = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "876bec7dd4f3366bacde4d052e8fe43809fa57ec", package = "move-symbol-pool" }
+move-core-types = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "876bec7dd4f3366bacde4d052e8fe43809fa57ec", package = "move-core-types" }
+move-cli = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "876bec7dd4f3366bacde4d052e8fe43809fa57ec", package = "move-cli" }
+
+walkdir = "2"
+log = "0.4.14"
+stderrlog = "0.5.4"
+enum-iterator = "1.2.0"
+#commentfmt = { version = "1.6.0", path = "src/comment_fmt" }
+
+[target.'cfg(not(target_os= "windows"))'.dependencies]
+pprof = { version = "0.11.0" , features = ["flamegraph" , "protobuf"]}
+
+[profile.release]
+debug = true
+
+
+[features]
+aptos = []
+sui = []
+pprof = []
+
