@@ -37,8 +37,6 @@ pub mod context;
 pub mod fmt;
 #[cfg(test)]
 mod fmt_test;
-#[cfg(test)]
-mod ide_test;
 pub mod item;
 pub mod lsp_fmt;
 pub mod syntax;

@@ -1,6 +1,7 @@
 use core::panic;
 use std::cmp::Ordering;
 use std::collections::HashSet;
+use std::collections::BTreeSet;
 
 use move_compiler::parser::ast::Definition;
 use move_compiler::parser::ast::*;
@@ -856,7 +857,9 @@ impl CommentExtrator {
 #[cfg(test)]
 mod comment_test {
     use move_command_line_common::files::FileHash;
-    use move_compiler::{parser::syntax::parse_file_string, shared::CompilationEnv, Flags};
+    use crate::syntax::parse_file_string;
+    use move_compiler::{shared::CompilationEnv, Flags};
+    use std::collections::BTreeSet;
 
     use super::*;
     #[test]
@@ -867,7 +870,8 @@ mod comment_test {
             }
           }"#;
         let filehash = FileHash::empty();
-        let mut env = CompilationEnv::new(Flags::testing());
+        let attrs: BTreeSet<String> = BTreeSet::new();
+        let mut env = CompilationEnv::new(Flags::testing(), attrs);
         let (defs, _) = parse_file_string(&mut env, filehash, content).unwrap();
         let lexer = Lexer::new(&content, filehash);
         let parse = Parser::new(lexer, &defs);

@@ -4,11 +4,11 @@ use crate::{
 };
 
 use super::utils::FileLineMapping;
-
+use std::collections::BTreeSet;
 use move_command_line_common::files::FileHash;
-
+use crate::syntax::parse_file_string;
 use move_compiler::{
-    parser::{lexer::Lexer, syntax::parse_file_string},
+    parser::lexer::Lexer,
     shared::CompilationEnv,
     Flags,
 };
@@ -61,7 +61,7 @@ fn scan_dir() {
 #[test]
 fn xxx() {
     test_on_file(&Path::new(
-        "/data/lzw/rust_projects/move/language/move-analyzer/tests/symbols/sources/format_case1.move",
+        "/data/lzw/rust_projects/movefmt/tests/symbols/sources/format_case1.move",
     ));
 }
 
@@ -78,7 +78,8 @@ fn test_on_file(p: impl AsRef<Path>) {
     eprintln!("try format:{:?}", p);
     let content_origin = std::fs::read_to_string(&p).unwrap();
     {
-        let mut env = CompilationEnv::new(Flags::testing());
+        let attrs: BTreeSet<String> = BTreeSet::new();
+        let mut env = CompilationEnv::new(Flags::testing(), attrs);
         match parse_file_string(&mut env, FileHash::empty(), &content_origin) {
             Ok(_) => {}
             Err(_) => {
@@ -173,7 +174,8 @@ fn extract_tokens(content: &str) -> Result<Vec<ExtractToken>, Vec<String>> {
     let mut line_mapping = FileLineMapping::default();
     line_mapping.update(p.clone(), &content);
     let filehash = FileHash::empty();
-    let mut env = CompilationEnv::new(Flags::testing());
+    let attrs: BTreeSet<String> = BTreeSet::new();
+    let mut env = CompilationEnv::new(Flags::testing(), attrs);
     let (defs, _comments) = match parse_file_string(&mut env, filehash, content) {
         Ok(x) => x,
         Err(d) => {
