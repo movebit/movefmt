@@ -38,13 +38,7 @@ fn mk_result_filepath(x: &PathBuf) -> PathBuf {
 #[test]
 fn scan_dir() {
     let mut num: usize = 0;
-    for x in walkdir::WalkDir::new(match std::env::var("MOVE_FMT_TEST_DIR") {
-        Ok(x) => x,
-        Err(_) => {
-            eprintln!("MOVE_FMT_TEST_DIR env var not set this test skipped.");
-            return;
-        }
-    }) {
+    for x in walkdir::WalkDir::new("/data/lzw/rust_projects/movefmt/tests/formatter/expr") {
         let x = match x {
             Ok(x) => x,
             Err(_) => todo!(),
