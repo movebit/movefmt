@@ -403,17 +403,6 @@ pub enum MoveAnalyzerClientCommands {
     GotoDefinition(Location),
 }
 
-impl MoveAnalyzerClientCommands {
-    pub(crate) fn to_lsp_command(self) -> Command {
-        match self {
-            MoveAnalyzerClientCommands::GotoDefinition(x) => Command::new(
-                "Goto Definition".to_string(),
-                "move-analyzer.goto_definition".to_string(),
-                Some(vec![serde_json::to_value(PathAndRange::from(&x)).unwrap()]),
-            ),
-        }
-    }
-}
 use lsp_types::Range;
 
 #[derive(Clone, serde::Serialize)]
@@ -454,9 +443,9 @@ pub fn cpu_pprof(_seconds: u64) {
         match guard.report().build() {
             Result::Ok(report) => {
                 // let mut tmp = std::env::temp_dir();
-                let mut tmp = PathBuf::from_str("/Users/yuyang/.move-analyzer").unwrap();
+                let mut tmp = PathBuf::from_str("/Users/yuyang/.movefmt").unwrap();
 
-                tmp.push("move-analyzer-flamegraph.svg");
+                tmp.push("movefmt-flamegraph.svg");
                 let file = File::create(tmp.clone()).unwrap();
                 report.flamegraph(file).unwrap();
                 eprintln!("pprof file at {:?}", tmp.as_path());

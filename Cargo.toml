@@ -1,9 +1,7 @@
 [package]
-name = "move-analyzer"
-version = "1.1.0"
-authors = ["Diem Association <opensource@diem.com>"]
-description = "A language server for Move"
-repository = "https://github.com/move-language/move"
+name = "movefmt"
+version = "0.0.1"
+repository = "https://github.com/movebit/movefmt"
 license = "Apache-2.0"
 publish = false
 edition = "2021"
@@ -34,7 +32,6 @@ move-ir-types = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "8
 move-package = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "876bec7dd4f3366bacde4d052e8fe43809fa57ec", package = "move-package" }
 move-symbol-pool = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "876bec7dd4f3366bacde4d052e8fe43809fa57ec", package = "move-symbol-pool" }
 move-core-types = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "876bec7dd4f3366bacde4d052e8fe43809fa57ec", package = "move-core-types" }
-move-cli = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "876bec7dd4f3366bacde4d052e8fe43809fa57ec", package = "move-cli" }
 
 walkdir = "2"
 log = "0.4.14"
@@ -48,9 +45,6 @@ pprof = { version = "0.11.0" , features = ["flamegraph" , "protobuf"]}
 [profile.release]
 debug = true
 
-
 [features]
 aptos = []
-sui = []
 pprof = []
-

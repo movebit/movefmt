@@ -17,7 +17,7 @@ use lsp_types::{
     TextDocumentSyncOptions, TypeDefinitionProviderCapability, WorkDoneProgressOptions,
 };
 
-use move_analyzer::lsp_fmt;
+use movefmt::lsp_fmt;
 use move_command_line_common::files::FileHash;
 use move_compiler::{diagnostics::Diagnostics, shared::*, PASS_TYPING};
 
@@ -27,7 +27,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use move_analyzer::{
+use movefmt::{
     context::{Context, FileDiags},
     utils::*,
 };
@@ -62,7 +62,7 @@ fn main() {
     #[cfg(feature = "pprof")]
     cpu_pprof(20);
 
-    // For now, move-analyzer only responds to options built-in to clap,
+    // For now, movefmt only responds to options built-in to clap,
     // such as `--help` or `--version`.
     Options::parse();
     init_log();
@@ -100,7 +100,7 @@ fn main() {
                 // have clients only send us what has changed and where, thereby requiring far less
                 // data be sent "over the wire." However, to do so, our language server would need
                 // to be capable of applying deltas to its view of the client's open files. See the
-                // 'move_analyzer::vfs' module for details.
+                // 'movefmt::vfs' module for details.
                 change: Some(TextDocumentSyncKind::FULL),
                 will_save: None,
                 will_save_wait_until: None,
@@ -278,7 +278,7 @@ fn get_package_compile_diagnostics(
 }
 
 fn make_diag(context: &Context, diag_sender: DiagSender, fpath: PathBuf) {
-    let (mani, _) = match move_analyzer::utils::discover_manifest_and_kind(fpath.as_path()) {
+    let (mani, _) = match movefmt::utils::discover_manifest_and_kind(fpath.as_path()) {
         Some(x) => x,
         None => {
             log::error!("manifest not found.");
