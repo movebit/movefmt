@@ -482,6 +482,7 @@ impl Format {
                     if (self.translate_line(c.start_offset) - self.cur_line.get()) > 1 {
                         self.new_line(None);
                     }
+                    eprintln!("c.content.as_str() = {:?}", c.content.as_str());
                     self.push_str(c.content.as_str());
                     let kind = c.comment_kind();
                     match kind {

@@ -55,7 +55,7 @@ fn scan_dir() {
 #[test]
 fn xxx() {
     test_on_file(&Path::new(
-        "/data/lzw/rust_projects/movefmt/tests/symbols/sources/format_case1.move",
+        "/data/lzw/rust_projects/movefmt/tests/formatter/expr/input1.move",
     ));
 }
 
@@ -139,7 +139,7 @@ fn test_content(content_origin: &str, p: impl AsRef<Path>) {
     );
 
     let result_file_path = mk_result_filepath(&p.to_path_buf());
-    std::fs::write(result_file_path.clone(), content_format);
+    let _ = std::fs::write(result_file_path.clone(), content_format);
     // eprintln!("{:?} format ok. \n{}\n", p, content_format);
 }
 
