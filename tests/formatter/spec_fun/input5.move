@@ -1,9 +1,5 @@
+/// test_point: all kinds of comment in spec fun
 spec aptos_std::big_vector {
-
-    // ---------------------
-    // Spec helper functions
-    // ---------------------
-
         spec fun spec_table_len<K, V>(t: TableWithLength<K, V>): u64 {
             table_with_length::spec_len(t)
         }

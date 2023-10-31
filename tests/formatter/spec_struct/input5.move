@@ -1,3 +1,5 @@
+/// test_point: Struct ability written on multiple lines
+
 /// The `ASCII` module defines basic string and char newtypes in Move that verify
 /// that characters are valid ASCII, and that strings consist of only valid ASCII characters.
 module std::ascii {
