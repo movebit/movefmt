@@ -15,6 +15,36 @@ use crate::token_tree::{
     Comment, CommentExtrator, CommentKind, Delimiter, NestKind_, Note, TokenTree,
 };
 use crate::utils::FileLineMappingOneFile;
+
+pub enum FormatEnv {
+    FormatUse,
+    FormatStruct,
+    FormatExp,
+    FormatTuple,
+    FormatList,
+    FormatLambda,
+    FormatFun,
+    FormatSpecModule,
+    FormatSpecStruct,
+    FormatSpecFun,
+    FormatDefault,
+}
+
+pub struct FormatContext {
+    pub content: String,
+    pub env: FormatEnv,
+}
+  
+impl FormatContext {
+    pub fn new(content: String, env: FormatEnv) -> Self {  
+        FormatContext { content, env }
+    }
+
+    pub fn set_env(&mut self, env: FormatEnv) {  
+        self.env = env;  
+    }  
+}
+
 struct Format {
     config: FormatConfig,
     depth: Cell<usize>,
@@ -24,6 +54,7 @@ struct Format {
     comments_index: Cell<usize>,
     ret: RefCell<String>,
     cur_line: Cell<u32>,
+    format_context: FormatContext,
 }
 
 pub struct FormatConfig {
@@ -36,6 +67,7 @@ impl Format {
         comments: CommentExtrator,
         line_mapping: FileLineMappingOneFile,
         token_tree: Vec<TokenTree>,
+        format_context: FormatContext,
     ) -> Self {
         Self {
             comments_index: Default::default(),
@@ -46,6 +78,7 @@ impl Format {
             line_mapping,
             ret: Default::default(),
             cur_line: Default::default(),
+            format_context,
         }
     }
 
@@ -319,8 +352,9 @@ impl Format {
                 """
                  */
                 if (self.translate_line(*pos) - self.cur_line.get()) > 1 {
-                    // There are multiple blank lines between the comment and the current code simple_token
-                    eprintln!("SimpleToken, add a new line");
+                    // There are multiple blank lines between the cur_line and the current code simple_token
+                    eprintln!("self.translate_line(*pos) = {}, self.cur_line.get() = {}", self.translate_line(*pos), self.cur_line.get());
+                    eprintln!("SimpleToken[{:?}], add a new line", content);
                     self.new_line(None);
                 }
 
@@ -515,15 +549,12 @@ impl Format {
         let mut call_new_line = false;
         for c in &self.comments[self.comments_index.get()..] {
             if self.translate_line(add_line_comment) == self.translate_line(c.start_offset) {
-                // eprintln!("in new_line000: self.translate_line(c.start_offset) = {:?}, self.cur_line.get() = {:?}", 
-                //     self.translate_line(c.start_offset), self.cur_line.get());
-                if (self.translate_line(c.start_offset) - self.cur_line.get()) > 1 {
-                    eprintln!("in new_line001: self.translate_line(c.start_offset) = {:?}, self.cur_line.get() = {:?}", 
-                        self.translate_line(c.start_offset), self.cur_line.get());
-                    eprintln!("c.content.as_str() = {:?}, then call new_line", c.content.as_str());
-
-                    self.new_line(None);
-                }
+                eprintln!("self.translate_line(c.start_offset) = {}, self.cur_line.get() = {}", self.translate_line(c.start_offset), self.cur_line.get());
+                eprintln!("add a new line[{:?}], meet comment", c.content);
+                // if (self.translate_line(c.start_offset) - self.cur_line.get()) > 1 {
+                //     eprintln!("add a black line");
+                //     self.new_line(None);
+                // }
                 self.push_str(c.content.as_str());
                 let kind = c.comment_kind();
                 match kind {
@@ -571,7 +602,9 @@ pub fn format(content: impl AsRef<str>, config: FormatConfig) -> Result<String, 
     let ce = CommentExtrator::new(content).unwrap();
     let mut t = FileLineMappingOneFile::default();
     t.update(&content);
-    let f = Format::new(config, ce, t, parse_result);
+
+    let f = Format::new(config, ce, t, parse_result, 
+        FormatContext::new(content.to_string(), FormatEnv::FormatDefault));
     Ok(f.format_token_trees())
 }
 
