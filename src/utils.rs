@@ -84,7 +84,7 @@ impl FileLineMapping {
         self.m.insert(filepath, v);
     }
 
-    pub(crate) fn translate(
+    pub fn translate(
         &self,
         filepath: &PathBuf,
         start_index: ByteIndex,

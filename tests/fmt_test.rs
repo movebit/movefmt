@@ -1,12 +1,13 @@
-use crate::{
+use movefmt::{
     fmt::FormatConfig,
     token_tree::{CommentExtrator, CommentExtratorErr, TokenTree},
+    utils::FileLineMapping,
+    syntax::parse_file_string,
 };
 
-use super::utils::FileLineMapping;
 use std::collections::BTreeSet;
 use move_command_line_common::files::FileHash;
-use crate::syntax::parse_file_string;
+
 use move_compiler::{
     parser::lexer::Lexer,
     shared::CompilationEnv,
@@ -30,7 +31,7 @@ fn mk_result_filepath(x: &PathBuf) -> PathBuf {
     ret.push(format!(
         "{}{}",
         b.as_str()[0..index].to_string(),
-        ".move.fmt"
+        ".move.fmt.out"
     ));
     ret
 }
@@ -38,7 +39,7 @@ fn mk_result_filepath(x: &PathBuf) -> PathBuf {
 #[test]
 fn scan_dir() {
     let mut num: usize = 0;
-    for x in walkdir::WalkDir::new("/data/lzw/rust_projects/movefmt/tests/formatter/use") {
+    for x in walkdir::WalkDir::new("/data/lzw/rust_projects/movefmt/tests/formatter/list") {
         let x = match x {
             Ok(x) => x,
             Err(_) => todo!(),
@@ -92,7 +93,7 @@ fn test_content(content_origin: &str, p: impl AsRef<Path>) {
         extract_tokens(content_origin).expect("test file should be about to lexer,err:{:?}");
 
     let content_format =
-        super::fmt::format(content_origin, FormatConfig { indent_size: 2 }).unwrap();
+        movefmt::fmt::format(content_origin, FormatConfig { indent_size: 2 }).unwrap();
     let tokens_format = match extract_tokens(content_format.as_str()) {
         Ok(x) => x,
         Err(err) => {
@@ -189,7 +190,7 @@ fn extract_tokens(content: &str) -> Result<Vec<ExtractToken>, Vec<String>> {
     };
     let lexer = Lexer::new(&content, filehash);
     let mut ret = Vec::new();
-    let parse = super::token_tree::Parser::new(lexer, &defs);
+    let parse = movefmt::token_tree::Parser::new(lexer, &defs);
     let token_tree = parse.parse_tokens();
     let mut line_mapping = FileLineMapping::default();
     line_mapping.update(p.to_path_buf(), &content);

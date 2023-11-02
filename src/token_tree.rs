@@ -24,13 +24,13 @@ pub enum NestKind_ {
 
 #[derive(Clone, Copy, serde::Serialize, Debug)]
 pub struct NestKind {
-    pub(crate) kind: NestKind_,
-    pub(crate) start_pos: u32,
-    pub(crate) end_pos: u32,
+    pub kind: NestKind_,
+    pub start_pos: u32,
+    pub end_pos: u32,
 }
 
 impl NestKind {
-    pub(crate) fn start_token_tree(&self) -> TokenTree {
+    pub fn start_token_tree(&self) -> TokenTree {
         TokenTree::SimpleToken {
             content: self.kind.start_tok().to_string(),
             pos: self.start_pos,
@@ -39,7 +39,7 @@ impl NestKind {
         }
     }
 
-    pub(crate) fn end_token_tree(&self) -> TokenTree {
+    pub fn end_token_tree(&self) -> TokenTree {
         TokenTree::SimpleToken {
             content: self.kind.end_tok().to_string(),
             pos: self.end_pos,
@@ -56,7 +56,7 @@ pub enum Delimiter {
 }
 
 impl Delimiter {
-    pub(crate) fn to_static_str(self) -> &'static str {
+    pub fn to_static_str(self) -> &'static str {
         match self {
             Delimiter::Semicolon => ";",
             Delimiter::Comma => ",",
@@ -64,7 +64,7 @@ impl Delimiter {
     }
 }
 impl NestKind_ {
-    pub(crate) fn is_nest_start(tok: Tok) -> Option<NestKind_> {
+    pub fn is_nest_start(tok: Tok) -> Option<NestKind_> {
         match tok {
             Tok::LParen => Some(Self::ParentTheses),
             Tok::LBracket => Some(Self::Bracket),
@@ -75,7 +75,7 @@ impl NestKind_ {
         }
     }
 
-    pub(crate) const fn start_tok(self) -> Tok {
+    pub const fn start_tok(self) -> Tok {
         match self {
             NestKind_::ParentTheses => Tok::LParen,
             NestKind_::Bracket => Tok::LBracket,
@@ -85,7 +85,7 @@ impl NestKind_ {
         }
     }
 
-    pub(crate) fn end_tok(self) -> Tok {
+    pub fn end_tok(self) -> Tok {
         match self {
             NestKind_::ParentTheses => Tok::RParen,
             NestKind_::Bracket => Tok::RBracket,
@@ -128,7 +128,7 @@ pub enum Note {
 }
 
 impl TokenTree {
-    pub(crate) fn get_note(&self) -> Option<Note> {
+    pub fn get_note(&self) -> Option<Note> {
         match self {
             TokenTree::SimpleToken {
                 content: _,
@@ -143,7 +143,7 @@ impl TokenTree {
             } => note.clone(),
         }
     }
-    pub(crate) fn end_pos(&self) -> u32 {
+    pub fn end_pos(&self) -> u32 {
         match self {
             TokenTree::SimpleToken {
                 content,
@@ -159,14 +159,14 @@ impl TokenTree {
         }
     }
 
-    pub(crate) fn is_pound(&self) -> bool {
+    pub fn is_pound(&self) -> bool {
         match self {
             TokenTree::SimpleToken { tok, .. } => *tok == Tok::NumSign,
             TokenTree::Nested { .. } => false,
         }
     }
 
-    pub(crate) fn simple_str(&self) -> Option<&str> {
+    pub fn simple_str(&self) -> Option<&str> {
         match self {
             TokenTree::SimpleToken {
                 content,
@@ -195,7 +195,7 @@ pub struct Parser<'a> {
 }
 
 impl<'a> Parser<'a> {
-    pub(crate) fn new(lexer: Lexer<'a>, defs: &'a Vec<Definition>) -> Self {
+    pub fn new(lexer: Lexer<'a>, defs: &'a Vec<Definition>) -> Self {
         let mut x = Self {
             lexer,
             defs,
@@ -222,7 +222,7 @@ impl<'a> Parser<'a> {
         None
     }
 
-    pub(crate) fn parse_tokens(mut self) -> Vec<TokenTree> {
+    pub fn parse_tokens(mut self) -> Vec<TokenTree> {
         let mut ret = vec![];
         self.lexer.advance().unwrap();
         while self.lexer.peek() != Tok::EOF {
@@ -644,13 +644,13 @@ impl<'a> Parser<'a> {
 
 #[derive(Default, Debug)]
 pub struct CommentExtrator {
-    pub(crate) comments: Vec<Comment>,
+    pub comments: Vec<Comment>,
 }
 
 #[derive(Debug)]
 pub struct Comment {
-    pub(crate) start_offset: u32,
-    pub(crate) content: String,
+    pub start_offset: u32,
+    pub content: String,
 }
 
 /// TODO more. doc comment etc.
@@ -667,7 +667,7 @@ pub enum CommentKind {
 impl Comment {
     /// format comment
     /// exampls `//   this is a comment` to `// this is a comment`,etc.
-    pub(crate) fn format(
+    pub fn format(
         &self,
         _convert_line: impl Fn(
             u32, // offset
@@ -675,7 +675,7 @@ impl Comment {
     ) -> String {
         unimplemented!()
     }
-    pub(crate) fn comment_kind(&self) -> CommentKind {
+    pub fn comment_kind(&self) -> CommentKind {
         if self.content.starts_with("//") {
             CommentKind::DocComment
         } else {
@@ -708,7 +708,7 @@ pub enum ExtratorCommentState {
 }
 
 impl CommentExtrator {
-    pub(crate) fn new(content: &str) -> Result<Self, CommentExtratorErr> {
+    pub fn new(content: &str) -> Result<Self, CommentExtratorErr> {
         if content.len() <= 1 {
             return Ok(Self::default());
         }
