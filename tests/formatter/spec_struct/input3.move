@@ -1,3 +1,5 @@
+/// test_point: has ability{'copy', 'drop', 'store'} with comment
+
 /// The `ASCII` module defines basic string and char newtypes in Move that verify
 /// that characters are valid ASCII, and that strings consist of only valid ASCII characters.
 module std::ascii {

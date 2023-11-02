@@ -15,6 +15,36 @@ use crate::token_tree::{
     Comment, CommentExtrator, CommentKind, Delimiter, NestKind_, Note, TokenTree,
 };
 use crate::utils::FileLineMappingOneFile;
+
+pub enum FormatEnv {
+    FormatUse,
+    FormatStruct,
+    FormatExp,
+    FormatTuple,
+    FormatList,
+    FormatLambda,
+    FormatFun,
+    FormatSpecModule,
+    FormatSpecStruct,
+    FormatSpecFun,
+    FormatDefault,
+}
+
+pub struct FormatContext {
+    pub content: String,
+    pub env: FormatEnv,
+}
+  
+impl FormatContext {
+    pub fn new(content: String, env: FormatEnv) -> Self {  
+        FormatContext { content, env }
+    }
+
+    pub fn set_env(&mut self, env: FormatEnv) {  
+        self.env = env;  
+    }  
+}
+
 struct Format {
     config: FormatConfig,
     depth: Cell<usize>,
@@ -24,6 +54,7 @@ struct Format {
     comments_index: Cell<usize>,
     ret: RefCell<String>,
     cur_line: Cell<u32>,
+    format_context: FormatContext,
 }
 
 pub struct FormatConfig {
@@ -36,6 +67,7 @@ impl Format {
         comments: CommentExtrator,
         line_mapping: FileLineMappingOneFile,
         token_tree: Vec<TokenTree>,
+        format_context: FormatContext,
     ) -> Self {
         Self {
             comments_index: Default::default(),
@@ -46,6 +78,7 @@ impl Format {
             line_mapping,
             ret: Default::default(),
             cur_line: Default::default(),
+            format_context,
         }
     }
 
@@ -78,13 +111,14 @@ impl Format {
                     note: _,
                 } => {
                     if kind.kind == NestKind_::Brace {
+                        eprintln!("meet Brace");
                         self.new_line(Some(t.end_pos()));
                     }
                 }
             }
             index += 1;
         }
-        self.add_comments(u32::MAX);
+        self.add_comments(u32::MAX, "end_of_move_file".to_string());
         self.ret.into_inner()
     }
 
@@ -224,6 +258,7 @@ impl Format {
                 self.format_token_trees_(&kind.start_token_tree(), None, new_line_mode);
                 self.inc_depth();
                 if new_line_mode {
+                    eprintln!("after format_token_trees_<TokenTree::Nested-start_token_tree> return, new_line_mode = true");
                     self.new_line(Some(kind.start_pos));
                 }
                 let mut pound_sign = None;
@@ -256,18 +291,28 @@ impl Format {
                         pound_sign_new_line || new_line,
                     );
                     if pound_sign_new_line {
+                        eprintln!("in loop<TokenTree::Nested> pound_sign_new_line = true");
                         self.new_line(Some(t.end_pos()));
                         pound_sign = None;
                         continue;
                     }
                     // need new line.
                     if new_line {
+                        if let TokenTree::SimpleToken{
+                                content,
+                                pos: _,
+                                tok: _,
+                                note: _,
+                            }  = t {
+                            eprintln!("in loop<TokenTree::Nested> new_line({:?}) = true", content);
+                        }
                         self.new_line(Some(t.end_pos()));
                     }
                 }
-                self.add_comments(kind.end_pos);
+                self.add_comments(kind.end_pos, "end_of_nested_block".to_string());
                 self.dec_depth();
                 if new_line_mode {
+                    eprintln!("end_of_nested_block, new_line_mode = true");
                     self.new_line(Some(kind.end_pos));
                 }
                 self.format_token_trees_(&kind.end_token_tree(), None, false);
@@ -294,8 +339,22 @@ impl Format {
                 tok,
                 note,
             } => {
-                self.add_comments(*pos);
+                // add comment(xxx) before current simple_token
+                self.add_comments(*pos, content.clone());
+                /*
+                ** simple1: 
+                self.translate_line(*pos) = 6
+                after processed xxx, self.cur_line.get() = 5;
+                self.translate_line(*pos) - self.cur_line.get() == 1
+                """
+                line5: // comment xxx
+                line6: simple_token
+                """
+                 */
                 if (self.translate_line(*pos) - self.cur_line.get()) > 1 {
+                    // There are multiple blank lines between the cur_line and the current code simple_token
+                    eprintln!("self.translate_line(*pos) = {}, self.cur_line.get() = {}", self.translate_line(*pos), self.cur_line.get());
+                    eprintln!("SimpleToken[{:?}], add a new line", content);
                     self.new_line(None);
                 }
 
@@ -307,6 +366,7 @@ impl Format {
                 if self.last_line_length() > 75
                     && Self::tok_suitable_for_new_line(tok.clone(), note.clone(), next_token)
                 {
+                    eprintln!("SimpleToken, add a new line because of split line");
                     self.new_line(None);
                     self.push_str(" ");
                     return;
@@ -318,15 +378,20 @@ impl Format {
         }
     }
 
-    fn add_comments(&self, pos: u32) {
+    fn add_comments(&self, pos: u32, content: String) {
+        let mut comment_nums_before_cur_simple_token = 0;
         for c in &self.comments[self.comments_index.get()..] {
             if c.start_offset < pos {
-                eprintln!("self.translate_line(c.start_offset) = {:?}, self.cur_line.get() = {:?}", 
+                eprintln!("in add_comments000: self.translate_line(c.start_offset) = {:?}, self.cur_line.get() = {:?}", 
                     self.translate_line(c.start_offset), self.cur_line.get());
-                eprintln!("c.content.as_str() = {:?}", c.content.as_str());
+                eprintln!("c.content.as_str() = {:?}\n", c.content.as_str());
                 if (self.translate_line(c.start_offset) - self.cur_line.get()) > 1 {
+                    eprintln!("add_comments, comment_pos - cur_line > 1");
                     self.new_line(None);
                 }
+                eprintln!("in add_comments001: self.translate_line(c.start_offset) = {:?}, self.cur_line.get() = {:?}", 
+                    self.translate_line(c.start_offset), self.cur_line.get());
+                eprintln!("c.content.as_str() = {:?}\n", c.content.as_str());
                 //TODO: If the comment is in the same line with the latest token
                 //1 don't change line
                 //2 if find \n move it after the comment
@@ -338,35 +403,32 @@ impl Format {
                 let kind = c.comment_kind();
                 match kind {
                     CommentKind::DocComment => {
+                        eprintln!("add_comments<CommentKind::DocComment>");
                         self.new_line(None);
                     }
-                    CommentKind::BlockComment => {
+                    _ => {
                         let end = c.start_offset + (c.content.len() as u32);
                         let line_start = self.translate_line(c.start_offset);
                         let line_end = self.translate_line(end);
 
                         self.push_str(" ");
                         if line_start != line_end {
-                            self.new_line(None);
-                        }
-                    }
-                    CommentKind::InlineComment => {
-                        let end = c.start_offset + (c.content.len() as u32);
-                        let line_start = self.translate_line(c.start_offset);
-                        let line_end = self.translate_line(end);
-
-                        self.push_str(" ");
-                        if line_start != line_end {
+                            eprintln!("add_comments<CommentKind::_>");
                             self.new_line(None);
                         }
                     }
                 }
                 self.comments_index.set(self.comments_index.get() + 1);
-                self.cur_line
-                    .set(self.translate_line(c.start_offset + (c.content.len() as u32) - 1));
+                self.cur_line.set(self.translate_line(c.start_offset + (c.content.len() as u32) - 1));
+                comment_nums_before_cur_simple_token = comment_nums_before_cur_simple_token + 1;
+                eprintln!("in add_comments for loop: self.cur_line = {:?}\n", self.cur_line);
             } else {
                 break;
             }
+        }
+        if comment_nums_before_cur_simple_token > 0 {
+            eprintln!("add_comments[{:?}] before pos[{:?}] = \"{:?}\" return <<<<<<<<<\n", 
+                comment_nums_before_cur_simple_token, pos, content);
         }
     }
 }
@@ -472,52 +534,60 @@ impl Format {
         ret
     }
 
-    fn new_line(&self, add_line_comment: Option<u32>) {
-        if let Some(add_line_comment) = add_line_comment {
-            // emit same line comments.
-            let cur_line = self.cur_line.get();
-            let mut call_new_line = false;
-            for c in &self.comments[self.comments_index.get()..] {
-                if self.translate_line(add_line_comment) == self.translate_line(c.start_offset) {
-                    if (self.translate_line(c.start_offset) - self.cur_line.get()) > 1 {
+    fn new_line(&self, add_line_comment_option: Option<u32>) {
+        let (add_line_comment, b_add_comment) = match add_line_comment_option {
+            Some(add_line_comment) => (add_line_comment, true),
+            _  => (0, false),
+        };
+        if !b_add_comment {
+            self.push_str("\n");
+            self.indent();
+            return;
+        }
+        // emit same line comments.
+        let cur_line = self.cur_line.get();
+        let mut call_new_line = false;
+        for c in &self.comments[self.comments_index.get()..] {
+            if self.translate_line(add_line_comment) == self.translate_line(c.start_offset) {
+                eprintln!("self.translate_line(c.start_offset) = {}, self.cur_line.get() = {}", self.translate_line(c.start_offset), self.cur_line.get());
+                eprintln!("add a new line[{:?}], meet comment", c.content);
+                // if (self.translate_line(c.start_offset) - self.cur_line.get()) > 1 {
+                //     eprintln!("add a black line");
+                //     self.new_line(None);
+                // }
+                self.push_str(c.content.as_str());
+                let kind = c.comment_kind();
+                match kind {
+                    CommentKind::BlockComment => {
+                        let end = c.start_offset + (c.content.len() as u32);
+                        let line_start = self.translate_line(c.start_offset);
+                        let line_end = self.translate_line(end);
+                        if line_start != line_end {
+                            eprintln!("in new_line, add CommentKind::BlockComment");
+                            self.new_line(None);
+                            call_new_line = true;
+                        }
+                    }
+                    _ => {
+                        eprintln!("in new_line, add CommentKind::_({})", c.content);
                         self.new_line(None);
+                        call_new_line = true;
                     }
-                    eprintln!("c.content.as_str() = {:?}", c.content.as_str());
-                    self.push_str(c.content.as_str());
-                    let kind = c.comment_kind();
-                    match kind {
-                        CommentKind::DocComment => {
-                            self.new_line(None);
-                            call_new_line = true;
-                        }
-                        CommentKind::BlockComment => {
-                            let end = c.start_offset + (c.content.len() as u32);
-                            let line_start = self.translate_line(c.start_offset);
-                            let line_end = self.translate_line(end);
-                            if line_start != line_end {
-                                self.new_line(None);
-                                call_new_line = true;
-                            }
-                        }
-                        CommentKind::InlineComment => {
-                            self.new_line(None);
-                            call_new_line = true;
-                        }
-                    }
-                    self.comments_index.set(self.comments_index.get() + 1);
-                    self.cur_line
-                        .set(self.translate_line(c.start_offset + (c.content.len() as u32) - 1));
-                } else {
-                    break;
                 }
+                self.comments_index.set(self.comments_index.get() + 1);
+                self.cur_line.set(self.translate_line(c.start_offset + (c.content.len() as u32) - 1));
+            } else {
+                break;
             }
-            if cur_line != self.cur_line.get() || call_new_line {
-                return;
-            }
+        }
+        if cur_line != self.cur_line.get() || call_new_line {
+            eprintln!("success new line, return <<<<<<<<<<<<<<<<< \n");
+            return;
         }
         self.push_str("\n");
         self.indent();
     }
+
 }
 
 pub fn format(content: impl AsRef<str>, config: FormatConfig) -> Result<String, Diagnostics> {
@@ -532,7 +602,9 @@ pub fn format(content: impl AsRef<str>, config: FormatConfig) -> Result<String, 
     let ce = CommentExtrator::new(content).unwrap();
     let mut t = FileLineMappingOneFile::default();
     t.update(&content);
-    let f = Format::new(config, ce, t, parse_result);
+
+    let f = Format::new(config, ce, t, parse_result, 
+        FormatContext::new(content.to_string(), FormatEnv::FormatDefault));
     Ok(f.format_token_trees())
 }
 

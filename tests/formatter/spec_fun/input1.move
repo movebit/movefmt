@@ -1,3 +1,4 @@
+/// test_point: has {'apply', 'exists', 'global'}
 spec aptos_std::capability {
 
     /// Module level specification of capability
@@ -21,12 +22,5 @@ spec aptos_std::capability {
     /// Helper specification function to obtain the delegates of a capability.
     spec fun spec_delegates<Feature>(addr: address): vector<address> {
         global<CapState<Feature>>(addr).delegates
-    }
-
-    /// 
-    spec schema CapAbortsIf<Feature> {
-        addr: OwnerCapability;
-        
-        aborts_if !exists<CapState<Feature>>(addr);
     }
 }

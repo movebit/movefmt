@@ -30,7 +30,7 @@ fn mk_result_filepath(x: &PathBuf) -> PathBuf {
     ret.push(format!(
         "{}{}",
         b.as_str()[0..index].to_string(),
-        "_formatted.move"
+        ".move.fmt"
     ));
     ret
 }
@@ -38,7 +38,7 @@ fn mk_result_filepath(x: &PathBuf) -> PathBuf {
 #[test]
 fn scan_dir() {
     let mut num: usize = 0;
-    for x in walkdir::WalkDir::new("/data/lzw/rust_projects/movefmt/tests/formatter/expr") {
+    for x in walkdir::WalkDir::new("/data/lzw/rust_projects/movefmt/tests/formatter/use") {
         let x = match x {
             Ok(x) => x,
             Err(_) => todo!(),
@@ -55,7 +55,7 @@ fn scan_dir() {
 #[test]
 fn xxx() {
     test_on_file(&Path::new(
-        "/data/lzw/rust_projects/movefmt/tests/formatter/expr/input1.move",
+        "/data/lzw/rust_projects/movefmt/tests/formatter/spec_fun/input2.move",
     ));
 }
 
