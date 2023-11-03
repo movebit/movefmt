@@ -17,7 +17,7 @@ use lsp_types::{
     TextDocumentSyncOptions, TypeDefinitionProviderCapability, WorkDoneProgressOptions,
 };
 
-use movefmt::lsp_fmt;
+use movefmt::app::lsp_fmt;
 use move_command_line_common::files::FileHash;
 use move_compiler::{diagnostics::Diagnostics, shared::*, PASS_TYPING};
 

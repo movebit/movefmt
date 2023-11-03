@@ -6,6 +6,17 @@ license = "Apache-2.0"
 publish = false
 edition = "2021"
 
+[lib]  
+path = "src/lib.rs"  
+  
+[[bin]]  
+name = "movefmt"  
+path = "src/bin/movefmt.rs"  
+
+[modules]
+core = { path = "src/core/mod.rs" }
+app = { path = "src/app/mod.rs" }
+
 [dependencies]
 cfg-if = "1.0.0"
 lazy_static = "1.4.0"

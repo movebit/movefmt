@@ -6,7 +6,6 @@ use std::result::Result::*;
 use move_command_line_common::files::FileHash;
 use move_compiler::diagnostics::Diagnostics;
 use move_compiler::parser::lexer::{Lexer, Tok};
-use crate::syntax::parse_file_string;
 use move_compiler::shared::CompilationEnv;
 use move_compiler::Flags;
 use std::cell::Cell;
@@ -15,6 +14,7 @@ use crate::token_tree::{
     Comment, CommentExtrator, CommentKind, Delimiter, NestKind_, Note, TokenTree,
 };
 use crate::utils::FileLineMappingOneFile;
+use crate::syntax::parse_file_string;
 
 pub enum FormatEnv {
     FormatUse,
@@ -597,7 +597,7 @@ pub fn format(content: impl AsRef<str>, config: FormatConfig) -> Result<String, 
     let filehash = FileHash::empty();
     let (defs, _) = parse_file_string(&mut env, filehash, &content)?;
     let lexer = Lexer::new(&content, filehash);
-    let parse = super::token_tree::Parser::new(lexer, &defs);
+    let parse = crate::token_tree::Parser::new(lexer, &defs);
     let parse_result = parse.parse_tokens();
     let ce = CommentExtrator::new(content).unwrap();
     let mut t = FileLineMappingOneFile::default();

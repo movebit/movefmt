@@ -1,7 +1,7 @@
 use lsp_server::*;
 
-use super::context::*;
-use crate::fmt::FormatConfig;
+use crate::context::*;
+use crate::core::fmt::*;
 use lsp_types::*;
 
 /// Handles go-to-def request of the language server.
@@ -18,7 +18,7 @@ pub fn on_fmt_request(context: &Context, request: &Request) {
             .unwrap();
     };
     let content = std::fs::read_to_string(fpath.as_path()).unwrap();
-    let fmt = match super::fmt::format(content.as_str(), FormatConfig { indent_size: 4 }) {
+    let fmt = match format(content.as_str(), FormatConfig { indent_size: 4 }) {
         Ok(x) => x,
         Err(_err) => {
             // TODO handle _err.

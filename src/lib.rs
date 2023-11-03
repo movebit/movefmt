@@ -34,12 +34,10 @@ extern crate move_ir_types;
 
 #[macro_use]
 pub mod context;
-pub mod fmt;
-#[cfg(test)]
-mod fmt_test;
 pub mod item;
-pub mod lsp_fmt;
 pub mod syntax;
 pub mod token_tree;
 pub mod types;
 pub mod utils;
+pub mod core;
+pub mod app;
