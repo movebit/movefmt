@@ -39,7 +39,7 @@ fn mk_result_filepath(x: &PathBuf) -> PathBuf {
 #[test]
 fn scan_dir() {
     let mut num: usize = 0;
-    for x in walkdir::WalkDir::new("/data/lzw/rust_projects/movefmt/tests/formatter/tuple") {
+    for x in walkdir::WalkDir::new("/data/lzw/rust_projects/movefmt/tests/formatter/list") {
         let x = match x {
             Ok(x) => x,
             Err(_) => todo!(),
@@ -56,7 +56,7 @@ fn scan_dir() {
 #[test]
 fn xxx() {
     test_on_file(&Path::new(
-        "/data/lzw/rust_projects/movefmt/tests/formatter/expr/input3.move",
+        "/data/lzw/rust_projects/movefmt/tests/formatter/list/input1.move",
     ));
 }
 
