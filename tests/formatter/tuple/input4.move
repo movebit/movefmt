@@ -1,21 +1,9 @@
 address 0x42 {  
-    module example {  
-        // This function returns unit (i.e., nothing)  
-        fun returns_unit() {}  
-          
-        // This function returns a tuple of two booleans  
-        fun returns_2_values(): (bool, bool) { (true, false) }  
-          
-        // This function returns a tuple of a reference to a u64, a u8, a u128, and a vector of u8s  
-        fun returns_4_values(x: &u64): (&u64, u8, u128, vector<u8>) { (x, 0, 1, b"foobar") }  
-  
+    module example {
         fun examples(cond: bool) {  
             // This line is an example of a unit value being assigned to a variable  
-            let () = ();  
-              
-            // This line is an example of a tuple value being assigned to variables x and y  
-            let (x, y): (u8, u64) = (0, 1);  
-              
+            let () = ();
+
             // This line is an example of a tuple with multiple types being assigned to variables a, b, c, and d  
             let (a, b, c, d) = (@0x0, 0, false, b"");  
   
@@ -26,7 +14,7 @@ address 0x42 {
             (x, y) = if (cond) (1, 2) else (3, 4);  
               
             // Reassignment of tuple values a, b, c, and d  
-            (a, b, c, d) = (@0x1, 1, true, b"1");  
+            (a, b, c, d) = (@0x1, 1, true, b"1");
         }  
   
         fun examples_with_function_calls() {  
