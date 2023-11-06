@@ -10,7 +10,7 @@ use move_compiler::shared::CompilationEnv;
 use move_compiler::Flags;
 use std::cell::Cell;
 use std::collections::BTreeSet;
-use crate::token_tree::{
+use crate::core::token_tree::{
     Comment, CommentExtrator, CommentKind, Delimiter, NestKind_, Note, TokenTree,
 };
 use crate::utils::FileLineMappingOneFile;
@@ -597,7 +597,7 @@ pub fn format(content: impl AsRef<str>, config: FormatConfig) -> Result<String, 
     let filehash = FileHash::empty();
     let (defs, _) = parse_file_string(&mut env, filehash, &content)?;
     let lexer = Lexer::new(&content, filehash);
-    let parse = crate::token_tree::Parser::new(lexer, &defs);
+    let parse = crate::core::token_tree::Parser::new(lexer, &defs);
     let parse_result = parse.parse_tokens();
     let ce = CommentExtrator::new(content).unwrap();
     let mut t = FileLineMappingOneFile::default();

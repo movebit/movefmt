@@ -36,7 +36,6 @@ extern crate move_ir_types;
 pub mod context;
 pub mod item;
 pub mod syntax;
-pub mod token_tree;
 pub mod types;
 pub mod utils;
 pub mod core;
