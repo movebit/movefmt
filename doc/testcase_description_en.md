@@ -21,9 +21,9 @@ https://github.com/movebit/movefmt/tests/formatter
 ```
 
 ## Comment Types:
-Block Comment -- /**/
-Line Comment -- // 
-Documentation Comment -- ///
+* Block Comment -> /**/
+* Line Comment -> // 
+* Documentation Comment -> ///
 
 # Classification Details
 ## 1.expression
