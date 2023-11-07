@@ -21,9 +21,9 @@ https://github.com/movebit/movefmt/tests/formatter
 ```
 
 ## 注释类型:
-块注释 -- /**/
-行注释 -- // 
-文档注释 -- ///
+* Block Comment -> /**/
+* Line Comment -> // 
+* Documentation Comment -> ///
 
 
 # 分类详解
