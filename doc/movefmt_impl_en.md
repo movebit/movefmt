@@ -1,4 +1,4 @@
-## Background of language code formatter
+## Background
 
 A formatting tool, also known as a pretty-printer, prints the AST of the corresponding language into a beautifully formatted string.
 
@@ -358,11 +358,13 @@ Because we are writting a formatter for exist programming language. It is always
 
 ### Config
 1.indent_size default been 2, user can set 2 or 4 by two ways:
+
 1).command's parameter in terminal
+
 2).vs-plugin seeting page, we'll integrate it into the aptos move analyzer later on
 
-2.
-Users can enter -d on the terminal to format the move project to which the current directory belongs.
+
+2.Users can enter -d on the terminal to format the move project to which the current directory belongs.
 And enter -f on the terminal to format the specified single move file.
 
 
@@ -374,6 +376,7 @@ pub struct FormatConfig {
 
 ### FormatContext
 1.The FormatEnv structure marks which syntax type is currently being processed.
+
 2.The FormatContext structure holds the content of the move file being processed.
 ```rust
 pub enum FormatEnv {
@@ -419,12 +422,19 @@ we search and process any preceding comment information, performing localized co
 Whenever we encounter the end of a code block, denoted by the '}' symbol, we perform global comment processing for the entire code block.
 
 Here are some internal interfaces of the module: 
+
 1).`same_line_else_kw_and_brace` is used to determine whether a string is on the same line as the `else` keyword and the following curly brace.
+
 2).`allow_single_line_let_else_block` is used to determine whether the `let` statement and the `else` statement can be on the same line.
+
 3).`single_line_fn` determines whether a function can be displayed on a single line.
+
 4).`rewrite_fn_base` rewrites the basic part of a function.
+
 5).`rewrite_params` rewrites the parameter list of a function.
+
 ......
+
 
 ### Overall process 
 `Vec<TokenTree>` is a tree type, It is very easy to decide how many ident,etc. And comment can pour into `result` base on the `pos` relate to `SimpleToken`.`pos`.
@@ -449,7 +459,11 @@ eg: format a single move file.
 ```
 
 steps:
+
 1).Call `parse_file_string` in move-compiler to obtain the original AST of this move file.
+
 2).Call `parse.parse_tokens()` to obtain `Vec<TokenTree>`.
+
 3).Call `CommentExtrator` to obtain `Vec<Comment>`.
+
 4).Call `format_token_trees` to obtain `String` which contains formatted file content.
