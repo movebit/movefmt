@@ -404,6 +404,17 @@ impl Format {
                 match kind {
                     CommentKind::DocComment => {
                         eprintln!("add_comments<CommentKind::DocComment>");
+                        let buffer = self.ret.clone();
+                        let len: usize = c.content.len();
+                        let x: usize = buffer.borrow().len();
+                        if len + 2 < x {
+                            if let Some(ch) = buffer.clone().borrow().chars().nth(x - len - 2) {  
+                                if !ch.is_ascii_whitespace() {
+                                    self.ret.borrow_mut().insert(x - len - 1, ' ');
+                                }
+                            }
+                        }
+
                         self.new_line(None);
                     }
                     _ => {
