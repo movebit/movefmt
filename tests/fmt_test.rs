@@ -39,7 +39,7 @@ fn mk_result_filepath(x: &PathBuf) -> PathBuf {
 #[test]
 fn scan_dir() {
     let mut num: usize = 0;
-    for x in walkdir::WalkDir::new("/data/lzw/rust_projects/movefmt/tests/formatter/list") {
+    for x in walkdir::WalkDir::new("/data/lzw/rust_projects/movefmt/tests/formatter/use") {
         let x = match x {
             Ok(x) => x,
             Err(_) => todo!(),
@@ -54,18 +54,11 @@ fn scan_dir() {
 }
 
 #[test]
-fn xxx() {
-    test_on_file(&Path::new(
-        "/data/lzw/rust_projects/movefmt/tests/formatter/list/input1.move",
-    ));
-}
-
-#[test]
-fn xxx_chen() {
+fn test_single_file() {
     test_on_file(&Path::new(
         //"C:/I-Git/aptos-core/aptos-move/framework/aptos-framework/sources/stake.spec.move",
         //"C:/I-Git/sui/sui/sui_programmability/examples/basics/sources/lock.move",
-        "C:/I-Git/sui/sui/sui_programmability/examples\\defi\\sources\\pool.move",
+        "/data/lzw/rust_projects/movefmt/tests/formatter/list/input1.move",
     ));
 }
 fn test_on_file(p: impl AsRef<Path>) {

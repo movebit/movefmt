@@ -40,3 +40,4 @@ pub mod types;
 pub mod utils;
 pub mod core;
 pub mod app;
+pub mod syntax_fmt;

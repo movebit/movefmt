@@ -45,16 +45,16 @@ impl FormatContext {
     }  
 }
 
-struct Format {
-    config: FormatConfig,
-    depth: Cell<usize>,
-    token_tree: Vec<TokenTree>,
-    comments: Vec<Comment>,
-    line_mapping: FileLineMappingOneFile,
-    comments_index: Cell<usize>,
-    ret: RefCell<String>,
-    cur_line: Cell<u32>,
-    format_context: FormatContext,
+pub struct Format {
+    pub config: FormatConfig,
+    pub depth: Cell<usize>,
+    pub token_tree: Vec<TokenTree>,
+    pub comments: Vec<Comment>,
+    pub line_mapping: FileLineMappingOneFile,
+    pub comments_index: Cell<usize>,
+    pub ret: RefCell<String>,
+    pub cur_line: Cell<u32>,
+    pub format_context: FormatContext,
 }
 
 pub struct FormatConfig {
@@ -807,6 +807,22 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
         }
 
         (TokType::AtSign, TokType::Alphabet) => false,
+        (TokType::Alphabet, TokType::Sign) => {
+            let mut result = true;
+            next.map(|x| {
+                if let TokenTree::SimpleToken {
+                    content: _,
+                    pos: _,
+                    tok,
+                    note: _,
+                } = x {
+                    if Tok::Comma == *tok {
+                        result = false;
+                    }
+                }
+            });
+            result
+        },
         _ => false,
     };
 }
