@@ -19,7 +19,7 @@ address 0x42 {
     
     fun returns_3_values(): (u64, bool, address) {
       // comment
-      ( // comment
+      (  // comment
         0, /* comment */ false /* comment */ , @0x42)  // comment
     }
   }

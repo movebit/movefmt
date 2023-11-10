@@ -1,7 +1,7 @@
 module econia::incentives {
   
-  fun init_module( // A reference to the signer  
-    econia: &signer) acquires // The incentive parameters  
+  fun init_module(  // A reference to the signer
+    econia: &signer) acquires  // The incentive parameters
     IncentiveParameters {
     // Vectorize fee store tier parameters  
     let integrator_fee_store_tiers = vector[
