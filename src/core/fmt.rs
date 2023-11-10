@@ -818,20 +818,36 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
         }
 
         (TokType::AtSign, TokType::Alphabet) => false,
-        (TokType::Alphabet, TokType::Sign) => {
-            let mut result = true;
+        (TokType::Alphabet | TokType::Number | TokType::Sign, TokType::Sign) => {
+            let mut result = false;
+            let mut next_tok = Tok::EOF;
             next.map(|x| {
-                if let TokenTree::SimpleToken {
-                    content: _,
-                    pos: _,
-                    tok,
-                    note: _,
-                } = x {
-                    if Tok::Comma == *tok {
-                        result = false;
+                match x {
+                    TokenTree::Nested {
+                        elements: _,
+                        kind,
+                        note: _,
+                    } => {
+                        next_tok = kind.kind.start_tok();
+                        if kind.kind.start_tok() == Tok::LBrace {
+                            result = true;
+                        }
+                    },
+                    TokenTree::SimpleToken {
+                        content,
+                        pos: _,
+                        tok,
+                        note: _,
+                    } => {
+                        next_tok = *tok;
+                        println!("content = {:?}", content);                    
+                        if Tok::LBrace == *tok {
+                            result = true;
+                        }
                     }
                 }
             });
+            println!("result = {}, next_tok = {:?}", result, next_tok);
             result
         },
         _ => false,

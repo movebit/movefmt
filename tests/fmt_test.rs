@@ -2,7 +2,7 @@ use movefmt::{
     core::fmt::FormatConfig,
     core::token_tree::{CommentExtrator, CommentExtratorErr, TokenTree},
     utils::FileLineMapping,
-    syntax::parse_file_string,
+    syntax::parse_file_string, movefmt_diff,
 };
 
 use std::collections::BTreeSet;
@@ -36,21 +36,32 @@ fn mk_result_filepath(x: &PathBuf) -> PathBuf {
     ret
 }
 
-#[test]
-fn scan_dir() {
+fn scan_dir(dir: &str) -> usize {
     let mut num: usize = 0;
-    for x in walkdir::WalkDir::new("/data/lzw/rust_projects/movefmt/tests/formatter/use") {
+    for x in walkdir::WalkDir::new(dir) {
         let x = match x {
             Ok(x) => x,
-            Err(_) => todo!(),
+            Err(_) => {
+                return num;
+            },
         };
         if x.file_type().is_file() && x.file_name().to_str().unwrap().ends_with(".move") {
             let p = x.into_path();
             test_on_file(p.as_path());
             num += 1;
+
+            let mut actual_filename = p.to_str().unwrap().to_string();
+            actual_filename.push_str(".fmt.out");
+
+            let mut expected_filename = p.to_str().unwrap().to_string();
+            expected_filename.push_str(".fmt");
+            movefmt_diff::assert_output(
+                Path::new(&actual_filename),
+                Path::new(&expected_filename)
+            );
         }
     }
-    eprintln!("formated {} files", num);
+    num
 }
 
 #[test]
@@ -61,6 +72,7 @@ fn test_single_file() {
         "/data/lzw/rust_projects/movefmt/tests/formatter/list/input1.move",
     ));
 }
+
 fn test_on_file(p: impl AsRef<Path>) {
     let p = p.as_ref();
     eprintln!("try format:{:?}", p);
@@ -245,31 +257,27 @@ fn extract_tokens(content: &str) -> Result<Vec<ExtractToken>, Vec<String>> {
 }
 
 #[test]
-fn test_str() {
-    test_content(
-        r#"
-        module 0x1::xxx { 
-            public fun escaped_backslash_before_quote(): vector<u8> {
-                b"\\"
-            }
-        }
-        
-            "#,
-        &Path::new("."),
-    );
+fn test_dir() {
+    eprintln!("formated {} files", scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/tuple"));
 }
 
 #[test]
-fn test_str_chen() {
-    test_content(
-        r#"
-
-        module 0x1::xxx {
-            fun xxx() { 
-                1
-            }
+fn regression_test_main() {
+    let mut num: usize = 0;
+    for ten_dir in walkdir::WalkDir::new("/data/lzw/rust_projects/movefmt/tests/formatter") {
+        let ten_dir = match ten_dir {
+            Ok(ten_dir) => ten_dir,
+            Err(_) => {
+                eprintln!("formated {} files", num);
+                return;
+            },
+        };
+        if !ten_dir.file_type().is_dir() {
+            eprintln!("formated {} files", num);
+            return;
         }
-    "#,
-        &Path::new("."),
-    );
+        eprintln!("cur_dir = {:?}", ten_dir.file_name().to_str());
+        num = num + scan_dir(ten_dir.path().to_str().unwrap());
+    }
+    eprintln!("formated {} files", num);
 }

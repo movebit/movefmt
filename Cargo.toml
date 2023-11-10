@@ -18,6 +18,8 @@ core = { path = "src/core/mod.rs" }
 app = { path = "src/app/mod.rs" }
 
 [dependencies]
+diff = "0.1"
+term = "0.7"
 cfg-if = "1.0.0"
 lazy_static = "1.4.0"
 wait-timeout = "0.2.0"
