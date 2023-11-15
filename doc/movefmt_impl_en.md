@@ -178,7 +178,78 @@ In general We need keep a `Vec<Comment>` in every AST structure. But in the move
 Is there a way to slove this puzzle?
 
 
-## movefmt solution
+## MOVEFMT SOLUTION
+### Overview of Our Approach:
+#### Two Core Structures:
+```rust
+struct FormatContext
+struct TokenTree
+```
+#### Other Important Structures:
+```rust
+enum FormatEnv
+struct FormatConfig
+```
+#### Comment Processing Structure:
+```rust
+struct CommentExtrator
+struct Comment
+```
+#### Main Logic Structure for Rewriting:
+```rust
+struct Fmt
+```
+
+### Overall Logic:
+#### Step 1: Extract various data structures from source code.
+1).FormatConfig stores formatting rules.
+
+2).Obtain TokenTree through lexical analysis.
+
+3).Retrieve AST through syntactic analysis.
+
+4).Gather comments using CommentExtrator.
+
+
+#### Step 2: Traverse the TokenTree for formatting.
+While traversing, Fmt considers Definition from move_compiler::parser::ast to calculate the current code block's FormatEnv. 
+This helps identify if the block is a function, structure, or a block of use statements, among others.
+The FormatEnv is stored within the FormatContext structure. Based on the FormatEnv, Fmt invokes different formatters like use_fmt, expr_fmt, etc.
+
+#### Step 3: Within a specific FormatContext, perform formatting according to FormatConfig.
+
+### Additional Details:
+We devise a structure, TokenTree. This categorizes the AST returned by the parser into two groups: 
+code blocks (i.e., NestedTokens enclosed by "()" or "{}") and everything else as SimpleToken.
+Evidently, NestedToken is a nested structure. Ignoring the module name, any Move module essentially constitutes a NestedToken. 
+Example:
+```rust
+module econia::incentives {  // NestedToken1  
+    // ...  
+    {  // NestedToken2  
+        {  // NestedToken3  
+            // ...  
+        }  
+    }  
+    // ...  
+}
+```
+There are four types of SimpleToken: "module", "econia", "::", "incentives".
+
+The remaining main body of the module is entirely placed within NestedToken1, which also includes nested tokens like NestedToken2 and NestedToken3.
+
+#### Rationale for Introducing TokenTree:
+
+##### Reason 1: 
+Formatting code essentially involves formatting nested code blocks within a file. Therefore, by abstracting the AST with TokenTree, we can better align with the formatting's business logic.
+
+##### Reason 2: 
+Data from TokenTree originates directly from Lexer. Since Lexer records position, type, and symbol name for each token, 
+it becomes convenient to add spaces between tokens and insert line breaks where necessary. In summary, it allows for more precise control over the output format.
+
+
+
+## Detail design
 ### comment parse and process
 #### Data structure
 ```rust

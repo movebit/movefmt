@@ -178,7 +178,76 @@ In general We need keep a `Vec<Comment>` in every AST structure. But in the move
 Is there a way to slove this puzzle?
 
 
-## movefmt solution
+## MOVEFMT SOLUTION
+再进行下一节的方案细节前,本小节,我们讲下我们的大致思路.
+1.两大核心结构
+FormatContext,TokenTree
+2.其他重要结构
+FormatEnv,FormatConfig
+3.注释处理结构
+CommentExtrator,Comment
+4.重写主逻辑结构
+Fmt
+
+整体逻辑就是:
+
+
+1.step1:从源码中得到各种数据结构
+
+FormatConfig 存放格式规则, 
+通过词法分析得到 TokenTree,
+通过语法分析拿到 AST,
+通过 CommentExtrator 拿到 Comment.
+
+2.step2:遍历 TokenTree,进行格式化
+Fmt 在遍历 TokenTree 的时候,会结合 move_compiler::parser::ast::Definition,
+计算出当前代码块的 FormatEnv,即要知道当前代码块是函数块还是结构体块或是use语句块等等.
+FormatEnv 会存在 FormatContext 结构里.然后根据 FormatEnv, Fmt 会调用不同
+的formatter,比如 use_fmt, expr_fmt 等等.
+
+3.step3:
+在一个具体的 FormatContext 上下文里,按 FormatConfig 去做具体的格式化.
+
+
+首先,我们会设计一个结构 TokenTree, 把来自 parser 返回的 AST 分为两类,
+一类是代码块,即由"()","{}"包裹的代码组成的 NestedToken, 
+其余的就都是 SimpleToken.
+
+显而易见, NestedToken 是一个嵌套结构.
+而任何一个 move module,在忽略模块名的情况下,本质上就是一个 NestedToken.
+例如:
+```rust
+module econia::incentives {  // NestedToken1
+    // ...
+    {  // NestedToken2
+        {  // NestedToken3
+            // ...
+        }
+    }
+    // ...
+}
+```
+SimpleToken 有如下这些, 共4个:
+    "module", "econia", "::", "incentives"
+
+剩下的整个 module 主体,就都放入了 NestedToken1 中.
+而 NestedToken1 内部还嵌套着 NestedToken2 --> NestedToken3.
+
+
+为什么要增加 TokenTree 这样一个抽象结构:
+
+1.原因一:
+所谓的对代码进行格式化,无非就是对一个代码文件里的从外到内的逐层的代码块做格式化.
+即对 TokenTree 做格式化.所以,我们采用了 TokenTree 的结构来对 parser 的 AST 做进一步的抽象,以
+更加贴近格式化的业务本质.
+
+2.原因二:
+TokenTree 的数据直接来源于 Lexer, 而 Lexer 对每一个 token 都记录了位置和类型及符号名,
+既可以很方便在 token 之间加空格,也很方便在合适的地方加换行符.简而言之,可以更加精细化得控制
+输出格式.
+
+
+## Detail design
 ### comment parse and process
 #### Data structure
 ```rust
