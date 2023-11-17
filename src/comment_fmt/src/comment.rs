@@ -334,6 +334,7 @@ fn identify_comment(
             )?
         };
     if rest.is_empty() {
+        eprintln!("rewritten_first_group = \n{}", rewritten_first_group);
         Some(rewritten_first_group)
     } else {
         identify_comment(
@@ -344,18 +345,21 @@ fn identify_comment(
             is_doc_comment,
         )
         .map(|rest_str| {
-            format!(
-                "{}\n{}{}{}",
-                rewritten_first_group,
-                // insert back the blank line
-                if has_bare_lines && style.is_line_comment() {
-                    "\n"
-                } else {
-                    ""
-                },
-                shape.indent.to_string(config),
-                rest_str
-            )
+            let ret_cmt_str = 
+                format!(
+                    "{}\n{}{}{}",
+                    rewritten_first_group,
+                    // insert back the blank line
+                    if has_bare_lines && style.is_line_comment() {
+                        "\n"
+                    } else {
+                        ""
+                    },
+                    shape.indent.to_string(config),
+                    rest_str
+                );
+            eprintln!("ret_cmt_str = {}", ret_cmt_str);
+            ret_cmt_str
         })
         /*
         将rest进行trim_start()操作,去除前导空白字符,然后作为参数传递给identify_comment函数,
@@ -781,11 +785,12 @@ fn light_rewrite_comment(
             // `*` in `/*`.
             let first_non_whitespace = l.find(|c| !char::is_whitespace(c));
             let left_trimmed = if let Some(fnw) = first_non_whitespace {
-                if l.as_bytes()[fnw] == b'*' && fnw > 0 {
-                    &l[fnw - 1..]
-                } else {
-                    &l[fnw..]
-                }
+                // if l.as_bytes()[fnw] == b'*' && fnw > 0 {
+                //     &l[fnw - 1..]
+                // } else {
+                //     &l[fnw..]
+                // }
+                &l[fnw..]
             } else {
                 ""
             };

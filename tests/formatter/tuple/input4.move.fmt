@@ -5,7 +5,7 @@ address 0x42 {
       let() = ();
       
       // This line is an example of a tuple with multiple types being assigned to variables a, b, c, and d  
-      let(a, b, c, d) = (@0x0,0, false, b"");
+      let(a, b, c, d) = (@0x0, 0, false, b"");
       
       // Reassignment of unit value  
       () = ();

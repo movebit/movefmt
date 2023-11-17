@@ -664,25 +664,6 @@ pub enum CommentKind {
     BlockComment,
 }
 
-impl Comment {
-    /// format comment
-    /// exampls `//   this is a comment` to `// this is a comment`,etc.
-    pub fn format(
-        &self,
-        _convert_line: impl Fn(
-            u32, // offset
-        ) -> u32, // line number
-    ) -> String {
-        unimplemented!()
-    }
-    pub fn comment_kind(&self) -> CommentKind {
-        if self.content.starts_with("//") {
-            CommentKind::DocComment
-        } else {
-            CommentKind::BlockComment
-        }
-    }
-}
 /// A comment extractor ,extrat all comment from move file
 /// include the start  and end tokens `//`,`*/`,etc.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

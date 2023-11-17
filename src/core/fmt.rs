@@ -15,6 +15,7 @@ use crate::core::token_tree::{
 };
 use crate::utils::FileLineMappingOneFile;
 use crate::syntax::parse_file_string;
+use crate::syntax_fmt::comment_fmt;
 
 pub enum FormatEnv {
     FormatUse,
@@ -398,9 +399,14 @@ impl Format {
                 if self.no_space_or_new_line_for_comment() {
                     self.push_str(" ");
                 }
-                self.push_str(c.content.as_str());
 
                 let kind = c.comment_kind();
+                // self.push_str(c.content.as_str());
+                let fmted_cmt_str = c.format_comment(
+                    kind, self.depth.get() * self.config.indent_size, 0);
+                eprintln!("fmted_cmt_str = \n{}", fmted_cmt_str);
+                self.push_str(fmted_cmt_str);
+
                 match kind {
                     CommentKind::DocComment => {
                         eprintln!("add_comments<CommentKind::DocComment>");
@@ -424,7 +430,6 @@ impl Format {
 
                         self.push_str(" ");
                         if line_start != line_end {
-                            eprintln!("add_comments<CommentKind::_>");
                             self.new_line(None);
                         }
                     }
@@ -768,6 +773,42 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
         (TokType::Alphabet, TokType::Alphabet) => true,
         (TokType::MathSign, _) => true,
         (TokType::Sign, TokType::Alphabet) => true,
+        (TokType::Sign, TokType::Number) => true,
+        (TokType::Sign, TokType::String) => {
+            let mut result = false;
+            let mut next_tok = Tok::EOF;
+            next.map(|x| {
+                match x {
+                    TokenTree::Nested {
+                        elements: _,
+                        kind,
+                        note: _,
+                    } => {
+                        next_tok = kind.kind.start_tok();
+                        // if kind.kind.start_tok() == Tok::LBrace {
+                        //     result = true;
+                        // }
+                    },
+                    TokenTree::SimpleToken {
+                        content,
+                        pos: _,
+                        tok,
+                        note: _,
+                    } => {
+                        next_tok = *tok;
+                        println!("content = {:?}", content);                    
+                        if Tok::ByteStringValue == *tok {
+                            result = true;
+                        }
+                    }
+                }
+            });
+
+            if Tok::Comma == get_start_tok(current) {
+                println!("after Comma, result = {}, next_tok = {:?}", result, next_tok);
+            }
+            result
+        },
         (_, TokType::MathSign) => true,
         (TokType::Alphabet, TokType::String) => true,
         (TokType::Number, TokType::Alphabet) => true,
@@ -840,13 +881,18 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                         note: _,
                     } => {
                         next_tok = *tok;
-                        println!("content = {:?}", content);                    
+                        println!("content = {:?}", content);
                         if Tok::LBrace == *tok {
                             result = true;
                         }
                     }
                 }
             });
+            if Tok::If == get_start_tok(current) || 
+               Tok::Else == get_start_tok(current) ||
+               Tok::While == get_start_tok(current) {
+                result = true;
+            }
             println!("result = {}, next_tok = {:?}", result, next_tok);
             result
         },

@@ -50,7 +50,7 @@ walkdir = "2"
 log = "0.4.14"
 stderrlog = "0.5.4"
 enum-iterator = "1.2.0"
-#commentfmt = { version = "1.6.0", path = "src/comment_fmt" }
+commentfmt = { version = "1.6.0", path = "src/comment_fmt" }
 
 [target.'cfg(not(target_os= "windows"))'.dependencies]
 pprof = { version = "0.11.0" , features = ["flamegraph" , "protobuf"]}
