@@ -416,6 +416,7 @@ impl Format {
                         if len + 2 < x {
                             if let Some(ch) = buffer.clone().borrow().chars().nth(x - len - 2) {  
                                 if !ch.is_ascii_whitespace() {
+                                    // insert black space before '//'
                                     self.ret.borrow_mut().insert(x - len - 1, ' ');
                                 }
                             }
@@ -571,8 +572,22 @@ impl Format {
                 //     eprintln!("add a black line");
                 //     self.new_line(None);
                 // }
-                self.push_str(c.content.as_str());
+                // self.push_str(c.content.as_str());
                 let kind = c.comment_kind();
+                let fmted_cmt_str = c.format_comment(
+                    kind, self.depth.get() * self.config.indent_size, 0);
+                eprintln!("fmted_cmt_str in same_line = \n{}", fmted_cmt_str);
+
+                let buffer = self.ret.clone();
+                if !buffer.clone().borrow().chars().last().unwrap_or(' ').is_ascii_whitespace() {
+                    // insert 2 black space before '//'
+                    self.push_str(" ");
+                    if let Some(_) = fmted_cmt_str.find("//") {
+                        self.push_str(" ");
+                    }
+                }
+
+                self.push_str(fmted_cmt_str);
                 match kind {
                     CommentKind::BlockComment => {
                         let end = c.start_offset + (c.content.len() as u32);
@@ -774,7 +789,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
         (TokType::MathSign, _) => true,
         (TokType::Sign, TokType::Alphabet) => true,
         (TokType::Sign, TokType::Number) => true,
-        (TokType::Sign, TokType::String) => {
+        (TokType::Sign, TokType::String | TokType::AtSign) => {
             let mut result = false;
             let mut next_tok = Tok::EOF;
             next.map(|x| {
@@ -805,6 +820,9 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
             });
 
             if Tok::Comma == get_start_tok(current) {
+                if Tok::AtSign == next_tok {
+                    result = true;
+                }
                 println!("after Comma, result = {}, next_tok = {:?}", result, next_tok);
             }
             result
