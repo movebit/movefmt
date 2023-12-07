@@ -2,7 +2,8 @@ use movefmt::{
     core::fmt::FormatConfig,
     core::token_tree::{CommentExtrator, CommentExtratorErr, TokenTree},
     utils::FileLineMapping,
-    syntax::parse_file_string, movefmt_diff,
+    syntax::parse_file_string, 
+    movefmt_diff,
 };
 
 use std::collections::BTreeSet;
@@ -67,9 +68,7 @@ fn scan_dir(dir: &str) -> usize {
 #[test]
 fn test_single_file() {
     test_on_file(&Path::new(
-        //"C:/I-Git/aptos-core/aptos-move/framework/aptos-framework/sources/stake.spec.move",
-        //"C:/I-Git/sui/sui/sui_programmability/examples/basics/sources/lock.move",
-        "/data/lzw/rust_projects/movefmt/tests/formatter/list/input1.move",
+        "/data/lzw/rust_projects/movefmt/tests/formatter/fun/input5.move",
     ));
 }
 

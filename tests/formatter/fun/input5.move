@@ -1,21 +1,49 @@
 module TestFunFormat {
+    struct S has store {}
+    struct R has store {}
+    struct T has store {}
+    struct G<T> has store {}
 
-  struct SomeOtherStruct has drop {
-    some_field: u64,
-  }
+    fun f1() acquires S {
+    }
 
-  fun acq(addr: address): u64/* test comment locate before acquires */acquires SomeStruct {
-    let val = borrow_global<SomeStruct>(addr);
-    val.some_field
-  }
+    fun f2() reads S {
+    }
 
-  fun acq22(addr: address): u64 acquires SomeStruct/* test comment locate after acquires */{
-    let val = borrow_global<SomeStruct>(addr);
-    val.some_field
-  }
+    fun f3() writes S {
+    }
 
-  fun acq33(addr: address): u64 acquires/* test comment locate between acquires */SomeStruct {
-    let val = borrow_global<SomeStruct>(addr);
-    val.some_field
-  }
+    fun f4() acquires S(*) {
+    }
+
+    fun f_multiple() acquires R reads R writes T, S reads G<u64> {
+    }
+
+    fun f5() acquires 0x42::*::* {
+    }
+
+    fun f6() acquires 0x42::m::* {
+    }
+
+    fun f7() acquires *(*) {
+    }
+
+    fun f8() acquires *(0x42) {
+    }
+
+    fun f9(a: address) acquires *(a) {
+    }
+
+    fun f10(x: u64) acquires *(make_up_address(x)) {
+    }
+
+    fun make_up_address(x: u64): address {
+        @0x42
+    }
+
+    fun f11() !reads *(0x42), *(0x43) {
+    }
+
+    fun f12() pure {
+    }
 }

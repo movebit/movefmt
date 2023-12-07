@@ -39,12 +39,12 @@ tempfile = "3.2.0"
 url = "2.2.2"
 clap = { version = "3.1.8", features = ["derive"] }
 crossbeam = "0.8"
-move-command-line-common = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "876bec7dd4f3366bacde4d052e8fe43809fa57ec", package = "move-command-line-common" }
-move-compiler = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "876bec7dd4f3366bacde4d052e8fe43809fa57ec", package = "move-compiler" }
-move-ir-types = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "876bec7dd4f3366bacde4d052e8fe43809fa57ec", package = "move-ir-types" }
-move-package = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "876bec7dd4f3366bacde4d052e8fe43809fa57ec", package = "move-package" }
-move-symbol-pool = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "876bec7dd4f3366bacde4d052e8fe43809fa57ec", package = "move-symbol-pool" }
-move-core-types = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "876bec7dd4f3366bacde4d052e8fe43809fa57ec", package = "move-core-types" }
+move-command-line-common = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "604af4d84875255e1f53bf765b3a2be695ba8451", package = "move-command-line-common" }
+move-compiler = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "604af4d84875255e1f53bf765b3a2be695ba8451", package = "move-compiler" }
+move-ir-types = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "604af4d84875255e1f53bf765b3a2be695ba8451", package = "move-ir-types" }
+move-package = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "604af4d84875255e1f53bf765b3a2be695ba8451", package = "move-package" }
+move-symbol-pool = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "604af4d84875255e1f53bf765b3a2be695ba8451", package = "move-symbol-pool" }
+move-core-types = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "604af4d84875255e1f53bf765b3a2be695ba8451", package = "move-core-types" }
 
 walkdir = "2"
 log = "0.4.14"
