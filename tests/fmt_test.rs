@@ -67,8 +67,9 @@ fn scan_dir(dir: &str) -> usize {
 
 #[test]
 fn test_single_file() {
+    eprintln!("================== test_single_file ===================");
     test_on_file(&Path::new(
-        "/data/lzw/rust_projects/movefmt/tests/formatter/fun/input5.move",
+        "/data/lzw/rust_projects/movefmt/tests/formatter/tuple2/input3.move",
     ));
 }
 

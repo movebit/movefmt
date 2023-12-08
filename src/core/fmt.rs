@@ -254,7 +254,10 @@ impl Format {
                             new_line_mode = false;
                         }
                     }
-                    NestKind_::Brace => {}
+                    NestKind_::Brace => {
+                        // added by lzw: 20231208
+                        new_line_mode = true;
+                    }
                 }
                 self.format_token_trees_(&kind.start_token_tree(), None, new_line_mode);
                 self.inc_depth();
@@ -444,7 +447,7 @@ impl Format {
             }
         }
         if comment_nums_before_cur_simple_token > 0 {
-            eprintln!("add_comments[{:?}] before pos[{:?}] = \"{:?}\" return <<<<<<<<<\n", 
+            eprintln!("add_comments[{:?}] before pos[{:?}] = {:?} return <<<<<<<<<\n", 
                 comment_nums_before_cur_simple_token, pos, content);
         }
     }
@@ -565,6 +568,9 @@ impl Format {
         let cur_line = self.cur_line.get();
         let mut call_new_line = false;
         for c in &self.comments[self.comments_index.get()..] {
+            if c.start_offset > add_line_comment {
+                break;
+            }
             if self.translate_line(add_line_comment) == self.translate_line(c.start_offset) {
                 eprintln!("self.translate_line(c.start_offset) = {}, self.cur_line.get() = {}", self.translate_line(c.start_offset), self.cur_line.get());
                 eprintln!("add a new line[{:?}], meet comment", c.content);

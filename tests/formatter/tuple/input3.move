@@ -13,12 +13,12 @@ address 0x42 {
         fun returs_unit_3(): () { (/*comment*/) }
 
         fun returns_3_values(): (u64, bool, address) {
-            // comment
+            // comment1
             (
-                // comment
+                // comment2
                 0, 
-            /*comment*/false/*comment*/, 
-            @0x42)// comment
+            /*comment3*/false/*comment4*/, 
+            @0x42)// comment5
         }
     }
 }
