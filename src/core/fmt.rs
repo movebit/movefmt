@@ -278,7 +278,7 @@ impl Format {
                     }
                     NestKind_::Brace => {
                         // added by lzw: 20231208
-                        new_line_mode = true;
+                        // new_line_mode = true;
                     }
                 }
                 self.format_token_trees_(&kind.start_token_tree(), None, new_line_mode);
@@ -337,12 +337,18 @@ impl Format {
                 }
                 self.add_comments(kind.end_pos, "end_of_nested_block".to_string());
                 self.dec_depth();
+
+                let ret_copy = self.ret.clone().into_inner();
+                // may be already add_a_new_line in last step by add_comments(doc_comment in tail of line)
+                *self.ret.borrow_mut() = ret_copy.trim_end().to_string();
+                if ret_copy.chars().last() == Some(' ') {
+                    self.push_str(" ");
+                }
                 if new_line_mode {
                     eprintln!("end_of_nested_block, new_line_mode = true");
                     self.new_line(Some(kind.end_pos));
                 }
                 self.format_token_trees_(&kind.end_token_tree(), None, false);
-
                 match kind.end_token_tree() {
                     TokenTree::SimpleToken {
                         content: _,
@@ -441,7 +447,7 @@ impl Format {
                         if len + 2 < x {
                             if let Some(ch) = buffer.clone().borrow().chars().nth(x - len - 2) {  
                                 if !ch.is_ascii_whitespace() {
-                                    // insert black space before '//'
+                                    // insert black space after '//'
                                     self.ret.borrow_mut().insert(x - len - 1, ' ');
                                 }
                             }

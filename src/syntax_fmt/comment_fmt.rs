@@ -75,7 +75,8 @@ fn add_space_for_comments(input: &str) -> String {
         else if trimmed.starts_with("//*") && trimmed.chars().nth(3).map_or(true, |c| c != ' ') {
             output.push_str(&format!("//* {}", &trimmed[3..]));
         }
-        else if trimmed.starts_with("//") && trimmed.chars().nth(2).map_or(true, |c| c != ' ') {
+        else if trimmed.starts_with("//") && trimmed.chars().nth(2).map_or(
+            true, |c| c != ' ' && c != '/' && c != '#') {
             output.push_str(&format!("// {}", &trimmed[2..]));
         }
         else if trimmed.starts_with("/*") && trimmed.ends_with("*/") {  
