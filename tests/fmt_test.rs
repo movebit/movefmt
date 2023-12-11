@@ -69,7 +69,7 @@ fn scan_dir(dir: &str) -> usize {
 fn test_single_file() {
     eprintln!("================== test_single_file ===================");
     test_on_file(&Path::new(
-        "/data/lzw/rust_projects/movefmt/tests/formatter/tuple2/input3.move",
+        "/data/lzw/rust_projects/movefmt/tests/formatter/fun/input6.move",
     ));
 }
 
@@ -98,7 +98,7 @@ fn test_content(content_origin: &str, p: impl AsRef<Path>) {
         extract_tokens(content_origin).expect("test file should be about to lexer,err:{:?}");
 
     let content_format =
-        movefmt::core::fmt::format(content_origin, FormatConfig { indent_size: 2 }).unwrap();
+        movefmt::core::fmt::format(content_origin, FormatConfig { indent_size: 4 }).unwrap();
     let tokens_format = match extract_tokens(content_format.as_str()) {
         Ok(x) => x,
         Err(err) => {

@@ -114,6 +114,7 @@ impl Format {
                     if kind.kind == NestKind_::Brace {
                         eprintln!("meet Brace");
                         self.new_line(Some(t.end_pos()));
+                        self.add_space_line_in_two_fun();
                     }
                 }
             }
@@ -121,6 +122,27 @@ impl Format {
         }
         self.add_comments(u32::MAX, "end_of_move_file".to_string());
         self.ret.into_inner()
+    }
+
+    fn add_space_line_in_two_fun(&self) {
+        use regex::Regex;
+        let re = Regex::new(r"}\s*fun").unwrap();
+  
+        let binding = self.ret.clone().into_inner();
+        let text = binding.as_str();
+        for cap in re.clone().captures_iter(text) {  
+            let cap = cap[0].to_string();
+            if cap.chars().filter(|c| *c == '\n').count() == 1 {
+                eprintln!("cap = {:?}", cap);
+                match binding.find(&cap) {
+                    Some(idx) => {
+                        self.ret.borrow_mut().insert(idx + 2, '\n');
+                        eprintln!("after insert, cap = {:?}", &self.ret.clone().into_inner()[idx..idx+cap.len()]);
+                    },
+                    _ => {},
+                }
+            }
+        }
     }
 
     fn need_new_line(
