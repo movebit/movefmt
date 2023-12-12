@@ -15,6 +15,7 @@ use crate::core::token_tree::{
 };
 use crate::utils::FileLineMappingOneFile;
 use crate::syntax::parse_file_string;
+use crate::syntax_fmt::expr_fmt;
 
 pub enum FormatEnv {
     FormatUse,
@@ -284,7 +285,19 @@ impl Format {
                 self.inc_depth();
                 if new_line_mode {
                     eprintln!("after format_token_trees_<TokenTree::Nested-start_token_tree> return, new_line_mode = true");
-                    self.new_line(Some(kind.start_pos));
+                    if elements.len() > 0 {
+                        let next_token = elements.get(0).unwrap();
+                        let mut next_token_start_pos: u32 = 0;
+                        self.analyzer_token_tree_start_pos_(&mut next_token_start_pos, next_token);
+                        if self.translate_line(next_token_start_pos) > self.translate_line(kind.start_pos) {
+                            // process line tail comment
+                            self.process_same_line_comment(kind.start_pos, false);
+                        } else {
+                            self.new_line(Some(kind.start_pos));
+                        }
+                    } else {
+                        self.new_line(Some(kind.start_pos));
+                    }
                 }
                 let mut pound_sign = None;
                 let len = elements.len();
@@ -356,7 +369,7 @@ impl Format {
                         tok: _t_tok,
                         note: _,
                     } => {
-                        if need_space(token, next_token) {
+                        if expr_fmt::need_space(token, next_token) {
                             self.push_str(" ");
                         }
                     }
@@ -395,15 +408,14 @@ impl Format {
                 if new_line_after {
                     return;
                 }
-                if self.last_line_length() > 75
+                if self.last_line_length() > 90
                     && Self::tok_suitable_for_new_line(tok.clone(), note.clone(), next_token)
                 {
-                    eprintln!("SimpleToken, add a new line because of split line");
+                    eprintln!("SimpleToken{:?}, add a new line because of split line", content);
                     self.new_line(None);
-                    self.push_str(" ");
                     return;
                 }
-                if need_space(token, next_token) {
+                if expr_fmt::need_space(token, next_token) {
                     self.push_str(" ");
                 }
             }
@@ -413,66 +425,54 @@ impl Format {
     fn add_comments(&self, pos: u32, content: String) {
         let mut comment_nums_before_cur_simple_token = 0;
         for c in &self.comments[self.comments_index.get()..] {
-            if c.start_offset < pos {
-                eprintln!("in add_comments000: self.translate_line(c.start_offset) = {:?}, self.cur_line.get() = {:?}", 
-                    self.translate_line(c.start_offset), self.cur_line.get());
-                eprintln!("c.content.as_str() = {:?}\n", c.content.as_str());
-                if (self.translate_line(c.start_offset) - self.cur_line.get()) > 1 {
-                    eprintln!("add_comments, comment_pos - cur_line > 1");
-                    self.new_line(None);
-                }
-                eprintln!("in add_comments001: self.translate_line(c.start_offset) = {:?}, self.cur_line.get() = {:?}", 
-                    self.translate_line(c.start_offset), self.cur_line.get());
-                eprintln!("c.content.as_str() = {:?}\n", c.content.as_str());
-                //TODO: If the comment is in the same line with the latest token
-                //1 don't change line
-                //2 if find \n move it after the comment
-                if self.no_space_or_new_line_for_comment() {
-                    self.push_str(" ");
-                }
-
-                let kind = c.comment_kind();
-                // self.push_str(c.content.as_str());
-                let fmted_cmt_str = c.format_comment(
-                    kind, self.depth.get() * self.config.indent_size, 0);
-                // eprintln!("fmted_cmt_str = \n{}", fmted_cmt_str);
-                self.push_str(fmted_cmt_str);
-
-                match kind {
-                    CommentKind::DocComment => {
-                        eprintln!("add_comments<CommentKind::DocComment>");
-                        let buffer = self.ret.clone();
-                        let len: usize = c.content.len();
-                        let x: usize = buffer.borrow().len();
-                        if len + 2 < x {
-                            if let Some(ch) = buffer.clone().borrow().chars().nth(x - len - 2) {  
-                                if !ch.is_ascii_whitespace() {
-                                    // insert black space after '//'
-                                    self.ret.borrow_mut().insert(x - len - 1, ' ');
-                                }
-                            }
-                        }
-
-                        self.new_line(None);
-                    }
-                    _ => {
-                        let end = c.start_offset + (c.content.len() as u32);
-                        let line_start = self.translate_line(c.start_offset);
-                        let line_end = self.translate_line(end);
-
-                        self.push_str(" ");
-                        if line_start != line_end {
-                            self.new_line(None);
-                        }
-                    }
-                }
-                self.comments_index.set(self.comments_index.get() + 1);
-                self.cur_line.set(self.translate_line(c.start_offset + (c.content.len() as u32) - 1));
-                comment_nums_before_cur_simple_token = comment_nums_before_cur_simple_token + 1;
-                eprintln!("in add_comments for loop: self.cur_line = {:?}\n", self.cur_line);
-            } else {
+            if c.start_offset > pos {
                 break;
             }
+
+            if (self.translate_line(c.start_offset) - self.cur_line.get()) >= 1 {
+                self.new_line(None);
+            }
+            eprintln!("-- add_comments: line(c.start_offset) - cur_line = {:?}", 
+                self.translate_line(c.start_offset) - self.cur_line.get());
+            eprintln!("c.content.as_str() = {:?}\n", c.content.as_str());
+            if self.no_space_or_new_line_for_comment() {
+                self.push_str(" ");
+            }
+
+            self.push_str(c.format_comment(
+                c.comment_kind(), self.depth.get() * self.config.indent_size, 0));
+
+            match c.comment_kind() {
+                CommentKind::DocComment => {
+                    eprintln!("add_comments<CommentKind::DocComment>");
+                    let buffer = self.ret.clone();
+                    let len: usize = c.content.len();
+                    let x: usize = buffer.borrow().len();
+                    if len + 2 < x {
+                        if let Some(ch) = buffer.clone().borrow().chars().nth(x - len - 2) {  
+                            if !ch.is_ascii_whitespace() {
+                                // insert black space after '//'
+                                self.ret.borrow_mut().insert(x - len - 1, ' ');
+                            }
+                        }
+                    }
+                    self.new_line(None);
+                }
+                _ => {
+                    let end = c.start_offset + (c.content.len() as u32);
+                    let line_start = self.translate_line(c.start_offset);
+                    let line_end = self.translate_line(end);
+
+                    self.push_str(" ");
+                    if line_start != line_end {
+                        self.new_line(None);
+                    }
+                }
+            }
+            self.comments_index.set(self.comments_index.get() + 1);
+            self.cur_line.set(self.translate_line(c.start_offset + (c.content.len() as u32) - 1));
+            comment_nums_before_cur_simple_token = comment_nums_before_cur_simple_token + 1;
+            eprintln!("in add_comments for loop: self.cur_line = {:?}\n", self.cur_line);
         }
         if comment_nums_before_cur_simple_token > 0 {
             eprintln!("add_comments[{:?}] before pos[{:?}] = {:?} return <<<<<<<<<\n", 
@@ -554,27 +554,39 @@ impl Format {
         return (d, has_colon);
     }
 
+    fn analyzer_token_tree_start_pos_(&self, ret: &mut u32, token_tree: &TokenTree) {
+        match token_tree {
+            TokenTree::SimpleToken { content: _, pos, .. } => {
+                *ret = *pos;
+            }
+            TokenTree::Nested { elements: _, kind, .. } => {
+                *ret = kind.start_pos;
+            }
+        }
+    }
+
+    fn analyzer_token_tree_length_(&self, ret: &mut usize, token_tree: &TokenTree, max: usize) {
+        match token_tree {
+            TokenTree::SimpleToken { content, .. } => {
+                *ret = *ret + content.len();
+            }
+            TokenTree::Nested { elements, .. } => {
+                for t in elements.iter() {
+                    self.analyzer_token_tree_length_(ret, t, max);
+                    if *ret > max {
+                        return;
+                    }
+                }
+                *ret = *ret + 2; // for delimiter.
+            }
+        }
+    }
+
     /// analyzer How long is list of token_tree
     fn analyze_token_tree_length(&self, token_tree: &Vec<TokenTree>, max: usize) -> usize {
         let mut ret = usize::default();
-        fn analyzer_token_tree_length_(ret: &mut usize, token_tree: &TokenTree, max: usize) {
-            match token_tree {
-                TokenTree::SimpleToken { content, .. } => {
-                    *ret = *ret + content.len();
-                }
-                TokenTree::Nested { elements, .. } => {
-                    for t in elements.iter() {
-                        analyzer_token_tree_length_(ret, t, max);
-                        if *ret > max {
-                            return;
-                        }
-                    }
-                    *ret = *ret + 2; // for delimiter.
-                }
-            }
-        }
         for t in token_tree.iter() {
-            analyzer_token_tree_length_(&mut ret, t, max);
+            self.analyzer_token_tree_length_(&mut ret, t, max);
             if ret > max {
                 return ret;
             }
@@ -676,285 +688,6 @@ pub fn format(content: impl AsRef<str>, config: FormatConfig) -> Result<String, 
     Ok(f.format_token_trees())
 }
 
-pub enum TokType {
-    /// abc like token,
-    Alphabet,
-    /// + - ...
-    MathSign,
-    ///
-    Sign,
-    // specials no need space at all.
-    NoNeedSpace,
-    /// numbers 0x1 ...
-    Number,
-    /// b"hello world"
-    String,
-    /// &
-    Amp,
-    /// *
-    Star,
-    /// &mut
-    AmpMut,
-    ///
-    Semicolon,
-    ///:
-    Colon,
-    /// @
-    AtSign,
-    /// <
-    Less,
-}
-
-impl From<Tok> for TokType {
-    fn from(value: Tok) -> Self {
-        match value {
-            Tok::EOF => unreachable!(), // EOF not in `TokenTree`.
-            Tok::NumValue => TokType::Number,
-            Tok::NumTypedValue => TokType::Number,
-            Tok::ByteStringValue => TokType::String,
-            Tok::Exclaim => TokType::Sign,
-            Tok::ExclaimEqual => TokType::MathSign,
-            Tok::Percent => TokType::MathSign,
-            Tok::Amp => TokType::Amp,
-            Tok::AmpAmp => TokType::MathSign,
-            Tok::LParen => TokType::Sign,
-            Tok::RParen => TokType::Sign,
-            Tok::LBracket => TokType::Sign,
-            Tok::RBracket => TokType::Sign,
-            Tok::Star => TokType::Star,
-            Tok::Plus => TokType::MathSign,
-            Tok::Comma => TokType::Sign,
-            Tok::Minus => TokType::MathSign,
-            Tok::Period => TokType::NoNeedSpace,
-            Tok::PeriodPeriod => TokType::NoNeedSpace,
-            Tok::Slash => TokType::Sign,
-            Tok::Colon => TokType::Colon,
-            Tok::ColonColon => TokType::NoNeedSpace,
-            Tok::Semicolon => TokType::Semicolon,
-            Tok::Less => TokType::Less,
-            Tok::LessEqual => TokType::MathSign,
-            Tok::LessLess => TokType::MathSign,
-            Tok::Equal => TokType::MathSign,
-            Tok::EqualEqual => TokType::MathSign,
-            Tok::EqualEqualGreater => TokType::MathSign,
-            Tok::LessEqualEqualGreater => TokType::MathSign,
-            Tok::Greater => TokType::MathSign,
-            Tok::GreaterEqual => TokType::MathSign,
-            Tok::GreaterGreater => TokType::MathSign,
-            Tok::LBrace => TokType::Sign,
-            Tok::Pipe => TokType::Sign,
-            Tok::PipePipe => TokType::MathSign,
-            Tok::RBrace => TokType::Sign,
-            Tok::NumSign => TokType::Sign,
-            Tok::AtSign => TokType::AtSign,
-            Tok::AmpMut => TokType::Amp,
-            _ => TokType::Alphabet,
-        }
-    }
-}
-
-pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool {
-    if next.is_none() {
-        return false;
-    }
-
-    fn get_start_tok(t: &TokenTree) -> Tok {
-        match t {
-            TokenTree::SimpleToken {
-                content: _,
-                pos: _,
-                tok,
-                note: _,
-            } => tok.clone(),
-            TokenTree::Nested {
-                elements: _,
-                kind,
-                note: _,
-            } => kind.kind.start_tok(),
-        }
-    }
-    let _is_bin_current = current
-        .get_note()
-        .map(|x| x == Note::BinaryOP)
-        .unwrap_or_default();
-
-    let is_bin_next = match next {
-        None => false,
-        Some(next_) => next_
-            .get_note()
-            .map(|x| x == Note::BinaryOP)
-            .unwrap_or_default(),
-    };
-    let is_apply_current = current
-        .get_note()
-        .map(|x| x == Note::ApplyName)
-        .unwrap_or_default();
-
-    let is_apply_next = match next {
-        None => false,
-        Some(next_) => next_
-            .get_note()
-            .map(|x| x == Note::ApplyName)
-            .unwrap_or_default(),
-    };
-
-    let is_to_execpt = match current {
-        TokenTree::SimpleToken {
-            content: con,
-            pos: _,
-            tok: _,
-            note: _,
-        } => con.as_str() == "to" || con.as_str() == "except",
-        _ => false,
-    } || match next {
-        None => false,
-        Some(next_) => match next_ {
-            TokenTree::SimpleToken {
-                content: con,
-                pos: _,
-                tok: _,
-                note: _,
-            } => con.as_str() == "to" || con.as_str() == "except",
-            _ => false,
-        },
-    };
-    return match (
-        TokType::from(get_start_tok(current)),
-        TokType::from(next.map(|x| get_start_tok(x)).unwrap()),
-    ) {
-        (TokType::Alphabet, TokType::Alphabet) => true,
-        (TokType::MathSign, _) => true,
-        (TokType::Sign, TokType::Alphabet) => true,
-        (TokType::Sign, TokType::Number) => true,
-        (TokType::Sign, TokType::String | TokType::AtSign) => {
-            let mut result = false;
-            let mut next_tok = Tok::EOF;
-            next.map(|x| {
-                match x {
-                    TokenTree::Nested {
-                        elements: _,
-                        kind,
-                        note: _,
-                    } => {
-                        next_tok = kind.kind.start_tok();
-                        // if kind.kind.start_tok() == Tok::LBrace {
-                        //     result = true;
-                        // }
-                    },
-                    TokenTree::SimpleToken {
-                        content,
-                        pos: _,
-                        tok,
-                        note: _,
-                    } => {
-                        next_tok = *tok;
-                        println!("content = {:?}", content);                    
-                        if Tok::ByteStringValue == *tok {
-                            result = true;
-                        }
-                    }
-                }
-            });
-
-            if Tok::Comma == get_start_tok(current) {
-                if Tok::AtSign == next_tok {
-                    result = true;
-                }
-                println!("after Comma, result = {}, next_tok = {:?}", result, next_tok);
-            }
-            result
-        },
-        (_, TokType::MathSign) => true,
-        (TokType::Alphabet, TokType::String) => true,
-        (TokType::Number, TokType::Alphabet) => true,
-        (_, TokType::AmpMut) => true,
-        (TokType::Colon, _) => true,
-        (TokType::Alphabet, TokType::Number) => true,
-
-        (_, TokType::Less) => {
-            if is_bin_next {
-                true
-            } else {
-                false
-            }
-        }
-        (TokType::Less, TokType::Alphabet) => true,
-        (TokType::Less, _) => false,
-
-        (_, TokType::Amp) => {
-            if is_bin_next {
-                true
-            } else {
-                false
-            }
-        }
-
-        (_, TokType::Star) => {
-            if is_bin_next || is_apply_next {
-                if is_to_execpt {
-                    true
-                } else {
-                    false
-                }
-            } else {
-                false
-            }
-        }
-
-        (TokType::Star, _) => {
-            if is_bin_next || is_apply_current {
-                if is_to_execpt {
-                    true
-                } else {
-                    false
-                }
-            } else {
-                false
-            }
-        }
-
-        (TokType::AtSign, TokType::Alphabet) => false,
-        (TokType::Alphabet | TokType::Number | TokType::Sign, TokType::Sign) => {
-            let mut result = false;
-            let mut next_tok = Tok::EOF;
-            next.map(|x| {
-                match x {
-                    TokenTree::Nested {
-                        elements: _,
-                        kind,
-                        note: _,
-                    } => {
-                        next_tok = kind.kind.start_tok();
-                        if kind.kind.start_tok() == Tok::LBrace {
-                            result = true;
-                        }
-                    },
-                    TokenTree::SimpleToken {
-                        content,
-                        pos: _,
-                        tok,
-                        note: _,
-                    } => {
-                        next_tok = *tok;
-                        println!("content = {:?}", content);
-                        if Tok::LBrace == *tok {
-                            result = true;
-                        }
-                    }
-                }
-            });
-            if Tok::If == get_start_tok(current) || 
-               Tok::Else == get_start_tok(current) ||
-               Tok::While == get_start_tok(current) {
-                result = true;
-            }
-            println!("result = {}, next_tok = {:?}", result, next_tok);
-            result
-        },
-        _ => false,
-    };
-}
-
 impl Format {
     fn last_line_length(&self) -> usize {
         self.ret
@@ -983,10 +716,12 @@ impl Format {
             .flatten()
             .unwrap_or_default()
         {
+            eprintln!("tok_suitable_for_new_line ret false");
             return false;
         }
         let is_bin = note.map(|x| x == Note::BinaryOP).unwrap_or_default();
-        match tok {
+        let ret = match tok {
+            Tok::Less | Tok::Amp | Tok::Star | Tok::Greater if is_bin => true,
             Tok::ExclaimEqual
             | Tok::Percent
             | Tok::AmpAmp
@@ -995,17 +730,19 @@ impl Format {
             | Tok::Minus
             | Tok::Period
             | Tok::PeriodPeriod
-            | Tok::Slash => true,
-            Tok::Less | Tok::Amp | Tok::Star | Tok::Greater if is_bin => true,
-            Tok::LessEqual
+            | Tok::Slash
+            | Tok::LessEqual
             | Tok::LessLess
             | Tok::Equal
             | Tok::EqualEqual
             | Tok::EqualEqualGreater
             | Tok::LessEqualEqualGreater
             | Tok::GreaterEqual
-            | Tok::GreaterGreater => true,
+            | Tok::GreaterGreater
+            | Tok::NumValue => true,
             _ => false,
-        }
+        };
+        eprintln!("tok_suitable_for_new_line ret = {}", ret);
+        ret
     }
 }
