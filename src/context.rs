@@ -2,21 +2,21 @@
 // Copyright (c) The Move Contributors
 // SPDX-License-Identifier: Apache-2.0
 
-use super::utils::*;
+// use super::utils::*;
 // use crate::project::Project;
 // use crate::project::*;
-use im::HashSet;
+// use im::HashSet;
 use lsp_server::Connection;
-use lsp_types::notification::Notification;
-use lsp_types::MessageType;
-use move_command_line_common::files::FileHash;
-use move_compiler::parser::ast::Definition;
-use move_ir_types::location::Loc;
-use move_package::source_package::layout::SourcePackageLayout;
-use std::cell::RefCell;
+// use lsp_types::notification::Notification;
+// use lsp_types::MessageType;
+// use move_command_line_common::files::FileHash;
+// use move_compiler::parser::ast::Definition;
+// use move_ir_types::location::Loc;
+// use move_package::source_package::layout::SourcePackageLayout;
+// use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::rc::Rc;
+// use std::rc::Rc;
 
 /// The context within which the language server is running.
 pub struct Context {
@@ -146,25 +146,6 @@ pub struct Context {
 //     }
 // }
 
-pub(crate) fn send_show_message(
-    sender: &lsp_server::Connection,
-    typ: lsp_types::MessageType,
-    msg: String,
-) {
-    use std::time::Duration;
-    sender
-        .sender
-        .send_timeout(
-            lsp_server::Message::Notification(lsp_server::Notification {
-                method: lsp_types::notification::ShowMessage::METHOD.into(),
-                params: serde_json::to_value(lsp_types::LogMessageParams { typ, message: msg })
-                    .unwrap(),
-            }),
-            Duration::new(5, 0),
-        )
-        .unwrap();
-}
-
 #[derive(Default)]
 pub struct FileDiags {
     diags: HashMap<PathBuf, HashMap<url::Url, usize>>,
@@ -190,9 +171,6 @@ impl FileDiags {
         call(self.diags.get(mani).unwrap_or(&empty));
     }
 }
-
-///
-static LOAD_DEPS: bool = false;
 
 // impl MultiProject {
 //     pub fn try_reload_projects(&mut self, connection: &Connection) {

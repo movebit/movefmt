@@ -258,7 +258,9 @@ fn extract_tokens(content: &str) -> Result<Vec<ExtractToken>, Vec<String>> {
 
 #[test]
 fn test_dir() {
+    eprintln!("formated {} files", scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/use"));
     eprintln!("formated {} files", scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/tuple"));
+    eprintln!("formated {} files", scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/expr"));
 }
 
 #[test]

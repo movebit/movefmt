@@ -2,7 +2,7 @@
 // Copyright (c) The Move Contributors
 // SPDX-License-Identifier: Apache-2.0
 
-#[macro_use]
+// #[macro_use]
 extern crate lazy_static;
 
 #[macro_export]
@@ -33,12 +33,12 @@ macro_rules! impl_convert_loc {
 extern crate move_ir_types;
 
 #[macro_use]
-pub mod context;
-pub mod item;
-pub mod syntax;
-pub mod types;
+// pub mod context;
+// pub mod item;
+// pub mod types;
 pub mod utils;
+pub mod syntax;
 pub mod core;
-pub mod app;
+// pub mod app;
 pub mod syntax_fmt;
 pub mod movefmt_diff;

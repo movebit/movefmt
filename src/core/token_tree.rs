@@ -1,7 +1,6 @@
 use core::panic;
 use std::cmp::Ordering;
 use std::collections::HashSet;
-use std::collections::BTreeSet;
 
 use move_compiler::parser::ast::Definition;
 use move_compiler::parser::ast::*;

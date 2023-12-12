@@ -1,16 +1,16 @@
 use super::item::*;
 use crate::item::ItemFun;
 use enum_iterator::Sequence;
-use move_command_line_common::files::FileHash;
+// use move_command_line_common::files::FileHash;
 use move_compiler::{
     parser::ast::*,
-    shared::{Identifier, *},
+    shared::*,
 };
-use move_ir_types::location::{Loc, Spanned};
+// use move_ir_types::location::{Loc, Spanned};
 use move_symbol_pool::Symbol;
 use std::collections::HashMap;
 use std::fmt::Debug;
-use std::vec;
+// use std::vec;
 
 #[derive(Clone)]
 pub enum ResolvedType {
@@ -46,67 +46,9 @@ impl Default for ResolvedType {
 }
 
 impl ResolvedType {
-    pub(crate) fn nth_ty(&self, index: usize) -> Option<&'_ ResolvedType> {
-        match self {
-            ResolvedType::Multiple(x) => x.get(index),
-            _ => Some(self),
-        }
-    }
-
-    pub(crate) fn is_vector(&self) -> Option<&'_ Self> {
-        match self {
-            ResolvedType::Vec(x) => Some(x.as_ref()),
-            _ => None,
-        }
-    }
-    pub(crate) fn is_range(&self) -> Option<()> {
-        match self {
-            ResolvedType::Range => Some(()),
-            _ => None,
-        }
-    }
-
-    #[inline]
-    pub(crate) fn new_unit() -> Self {
-        ResolvedType::Unit
-    }
-    #[inline]
-    pub(crate) fn new_build_in(b: BuildInType) -> Self {
-        ResolvedType::BuildInType(b)
-    }
-    #[inline]
-    pub(crate) fn new_vector(ty: ResolvedType) -> Self {
-        ResolvedType::Vec(Box::new(ty))
-    }
-
-    #[inline]
-    pub(crate) fn is_unknown(&self) -> bool {
-        match self {
-            ResolvedType::UnKnown => true,
-            _ => false,
-        }
-    }
-
     pub(crate) fn is_unit(&self) -> bool {
         match self {
             ResolvedType::Unit => true,
-            _ => false,
-        }
-    }
-
-    #[inline]
-    pub(crate) fn new_ref(is_mut: bool, ty: ResolvedType) -> Self {
-        let value = ResolvedType::Ref(is_mut, Box::new(ty));
-        value
-    }
-    #[inline]
-    pub(crate) fn is_err(&self) -> bool {
-        self.is_unknown()
-    }
-    #[inline]
-    pub(crate) fn is_ref(&self) -> bool {
-        match self {
-            Self::Ref(_, _) => true,
             _ => false,
         }
     }
@@ -159,24 +101,6 @@ impl ResolvedType {
     }
 }
 
-impl ResolvedType {
-    pub(crate) fn def_loc(&self) -> Loc {
-        match self {
-            ResolvedType::TParam(name, _) => name.loc,
-            ResolvedType::BuildInType(_) => Loc::new(FileHash::empty(), 0, 0),
-            ResolvedType::Struct(ItemStructNameRef { name, .. }, _) => name.loc(),
-            ResolvedType::UnKnown => Loc::new(FileHash::empty(), 0, 0),
-            ResolvedType::Ref(_, _) => Loc::new(FileHash::empty(), 0, 0),
-            ResolvedType::Unit => Loc::new(FileHash::empty(), 0, 0),
-            ResolvedType::Multiple(_) => Loc::new(FileHash::empty(), 0, 0),
-            ResolvedType::Fun(f) => f.name.0.loc,
-            ResolvedType::Vec(_) => Loc::new(FileHash::empty(), 0, 0),
-            ResolvedType::Range => Loc::new(FileHash::empty(), 0, 0),
-            ResolvedType::Lambda { .. } => Loc::new(FileHash::empty(), 0, 0),
-        }
-    }
-}
-
 #[derive(Clone, Debug, Copy, Sequence)]
 pub enum BuildInType {
     Bool,
@@ -212,36 +136,11 @@ impl BuildInType {
             BuildInType::NumType => "u256",
         }
     }
-
-    pub(crate) fn num_types() -> Vec<Self> {
-        vec![
-            Self::U8,
-            Self::U16,
-            Self::U32,
-            Self::U64,
-            Self::U128,
-            Self::U256,
-        ]
-    }
-
-    /// Not all is build in.
-    /// exclude String and NumType.
-    pub(crate) fn build_ins() -> Vec<Self> {
-        let mut x = Self::num_types();
-        x.push(Self::Address);
-        x.push(Self::Signer);
-        x.push(Self::Bool);
-        x
-    }
 }
 
 impl std::fmt::Display for ResolvedType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ResolvedType::UnKnown => write!(f, "unknown"),
-            ResolvedType::Struct(ItemStructNameRef { name, .. }, _) => {
-                write!(f, "{}", name.value().as_str())
-            }
             ResolvedType::BuildInType(x) => write!(f, "{}", x.to_static_str()),
             ResolvedType::TParam(name, _) => {
                 write!(f, "{}", name.value.as_str())
@@ -286,6 +185,7 @@ impl std::fmt::Display for ResolvedType {
                     Ok(())
                 }
             }
+            _ => write!(f, "unknown"),
         }
     }
 }

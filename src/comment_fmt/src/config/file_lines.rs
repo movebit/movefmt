@@ -193,24 +193,6 @@ impl FileLines {
                 .collect(),
         }
     }
-
-    /// Returns `true` if `self` includes all lines in all files. Otherwise runs `f` on all ranges
-    /// in the designated file (if any) and returns true if `f` ever does.
-    fn file_range_matches<F>(&self, file_name: &FileName, f: F) -> bool
-    where
-        F: FnMut(&Range) -> bool,
-    {
-        let map = match self.0 {
-            // `None` means "all lines in all files".
-            None => return true,
-            Some(ref map) => map,
-        };
-
-        match canonicalize_path_string(file_name).and_then(|file| map.get(&file)) {
-            Some(ranges) => ranges.iter().any(f),
-            None => false,
-        }
-    }
 }
 
 /// `FileLines` files iterator.

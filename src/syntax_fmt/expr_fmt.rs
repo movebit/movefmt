@@ -1,23 +1,18 @@
 #![allow(dead_code)]
-use std::cell::RefCell;
+// use std::cell::RefCell;
 
-use std::result::Result::*;
+// use std::result::Result::*;
 
-use move_command_line_common::files::FileHash;
-use move_compiler::diagnostics::Diagnostics;
-use move_compiler::parser::lexer::{Lexer, Tok};
-use move_compiler::shared::CompilationEnv;
-use move_compiler::Flags;
-use std::cell::Cell;
-use std::collections::BTreeSet;
+// use move_command_line_common::files::FileHash;
+// use move_compiler::diagnostics::Diagnostics;
+// use move_compiler::parser::lexer::{Lexer, Tok};
+// use move_compiler::shared::CompilationEnv;
+// use move_compiler::Flags;
+// use std::cell::Cell;
+// use std::collections::BTreeSet;
 use crate::core::fmt::*;
-use crate::core::token_tree::{
-    Comment, CommentExtrator, CommentKind, Delimiter, NestKind_, Note, TokenTree,
-};
-use crate::utils::FileLineMappingOneFile;
-pub fn format_use(fmter: &mut Format) {
-    
-}
+use crate::core::token_tree::TokenTree;
+// use crate::utils::FileLineMappingOneFile;
 
 pub fn process_expr_in_token_trees(fmter: &mut Format) {
     let length = fmter.token_tree.len();
@@ -32,13 +27,14 @@ pub fn process_expr_in_token_trees(fmter: &mut Format) {
                 tok: _,
                 note: _,
             } => {}
-            TokenTree::Nested {
-                elements: _,
-                kind,
-                note: _,
-            } => {
+            _ => {}
+            // TokenTree::Nested {
+            //     elements: _,
+            //     kind,
+            //     note: _,
+            // } => {
 
-            }
+            // }
         }
         index += 1;
     }

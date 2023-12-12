@@ -334,7 +334,7 @@ fn identify_comment(
             )?
         };
     if rest.is_empty() {
-        eprintln!("rewritten_first_group = \n{}", rewritten_first_group);
+        // eprintln!("rewritten_first_group = \n{}", rewritten_first_group);
         Some(rewritten_first_group)
     } else {
         identify_comment(
@@ -1316,14 +1316,14 @@ struct UngroupedCommentCodeSlices<'a> {
     iter: iter::Peekable<CharClasses<std::str::CharIndices<'a>>>,
 }
 
-impl<'a> UngroupedCommentCodeSlices<'a> {
-    fn new(code: &'a str) -> UngroupedCommentCodeSlices<'a> {
-        UngroupedCommentCodeSlices {
-            slice: code,
-            iter: CharClasses::new(code.char_indices()).peekable(),
-        }
-    }
-}
+// impl<'a> UngroupedCommentCodeSlices<'a> {
+//     fn new(code: &'a str) -> UngroupedCommentCodeSlices<'a> {
+//         UngroupedCommentCodeSlices {
+//             slice: code,
+//             iter: CharClasses::new(code.char_indices()).peekable(),
+//         }
+//     }
+// }
 
 // 遍历注释中的代码片段,将其分开
 // 将字符串分割成功能代码和注释部分,并提供一个迭代器来遍历这些部分
@@ -1485,18 +1485,18 @@ struct CommentReducer<'a> {
     iter: std::str::Chars<'a>,
 }
 
-impl<'a> CommentReducer<'a> {
-    fn new(comment: &'a str) -> CommentReducer<'a> {
-        let is_block = comment.starts_with("/*");
-        let comment = remove_comment_header(comment);
-        CommentReducer {
-            is_block,
-            // There are no supplementary '*' on the first line.
-            at_start_line: false,
-            iter: comment.chars(),
-        }
-    }
-}
+// impl<'a> CommentReducer<'a> {
+//     fn new(comment: &'a str) -> CommentReducer<'a> {
+//         let is_block = comment.starts_with("/*");
+//         let comment = remove_comment_header(comment);
+//         CommentReducer {
+//             is_block,
+//             // There are no supplementary '*' on the first line.
+//             at_start_line: false,
+//             iter: comment.chars(),
+//         }
+//     }
+// }
 
 impl<'a> Iterator for CommentReducer<'a> {
     type Item = char;
@@ -1522,23 +1522,23 @@ impl<'a> Iterator for CommentReducer<'a> {
     }
 }
 
-fn remove_comment_header(comment: &str) -> &str {
-    if comment.starts_with("///") || comment.starts_with("//!") {
-        &comment[3..]
-    } else if let Some(stripped) = comment.strip_prefix("//") {
-        stripped
-    } else if (comment.starts_with("/**") && !comment.starts_with("/**/"))
-        || comment.starts_with("/*!")
-    {
-        &comment[3..comment.len() - 2]
-    } else {
-        assert!(
-            comment.starts_with("/*"),
-            "string '{comment}' is not a comment"
-        );
-        &comment[2..comment.len() - 2]
-    }
-}
+// fn remove_comment_header(comment: &str) -> &str {
+//     if comment.starts_with("///") || comment.starts_with("//!") {
+//         &comment[3..]
+//     } else if let Some(stripped) = comment.strip_prefix("//") {
+//         stripped
+//     } else if (comment.starts_with("/**") && !comment.starts_with("/**/"))
+//         || comment.starts_with("/*!")
+//     {
+//         &comment[3..comment.len() - 2]
+//     } else {
+//         assert!(
+//             comment.starts_with("/*"),
+//             "string '{comment}' is not a comment"
+//         );
+//         &comment[2..comment.len() - 2]
+//     }
+// }
 
 #[cfg(test)]
 mod test {

@@ -15,7 +15,6 @@ use crate::core::token_tree::{
 };
 use crate::utils::FileLineMappingOneFile;
 use crate::syntax::parse_file_string;
-use crate::syntax_fmt::comment_fmt;
 
 pub enum FormatEnv {
     FormatUse,
@@ -332,7 +331,8 @@ impl Format {
                             }  = t {
                             eprintln!("in loop<TokenTree::Nested> new_line({:?}) = true", content);
                         }
-                        self.new_line(Some(t.end_pos()));
+                        // process line tail comment
+                        self.process_same_line_comment(t.end_pos(), false);
                     }
                 }
                 self.add_comments(kind.end_pos, "end_of_nested_block".to_string());
@@ -435,7 +435,7 @@ impl Format {
                 // self.push_str(c.content.as_str());
                 let fmted_cmt_str = c.format_comment(
                     kind, self.depth.get() * self.config.indent_size, 0);
-                eprintln!("fmted_cmt_str = \n{}", fmted_cmt_str);
+                // eprintln!("fmted_cmt_str = \n{}", fmted_cmt_str);
                 self.push_str(fmted_cmt_str);
 
                 match kind {
@@ -582,6 +582,67 @@ impl Format {
         ret
     }
 
+    fn process_same_line_comment(&self, add_line_comment_pos: u32, before_pos: bool) {
+        let cur_line = self.cur_line.get();
+        let mut call_new_line = false;
+        for c in &self.comments[self.comments_index.get()..] {
+            if before_pos && c.start_offset > add_line_comment_pos {
+                break;
+            }
+
+            if self.translate_line(add_line_comment_pos) != self.translate_line(c.start_offset) {
+                break;
+            }
+            eprintln!("self.translate_line(c.start_offset) = {}, self.cur_line.get() = {}", self.translate_line(c.start_offset), self.cur_line.get());
+            eprintln!("add a new line[{:?}], meet comment", c.content);
+            // if (self.translate_line(c.start_offset) - self.cur_line.get()) > 1 {
+            //     eprintln!("add a black line");
+            //     self.new_line(None);
+            // }
+            // self.push_str(c.content.as_str());
+            let kind = c.comment_kind();
+            let fmted_cmt_str = c.format_comment(
+                kind, self.depth.get() * self.config.indent_size, 0);
+            eprintln!("fmted_cmt_str in same_line = \n{}", fmted_cmt_str);
+
+            let buffer = self.ret.clone();
+            if !buffer.clone().borrow().chars().last().unwrap_or(' ').is_ascii_whitespace() {
+                // insert 2 black space before '//'
+                self.push_str(" ");
+                if let Some(_) = fmted_cmt_str.find("//") {
+                    self.push_str(" ");
+                }
+            }
+
+            self.push_str(fmted_cmt_str);
+            match kind {
+                CommentKind::BlockComment => {
+                    let end = c.start_offset + (c.content.len() as u32);
+                    let line_start = self.translate_line(c.start_offset);
+                    let line_end = self.translate_line(end);
+                    if line_start != line_end {
+                        eprintln!("in new_line, add CommentKind::BlockComment");
+                        self.new_line(None);
+                        call_new_line = true;
+                    }
+                }
+                _ => {
+                    eprintln!("-- process_same_line_comment, add CommentKind::_({})", c.content);
+                    self.new_line(None);
+                    call_new_line = true;
+                }
+            }
+            self.comments_index.set(self.comments_index.get() + 1);
+            self.cur_line.set(self.translate_line(c.start_offset + (c.content.len() as u32) - 1));
+        }
+        if cur_line != self.cur_line.get() || call_new_line {
+            eprintln!("success new line, return <<<<<<<<<<<<<<<<< \n");
+            return;
+        }
+        self.push_str("\n");
+        self.indent();
+    }
+
     fn new_line(&self, add_line_comment_option: Option<u32>) {
         let (add_line_comment, b_add_comment) = match add_line_comment_option {
             Some(add_line_comment) => (add_line_comment, true),
@@ -592,65 +653,7 @@ impl Format {
             self.indent();
             return;
         }
-        // emit same line comments.
-        let cur_line = self.cur_line.get();
-        let mut call_new_line = false;
-        for c in &self.comments[self.comments_index.get()..] {
-            if c.start_offset > add_line_comment {
-                break;
-            }
-            if self.translate_line(add_line_comment) == self.translate_line(c.start_offset) {
-                eprintln!("self.translate_line(c.start_offset) = {}, self.cur_line.get() = {}", self.translate_line(c.start_offset), self.cur_line.get());
-                eprintln!("add a new line[{:?}], meet comment", c.content);
-                // if (self.translate_line(c.start_offset) - self.cur_line.get()) > 1 {
-                //     eprintln!("add a black line");
-                //     self.new_line(None);
-                // }
-                // self.push_str(c.content.as_str());
-                let kind = c.comment_kind();
-                let fmted_cmt_str = c.format_comment(
-                    kind, self.depth.get() * self.config.indent_size, 0);
-                eprintln!("fmted_cmt_str in same_line = \n{}", fmted_cmt_str);
-
-                let buffer = self.ret.clone();
-                if !buffer.clone().borrow().chars().last().unwrap_or(' ').is_ascii_whitespace() {
-                    // insert 2 black space before '//'
-                    self.push_str(" ");
-                    if let Some(_) = fmted_cmt_str.find("//") {
-                        self.push_str(" ");
-                    }
-                }
-
-                self.push_str(fmted_cmt_str);
-                match kind {
-                    CommentKind::BlockComment => {
-                        let end = c.start_offset + (c.content.len() as u32);
-                        let line_start = self.translate_line(c.start_offset);
-                        let line_end = self.translate_line(end);
-                        if line_start != line_end {
-                            eprintln!("in new_line, add CommentKind::BlockComment");
-                            self.new_line(None);
-                            call_new_line = true;
-                        }
-                    }
-                    _ => {
-                        eprintln!("in new_line, add CommentKind::_({})", c.content);
-                        self.new_line(None);
-                        call_new_line = true;
-                    }
-                }
-                self.comments_index.set(self.comments_index.get() + 1);
-                self.cur_line.set(self.translate_line(c.start_offset + (c.content.len() as u32) - 1));
-            } else {
-                break;
-            }
-        }
-        if cur_line != self.cur_line.get() || call_new_line {
-            eprintln!("success new line, return <<<<<<<<<<<<<<<<< \n");
-            return;
-        }
-        self.push_str("\n");
-        self.indent();
+        self.process_same_line_comment(add_line_comment, true);
     }
 
 }

@@ -1,15 +1,15 @@
 use super::types::*;
 use enum_iterator::Sequence;
 use move_compiler::shared::Identifier;
-use move_compiler::shared::TName;
+// use move_compiler::shared::TName;
 use move_compiler::{parser::ast::*, shared::*};
 use move_core_types::account_address::AccountAddress;
 
-use move_ir_types::location::Loc;
+// use move_ir_types::location::Loc;
 use move_symbol_pool::Symbol;
-use std::cell::RefCell;
+// use std::cell::RefCell;
 use std::collections::HashMap;
-use std::rc::Rc;
+// use std::rc::Rc;
 use std::str::FromStr;
 
 #[derive(Clone)]
@@ -21,33 +21,6 @@ pub struct ItemStruct {
     pub(crate) is_test: bool,
     pub(crate) addr: AccountAddress,
     pub(crate) module_name: Symbol,
-}
-
-impl ItemStruct {
-    pub(crate) fn to_struct_ref(&self) -> ItemStructNameRef {
-        ItemStructNameRef {
-            addr: self.addr,
-            module_name: self.module_name,
-            name: self.name,
-            type_parameters: self.type_parameters.clone(),
-            is_test: self.is_test,
-        }
-    }
-    pub(crate) fn find_filed_by_name(&self, name: Symbol) -> Option<&(Field, ResolvedType)> {
-        for f in self.fields.iter() {
-            if f.0 .0.value.as_str() == name.as_str() {
-                return Some(f);
-            }
-        }
-        None
-    }
-    pub(crate) fn all_fields(&self) -> HashMap<Symbol, (Name, ResolvedType)> {
-        let mut m = HashMap::new();
-        self.fields.iter().for_each(|f| {
-            m.insert(f.0 .0.value, (f.0 .0.clone(), f.1.clone()));
-        });
-        m
-    }
 }
 
 impl ItemStruct {
@@ -100,7 +73,6 @@ pub enum Item {
     Var {
         var: Var,
         ty: ResolvedType,
-        lambda: Option<LambdaExp>,
         has_decl_ty: bool,
     },
     Field(Field, ResolvedType),
@@ -121,12 +93,6 @@ pub enum Item {
 }
 
 #[derive(Clone)]
-pub struct LambdaExp {
-    pub(crate) bind_list: BindList,
-    pub(crate) exp: Exp,
-}
-
-#[derive(Clone)]
 pub enum ItemUse {
     Module(ItemUseModule),
     Item(ItemUseItem),
@@ -135,8 +101,8 @@ pub enum ItemUse {
 #[derive(Clone)]
 pub struct ItemUseModule {
     pub(crate) module_ident: ModuleIdent,         // 0x111::xxxx
-    pub(crate) alias: Option<ModuleName>,         // alias
-    pub(crate) s: Option<Name>,                   // Option Self
+    // pub(crate) alias: Option<ModuleName>,         // alias
+    // pub(crate) s: Option<Name>,                   // Option Self
     #[allow(dead_code)]
     pub(crate) is_test: bool,
 }
@@ -153,16 +119,16 @@ pub struct ItemUseItem {
 #[derive(Clone)]
 pub struct ItemModuleName {
     pub(crate) name: ModuleName,
-    pub(crate) is_test: bool,
+    // pub(crate) is_test: bool,
 }
 
 #[derive(Clone)]
 pub struct ItemStructNameRef {
-    pub(crate) addr: AccountAddress,
-    pub(crate) module_name: Symbol,
-    pub(crate) name: StructName,
-    pub(crate) type_parameters: Vec<StructTypeParameter>,
-    pub(crate) is_test: bool,
+    // pub(crate) addr: AccountAddress,
+    // pub(crate) module_name: Symbol,
+    // pub(crate) name: StructName,
+    // pub(crate) type_parameters: Vec<StructTypeParameter>,
+    // pub(crate) is_test: bool,
 }
 
 #[derive(Clone)]
@@ -171,10 +137,8 @@ pub struct ItemFun {
     pub(crate) type_parameters: Vec<(Name, Vec<Ability>)>,
     pub(crate) parameters: Vec<(Var, ResolvedType)>,
     pub(crate) ret_type: Box<ResolvedType>,
-    pub(crate) ret_type_unresolved: Type,
-    pub(crate) is_spec: bool,
-    pub(crate) vis: Visibility,
-    pub(crate) is_test: AttrTest,
+    // pub(crate) vis: Visibility,
+    // pub(crate) is_test: AttrTest,
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -182,12 +146,6 @@ pub enum AttrTest {
     No,
     Test,
     TestOnly,
-}
-
-impl AttrTest {
-    pub(crate) fn is_test(self) -> bool {
-        self == Self::Test || self == Self::TestOnly
-    }
 }
 
 impl std::fmt::Display for ItemFun {
@@ -228,17 +186,6 @@ impl std::fmt::Display for ItemFun {
     }
 }
 
-impl Item {
-    pub(crate) fn is_build_in(&self) -> bool {
-        match self {
-            Item::BuildInType(_) => true,
-            Item::SpecBuildInFun(_) => true,
-            Item::MoveBuildInFun(_) => true,
-            _ => false,
-        }
-    }
-}
-
 impl Default for Item {
     fn default() -> Self {
         Self::Dummy
@@ -249,8 +196,7 @@ impl Default for Item {
 pub struct ItemConst {
     pub(crate) name: ConstantName,
     pub(crate) ty: ResolvedType,
-    /// only Const have this field,SpecConst ignore this field.
-    pub(crate) is_test: bool,
+    // pub(crate) is_test: bool,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -258,39 +204,9 @@ pub enum MacroCall {
     Assert,
 }
 
-impl MacroCall {
-    pub(crate) fn from_chain(chain: &NameAccessChain) -> Option<Self> {
-        match &chain.value {
-            NameAccessChain_::One(name) => return Self::from_symbol(name.value),
-            NameAccessChain_::Two(_, _) => return None,
-            NameAccessChain_::Three(_, _) => return None,
-        }
-    }
-    pub(crate) fn from_symbol(s: Symbol) -> Option<Self> {
-        match s.as_str() {
-            "assert" => Some(Self::Assert),
-            _ => return None,
-        }
-    }
-    pub(crate) fn to_static_str(self) -> &'static str {
-        match self {
-            MacroCall::Assert => "assert",
-        }
-    }
-}
-
 impl Default for MacroCall {
     fn default() -> Self {
         Self::Assert
-    }
-}
-
-/// Get the last name of a access chain.
-pub(crate) fn get_name_chain_last_name(x: &NameAccessChain) -> &Name {
-    match &x.value {
-        move_compiler::parser::ast::NameAccessChain_::One(name)
-        | move_compiler::parser::ast::NameAccessChain_::Two(_, name)
-        | move_compiler::parser::ast::NameAccessChain_::Three(_, name) => name,
     }
 }
 
@@ -338,9 +254,6 @@ impl std::fmt::Display for Item {
             Item::Struct(s) => {
                 write!(f, "{}", s)
             }
-            Item::StructNameRef(ItemStructNameRef { name, .. }) => {
-                write!(f, "{}", name.value().as_str())
-            }
             Item::Fun(x) => write!(f, "{}", x),
             Item::BuildInType(x) => {
                 write!(f, "{}", x.to_static_str())
@@ -367,6 +280,9 @@ impl std::fmt::Display for Item {
             }
             Item::MoveBuildInFun(x) => write!(f, "move_build_in_fun {}", x.to_static_str()),
             Item::SpecBuildInFun(x) => write!(f, "spec_build_in_fun {}", x.to_static_str()),
+            _ => {
+                write!(f, "dummy")
+            }
         }
     }
 }
@@ -383,7 +299,6 @@ pub enum Access {
     // TODO   @XXX 目前知道的可以在Move.toml中定义
     // 可以在源代码中定义吗?
     ExprAddressName(Name),
-    AccessFiled(AccessFiled),
     ///////////////
     /// key words
     KeyWords(&'static str),
@@ -399,24 +314,6 @@ pub enum Access {
     IncludeSchema(NameAccessChain, Box<Item>),
     PragmaProperty(PragmaProperty),
     SpecFor(Name, Box<Item>),
-}
-
-#[derive(Clone)]
-pub struct AccessFiled {
-    pub(crate) from: Field,
-    pub(crate) to: Field,
-    pub(crate) ty: ResolvedType,
-    pub(crate) all_fields: HashMap<Symbol, (Name, ResolvedType)>,
-    /// When dealing with below syntax can have this.
-    /// ```move
-    /// let x = XXX {x}
-    ///```
-    /// x is alas a field and a expr.
-    /// and a expr can link to a item.
-    pub(crate) item: Option<Item>,
-    /// Does this field access contains a ref
-    /// like &xxx.yyy
-    pub(crate) has_ref: Option<bool>,
 }
 
 #[derive(Clone)]
@@ -512,65 +409,6 @@ impl SpecBuildInFun {
             Self::UpdateField => "update_field",
             Self::Old => "old",
             Self::TRACE => "TRACE",
-        }
-    }
-
-    pub(crate) fn to_notice(self) -> &'static str {
-        match self {
-            SpecBuildInFun::Exists => {
-                r#"exists<T>(address): bool 
-Returns true if the resource T exists at address.
-                "#
-            }
-            SpecBuildInFun::Global => {
-                r#"global<T>(address): 
-T returns the resource value at address."#
-            }
-            SpecBuildInFun::Len => {
-                r#"len<T>(vector<T>): num 
-Returns the length of the vector."#
-            }
-            SpecBuildInFun::Update => {
-                r#"update<T>(vector<T>, num, T>): vector<T> 
-Returns a new vector with the element replaced at the given index."#
-            }
-            SpecBuildInFun::Vec => {
-                r#"vec<T>(): vector<T> 
-Returns an empty vector."#
-            }
-            SpecBuildInFun::Concat => {
-                r#"concat<T>(vector<T>, vector<T>): vector<T> 
-Returns the concatenation of the parameters."#
-            }
-            SpecBuildInFun::Contains => {
-                r#"contains<T>(vector<T>, T): bool 
-Returns true if element is in vector."#
-            }
-            SpecBuildInFun::IndexOf => {
-                r#"index_of<T>(vector<T>, T): num 
-Returns the index of the element in the vector, or the length of the vector if it does not contain it."#
-            }
-            SpecBuildInFun::Range => {
-                r#"range<T>(vector<T>): range 
-Returns the index range of the vector."#
-            }
-            SpecBuildInFun::InRange => {
-                r#"in_range<T>(vector<T>, num): bool 
-Returns true if the number is in the index range of the vector."#
-            }
-            SpecBuildInFun::UpdateField => {
-                r#"update_field(S, F, T): S 
-Updates a field in a struct, preserving the values of other fields, where S is some struct, F the name of a field in S, and T a value for this field."#
-            }
-            SpecBuildInFun::Old => {
-                r#"old(T): T 
-T delivers the value of the passed argument at point of entry into a Move function. This is allowed in ensures post-conditions, inline spec blocks (with additional restrictions), and certain forms of invariants, as discussed later."#
-            }
-            SpecBuildInFun::TRACE => {
-                r#"TRACE(T): T
-T is semantically the identity function and causes visualization of the argument's value in error messages created by the prover.
-            "#
-            }
         }
     }
 }
