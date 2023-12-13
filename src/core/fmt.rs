@@ -1,8 +1,6 @@
 #![allow(dead_code)]
 use std::cell::RefCell;
-
 use std::result::Result::*;
-
 use move_command_line_common::files::FileHash;
 use move_compiler::diagnostics::Diagnostics;
 use move_compiler::parser::lexer::{Lexer, Tok};
@@ -259,6 +257,10 @@ impl Format {
                         .unwrap_or_default();
 
                     let fun_body = note.map(|x| x == Note::FunBody).unwrap_or_default();
+
+                    if self.ret.clone().into_inner().contains("writes") {
+                        eprintln!("self.last_line = {:?}, fun_body = {}", self.last_line(), fun_body);
+                    }
 
                     length > MAX
                         || delimiter

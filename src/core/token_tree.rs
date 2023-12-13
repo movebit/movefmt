@@ -126,6 +126,17 @@ pub enum Note {
     ApplyName,
 }
 
+impl Default for TokenTree {  
+    fn default() -> Self {  
+        TokenTree::SimpleToken {  
+            content: "".to_string(),  
+            pos: 0,  
+            tok: Tok::EOF,
+            note: None,  
+        }  
+    }  
+}
+
 impl TokenTree {
     pub fn get_note(&self) -> Option<Note> {
         match self {
