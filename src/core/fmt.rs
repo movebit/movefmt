@@ -297,7 +297,7 @@ impl Format {
                             // eprintln!("after format_token_trees_<TokenTree::Nested-start_token_tree> return, next_token = {:?}", 
                             //     next_str);
                             // process line tail comment
-                            self.process_same_line_comment(kind.start_pos, false);
+                            self.process_same_line_comment(kind.start_pos, true);
                         } else {
                             self.new_line(Some(kind.start_pos));
                         }
@@ -350,8 +350,22 @@ impl Format {
                             }  = t {
                             eprintln!("in loop<TokenTree::Nested> new_line({:?}) = true", content);
                         }
-                        // process line tail comment
-                        self.process_same_line_comment(t.end_pos(), false);
+
+                        let process_tail_comment_of_line = match next_t {
+                            Some(next_token) => {
+                                let mut next_token_start_pos: u32 = 0;
+                                self.analyzer_token_tree_start_pos_(&mut next_token_start_pos, next_token);
+                                if self.translate_line(next_token_start_pos) > self.translate_line(t.end_pos()) {
+                                    true
+                                } else {
+                                    false
+                                }
+                            }
+                            None => {
+                                true
+                            }
+                        };
+                        self.process_same_line_comment(t.end_pos(), process_tail_comment_of_line);
                     }
                 }
                 self.add_comments(kind.end_pos, "end_of_nested_block".to_string());
@@ -608,11 +622,11 @@ impl Format {
         ret
     }
 
-    fn process_same_line_comment(&self, add_line_comment_pos: u32, before_pos: bool) {
+    fn process_same_line_comment(&self, add_line_comment_pos: u32, process_tail_comment_of_line: bool) {
         let cur_line = self.cur_line.get();
         let mut call_new_line = false;
         for c in &self.comments[self.comments_index.get()..] {
-            if before_pos && c.start_offset > add_line_comment_pos {
+            if !process_tail_comment_of_line && c.start_offset > add_line_comment_pos {
                 break;
             }
 
@@ -679,7 +693,7 @@ impl Format {
             self.indent();
             return;
         }
-        self.process_same_line_comment(add_line_comment, true);
+        self.process_same_line_comment(add_line_comment, false);
     }
 
 }
