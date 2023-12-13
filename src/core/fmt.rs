@@ -277,19 +277,25 @@ impl Format {
                         }
                     }
                     NestKind_::Brace => {
-                        // added by lzw: 20231208
-                        // new_line_mode = true;
+                        // added by lzw: 20231213
+                        if self.last_line().contains("module") {
+                            new_line_mode = true;
+                        }
                     }
                 }
                 self.format_token_trees_(&kind.start_token_tree(), None, new_line_mode);
                 self.inc_depth();
                 if new_line_mode {
-                    eprintln!("after format_token_trees_<TokenTree::Nested-start_token_tree> return, new_line_mode = true");
                     if elements.len() > 0 {
                         let next_token = elements.get(0).unwrap();
                         let mut next_token_start_pos: u32 = 0;
                         self.analyzer_token_tree_start_pos_(&mut next_token_start_pos, next_token);
                         if self.translate_line(next_token_start_pos) > self.translate_line(kind.start_pos) {
+                            // let source = self.format_context.content.clone();
+                            // let start_pos: usize = next_token_start_pos as usize;
+                            // let (_, next_str) = source.split_at(start_pos);                                                  
+                            // eprintln!("after format_token_trees_<TokenTree::Nested-start_token_tree> return, next_token = {:?}", 
+                            //     next_str);
                             // process line tail comment
                             self.process_same_line_comment(kind.start_pos, false);
                         } else {
@@ -429,9 +435,17 @@ impl Format {
                 break;
             }
 
-            if (self.translate_line(c.start_offset) - self.cur_line.get()) >= 1 {
+            if (self.translate_line(c.start_offset) - self.cur_line.get()) > 1 {
                 self.new_line(None);
             }
+
+            if (self.translate_line(c.start_offset) - self.cur_line.get()) == 1 {
+                // if located after nestedToken start, maybe already chanedLine
+                let ret_copy = self.ret.clone().into_inner();
+                *self.ret.borrow_mut() = ret_copy.trim_end().to_string();
+                self.new_line(None);
+            }
+
             eprintln!("-- add_comments: line(c.start_offset) - cur_line = {:?}", 
                 self.translate_line(c.start_offset) - self.cur_line.get());
             eprintln!("c.content.as_str() = {:?}\n", c.content.as_str());
@@ -697,6 +711,16 @@ impl Format {
             .map(|x| x.len())
             .unwrap_or_default()
     }
+
+    fn last_line(&self) -> String {
+        self.ret
+            .borrow()
+            .lines()
+            .last()
+            .map(|x| x.to_string())
+            .unwrap_or_default()
+    }
+
     fn tok_suitable_for_new_line(tok: Tok, note: Option<Note>, next: Option<&TokenTree>) -> bool {
         // special case
         if next
