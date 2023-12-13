@@ -259,7 +259,8 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                     }
                 }
             });
-            if Tok::Slash == get_start_tok(current) || 
+            if Tok::Let == get_start_tok(current) || 
+               Tok::Slash == get_start_tok(current) || 
                Tok::If == get_start_tok(current) || 
                Tok::Else == get_start_tok(current) ||
                Tok::While == get_start_tok(current) {
