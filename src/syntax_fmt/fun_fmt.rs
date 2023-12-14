@@ -1,5 +1,25 @@
-// use move_command_line_common::files::FileHash;
+// use std::cell::RefCell;
+// use core::panic;
+// use std::cmp::Ordering;
+// use std::collections::HashSet;
+// use std::result::Result::*;
+use move_command_line_common::files::FileHash;
+// use move_compiler::diagnostics::Diagnostics;
 // use move_compiler::parser::lexer::{Lexer, Tok};
+use move_ir_types::location::*;
+use move_compiler::shared::CompilationEnv;
+use move_compiler::Flags;
+use move_compiler::parser::ast::Definition;
+use move_compiler::parser::ast::*;
+// use move_compiler::parser::lexer::{Lexer, Tok};
+// use move_compiler::shared::Identifier;
+// use std::cell::Cell;
+use std::collections::BTreeSet;
+// use crate::core::token_tree::{
+//     Comment, CommentExtrator, CommentKind, Delimiter, NestKind_, Note, TokenTree,
+// };
+use crate::utils::FileLineMappingOneFile;
+use crate::syntax::parse_file_string;
 
 // struct CodeBlock<T> {  
 //     content: &'static str,  
@@ -146,6 +166,102 @@ pub fn fun_header_specifier_fmt(specifier: &str, indent_str: &String) -> String 
     ret_str
 }
 
+pub fn add_space_line_in_two_fun(fmt_buffer: String) -> String {
+    use regex::Regex;
+    let re = Regex::new(r"}\s*fun").unwrap();
+    let mut ret_fmt_buffer = fmt_buffer.clone();
+    let text = fmt_buffer.clone();
+    for cap in re.clone().captures_iter(text.as_str()) {  
+        let cap = cap[0].to_string();
+        if cap.chars().filter(|c| *c == '\n').count() == 1 {
+            eprintln!("cap = {:?}", cap);
+            match fmt_buffer.find(&cap) {
+                Some(idx) => {
+                    ret_fmt_buffer.insert(idx + 2, '\n');
+                    eprintln!("after insert, cap = {:?}", &ret_fmt_buffer[idx..idx+cap.len()]);
+                },
+                _ => {},
+            }
+        } else {
+            eprintln!("cap = {:?}", cap);
+        }
+    }
+    ret_fmt_buffer
+}
+
+#[derive(Debug, Default)]
+pub struct FunExtractor {
+    pub loc_vec: Vec<Loc>,
+    pub loc_line_vec: Vec<(u32, u32)>,
+    pub line_mapping: FileLineMappingOneFile,
+}
+
+impl FunExtractor {
+    pub fn new(fmt_buffer: String) -> Self {
+        let mut this_fun_extractor = Self {      
+            loc_vec: vec![],
+            loc_line_vec: vec![],
+            line_mapping: FileLineMappingOneFile::default(),
+        };
+
+        this_fun_extractor.line_mapping.update(&fmt_buffer);
+        let attrs: BTreeSet<String> = BTreeSet::new();    
+        let mut env = CompilationEnv::new(Flags::testing(), attrs);
+        let filehash = FileHash::empty();
+        let (defs, _) = parse_file_string(&mut env, filehash, &fmt_buffer).unwrap();
+    
+        
+        for d in defs.iter() {
+            this_fun_extractor.collect_definition(d);
+        }
+
+        this_fun_extractor
+    }
+
+    fn collect_function(&mut self, d: &Function) {
+        match &d.body.value {
+            FunctionBody_::Defined(..) => {
+                let start_line = self.line_mapping.translate(d.loc.start(), d.loc.start()).unwrap().start.line;
+                let end_line = self.line_mapping.translate(d.loc.end(), d.loc.end()).unwrap().start.line;
+                self.loc_vec.push(d.loc);
+                self.loc_line_vec.push((start_line, end_line));
+            }
+            FunctionBody_::Native => {}
+        }
+    }
+
+    fn collect_module(&mut self, d: &ModuleDefinition) {
+        for m in d.members.iter() {
+            match &m {
+                ModuleMember::Function(x) => self.collect_function(x),
+                _ => {},
+            }
+        }
+    }
+
+    fn collect_script(&mut self, d: &Script) {
+        self.collect_function(&d.function);
+    }
+
+    fn collect_definition(&mut self, d: &Definition) {
+        match d {
+            Definition::Module(x) => self.collect_module(x),
+            Definition::Address(x) => {
+                for x in x.modules.iter() {
+                    self.collect_module(x);
+                }
+            }
+            Definition::Script(x) => self.collect_script(x),
+        }
+    }
+
+
+}
+
+pub fn add_space_line_in_two_funs(fmt_buffer: String) {
+    let fun_extractor = FunExtractor::new(fmt_buffer);
+    eprintln!("loc_line_vec = {:?}", fun_extractor.loc_line_vec);
+}
 
 // #[test]
 // fn test_rewrite_fun_header_1() {
@@ -186,5 +302,42 @@ fn test_rewrite_fun_header_2() {
     fun_header_specifier_fmt("!reads *(0x42), *(0x43)", &"    ".to_string());
     fun_header_specifier_fmt(": u32 !reads *(0x42), *(0x43)", &"    ".to_string());
     fun_header_specifier_fmt(": /*(bool, bool)*/ (bool, bool) ", &"    ".to_string());
+}
+
+
+#[test]
+fn test_add_space_line_in_two_funs_1() {
+    // add_space_line_in_two_funs(
+    //     "
+    //   }
+    // // test two fun Close together without any blank lines, and here is a InlineComment
+    // public fun 
+    // ".to_string()
+    // );
+
+    add_space_line_in_two_funs(
+    "
+    module TestFunFormat {
     
+        struct SomeOtherStruct has drop {
+            some_field: u64,
+        } 
+        
+        // test two fun Close together without any blank lines
+        public fun test_long_fun_name_lllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll(v: u64): SomeOtherStruct {
+            SomeOtherStruct {some_field: v}
+        } 
+        public fun multi_arg(p1: u64, p2: u64): u64 {
+            p1 + p2
+        }
+        // test two fun Close together without any blank lines, and here is a InlineComment
+        public fun multi_arg22(p1: u64, p2: u64): u64 {
+            p1 + p2
+        } 
+        /* test two fun Close together without any blank lines, and here is a BlockComment */ fun multi_arg22(p1: u64, p2: u64): u64 {
+            p1 + p2
+        }
+    }
+    ".to_string()
+    );
 }
