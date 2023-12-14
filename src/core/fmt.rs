@@ -264,7 +264,15 @@ impl Format {
                         if let Some(last_fun_idx) = cur_ret.rfind("fun") {
                             let fun_header = &cur_ret[last_fun_idx..];
                             if let Some(specifier_idx) = fun_header.rfind("()") {
-                                fun_fmt::fun_header_specifier_fmt(&fun_header[specifier_idx+2..]);
+                                let indent_str = " ".to_string()
+                                    .repeat((self.depth.get() + 1) * self.config.indent_size);
+                                let fun_specifier_fmted_str = fun_fmt::fun_header_specifier_fmt(
+                                    &fun_header[specifier_idx+2..], &indent_str);
+
+                                let ret_copy = &self.ret.clone().into_inner()[0..last_fun_idx+specifier_idx+2];
+                                let mut new_ret = ret_copy.to_string();
+                                new_ret.push_str(fun_specifier_fmted_str.as_str());
+                                *self.ret.borrow_mut() = new_ret.to_string();
                             }
                         }
                         if self.ret.clone().into_inner().contains("writes") {

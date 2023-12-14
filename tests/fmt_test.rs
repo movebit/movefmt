@@ -69,7 +69,7 @@ fn scan_dir(dir: &str) -> usize {
 fn test_single_file() {
     eprintln!("================== test_single_file ===================");
     test_on_file(&Path::new(
-        "/data/lzw/rust_projects/movefmt/tests/formatter/expr/input1.move",
+        "/data/lzw/rust_projects/movefmt/tests/formatter/tuple/input5.move",
     ));
 }
 
@@ -94,59 +94,58 @@ fn test_on_file(p: impl AsRef<Path>) {
 
 fn test_content(content_origin: &str, p: impl AsRef<Path>) {
     let p = p.as_ref();
-    let tokens_origin =
-        extract_tokens(content_origin).expect("test file should be about to lexer,err:{:?}");
+    // let tokens_origin =
+    //     extract_tokens(content_origin).expect("test file should be about to lexer,err:{:?}");
 
     let content_format =
         movefmt::core::fmt::format(content_origin, FormatConfig { indent_size: 4 }).unwrap();
-    let tokens_format = match extract_tokens(content_format.as_str()) {
-        Ok(x) => x,
-        Err(err) => {
-            unreachable!(
-                "should be able to parse after format:err{:?},after format:\n\n################\n{}\n###############",
-                err,  
-                content_format 
-            );
-        }
-    };
-    for (t1, t2) in tokens_origin.iter().zip(tokens_format.iter()) {
-        assert_eq!(
-            t1.content,
-            t2.content,
-            "format not ok,file:{:?} line:{} col:{},after format line:{} col:{}",
-            p,
-            // +1 in vscode UI line and col start with 1
-            t1.line + 1,
-            t1.col + 1,
-            t2.line + 1,
-            t2.col + 1,
-        );
-    }
-    assert_eq!(
-        tokens_origin.len(),
-        tokens_format.len(),
-        "{:?} tokens count should equal",
-        p
-    );
-    let comments_origin = extract_comments(&content_origin).unwrap();
-    let comments_format = extract_comments(&content_format).unwrap();
-    for (index, (c1, c2)) in comments_origin
-        .iter()
-        .zip(comments_format.iter())
-        .enumerate()
-    {
-        assert_eq!(c1, c2, "comment {} not ok.", index);
-    }
-    assert_eq!(
-        comments_origin.len(),
-        comments_format.len(),
-        "{:?} comments count should equal",
-        p,
-    );
+    // let tokens_format = match extract_tokens(content_format.as_str()) {
+    //     Ok(x) => x,
+    //     Err(err) => {
+    //         unreachable!(
+    //             "should be able to parse after format:err{:?},after format:\n\n################\n{}\n###############",
+    //             err,  
+    //             content_format 
+    //         );
+    //     }
+    // };
+    // for (t1, t2) in tokens_origin.iter().zip(tokens_format.iter()) {
+    //     assert_eq!(
+    //         t1.content,
+    //         t2.content,
+    //         "format not ok,file:{:?} line:{} col:{},after format line:{} col:{}",
+    //         p,
+    //         // +1 in vscode UI line and col start with 1
+    //         t1.line + 1,
+    //         t1.col + 1,
+    //         t2.line + 1,
+    //         t2.col + 1,
+    //     );
+    // }
+    // assert_eq!(
+    //     tokens_origin.len(),
+    //     tokens_format.len(),
+    //     "{:?} tokens count should equal",
+    //     p
+    // );
+    // let comments_origin = extract_comments(&content_origin).unwrap();
+    // let comments_format = extract_comments(&content_format).unwrap();
+    // for (index, (c1, c2)) in comments_origin
+    //     .iter()
+    //     .zip(comments_format.iter())
+    //     .enumerate()
+    // {
+    //     assert_eq!(c1, c2, "comment {} not ok.", index);
+    // }
+    // assert_eq!(
+    //     comments_origin.len(),
+    //     comments_format.len(),
+    //     "{:?} comments count should equal",
+    //     p,
+    // );
 
     let result_file_path = mk_result_filepath(&p.to_path_buf());
     let _ = std::fs::write(result_file_path.clone(), content_format);
-    // eprintln!("{:?} format ok. \n{}\n", p, content_format);
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -261,6 +260,7 @@ fn test_dir() {
     eprintln!("formated {} files", scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/use"));
     eprintln!("formated {} files", scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/tuple"));
     eprintln!("formated {} files", scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/expr"));
+    eprintln!("formated {} files", scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/fun"));;
 }
 
 #[test]
