@@ -295,10 +295,16 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                             next_tok = *tok;
                             println!("content = {:?}", content);
                             if Tok::NumValue == *tok 
-                            || Tok::NumTypedValue == *tok 
-                            || Tok::Identifier == *tok
+                            || Tok::NumTypedValue == *tok
                             || Tok::LParen == *tok {
                                 result = true;
+                            }
+                            if Tok::Identifier == *tok {
+                                if content.contains("vector") {
+                                    result = false;
+                                } else {
+                                    result = true;
+                                }
                             }
                         }
                     }
