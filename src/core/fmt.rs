@@ -13,7 +13,7 @@ use crate::core::token_tree::{
 };
 use crate::utils::FileLineMappingOneFile;
 use crate::syntax::parse_file_string;
-use crate::syntax_fmt::expr_fmt;
+use crate::syntax_fmt::{expr_fmt, fun_fmt};
 
 pub enum FormatEnv {
     FormatUse,
@@ -258,8 +258,18 @@ impl Format {
 
                     let fun_body = note.map(|x| x == Note::FunBody).unwrap_or_default();
 
-                    if self.ret.clone().into_inner().contains("writes") {
-                        eprintln!("self.last_line = {:?}, fun_body = {}", self.last_line(), fun_body);
+                    if fun_body {
+                        let cur_ret = self.ret.clone().into_inner();
+                        // eprintln!("fun_header = {:?}", &self.format_context.content[(kind.start_pos as usize)..(kind.end_pos as usize)]);
+                        if let Some(last_fun_idx) = cur_ret.rfind("fun") {
+                            let fun_header = &cur_ret[last_fun_idx..];
+                            if let Some(specifier_idx) = fun_header.rfind("()") {
+                                fun_fmt::fun_header_specifier_fmt(&fun_header[specifier_idx+2..]);
+                            }
+                        }
+                        if self.ret.clone().into_inner().contains("writes") {
+                            eprintln!("self.last_line = {:?}, fun_body = {}", self.last_line(), fun_body);
+                        }
                     }
 
                     length > MAX

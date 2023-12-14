@@ -124,21 +124,6 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
         return false;
     }
 
-    // if let Tok::Identifier = get_start_tok(current) {
-        if let TokenTree::SimpleToken{content, ..} = current {
-            // eprintln!("need_space: content = {:?}", content);
-            if content.contains("acquires") {
-                eprintln!("need_space: content--acquires = {:?}, get_start_tok(current) = {:?}", content, get_start_tok(current));
-            }
-            if content.contains("reads") {
-                eprintln!("need_space: content--reads = {:?}, get_start_tok(current) = {:?}", content, get_start_tok(current));
-            }
-            if content.contains("writes") {
-                eprintln!("need_space: content--writes = {:?}, get_start_tok(current) = {:?}", content, get_start_tok(current));
-            }
-        }
-    // }
-
     let _is_bin_current = current
         .get_note()
         .map(|x| x == Note::BinaryOP)
