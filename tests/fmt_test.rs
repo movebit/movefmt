@@ -69,7 +69,7 @@ fn scan_dir(dir: &str) -> usize {
 fn test_single_file() {
     eprintln!("================== test_single_file ===================");
     test_on_file(&Path::new(
-        "/data/lzw/rust_projects/movefmt/tests/formatter/tuple/input5.move",
+        "/data/lzw/rust_projects/movefmt/tests/formatter/fun/input3.move",
     ));
 }
 
@@ -255,11 +255,16 @@ fn extract_tokens(content: &str) -> Result<Vec<ExtractToken>, Vec<String>> {
     Ok(ret)
 }
 
+
 #[test]
-fn test_dir() {
+fn test_success_dir() {
     eprintln!("formated {} files", scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/use"));
     eprintln!("formated {} files", scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/tuple"));
     eprintln!("formated {} files", scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/expr"));
+}
+
+#[test]
+fn test_dir() {
     eprintln!("formated {} files", scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/fun"));;
 }
 

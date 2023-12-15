@@ -258,9 +258,43 @@ impl FunExtractor {
 
 }
 
-pub fn add_space_line_in_two_funs(fmt_buffer: String) {
-    let fun_extractor = FunExtractor::new(fmt_buffer);
-    eprintln!("loc_line_vec = {:?}", fun_extractor.loc_line_vec);
+pub fn add_blank_row_in_two_funs(fmt_buffer: String) -> String {
+    let buf = fmt_buffer.clone();
+    let mut result = fmt_buffer.clone();
+    let fun_extractor = FunExtractor::new(fmt_buffer.clone());
+    let mut insert_char_nums = 0;
+    let fun_nums = fun_extractor.loc_line_vec.len();
+    for pre_fun_idx in 0..fun_nums {
+        if pre_fun_idx == fun_nums - 1 {
+            break;
+        }
+        let next_fun_idx = pre_fun_idx + 1;
+        let fun1_end_line = fun_extractor.loc_line_vec[pre_fun_idx].1;
+        let fun2_start_line = fun_extractor.loc_line_vec[next_fun_idx].0;
+
+        let is_need_blank_row = {
+            if fun1_end_line + 1 == fun2_start_line {
+                true
+            } else {
+                let the_row_after_fun1_end = get_nth_line(buf.as_str(), (fun1_end_line + 1) as usize).unwrap_or_default();
+                let trimed_prefix = the_row_after_fun1_end.trim_start();
+                if trimed_prefix.len() > 0 {
+                    eprintln!("trimed_prefix = {:?}", trimed_prefix);
+                    true 
+                } else {
+                    false
+                }
+            }
+        };
+        if is_need_blank_row {
+            result.insert(fun_extractor.loc_vec[pre_fun_idx].end() as usize + insert_char_nums + 1, 
+                '\n');
+            insert_char_nums = insert_char_nums + 1;
+        }
+    }
+
+    eprintln!("result = {}", result);
+    result
 }
 
 fn get_nth_line(s: &str, n: usize) -> Option<&str> {  
@@ -347,26 +381,22 @@ fn test_rewrite_fun_header_2() {
 
 #[test]
 fn test_add_space_line_in_two_funs_1() {
-    add_space_line_in_two_funs(
+    add_blank_row_in_two_funs(
     "
     module TestFunFormat {
-    
+        
         struct SomeOtherStruct has drop {
             some_field: u64,
         } 
-        
-        // test two fun Close together without any blank lines
-        public fun test_long_fun_name_lllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll(v: u64): SomeOtherStruct {
-            SomeOtherStruct {some_field: v}
-        } 
-        public fun multi_arg(p1: u64, p2: u64): u64 {
+
+        /* BlockComment1 */ public fun multi_arg(p1: u64, p2: u64): u64 {
             p1 + p2
         }
         // test two fun Close together without any blank lines, and here is a InlineComment
-        public fun multi_arg22(p1: u64, p2: u64): u64 {
+        /* BlockComment2 */ public fun multi_arg22(p1: u64, p2: u64): u64 {
             p1 + p2
         } 
-        /* test two fun Close together without any blank lines, and here is a BlockComment */ fun multi_arg22(p1: u64, p2: u64): u64 {
+        /* BlockComment3 */ /* BlockComment4 */ fun multi_arg22(p1: u64, p2: u64): u64 {
             p1 + p2
         }
     }

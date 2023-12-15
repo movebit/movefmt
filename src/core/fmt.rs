@@ -113,7 +113,7 @@ impl Format {
                         eprintln!("meet Brace");
                         self.new_line(Some(t.end_pos()));
                         *self.ret.borrow_mut() = fun_fmt::process_block_comment_before_fun_header(self.ret.clone().into_inner());
-                        *self.ret.borrow_mut() = fun_fmt::add_space_line_in_two_fun(self.ret.clone().into_inner());
+                        *self.ret.borrow_mut() = fun_fmt::add_blank_row_in_two_funs(self.ret.clone().into_inner());
                     }
                 }
             }
