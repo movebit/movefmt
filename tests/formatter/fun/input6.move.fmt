@@ -33,6 +33,7 @@ module 0xcafe::vectors {
         let _v = flips;  // this is ok
         let _v2 = copy flips;  // this is ok 
     } 
+
     inline fun loops_with_break(flips: &vector<u8>) {
         let i = 0;
         while (i < vector::length(flips)) {
@@ -48,6 +49,7 @@ module 0xcafe::vectors {
             i = i + 1;
         };
     } 
+    
     inline fun loops_without_break(flips: &vector<u8>) {
         let i = 0;
         while (i < vector::length(flips)) {

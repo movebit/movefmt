@@ -5,7 +5,7 @@
 // use std::result::Result::*;
 use move_command_line_common::files::FileHash;
 // use move_compiler::diagnostics::Diagnostics;
-// use move_compiler::parser::lexer::{Lexer, Tok};
+use move_compiler::parser::lexer::{Lexer, Tok};
 use move_ir_types::location::*;
 use move_compiler::shared::CompilationEnv;
 use move_compiler::Flags;
@@ -263,6 +263,47 @@ pub fn add_space_line_in_two_funs(fmt_buffer: String) {
     eprintln!("loc_line_vec = {:?}", fun_extractor.loc_line_vec);
 }
 
+fn get_nth_line(s: &str, n: usize) -> Option<&str> {  
+    s.lines().nth(n)  
+}
+
+pub fn process_block_comment_before_fun_header(fmt_buffer: String) -> String {
+    let buf = fmt_buffer.clone();
+    let mut result = fmt_buffer.clone();
+    let fun_extractor = FunExtractor::new(fmt_buffer.clone());
+    let mut insert_char_nums = 0;
+    let mut fun_idx = 0;
+    for (fun_start_line, _) in fun_extractor.loc_line_vec.iter() {  
+        // eprintln!("fun header is {:?}", );
+        let fun_header_str = get_nth_line(buf.as_str(), *fun_start_line as usize).unwrap_or_default();
+        let filehash = FileHash::empty();
+        let mut lexer = Lexer::new(fun_header_str, filehash);
+        lexer.advance().unwrap();
+        while lexer.peek() != Tok::EOF {
+            // eprintln!("fun_extractor.loc_vec[fun_idx].start() = {:?}", fun_extractor.loc_vec[fun_idx].start());
+            let header_prefix = &fun_header_str[0..lexer.start_loc()];
+            let trimed_header_prefix = header_prefix.trim_start();
+            if trimed_header_prefix.len() > 0 {
+                eprintln!("header_prefix = {:?}", header_prefix);
+                // result.insert(lexer.start_loc() + fun_extractor.loc_vec[fun_idx].start() as usize, '\n');
+
+                let mut insert_str = "\n".to_string();
+                if let Some(indent) = header_prefix.find(trimed_header_prefix) {
+                    insert_str.push_str(" ".to_string().repeat(indent).as_str());
+                }
+                result.insert_str(fun_extractor.loc_vec[fun_idx].start() as usize + insert_char_nums, 
+                    &insert_str);
+                insert_char_nums = insert_char_nums + insert_str.len();
+            }
+            eprintln!("token[{:?}] = {:?}", lexer.start_loc(), lexer.content());
+            break;
+        }
+        fun_idx = fun_idx + 1;
+    }
+
+    result
+}
+
 // #[test]
 // fn test_rewrite_fun_header_1() {
 //     let specifier = "acquires R reads R writes T,\n    S reads G<u64>";
@@ -304,17 +345,8 @@ fn test_rewrite_fun_header_2() {
     fun_header_specifier_fmt(": /*(bool, bool)*/ (bool, bool) ", &"    ".to_string());
 }
 
-
 #[test]
 fn test_add_space_line_in_two_funs_1() {
-    // add_space_line_in_two_funs(
-    //     "
-    //   }
-    // // test two fun Close together without any blank lines, and here is a InlineComment
-    // public fun 
-    // ".to_string()
-    // );
-
     add_space_line_in_two_funs(
     "
     module TestFunFormat {
@@ -341,3 +373,29 @@ fn test_add_space_line_in_two_funs_1() {
     ".to_string()
     );
 }
+
+#[test]
+fn test_process_block_comment_before_fun_header_1() {
+    process_block_comment_before_fun_header(
+        "
+        module TestFunFormat {
+        
+            struct SomeOtherStruct has drop {
+                some_field: u64,
+            } 
+            /* BlockComment1 */ public fun multi_arg(p1: u64, p2: u64): u64 {
+                p1 + p2
+            }
+            // test two fun Close together without any blank lines, and here is a InlineComment
+            /* BlockComment2 */ public fun multi_arg22(p1: u64, p2: u64): u64 {
+                p1 + p2
+            } 
+            /* BlockComment3 */ /* BlockComment4 */ fun multi_arg22(p1: u64, p2: u64): u64 {
+                p1 + p2
+            }
+        }
+        ".to_string()
+    );
+}
+
+
