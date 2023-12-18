@@ -265,7 +265,7 @@ fn test_success_dir() {
 
 #[test]
 fn test_dir() {
-    eprintln!("formated {} files", scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/fun"));;
+    eprintln!("formated {} files", scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/fun"));
 }
 
 #[test]

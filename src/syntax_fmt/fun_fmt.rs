@@ -1,106 +1,27 @@
-// use std::cell::RefCell;
-// use core::panic;
-// use std::cmp::Ordering;
-// use std::collections::HashSet;
-// use std::result::Result::*;
 use move_command_line_common::files::FileHash;
-// use move_compiler::diagnostics::Diagnostics;
 use move_compiler::parser::lexer::{Lexer, Tok};
 use move_ir_types::location::*;
 use move_compiler::shared::CompilationEnv;
 use move_compiler::Flags;
 use move_compiler::parser::ast::Definition;
 use move_compiler::parser::ast::*;
-// use move_compiler::parser::lexer::{Lexer, Tok};
-// use move_compiler::shared::Identifier;
-// use std::cell::Cell;
 use std::collections::BTreeSet;
-// use crate::core::token_tree::{
-//     Comment, CommentExtrator, CommentKind, Delimiter, NestKind_, Note, TokenTree,
-// };
 use crate::utils::FileLineMappingOneFile;
 use crate::syntax::parse_file_string;
 
-// struct CodeBlock<T> {  
-//     content: &'static str,  
-//     kind: &'static str,  
-//     acquire: &'static str,  
-//     read: &'static str,  
-//     write: &'static str,  
-//     other: T,  
-// }  
-
-// Parse an access specifier list:
-//      AccessSpecifierList = <AccessSpecifier> ( "," <AccessSpecifier> )* ","?
-// fn parse_access_specifier_list(
-//     lexer: &mut Lexer<'_>,
-// ) -> Vec<String> {
-//     let mut chain = vec![];
-//     loop {
-//         chain.push(lexer.content().to_string());
-//         lexer.advance().unwrap();
-//         match lexer.peek() {
-//             Tok::Acquires | Tok::EOF => break,
-//             Tok::Identifier if lexer.content() == "reads" => break,
-//             Tok::Identifier if lexer.content() == "writes" => break,
-//             Tok::Identifier if lexer.content() == "pure" => break,
-//             _ => continue,
-//         }
-//     }
-//     chain
-// }
-
-// fn parse_function_decl(
-//     lexer: &mut Lexer<'_>
-// ) -> Vec<Vec<String>> {
-//     let mut fun_specifiers = vec![];
-//     let mut acquires_specifiers = vec![];
-//     let mut reads_specifiers = vec![];
-//     let mut writes_specifiers = vec![];
-//     let mut pure_specifiers = vec![];
-//     loop {
-//         let negated = if lexer.peek() == Tok::Exclaim {
-//             lexer.advance().unwrap();
-//             true
-//         } else {
-//             false
-//         };
-//         match lexer.peek() {
-//             Tok::Acquires => {
-//                 let key_str: String =  if negated { "!acquires".to_string() } else { "acquires".to_string() };
-//                 acquires_specifiers.push(key_str);
-//                 lexer.advance().unwrap();
-//                 acquires_specifiers.extend(parse_access_specifier_list(lexer))
-//             },
-//             Tok::Identifier if lexer.content() == "reads" => {
-//                 let key_str: String =  if negated { "!reads".to_string() } else { "reads".to_string() };
-//                 reads_specifiers.push(key_str);
-//                 lexer.advance().unwrap();
-//                 reads_specifiers.extend(parse_access_specifier_list(lexer))
-//             },
-//             Tok::Identifier if lexer.content() == "writes" => {
-//                 let key_str: String =  if negated { "!writes".to_string() } else { "writes".to_string() };
-//                 writes_specifiers.push(key_str);
-//                 lexer.advance().unwrap();
-//                 writes_specifiers.extend(parse_access_specifier_list(lexer))
-//             },
-//             Tok::Identifier if lexer.content() == "pure" => {
-//                 pure_specifiers.push(lexer.content().to_string());
-//                 lexer.advance().unwrap();
-//             },
-//             Tok::EOF => break,
-//             _ => lexer.advance().unwrap()
-//         }
-//     }
-//     fun_specifiers.push(acquires_specifiers);
-//     fun_specifiers.push(reads_specifiers);
-//     fun_specifiers.push(writes_specifiers);
-//     fun_specifiers.push(pure_specifiers);
-//     fun_specifiers
-// }
 
 pub fn fun_header_specifier_fmt(specifier: &str, indent_str: &String) -> String {
     eprintln!("fun_specifier_str = {:?}", specifier);
+
+    let mut fun_specifiers_code = vec![];
+    let mut lexer = Lexer::new(specifier, FileHash::empty());
+    lexer.advance().unwrap();
+    while lexer.peek() != Tok::EOF {
+        fun_specifiers_code.push((lexer.start_loc() as u32, 
+            (lexer.start_loc() + lexer.content().len()) as u32, lexer.content().clone().to_string()));
+        lexer.advance().unwrap();
+    }
+
     let mut tokens = specifier.split_whitespace();
    
     let mut fun_specifiers = vec![];
@@ -111,27 +32,82 @@ pub fn fun_header_specifier_fmt(specifier: &str, indent_str: &String) -> String 
     let mut fun_specifier_fmted_str = "".to_string();
     let mut found_specifier = false;
     let mut first_specifier_idx = 0;
-    for mut i in 0..fun_specifiers.len() {
+    
+    let mut current_specifier_idx = 0;
+    let mut last_substr_len = 0;
+    for i in 0..fun_specifiers.len() {
+        if i < current_specifier_idx {
+            continue;
+        }
         let specifier_set = fun_specifiers[i];
-        let mut parse_access_specifier_list = || {
+
+        let mut parse_access_specifier_list = |
+            last_substr_len: &mut usize, fun_specifiers_code: &mut Vec<(u32, u32, String)>| {
             let mut chain: Vec<_> = vec![];
             if i + 1 == fun_specifiers.len() {
                 return chain;
             }
+            let mut old_last_substr_len = last_substr_len.clone();
             for j in (i + 1)..fun_specifiers.len() {
+                let mut this_token_is_comment = true;
+                let iter_specifier = &specifier[last_substr_len.clone()..];
+                if let Some(idx) = iter_specifier.find(fun_specifiers[j]) {
+                    // if this token's pos not comment
+                    for token_idx in 0..fun_specifiers_code.len() {
+                        let token = &fun_specifiers_code[token_idx];
+                        if token.0 == (idx + last_substr_len.clone()) as u32 {
+                            this_token_is_comment = false;
+                            break;
+                        }
+                    }
+                    old_last_substr_len = last_substr_len.clone();
+                    *last_substr_len = last_substr_len.clone() + idx + fun_specifiers[j].len();
+                }
+        
+                if this_token_is_comment {
+                    eprintln!("intern> this token is comment -- {}",  fun_specifiers[j]);
+                    chain.push(fun_specifiers[j].to_string());
+                    continue;
+                }
+
                 if matches!(
                     fun_specifiers[j],
                     "acquires" | "reads" | "writes" | "pure" |
                     "!acquires" | "!reads" | "!writes"
                 ) {
-                    i = j - 1;
+                    current_specifier_idx = j;
+                    *last_substr_len =  old_last_substr_len;
                     break;
                 } else {
                     chain.push(fun_specifiers[j].to_string());
                 }
             }
+            eprintln!("intern> chain[{:?}] -- {:?}", i, chain);
             chain
         };
+
+        let mut this_token_is_comment = true;
+        let iter_specifier = &specifier[last_substr_len..];
+        if let Some(idx) = iter_specifier.find(specifier_set) {
+            // if this token's pos not comment
+            for token_idx in 0..fun_specifiers_code.len() {
+                let token = &fun_specifiers_code[token_idx];
+                // eprintln!("iter_specifier = {}, specifier_set = {}", iter_specifier, specifier_set);
+                eprintln!("token.0 = {}, idx = {}, last_substr_len = {}", token.0, idx, last_substr_len);
+                if token.0 == (idx + last_substr_len) as u32 {
+                    this_token_is_comment = false;
+                    eprintln!("token.0 = {} === idx + last_substr_len = {}", token.0, idx + last_substr_len);
+                    fun_specifiers_code.remove(token_idx);
+                    break;
+                }
+            }
+            last_substr_len =  last_substr_len + idx + specifier_set.len();
+        }
+
+        if this_token_is_comment {
+            eprintln!("extern> this token is comment -- {}",  specifier_set);
+            continue;
+        }
 
         if matches!(
             specifier_set,
@@ -139,10 +115,8 @@ pub fn fun_header_specifier_fmt(specifier: &str, indent_str: &String) -> String 
             "!acquires" | "!reads" | "!writes"
         ) {
             if !found_specifier {
-                if let Some(str_idx) = specifier.find(specifier_set) {
-                    first_specifier_idx = str_idx;
-                    found_specifier = true;
-                }
+                first_specifier_idx = last_substr_len - specifier_set.len();
+                found_specifier = true;
             }
 
             fun_specifier_fmted_str.push_str(&"\n".to_string());
@@ -150,13 +124,19 @@ pub fn fun_header_specifier_fmt(specifier: &str, indent_str: &String) -> String 
             fun_specifier_fmted_str.push_str(&specifier_set.to_string());
             if specifier_set != "pure" {
                 fun_specifier_fmted_str.push_str(&" ".to_string());
-                fun_specifier_fmted_str.push_str(&(parse_access_specifier_list().join(" ")));
+                fun_specifier_fmted_str.push_str(&(parse_access_specifier_list(
+                    &mut last_substr_len, &mut fun_specifiers_code).join(" ")));
             }
+        }
+
+        eprintln!("<< for loop end, last_substr_len = {}, specifier.len = {}", last_substr_len, specifier.len());
+        if last_substr_len == specifier.len() {
+            break;
         }
     }
 
     let mut ret_str = specifier[0..first_specifier_idx].to_string();
-    if first_specifier_idx > 0 {
+    if found_specifier {
         ret_str.push_str(fun_specifier_fmted_str.as_str());
         ret_str.push_str(&" ".to_string());
         eprintln!("fun_specifier_fmted_str = --------------{}", ret_str);
@@ -338,45 +318,23 @@ pub fn process_block_comment_before_fun_header(fmt_buffer: String) -> String {
     result
 }
 
-// #[test]
-// fn test_rewrite_fun_header_1() {
-//     let specifier = "acquires R reads R writes T,\n    S reads G<u64>";
-//     let mut lexer = Lexer::new(specifier, FileHash::empty());
-//     lexer.advance().unwrap();
-//     let specififers = parse_function_decl(&mut lexer);
-//     if specififers.len() == 4 {
-//         let mut acquires_specifiers = "".to_string();
-//         for acquires in &specififers[0] {
-//             acquires_specifiers = acquires_specifiers.to_owned() + &acquires + &" ".to_string();
-//         }
-//         eprintln!("acquires_specifiers = {}", acquires_specifiers);
-
-//         let mut reads_specifiers = "".to_string();
-//         for reads in &specififers[1] {
-//             reads_specifiers = reads_specifiers.to_owned() + &reads + &" ".to_string();
-//         }
-//         eprintln!("reads_specifiers = {}", reads_specifiers);
-//         eprintln!("writes_specifiers = {:?}", specififers[2]);
-//         eprintln!("pure_specifiers = {:?}", specififers[3]);
-//     }
-//     // let code = CodeBlock {  
-//     //     content: "f_multiple",  
-//     //     kind: "",  
-//     //     acquire: "R",  
-//     //     read: "R",  
-//     //     write: "T, S",  
-//     //     other: "reads G<u64>",  
-//     // };  
-//     // println!("{}", code);  
-// }
-
 
 #[test]
-fn test_rewrite_fun_header_2() {
+fn test_rewrite_fun_header_1() {
     fun_header_specifier_fmt("acquires *(make_up_address(x))", &"    ".to_string());
     fun_header_specifier_fmt("!reads *(0x42), *(0x43)", &"    ".to_string());
     fun_header_specifier_fmt(": u32 !reads *(0x42), *(0x43)", &"    ".to_string());
     fun_header_specifier_fmt(": /*(bool, bool)*/ (bool, bool) ", &"    ".to_string());
+}
+
+#[test]
+fn test_rewrite_fun_header_2() {
+    fun_header_specifier_fmt(": u64 /* acquires comment1 */ acquires SomeStruct ", &"    ".to_string());
+    fun_header_specifier_fmt(": u64 acquires SomeStruct/* acquires comment2 */ ", &"    ".to_string());
+    fun_header_specifier_fmt(": u64 /* acquires comment3 */ acquires /* acquires comment4 */ SomeStruct /* acquires comment5 */", 
+        &"    ".to_string());
+    fun_header_specifier_fmt("acquires R reads R writes T, S reads G<u64> ", &"    ".to_string());
+    fun_header_specifier_fmt("fun f11() !reads *(0x42) ", &"    ".to_string());
 }
 
 #[test]
@@ -427,5 +385,4 @@ fn test_process_block_comment_before_fun_header_1() {
         ".to_string()
     );
 }
-
 

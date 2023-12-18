@@ -243,7 +243,7 @@ impl Format {
                         // eprintln!("fun_header = {:?}", &self.format_context.content[(kind.start_pos as usize)..(kind.end_pos as usize)]);
                         if let Some(last_fun_idx) = cur_ret.rfind("fun") {
                             let fun_header: &str = &cur_ret[last_fun_idx..];
-                            if let Some(specifier_idx) = fun_header.rfind(")") {
+                            if let Some(specifier_idx) = fun_header.rfind("fun") {
                                 let indent_str = " ".to_string()
                                     .repeat((self.depth.get() + 1) * self.config.indent_size);
                                 let fun_specifier_fmted_str = fun_fmt::fun_header_specifier_fmt(

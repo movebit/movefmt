@@ -43,10 +43,12 @@ module TestFunFormat {
         acquires *(0x42) { 
     } 
     
-    fun f9(a: address) acquires *(a) { 
+    fun f9(a: address) 
+        acquires *(a) { 
     } 
     
-    fun f10(x: u64) acquires *(make_up_address(x)) { 
+    fun f10(x: u64) 
+        acquires *(make_up_address(x)) { 
     } 
     
     fun make_up_address(x: u64): address {
