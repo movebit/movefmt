@@ -7,8 +7,8 @@ module std::ascii {
     use std::option::{Self, Option};
 
     /// An ASCII character.
-    struct Char has copy, /* comment */
-    /* comment */ drop,
+    struct Char has copy, /*comment*/
+    /*comment*/ drop,
     // comment
     store {
         // comment
@@ -16,6 +16,6 @@ module std::ascii {
     }
     spec Char {
         // comment
-        invariant is_valid_char(byte); // comment
+        invariant is_valid_char(byte);  //comment
     }
 }

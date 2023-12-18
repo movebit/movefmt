@@ -11,7 +11,7 @@ module std::bcs {
     // ==============================
     // Module Specification
     spec module {
-        /* comment */
+        /*comment*/
     } // switch to module documentation context
 
     spec module {

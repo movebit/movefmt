@@ -114,8 +114,8 @@ fn add_space_for_comments(input: &str) -> String {
         }
     }
     // eprintln!("input = {:?}, output = {:?}", input, output);
-    output
-    // input.to_string()
+    // output
+    input.to_string()
 }      
 
 #[test]
