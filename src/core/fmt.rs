@@ -81,7 +81,7 @@ impl Format {
         }
     }
 
-    pub fn format_token_trees(self) -> String {
+    pub fn format_token_trees(mut self) -> String {
         let length = self.token_tree.len();
         let mut index = 0;
         let mut pound_sign = None;
@@ -114,6 +114,7 @@ impl Format {
                         self.new_line(Some(t.end_pos()));
                         *self.ret.borrow_mut() = fun_fmt::process_block_comment_before_fun_header(self.ret.clone().into_inner());
                         *self.ret.borrow_mut() = fun_fmt::add_blank_row_in_two_funs(self.ret.clone().into_inner());
+                        self.remove_trailing_whitespaces();
                     }
                 }
             }
@@ -782,5 +783,16 @@ impl Format {
         };
         eprintln!("tok_suitable_for_new_line ret = {}", ret);
         ret
+    }
+
+    fn remove_trailing_whitespaces(&mut self) {
+        let ret_copy = self.ret.clone().into_inner();
+        let lines = ret_copy.lines();
+        let result: String = lines.collect::<Vec<_>>()
+            .iter()  
+            .map(|line| line.trim_end_matches(|c| c == ' '))  
+            .collect::<Vec<_>>()
+            .join("\n");
+        *self.ret.borrow_mut() = result;
     }
 }

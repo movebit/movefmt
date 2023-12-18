@@ -5,14 +5,14 @@
 module std::ascii {
     use std::vector;
     use std::option::{Self, Option};
-    
+
     /// An ASCII character.
     struct Char has copy, drop, store {
         // comment
         byte: u8,
-    } 
-    
-    spec Char{
+    }
+
+    spec Char {
         invariant is_valid_char(byte);
     }
 }

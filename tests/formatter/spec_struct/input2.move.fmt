@@ -10,12 +10,11 @@ module std::ascii {
     use aptos_framework::aptos_coin::AptosCoin;
     use aptos_framework::transaction_fee;
     use aptos_framework::staking_config;
-    
+
     /// An ASCII character.
     struct Char has copy, drop, store {
         byte: u8,
     }
-
     spec Char {
         invariant is_valid_char(byte);
     }

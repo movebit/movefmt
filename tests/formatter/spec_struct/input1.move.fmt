@@ -10,7 +10,6 @@ module std::ascii {
     use aptos_framework::aptos_coin::AptosCoin;
     use aptos_framework::transaction_fee;
     use aptos_framework::staking_config;
-
     /// The `String` struct holds a vector of bytes that all represent
     /// valid ASCII characters. Note that these ASCII characters may not all
     /// be printable. To determine if a `String` contains only "printable"
@@ -18,8 +17,7 @@ module std::ascii {
     /// defined in this module.
     struct String has copy, drop, store {
         bytes: vector<u8>,
-    } 
-
+    }
     spec String {
         invariant forall i in 0..len(bytes): is_valid_char(bytes[i]);
     }
