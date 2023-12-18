@@ -32,7 +32,7 @@ fn mk_result_filepath(x: &PathBuf) -> PathBuf {
     ret.push(format!(
         "{}{}",
         b.as_str()[0..index].to_string(),
-        ".move.fmt"
+        ".fmt.move"
     ));
     ret
 }
@@ -46,16 +46,21 @@ fn scan_dir(dir: &str) -> usize {
                 return num;
             },
         };
-        if x.file_type().is_file() && x.file_name().to_str().unwrap().ends_with(".move") {
-            let p = x.into_path();
+        if x.file_type().is_file() 
+        && x.file_name().to_str().unwrap().ends_with(".move")  
+        && !x.file_name().to_str().unwrap().contains(".fmt")
+        && !x.file_name().to_str().unwrap().contains(".out") {
+            let p = x.clone().into_path();
             test_on_file(p.as_path());
             num += 1;
+
+            let index = p.to_str().unwrap().rfind(".").unwrap();
+            let mut expected_filename = p.to_str().unwrap()[0..index].to_string();
+            expected_filename.push_str(".fmt.move");
 
             let mut actual_filename = p.to_str().unwrap().to_string();
             actual_filename.push_str(".fmt.out");
 
-            let mut expected_filename = p.to_str().unwrap().to_string();
-            expected_filename.push_str(".fmt");
             // movefmt_diff::assert_output(
             //     Path::new(&actual_filename),
             //     Path::new(&expected_filename)
