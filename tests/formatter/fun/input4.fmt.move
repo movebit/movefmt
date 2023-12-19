@@ -12,9 +12,7 @@ module TestFunFormat {
         p1 + p2
     }
 
-    struct SomeStruct has key,
-    drop,
-    store {
+    struct SomeStruct has key, drop, store {
         some_field: u64,
     }
 

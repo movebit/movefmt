@@ -474,17 +474,17 @@ impl Format {
             match c.comment_kind() {
                 CommentKind::DocComment => {
                     eprintln!("add_comments<CommentKind::DocComment>");
-                    let buffer = self.ret.clone();
-                    let len: usize = c.content.len();
-                    let x: usize = buffer.borrow().len();
-                    if len + 2 < x {
-                        if let Some(ch) = buffer.clone().borrow().chars().nth(x - len - 2) {  
-                            if !ch.is_ascii_whitespace() {
-                                // insert black space after '//'
-                                self.ret.borrow_mut().insert(x - len - 1, ' ');
-                            }
-                        }
-                    }
+                    // let buffer = self.ret.clone();
+                    // let len: usize = c.content.len();
+                    // let x: usize = buffer.borrow().len();
+                    // if len + 2 < x {
+                    //     if let Some(ch) = buffer.clone().borrow().chars().nth(x - len - 2) {  
+                    //         if !ch.is_ascii_whitespace() {
+                    //             // insert black space after '//'
+                    //             self.ret.borrow_mut().insert(x - len - 1, ' ');
+                    //         }
+                    //     }
+                    // }
                     self.new_line(None);
                 }
                 _ => {
@@ -526,8 +526,8 @@ impl Format {
 
     fn no_space_or_new_line_for_comment(&self) -> bool {
         if self.ret.borrow().chars().last().is_some() {
-            self.ret.borrow().chars().last().unwrap() != '\n'
-                && self.ret.borrow().chars().last().unwrap() != ' '
+            self.ret.borrow().chars().last().unwrap() != '\n' &&
+            self.ret.borrow().chars().last().unwrap() != ' '
         } else {
             false
         }
@@ -648,11 +648,11 @@ impl Format {
 
             let buffer = self.ret.clone();
             if !buffer.clone().borrow().chars().last().unwrap_or(' ').is_ascii_whitespace() {
-                // insert 2 black space before '//'
                 self.push_str(" ");
-                if let Some(_) = fmted_cmt_str.find("//") {
-                    self.push_str(" ");
-                }
+                // insert 2 black space before '//'
+                // if let Some(_) = fmted_cmt_str.find("//") {
+                //     self.push_str(" ");
+                // }
             }
 
             self.push_str(fmted_cmt_str);

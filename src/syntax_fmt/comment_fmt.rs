@@ -30,7 +30,7 @@ impl Comment {
         let block_style = false;
         let indent = Indent::new(block_indent, alignment);
         let shape = Shape {
-            width: 100,
+            width: 90,
             indent,
             offset: 0,
         };

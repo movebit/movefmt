@@ -17,7 +17,7 @@ module 0x42::LambdaTest2 {
     // Use statements with comments for each statement
     use /* module */ 0x42::LambdaTest1;
     use /* standard vector module */ std::vector;
-    public inline fun foreach<T>(v: &vector<T>, action: |&T|) {  // expected to be not implemented
+    public inline fun foreach<T>(v: &vector<T>, action: |&T|) { // expected to be not implemented
         let i = 0;
         while (i < vector::length(v)) {
             action(vector::borrow(v, i));

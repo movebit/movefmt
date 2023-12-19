@@ -71,7 +71,7 @@ module 0xcafe::vectors {
         guess_flips(flips);
     }
 
-    // #[test]
+    #[test]
     fun test_guess_directly() {
         let flips = vector[0, 0, 0,0];
         guess_flips_directly(flips);
