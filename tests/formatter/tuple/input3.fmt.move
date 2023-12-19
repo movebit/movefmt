@@ -15,7 +15,7 @@ address 0x42 {
             (
                 // comment2
                 0,
-                /*comment3*/ false /*comment4*/ , @0x42)  // comment5
+                /*comment3*/ false /*comment4*/ , @0x42) // comment5
         }
     }
 }

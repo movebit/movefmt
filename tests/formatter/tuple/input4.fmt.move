@@ -11,7 +11,7 @@ address 0x42 {
             () = ();
 
             // Conditional reassignment of tuple values x and y
-            (x, y) = if (cond)(1, 2) else (3, 4);
+            (x, y) = if (cond) (1, 2) else (3, 4);
 
             // Reassignment of tuple values a, b, c, and d
             (a, b, c, d) = (@0x1, 1, true, b"1");

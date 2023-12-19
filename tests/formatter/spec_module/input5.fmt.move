@@ -17,7 +17,7 @@ spec aptos_framework::block {
         use aptos_framework::transaction_fee;
         use aptos_framework::staking_config;
 
-        pragma verify_duration_estimate = 120;  // TODO: set because of timeout (property proved)
+        pragma verify_duration_estimate = 120; // TODO: set because of timeout (property proved)
         requires chain_status::is_operating();
         include transaction_fee::RequiresCollectedFeesPerValueLeqBlockAptosSupply;
         include staking_config::StakingRewardsConfigRequirement;

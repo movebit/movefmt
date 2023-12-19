@@ -15,7 +15,7 @@ spec aptos_framework::aptos_coin {
     spec destroy_mint_cap {
         let addr = signer::address_of(aptos_framework);
         aborts_if addr != @aptos_framework;
-        aborts_if! exists<MintCapStore>(@aptos_framework);
+        aborts_if !exists<MintCapStore>(@aptos_framework);
     }
 
     spec schema ExistsAptosCoin {

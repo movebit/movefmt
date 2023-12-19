@@ -9,7 +9,7 @@ spec aptos_std::big_vector {
     }
 
     spec fun spec_at<T>(v: BigVector<T> /*comment*/ , i: u64): T {
-        let bucket = i / v.bucket_size;  //comment
+        let bucket = i / v.bucket_size; //comment
         //comment
         let idx = /*comment*/ i % v.bucket_size;
         /// comment
