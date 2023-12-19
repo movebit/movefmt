@@ -14,6 +14,7 @@ spec aptos_std::big_vector {
         let idx = /*comment*/ i % v.bucket_size;
         /// comment
         let v = table_with_length::spec_get(v.buckets, /*comment*/ bucket);
-        /*comment*/ v[idx]
+        /*comment*/
+        v[idx]
     }
 }
