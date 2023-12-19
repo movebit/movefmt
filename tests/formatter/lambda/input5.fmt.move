@@ -11,8 +11,8 @@ module 0x42::LambdaTest1 {
     public inline fun inline_apply(f: |u64| u64, b: u64): u64 {
         f(b)
     }
-
 }
+
 module 0x42::LambdaTest2 {
     // Use statements with comments for each statement
     use /* module */ 0x42::LambdaTest1;

@@ -10,8 +10,8 @@ module 0x42::LambdaTest1 {
         /* Apply the function f to b and multiply the result by 3 and 4 */ 
         inline_mul(f(b) + 1, inline_mul(3, 4))
     }
-
 }
+
 module 0x42::LambdaTest2 {
     // Use statements
     use 0x42::LambdaTest1;

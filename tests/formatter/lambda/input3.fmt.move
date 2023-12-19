@@ -6,8 +6,8 @@ module 0x42::LambdaTest1 {
         // Multiply a and b
         a * b
     }
-
 }
+
 module 0x42::LambdaTest2 {
     // Use statements
     use 0x42::LambdaTest1;
