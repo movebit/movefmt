@@ -22,6 +22,13 @@ pub fn fun_header_specifier_fmt(specifier: &str, indent_str: &String) -> String 
         lexer.advance().unwrap();
     }
 
+    // let tokens: Vec<&str> = specifier.split(' ').collect();  
+  
+    // for token in tokens {  
+    //     println!("{}", token);  
+    // }  
+    // eprintln!("-======================");
+
     let mut tokens = specifier.split_whitespace();
    
     let mut fun_specifiers = vec![];
@@ -65,7 +72,7 @@ pub fn fun_header_specifier_fmt(specifier: &str, indent_str: &String) -> String 
                 }
         
                 if this_token_is_comment {
-                    eprintln!("intern> this token is comment -- {}",  fun_specifiers[j]);
+                    // eprintln!("intern> this token is comment -- {}",  fun_specifiers[j]);
                     chain.push(fun_specifiers[j].to_string());
                     continue;
                 }
@@ -79,10 +86,19 @@ pub fn fun_header_specifier_fmt(specifier: &str, indent_str: &String) -> String 
                     *last_substr_len =  old_last_substr_len;
                     break;
                 } else {
+                    let judge_new_line = &specifier[old_last_substr_len..last_substr_len.clone()];
+                    // eprintln!("judge_new_line = {:?}", judge_new_line);
+                    if judge_new_line.contains("\n") {
+                        chain.push("\n".to_string());
+                        let tmp_indent_str = " ".to_string()
+                                    .repeat(indent_str.clone().chars().filter(|c| *c == ' ').count() - 2);
+                        chain.push(tmp_indent_str.clone());
+                    }
+
                     chain.push(fun_specifiers[j].to_string());
                 }
             }
-            eprintln!("intern> chain[{:?}] -- {:?}", i, chain);
+            // eprintln!("intern> chain[{:?}] -- {:?}", i, chain);
             chain
         };
 
@@ -93,10 +109,10 @@ pub fn fun_header_specifier_fmt(specifier: &str, indent_str: &String) -> String 
             for token_idx in 0..fun_specifiers_code.len() {
                 let token = &fun_specifiers_code[token_idx];
                 // eprintln!("iter_specifier = {}, specifier_set = {}", iter_specifier, specifier_set);
-                eprintln!("token.0 = {}, idx = {}, last_substr_len = {}", token.0, idx, last_substr_len);
+                // eprintln!("token.0 = {}, idx = {}, last_substr_len = {}", token.0, idx, last_substr_len);
                 if token.0 == (idx + last_substr_len) as u32 {
                     this_token_is_comment = false;
-                    eprintln!("token.0 = {} === idx + last_substr_len = {}", token.0, idx + last_substr_len);
+                    // eprintln!("token.0 = {} === idx + last_substr_len = {}", token.0, idx + last_substr_len);
                     fun_specifiers_code.remove(token_idx);
                     break;
                 }
@@ -105,7 +121,7 @@ pub fn fun_header_specifier_fmt(specifier: &str, indent_str: &String) -> String 
         }
 
         if this_token_is_comment {
-            eprintln!("extern> this token is comment -- {}",  specifier_set);
+            // eprintln!("extern> this token is comment -- {}",  specifier_set);
             continue;
         }
 
@@ -129,7 +145,7 @@ pub fn fun_header_specifier_fmt(specifier: &str, indent_str: &String) -> String 
             }
         }
 
-        eprintln!("<< for loop end, last_substr_len = {}, specifier.len = {}", last_substr_len, specifier.len());
+        // eprintln!("<< for loop end, last_substr_len = {}, specifier.len = {}", last_substr_len, specifier.len());
         if last_substr_len == specifier.len() {
             break;
         }
@@ -335,6 +351,16 @@ fn test_rewrite_fun_header_2() {
         &"    ".to_string());
     fun_header_specifier_fmt("acquires R reads R writes T, S reads G<u64> ", &"    ".to_string());
     fun_header_specifier_fmt("fun f11() !reads *(0x42) ", &"    ".to_string());
+}
+
+#[test]
+fn test_rewrite_fun_header_3() {
+    fun_header_specifier_fmt("
+        // comment1
+        econia: &signer)
+        acquires // acquires comment2
+        IncentiveParameters 
+    ", &"    ".to_string());
 }
 
 #[test]

@@ -32,7 +32,7 @@ fn mk_result_filepath(x: &PathBuf) -> PathBuf {
     ret.push(format!(
         "{}{}",
         b.as_str()[0..index].to_string(),
-        ".fmt.move"
+        ".fmt.out"
     ));
     ret
 }
@@ -58,13 +58,13 @@ fn scan_dir(dir: &str) -> usize {
             let mut expected_filename = p.to_str().unwrap()[0..index].to_string();
             expected_filename.push_str(".fmt.move");
 
-            let mut actual_filename = p.to_str().unwrap().to_string();
+            let mut actual_filename = p.to_str().unwrap()[0..index].to_string();
             actual_filename.push_str(".fmt.out");
 
-            // movefmt_diff::assert_output(
-            //     Path::new(&actual_filename),
-            //     Path::new(&expected_filename)
-            // );
+            movefmt_diff::assert_output(
+                Path::new(&actual_filename),
+                Path::new(&expected_filename)
+            );
         }
     }
     num
@@ -74,7 +74,7 @@ fn scan_dir(dir: &str) -> usize {
 fn test_single_file() {
     eprintln!("================== test_single_file ===================");
     test_on_file(&Path::new(
-        "/data/lzw/rust_projects/movefmt/tests/formatter/fun/input3.move",
+        "/data/lzw/rust_projects/movefmt/tests/formatter/other/input3.move",
     ));
 }
 
