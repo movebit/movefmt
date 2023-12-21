@@ -1,5 +1,15 @@
-use move_compiler::parser::lexer::Tok;
 use crate::core::token_tree::{Note, TokenTree, NestKind_};
+use commentfmt::config::config_type::ConfigType;
+use move_command_line_common::files::FileHash;
+use move_compiler::parser::lexer::{Lexer, Tok};
+use move_ir_types::location::*;
+use move_compiler::shared::CompilationEnv;
+use move_compiler::Flags;
+use move_compiler::parser::ast::Definition;
+use move_compiler::parser::ast::*;
+use std::collections::BTreeSet;
+use crate::utils::FileLineMappingOneFile;
+use crate::syntax::parse_file_string;
 
 pub enum TokType {
     /// abc like token,
@@ -93,7 +103,6 @@ fn get_start_tok(t: &TokenTree) -> Tok {
         } => kind.kind.start_tok(),
     }
 }
-
 
 fn get_end_tok(t: &TokenTree) -> Tok {
     match t {
@@ -360,4 +369,322 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
         },
         _ => false,
     };
+}
+
+fn get_nth_line(s: &str, n: usize) -> Option<&str> {  
+    s.lines().nth(n)
+}
+
+#[derive(Debug, Default)]
+pub struct ExpExtractor {
+    // pub loc_vec: Vec<Loc>,
+    // pub loc_line_vec: Vec<(u32, u32)>,
+    pub let_if_else_block: Vec<lsp_types::Range>,
+    pub if_cond_in_let: Vec<lsp_types::Range>,
+    pub then_in_let: Vec<lsp_types::Range>,
+    pub else_in_let: Vec<lsp_types::Range>,
+    pub line_mapping: FileLineMappingOneFile,
+}
+
+impl ExpExtractor {
+    pub fn new(fmt_buffer: String) -> Self {
+        let mut this_exp_extractor = Self {      
+            // loc_vec: vec![],
+            // loc_line_vec: vec![],
+            let_if_else_block: vec![],
+            if_cond_in_let: vec![],
+            then_in_let: vec![],
+            else_in_let: vec![],
+            line_mapping: FileLineMappingOneFile::default(),
+        };
+
+        this_exp_extractor.line_mapping.update(&fmt_buffer);
+        let attrs: BTreeSet<String> = BTreeSet::new();    
+        let mut env = CompilationEnv::new(Flags::testing(), attrs);
+        let filehash = FileHash::empty();
+        let (defs, _) = parse_file_string(&mut env, filehash, &fmt_buffer).unwrap();
+
+        for d in defs.iter() {
+            this_exp_extractor.collect_definition(d);
+        }
+        eprintln!("this_exp_extractor = {:?}\n{:?}\n{:?}\n{:?}", 
+            this_exp_extractor.let_if_else_block, 
+            this_exp_extractor.if_cond_in_let, 
+            this_exp_extractor.then_in_let, 
+            this_exp_extractor.else_in_let
+        );
+
+        this_exp_extractor
+    }
+
+    fn get_loc_line(&self, loc: Loc) -> lsp_types::Range {
+        self.line_mapping.translate(loc.start(), loc.end()).unwrap()
+    }
+
+    fn collect_expr(&mut self, e: &Exp) {
+        match &e.value {
+            Exp_::IfElse(c, then_, Some(eles)) => {
+                self.let_if_else_block.push(self.get_loc_line(e.loc));
+                self.if_cond_in_let.push(self.get_loc_line(c.loc));
+                self.then_in_let.push(self.get_loc_line(then_.loc));
+                self.else_in_let.push(self.get_loc_line(eles.loc));
+            }
+            _ => {}
+        }
+    }
+
+    fn collect_seq_item(&mut self, s: &SequenceItem) {
+        match &s.value {
+            SequenceItem_::Bind(_, ty, e) => {
+                // let start_line = self.line_mapping.translate(d.loc.start(), d.loc.start()).unwrap().start.line;
+                // let end_line = self.line_mapping.translate(d.loc.end(), d.loc.end()).unwrap().start.line;
+                // self.loc_vec.push(d.loc);
+                // self.loc_line_vec.push((start_line, end_line));
+
+                if let Some(ty) = ty {
+                    // self.collect_ty(p, ty);
+                }
+                self.collect_expr(&e);
+            }
+            _ => {}
+        }
+    }
+
+    fn collect_seq(&mut self, s: &Sequence) {
+        for s in s.1.iter() {
+            self.collect_seq_item(s);
+        }
+        // if let Some(t) = s.3.as_ref() {
+        //     self.collect_expr(t);
+        // }
+    }
+
+    fn collect_function(&mut self, d: &Function) {
+        match &d.body.value {
+            FunctionBody_::Defined(s) => {
+                self.collect_seq(s);
+            }
+            FunctionBody_::Native => {}
+        }
+    }
+
+    fn collect_module(&mut self, d: &ModuleDefinition) {
+        for m in d.members.iter() {
+            match &m {
+                ModuleMember::Function(x) => self.collect_function(x),
+                _ => {},
+            }
+        }
+    }
+
+    fn collect_script(&mut self, d: &Script) {
+        self.collect_function(&d.function);
+    }
+
+    fn collect_definition(&mut self, d: &Definition) {
+        match d {
+            Definition::Module(x) => self.collect_module(x),
+            Definition::Address(x) => {
+                for x in x.modules.iter() {
+                    self.collect_module(x);
+                }
+            }
+            Definition::Script(x) => self.collect_script(x),
+        }
+    }
+}
+
+pub fn split_if_else_in_let_block(fmt_buffer: String) -> String {
+    let mut result = "".to_string();
+    let exp_extractor = ExpExtractor::new(fmt_buffer.clone());
+
+    let process_branch = |range: lsp_types::Range| {
+        let mut branch_content = "".to_string();
+        let mut indent_str = "".to_string();
+
+        let first_line = get_nth_line(&fmt_buffer, range.start.line as usize).unwrap_or_default();
+        let header_prefix = &first_line[0..range.start.character as usize];
+        let trimed_header_prefix = header_prefix.trim_start();
+        if trimed_header_prefix.len() > 0 {
+            if let Some(indent) = header_prefix.find(trimed_header_prefix) {
+                indent_str.push_str(" ".to_string().repeat(indent).as_str());
+            }
+            indent_str.push_str(" ".to_string().repeat(4).as_str());  // increase indent
+        }
+
+        for line_idx in range.start.line..range.end.line {
+            let this_line = get_nth_line(&fmt_buffer, line_idx as usize).unwrap_or_default();
+            if line_idx == range.start.line {
+                branch_content.push_str(&"\n".to_string());
+                branch_content.push_str(&indent_str);
+                branch_content.push_str(&this_line[range.start.character as usize..].trim_start());
+            } else {
+                if branch_content.lines().last()
+                    .map(|x| x.len()).unwrap_or_default() > 70 ||
+                    branch_content.lines().last().unwrap().contains("//") {
+                    branch_content.push_str(&"\n".to_string());
+                    branch_content.push_str(&indent_str);
+                } else {
+                    branch_content.push_str(&" ".to_string());
+                }
+                branch_content.push_str(this_line.trim_start());
+            }
+        }
+        let end_str = get_nth_line(&fmt_buffer, range.end.line as usize).unwrap_or_default();
+        if range.start.line == range.end.line {
+            branch_content.push_str(&"\n".to_string());
+            branch_content.push_str(&indent_str);
+            branch_content.push_str(&end_str[range.start.character as usize .. range.end.character as usize].trim_start());
+        } else {
+            if branch_content.lines().last()
+                .map(|x| x.len()).unwrap_or_default() > 70 ||
+                branch_content.lines().last().unwrap().contains("//") {
+                branch_content.push_str(&"\n".to_string());
+                branch_content.push_str(&indent_str);
+            } else {
+                branch_content.push_str(&" ".to_string());
+            }   
+            branch_content.push_str(&end_str[0..range.end.character as usize].trim_start());
+        }
+
+        // eprintln!("branch_content = {}", branch_content);
+        branch_content
+    };
+
+    let mut need_split_idx = vec![];
+    for let_if_else_idx in 0..exp_extractor.let_if_else_block.len() {
+        let start = exp_extractor.let_if_else_block[let_if_else_idx].start;
+        let end = exp_extractor.let_if_else_block[let_if_else_idx].end;
+        if end.line == start.line && end.character - start.character < 70 {
+            continue;
+        }
+        let then_str = process_branch(exp_extractor.then_in_let[let_if_else_idx]);
+        if then_str.contains("{") && then_str.contains("}") {
+            // note: maybe comment has "{" or "}"
+            continue;
+        }
+        need_split_idx.push(let_if_else_idx);
+    }
+
+    let mut last_pos = (0, 0);
+    for idx in need_split_idx {
+        let then_str = process_branch(exp_extractor.then_in_let[idx]);
+        let else_str = process_branch(exp_extractor.else_in_let[idx]);
+        let if_cond_range = exp_extractor.if_cond_in_let[idx];
+        let cond_end_line = get_nth_line(&fmt_buffer, if_cond_range.end.line as usize).unwrap_or_default();
+
+        for idx in last_pos.0..if_cond_range.end.line as usize {
+            result.push_str(&get_nth_line(&fmt_buffer, idx).unwrap_or_default()[last_pos.1..]);
+            result.push_str(&"\n".to_string());
+            last_pos = (idx + 1, 0);
+        }
+
+        result.push_str(&cond_end_line[0..(if_cond_range.end.character) as usize]);
+        if if_cond_range.end.line == exp_extractor.then_in_let[idx].start.line {
+            result.push_str(&cond_end_line[if_cond_range.end.character as usize..exp_extractor.then_in_let[idx].start.character as usize]);
+        }
+        result.push_str(&then_str);
+
+        let mut indent_str = "".to_string();
+        let header_prefix = &cond_end_line[0..if_cond_range.end.character as usize];
+        let trimed_header_prefix = header_prefix.trim_start();
+        if trimed_header_prefix.len() > 0 {
+            if let Some(indent) = header_prefix.find(trimed_header_prefix) {
+                indent_str.push_str(" ".to_string().repeat(indent).as_str());
+            }
+        }
+
+        result.push_str(&"\n".to_string());
+        result.push_str(&indent_str);
+        // TODO: there maybe comment before else
+        result.push_str(&"else".to_string());
+        // TODO: there maybe comment after else
+        result.push_str(&else_str);
+
+        last_pos = (exp_extractor.else_in_let[idx].end.line as usize, exp_extractor.else_in_let[idx].end.character as usize);
+    }
+    eprintln!("last_pos = \n{:?}", last_pos);
+    for idx in last_pos.0..fmt_buffer.lines().count() as usize {
+        result.push_str(&get_nth_line(&fmt_buffer, idx).unwrap_or_default()[last_pos.1..]);
+        if idx != fmt_buffer.lines().count() - 1 {
+            result.push_str(&"\n".to_string());
+        }
+        last_pos = (idx + 1, 0);
+    }
+    eprintln!("<< split_if_else_in_let result = \n{}", result);
+
+
+    result
+}
+
+#[test]
+fn test_split_if_else_in_let_block_1() {
+    split_if_else_in_let_block("
+    script {fun main() {  
+        // Initialize variable y with value 100  
+        let y: u64 = 100;  
+        // If y is less than or equal to 10, increment y by 1, otherwise set y to 10  
+        let z = if (y /*condition check*/ <= /*less than or equal to*/ 10) y = /*assignment*/ y + /*increment*/ 1 else y = /*assignment*/ 10;  
+    }}
+    ".to_string());
+}
+
+#[test]
+fn test_split_if_else_in_let_block_2() {
+    split_if_else_in_let_block(
+"
+script {
+    fun main() {
+        // Initialize variable y with value 100
+        let y: u64 = 100;
+        // If y is less than or equal to 10, increment y by 1, otherwise set y to 10
+        let z = if (y /*condition check*/ <= /*less than or equal to*/ 10) y = /*assignment*/ y +
+        /*increment*/ 1 else y = /*assignment*/ 10;
+
+        // ----------------------------------
+        // Initialize variable y with value 100
+        let y: u64 = 100;
+        // If y is less than or equal to 10, increment y by 1, otherwise set y to 10
+        let z = if (y /*condition check*/ <= /*less than or equal to*/ 10) y = /*assignment*/ y + 2 +
+        /*increment*/ 1 else y = /*assignment*/ 10;
+    }
+}
+    ".to_string());
+}
+
+#[test]
+fn test_split_if_else_in_let_block_3() {
+    split_if_else_in_let_block(
+"
+script {
+    fun main() {
+        // Initialize variable y with value 100
+        let y: u64 = 100;
+        // If y is less than or equal to 10, increment y by 1, otherwise set y to 10
+        let z = if (y /*condition check*/ <= /*less than or equal to*/ 10) y = /*assignment*/ y +
+        /*incre
+        xxxxxxxxxxxx
+        ment*/ 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11 + 12 + 13 + 14 + 15 + 16 +
+        17 + 18 + 19 + 20 + 21 + 22 + 23 + 24 + 25 + 26 + 27 + 28 + 29 + 30 + 31 + 32 + 33 +
+        34 + 35 else y = /*assignment*/ 10;
+    }
+}
+".to_string());
+}
+
+#[test]
+fn test_split_if_else_in_let_block_4() {
+    split_if_else_in_let_block(
+"
+script {
+    fun main() {  
+        let y: u64 = 100; // Define an unsigned 64-bit integer variable y and assign it a value of 100  
+        let /*comment*/z/*comment*/ = if/*comment*/ (/*comment*/y <= /*comment*/10/*comment*/) { // If y is less than or equal to 10  
+            y = y + 1; // Increment y by 1  
+        }/*comment*/ else /*comment*/{  
+            y = 10; // Otherwise, set y to 10  
+        };  
+    }
+    }
+".to_string());
 }

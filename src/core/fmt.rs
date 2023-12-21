@@ -115,6 +115,8 @@ impl Format {
                         *self.ret.borrow_mut() = fun_fmt::process_block_comment_before_fun_header(self.ret.clone().into_inner());
                         *self.ret.borrow_mut() = fun_fmt::add_blank_row_in_two_funs(self.ret.clone().into_inner());
                         self.remove_trailing_whitespaces();
+                        *self.ret.borrow_mut() = expr_fmt::split_if_else_in_let_block(self.ret.clone().into_inner());
+                        self.remove_trailing_whitespaces();
                     }
                 }
             }
@@ -492,7 +494,12 @@ impl Format {
                     let line_start = self.translate_line(c.start_offset);
                     let line_end = self.translate_line(end);
 
-                    self.push_str(" ");
+                    if !content.contains("end_of_nested_block")
+                    && !content.contains(",") 
+                    && !content.contains(";")
+                    && !content.contains(".") {
+                        self.push_str(" ");
+                    }
                     if line_start != line_end {
                         self.new_line(None);
                     }
@@ -527,7 +534,8 @@ impl Format {
     fn no_space_or_new_line_for_comment(&self) -> bool {
         if self.ret.borrow().chars().last().is_some() {
             self.ret.borrow().chars().last().unwrap() != '\n' &&
-            self.ret.borrow().chars().last().unwrap() != ' '
+            self.ret.borrow().chars().last().unwrap() != ' ' && 
+            self.ret.borrow().chars().last().unwrap() != '('
         } else {
             false
         }
@@ -645,14 +653,19 @@ impl Format {
             let fmted_cmt_str = c.format_comment(
                 kind, self.depth.get() * self.config.indent_size, 0);
             eprintln!("fmted_cmt_str in same_line = \n{}", fmted_cmt_str);
-
+            /*
             let buffer = self.ret.clone();
-            if !buffer.clone().borrow().chars().last().unwrap_or(' ').is_ascii_whitespace() {
+            if !buffer.clone().borrow().chars().last().unwrap_or(' ').is_ascii_whitespace()
+            && !buffer.clone().borrow().chars().last().unwrap_or(' ').eq(&'('){
                 self.push_str(" ");
                 // insert 2 black space before '//'
                 // if let Some(_) = fmted_cmt_str.find("//") {
                 //     self.push_str(" ");
                 // }
+            }
+            */
+            if self.no_space_or_new_line_for_comment() {
+                self.push_str(" ");
             }
 
             self.push_str(fmted_cmt_str);

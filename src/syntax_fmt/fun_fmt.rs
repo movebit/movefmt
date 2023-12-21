@@ -294,7 +294,7 @@ pub fn add_blank_row_in_two_funs(fmt_buffer: String) -> String {
 }
 
 fn get_nth_line(s: &str, n: usize) -> Option<&str> {  
-    s.lines().nth(n)  
+    s.lines().nth(n)
 }
 
 pub fn process_block_comment_before_fun_header(fmt_buffer: String) -> String {
