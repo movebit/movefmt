@@ -230,17 +230,16 @@ impl Format {
                 kind,
                 note,
             } => {
+                let nested_in_struct_definition = note
+                        .map(|x| x == Note::StructDefinition)
+                        .unwrap_or_default();
+                let fun_body = note.map(|x| x == Note::FunBody).unwrap_or_default();
+
                 const MAX: usize = 35;
                 let length = self.analyze_token_tree_length(elements, MAX);
                 let (delimiter, has_colon) = Self::analyze_token_tree_delimiter(elements);
                 let mut new_line_mode = {
                     // more rules.
-                    let nested_in_struct_definition = note
-                        .map(|x| x == Note::StructDefinition)
-                        .unwrap_or_default();
-
-                    let fun_body = note.map(|x| x == Note::FunBody).unwrap_or_default();
-
                     if fun_body {
                         let cur_ret = self.ret.clone().into_inner();
                         // eprintln!("fun_header = {:?}", &self.format_context.content[(kind.start_pos as usize)..(kind.end_pos as usize)]);
@@ -270,6 +269,8 @@ impl Format {
                         || (nested_in_struct_definition && elements.len() > 0)
                         || fun_body
                 };
+                let b_add_indent = !note.map(|x| x == Note::ModuleAddress).unwrap_or_default();
+
                 match kind.kind {
                     NestKind_::ParentTheses
                     | NestKind_::Bracket
@@ -287,7 +288,10 @@ impl Format {
                     }
                 }
                 self.format_token_trees_(&kind.start_token_tree(), None, new_line_mode);
-                self.inc_depth();
+                if b_add_indent {
+                    self.inc_depth();
+                }
+
                 if new_line_mode {
                     if elements.len() > 0 {
                         let next_token = elements.get(0).unwrap();
@@ -372,8 +376,9 @@ impl Format {
                     }
                 }
                 self.add_comments(kind.end_pos, "end_of_nested_block".to_string());
-                self.dec_depth();
-
+                if b_add_indent {
+                    self.dec_depth();
+                }
                 let ret_copy = self.ret.clone().into_inner();
                 // may be already add_a_new_line in last step by add_comments(doc_comment in tail of line)
                 *self.ret.borrow_mut() = ret_copy.trim_end().to_string();

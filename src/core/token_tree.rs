@@ -124,6 +124,8 @@ pub enum Note {
     FunBody,
     /// This is a apply name in `apply` statement.
     ApplyName,
+    /// This is a address that contained modules.
+    ModuleAddress,
 }
 
 impl Default for TokenTree {  
@@ -202,6 +204,7 @@ pub struct Parser<'a> {
     bin_op: HashSet<u32>,
     fun_body: HashSet<u32>, // start pos.
     apple_name: HashSet<u32>,
+    address_module: Vec<(u32, u32)>,
 }
 
 impl<'a> Parser<'a> {
@@ -215,6 +218,7 @@ impl<'a> Parser<'a> {
             bin_op: Default::default(),
             fun_body: Default::default(),
             apple_name: Default::default(),
+            address_module: vec![],
         };
         x.collect_various_information();
         x
@@ -300,6 +304,13 @@ impl<'a> Parser<'a> {
         if self.fun_body.contains(&start) {
             note = Some(Note::FunBody);
         }
+        for (addr, modname) in self.address_module.clone() {
+            if addr < start && start < modname {
+                note = Some(Note::ModuleAddress);
+                break;
+            }
+        }
+
         while self.lexer.peek() != Tok::EOF {
             if self.lexer.peek() == kind.end_tok() {
                 break;
@@ -370,8 +381,9 @@ impl<'a> Parser<'a> {
         fn collect_definition(p: &mut Parser, d: &Definition) {
             match d {
                 Definition::Module(x) => collect_module(p, x),
-                Definition::Address(x) => {
-                    for x in x.modules.iter() {
+                Definition::Address(addr) => {
+                    for x in addr.modules.iter() {
+                        p.address_module.push((addr.loc.start(), x.loc.start()));
                         collect_module(p, x);
                     }
                 }
