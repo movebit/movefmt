@@ -377,8 +377,10 @@ fn get_nth_line(s: &str, n: usize) -> Option<&str> {
 
 #[derive(Debug, Default)]
 pub struct ExpExtractor {
-    // pub loc_vec: Vec<Loc>,
-    // pub loc_line_vec: Vec<(u32, u32)>,
+    pub let_if_else_block_loc_vec: Vec<Loc>,
+    pub then_in_let_loc_vec: Vec<Loc>,
+    pub else_in_let_loc_vec: Vec<Loc>,
+
     pub let_if_else_block: Vec<lsp_types::Range>,
     pub if_cond_in_let: Vec<lsp_types::Range>,
     pub then_in_let: Vec<lsp_types::Range>,
@@ -389,8 +391,10 @@ pub struct ExpExtractor {
 impl ExpExtractor {
     pub fn new(fmt_buffer: String) -> Self {
         let mut this_exp_extractor = Self {      
-            // loc_vec: vec![],
-            // loc_line_vec: vec![],
+            let_if_else_block_loc_vec: vec![],
+            then_in_let_loc_vec: vec![],
+            else_in_let_loc_vec: vec![],
+
             let_if_else_block: vec![],
             if_cond_in_let: vec![],
             then_in_let: vec![],
@@ -407,27 +411,31 @@ impl ExpExtractor {
         for d in defs.iter() {
             this_exp_extractor.collect_definition(d);
         }
-        eprintln!("this_exp_extractor = {:?}\n{:?}\n{:?}\n{:?}", 
-            this_exp_extractor.let_if_else_block, 
-            this_exp_extractor.if_cond_in_let, 
-            this_exp_extractor.then_in_let, 
-            this_exp_extractor.else_in_let
-        );
+        // eprintln!("this_exp_extractor = {:?}\n{:?}\n{:?}\n{:?}", 
+        //     this_exp_extractor.let_if_else_block, 
+        //     this_exp_extractor.if_cond_in_let, 
+        //     this_exp_extractor.then_in_let, 
+        //     this_exp_extractor.else_in_let
+        // );
 
         this_exp_extractor
     }
 
-    fn get_loc_line(&self, loc: Loc) -> lsp_types::Range {
+    fn get_loc_range(&self, loc: Loc) -> lsp_types::Range {
         self.line_mapping.translate(loc.start(), loc.end()).unwrap()
     }
 
     fn collect_expr(&mut self, e: &Exp) {
         match &e.value {
             Exp_::IfElse(c, then_, Some(eles)) => {
-                self.let_if_else_block.push(self.get_loc_line(e.loc));
-                self.if_cond_in_let.push(self.get_loc_line(c.loc));
-                self.then_in_let.push(self.get_loc_line(then_.loc));
-                self.else_in_let.push(self.get_loc_line(eles.loc));
+                self.let_if_else_block_loc_vec.push(e.loc);
+                self.then_in_let_loc_vec.push(then_.loc);
+                self.else_in_let_loc_vec.push(eles.loc);
+
+                self.let_if_else_block.push(self.get_loc_range(e.loc));
+                self.if_cond_in_let.push(self.get_loc_range(c.loc));
+                self.then_in_let.push(self.get_loc_range(then_.loc));
+                self.else_in_let.push(self.get_loc_range(eles.loc));
             }
             _ => {}
         }
@@ -436,14 +444,6 @@ impl ExpExtractor {
     fn collect_seq_item(&mut self, s: &SequenceItem) {
         match &s.value {
             SequenceItem_::Bind(_, ty, e) => {
-                // let start_line = self.line_mapping.translate(d.loc.start(), d.loc.start()).unwrap().start.line;
-                // let end_line = self.line_mapping.translate(d.loc.end(), d.loc.end()).unwrap().start.line;
-                // self.loc_vec.push(d.loc);
-                // self.loc_line_vec.push((start_line, end_line));
-
-                if let Some(ty) = ty {
-                    // self.collect_ty(p, ty);
-                }
                 self.collect_expr(&e);
             }
             _ => {}
@@ -520,7 +520,7 @@ pub fn split_if_else_in_let_block(fmt_buffer: String) -> String {
                 branch_content.push_str(&this_line[range.start.character as usize..].trim_start());
             } else {
                 if branch_content.lines().last()
-                    .map(|x| x.len()).unwrap_or_default() > 70 ||
+                    .map(|x| x.len()).unwrap_or_default() > 50 ||
                     branch_content.lines().last().unwrap().contains("//") {
                     branch_content.push_str(&"\n".to_string());
                     branch_content.push_str(&indent_str);
@@ -537,7 +537,7 @@ pub fn split_if_else_in_let_block(fmt_buffer: String) -> String {
             branch_content.push_str(&end_str[range.start.character as usize .. range.end.character as usize].trim_start());
         } else {
             if branch_content.lines().last()
-                .map(|x| x.len()).unwrap_or_default() > 70 ||
+                .map(|x| x.len()).unwrap_or_default() > 50 ||
                 branch_content.lines().last().unwrap().contains("//") {
                 branch_content.push_str(&"\n".to_string());
                 branch_content.push_str(&indent_str);
@@ -549,6 +549,25 @@ pub fn split_if_else_in_let_block(fmt_buffer: String) -> String {
 
         // eprintln!("branch_content = {}", branch_content);
         branch_content
+    };
+
+    let get_else_pos = |let_if_else_loc: Loc, else_branch_in_let_loc: Loc| {
+        let branch_str = &fmt_buffer[0..let_if_else_loc.end() as usize];
+        let mut lexer = Lexer::new(&branch_str, FileHash::empty());
+        lexer.advance().unwrap();
+        let mut else_in_let_vec = vec![];
+        while lexer.peek() != Tok::EOF {
+            if lexer.start_loc() >= else_branch_in_let_loc.start() as usize {
+                break;
+            }
+            if let Tok::Else = lexer.peek() {
+                else_in_let_vec.push((lexer.start_loc(), lexer.start_loc() + lexer.content().len()));
+            }
+            lexer.advance().unwrap();
+        }
+
+        let ret_pos = else_in_let_vec.last().unwrap();
+        (ret_pos.0, ret_pos.1)
     };
 
     let mut need_split_idx = vec![];
@@ -573,18 +592,44 @@ pub fn split_if_else_in_let_block(fmt_buffer: String) -> String {
         let if_cond_range = exp_extractor.if_cond_in_let[idx];
         let cond_end_line = get_nth_line(&fmt_buffer, if_cond_range.end.line as usize).unwrap_or_default();
 
+        // append line[last_line, if ()]
+        // eg:
+        /*
+        // line_x -- last_line
+        // ...
+        // line_x_plus_n
+        if (...)
+            ...
+        else
+            ...
+        */
         for idx in last_pos.0..if_cond_range.end.line as usize {
             result.push_str(&get_nth_line(&fmt_buffer, idx).unwrap_or_default()[last_pos.1..]);
             result.push_str(&"\n".to_string());
             last_pos = (idx + 1, 0);
         }
-
         result.push_str(&cond_end_line[0..(if_cond_range.end.character) as usize]);
+
+        // append line[if (), then)
+        // eg:
+        /*
+        if (...) /* maybe there has comment1 */ ...
+        /* maybe there has 
+        comment2 */ else /* maybe there has 
+        comment3 */ 
+            ...
+        */
         if if_cond_range.end.line == exp_extractor.then_in_let[idx].start.line {
             result.push_str(&cond_end_line[if_cond_range.end.character as usize..exp_extractor.then_in_let[idx].start.character as usize]);
         }
         result.push_str(&then_str);
 
+        // there maybe comment before else
+        let else_pos = get_else_pos(exp_extractor.let_if_else_block_loc_vec[idx],
+            exp_extractor.else_in_let_loc_vec[idx]);
+        result.push_str(&fmt_buffer[exp_extractor.then_in_let_loc_vec[idx].end() as usize..else_pos.0]);
+        
+        // append "\n$indent_str$else"
         let mut indent_str = "".to_string();
         let header_prefix = &cond_end_line[0..if_cond_range.end.character as usize];
         let trimed_header_prefix = header_prefix.trim_start();
@@ -593,12 +638,13 @@ pub fn split_if_else_in_let_block(fmt_buffer: String) -> String {
                 indent_str.push_str(" ".to_string().repeat(indent).as_str());
             }
         }
-
         result.push_str(&"\n".to_string());
         result.push_str(&indent_str);
-        // TODO: there maybe comment before else
         result.push_str(&"else".to_string());
-        // TODO: there maybe comment after else
+
+        // there maybe comment after else
+        result.push_str(&fmt_buffer[else_pos.1..exp_extractor.else_in_let_loc_vec[idx].start() as usize]);
+        // append else branch content
         result.push_str(&else_str);
 
         last_pos = (exp_extractor.else_in_let[idx].end.line as usize, exp_extractor.else_in_let[idx].end.character as usize);
@@ -666,7 +712,7 @@ script {
         xxxxxxxxxxxx
         ment*/ 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11 + 12 + 13 + 14 + 15 + 16 +
         17 + 18 + 19 + 20 + 21 + 22 + 23 + 24 + 25 + 26 + 27 + 28 + 29 + 30 + 31 + 32 + 33 +
-        34 + 35 else y = /*assignment*/ 10;
+        34 + 35 /*before else comment*/ else /*after else comment*/ y = /*assignment*/ 10;
     }
 }
 ".to_string());
@@ -681,6 +727,31 @@ script {
         let y: u64 = 100; // Define an unsigned 64-bit integer variable y and assign it a value of 100  
         let /*comment*/z/*comment*/ = if/*comment*/ (/*comment*/y <= /*comment*/10/*comment*/) { // If y is less than or equal to 10  
             y = y + 1; // Increment y by 1  
+        }/*comment*/ else /*comment*/{  
+            y = 10; // Otherwise, set y to 10  
+        };  
+    }
+    }
+".to_string());
+}
+
+#[test]
+fn test_split_if_else_in_let_block_5() {
+    split_if_else_in_let_block(
+"
+script {
+    fun main() {  
+        let y: u64 = 100; // Define an unsigned 64-bit integer variable y and assign it a value of 100  
+        let /*comment*/z/*comment*/ = if/*comment*/ (/*comment*/y <= /*comment*/10/*comment*/) { // If y is less than or equal to 10  
+            y = y + 1; // Increment y by 1  
+        }/*comment*/ else /*comment*/{  
+            y = 10; // Otherwise, set y to 10  
+        };  
+
+        // ----------
+        let y: u64 = 100; // Define an unsigned 64-bit integer variable y and assign it a value of 100  
+        let /*comment*/z/*comment*/ = if/*comment*/ (/*comment*/y <= /*comment*/10/*comment*/) { // If y is less than or equal to 10  
+            y = y + 1 + 2; // Increment y by 1  
         }/*comment*/ else /*comment*/{  
             y = 10; // Otherwise, set y to 10  
         };  
