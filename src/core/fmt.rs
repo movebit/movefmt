@@ -359,7 +359,7 @@ impl Format {
                                 tok: _,
                                 note: _,
                             }  = t {
-                            eprintln!("in loop<TokenTree::Nested> new_line({:?}) = true", content);
+                            // eprintln!("in loop<TokenTree::Nested> new_line({:?}) = true", content);
                         }
 
                         let process_tail_comment_of_line = match next_t {
@@ -473,9 +473,9 @@ impl Format {
                 self.new_line(None);
             }
 
-            eprintln!("-- add_comments: line(c.start_offset) - cur_line = {:?}", 
-                self.translate_line(c.start_offset) - self.cur_line.get());
-            eprintln!("c.content.as_str() = {:?}\n", c.content.as_str());
+            // eprintln!("-- add_comments: line(c.start_offset) - cur_line = {:?}", 
+            //     self.translate_line(c.start_offset) - self.cur_line.get());
+            // eprintln!("c.content.as_str() = {:?}\n", c.content.as_str());
             if self.no_space_or_new_line_for_comment() {
                 self.push_str(" ");
             }
@@ -485,7 +485,6 @@ impl Format {
 
             match c.comment_kind() {
                 CommentKind::DocComment => {
-                    eprintln!("add_comments<CommentKind::DocComment>");
                     // let buffer = self.ret.clone();
                     // let len: usize = c.content.len();
                     // let x: usize = buffer.borrow().len();
@@ -518,7 +517,7 @@ impl Format {
             self.comments_index.set(self.comments_index.get() + 1);
             self.cur_line.set(self.translate_line(c.start_offset + (c.content.len() as u32) - 1));
             comment_nums_before_cur_simple_token = comment_nums_before_cur_simple_token + 1;
-            eprintln!("in add_comments for loop: self.cur_line = {:?}\n", self.cur_line);
+            // eprintln!("in add_comments for loop: self.cur_line = {:?}\n", self.cur_line);
         }
         if comment_nums_before_cur_simple_token > 0 {
             eprintln!("add_comments[{:?}] before pos[{:?}] = {:?} return <<<<<<<<<\n", 
@@ -652,8 +651,8 @@ impl Format {
             if self.translate_line(add_line_comment_pos) != self.translate_line(c.start_offset) {
                 break;
             }
-            eprintln!("self.translate_line(c.start_offset) = {}, self.cur_line.get() = {}", self.translate_line(c.start_offset), self.cur_line.get());
-            eprintln!("add a new line[{:?}], meet comment", c.content);
+            // eprintln!("self.translate_line(c.start_offset) = {}, self.cur_line.get() = {}", self.translate_line(c.start_offset), self.cur_line.get());
+            // eprintln!("add a new line[{:?}], meet comment", c.content);
             // if (self.translate_line(c.start_offset) - self.cur_line.get()) > 1 {
             //     eprintln!("add a black line");
             //     self.new_line(None);
@@ -662,7 +661,7 @@ impl Format {
             let kind = c.comment_kind();
             let fmted_cmt_str = c.format_comment(
                 kind, self.depth.get() * self.config.indent_size, 0);
-            eprintln!("fmted_cmt_str in same_line = \n{}", fmted_cmt_str);
+            // eprintln!("fmted_cmt_str in same_line = \n{}", fmted_cmt_str);
             /*
             let buffer = self.ret.clone();
             if !buffer.clone().borrow().chars().last().unwrap_or(' ').is_ascii_whitespace()
@@ -691,7 +690,7 @@ impl Format {
                     }
                 }
                 _ => {
-                    eprintln!("-- process_same_line_comment, add CommentKind::_({})", c.content);
+                    // eprintln!("-- process_same_line_comment, add CommentKind::_({})", c.content);
                     self.new_line(None);
                     call_new_line = true;
                 }
@@ -778,7 +777,7 @@ impl Format {
             .flatten()
             .unwrap_or_default()
         {
-            eprintln!("tok_suitable_for_new_line ret false");
+            // eprintln!("tok_suitable_for_new_line ret false");
             return false;
         }
         let is_bin = note.map(|x| x == Note::BinaryOP).unwrap_or_default();
@@ -804,7 +803,7 @@ impl Format {
             | Tok::NumValue => true,
             _ => false,
         };
-        eprintln!("tok_suitable_for_new_line ret = {}", ret);
+        // eprintln!("tok_suitable_for_new_line ret = {}", ret);
         ret
     }
 

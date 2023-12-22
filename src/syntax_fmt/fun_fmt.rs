@@ -11,7 +11,7 @@ use crate::syntax::parse_file_string;
 
 
 pub fn fun_header_specifier_fmt(specifier: &str, indent_str: &String) -> String {
-    eprintln!("fun_specifier_str = {:?}", specifier);
+    // eprintln!("fun_specifier_str = {:?}", specifier);
 
     let mut fun_specifiers_code = vec![];
     let mut lexer = Lexer::new(specifier, FileHash::empty());
@@ -155,7 +155,7 @@ pub fn fun_header_specifier_fmt(specifier: &str, indent_str: &String) -> String 
     if found_specifier {
         ret_str.push_str(fun_specifier_fmted_str.as_str());
         ret_str.push_str(&" ".to_string());
-        eprintln!("fun_specifier_fmted_str = --------------{}", ret_str);
+        // eprintln!("fun_specifier_fmted_str = --------------{}", ret_str);
     } else {
         ret_str = specifier.to_string();
     }
@@ -170,16 +170,16 @@ pub fn add_space_line_in_two_fun(fmt_buffer: String) -> String {
     for cap in re.clone().captures_iter(text.as_str()) {  
         let cap = cap[0].to_string();
         if cap.chars().filter(|c| *c == '\n').count() == 1 {
-            eprintln!("cap = {:?}", cap);
+            // eprintln!("cap = {:?}", cap);
             match fmt_buffer.find(&cap) {
                 Some(idx) => {
                     ret_fmt_buffer.insert(idx + 2, '\n');
-                    eprintln!("after insert, cap = {:?}", &ret_fmt_buffer[idx..idx+cap.len()]);
+                    // eprintln!("after insert, cap = {:?}", &ret_fmt_buffer[idx..idx+cap.len()]);
                 },
                 _ => {},
             }
         } else {
-            eprintln!("cap = {:?}", cap);
+            // eprintln!("cap = {:?}", cap);
         }
     }
     ret_fmt_buffer
@@ -275,7 +275,7 @@ pub fn add_blank_row_in_two_funs(fmt_buffer: String) -> String {
                 let the_row_after_fun1_end = get_nth_line(buf.as_str(), (fun1_end_line + 1) as usize).unwrap_or_default();
                 let trimed_prefix = the_row_after_fun1_end.trim_start();
                 if trimed_prefix.len() > 0 {
-                    eprintln!("trimed_prefix = {:?}", trimed_prefix);
+                    // eprintln!("trimed_prefix = {:?}", trimed_prefix);
                     true 
                 } else {
                     false
@@ -289,7 +289,7 @@ pub fn add_blank_row_in_two_funs(fmt_buffer: String) -> String {
         }
     }
 
-    eprintln!("result = {}", result);
+    // eprintln!("result = {}", result);
     result
 }
 
@@ -314,7 +314,7 @@ pub fn process_block_comment_before_fun_header(fmt_buffer: String) -> String {
             let header_prefix = &fun_header_str[0..lexer.start_loc()];
             let trimed_header_prefix = header_prefix.trim_start();
             if trimed_header_prefix.len() > 0 {
-                eprintln!("header_prefix = {:?}", header_prefix);
+                // eprintln!("header_prefix = {:?}", header_prefix);
                 // result.insert(lexer.start_loc() + fun_extractor.loc_vec[fun_idx].start() as usize, '\n');
 
                 let mut insert_str = "\n".to_string();
@@ -325,7 +325,7 @@ pub fn process_block_comment_before_fun_header(fmt_buffer: String) -> String {
                     &insert_str);
                 insert_char_nums = insert_char_nums + insert_str.len();
             }
-            eprintln!("token[{:?}] = {:?}", lexer.start_loc(), lexer.content());
+            // eprintln!("token[{:?}] = {:?}", lexer.start_loc(), lexer.content());
             break;
         }
         fun_idx = fun_idx + 1;

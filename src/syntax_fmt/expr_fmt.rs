@@ -186,13 +186,13 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                         // }
                     },
                     TokenTree::SimpleToken {
-                        content,
+                        content: _,
                         pos: _,
                         tok,
                         note: _,
                     } => {
                         next_tok = *tok;
-                        println!("content = {:?}", content);                    
+                        // println!("content = {:?}", content);                    
                         if Tok::ByteStringValue == *tok {
                             result = true;
                         }
@@ -204,7 +204,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                 if Tok::AtSign == next_tok {
                     result = true;
                 }
-                println!("after Comma, result = {}, next_tok = {:?}", result, next_tok);
+                // println!("after Comma, result = {}, next_tok = {:?}", result, next_tok);
             }
             result
         },
@@ -302,7 +302,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                             note: _,
                         } => {
                             next_tok = *tok;
-                            println!("content = {:?}", content);
+                            // println!("content = {:?}", content);
                             if Tok::NumValue == *tok 
                             || Tok::NumTypedValue == *tok
                             || Tok::LParen == *tok {
@@ -345,7 +345,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                         note: _,
                     } => {
                         next_tok = *tok;
-                        println!("content = {:?}", content);
+                        // println!("content = {:?}", content);
                         if Tok::Slash == *tok || Tok::LBrace == *tok {
                             result = true;
                         }
@@ -368,7 +368,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                 result = true;
             }
 
-            println!("result = {}, next_tok = {:?}", result, next_tok);
+            // println!("result = {}, next_tok = {:?}", result, next_tok);
             result
         },
         _ => false,
@@ -653,7 +653,7 @@ pub fn split_if_else_in_let_block(fmt_buffer: String) -> String {
 
         last_pos = (exp_extractor.else_in_let[idx].end.line as usize, exp_extractor.else_in_let[idx].end.character as usize);
     }
-    eprintln!("last_pos = \n{:?}", last_pos);
+    // eprintln!("last_pos = \n{:?}", last_pos);
     for idx in last_pos.0..fmt_buffer.lines().count() as usize {
         result.push_str(&get_nth_line(&fmt_buffer, idx).unwrap_or_default()[last_pos.1..]);
         if idx != fmt_buffer.lines().count() - 1 {
@@ -661,9 +661,6 @@ pub fn split_if_else_in_let_block(fmt_buffer: String) -> String {
         }
         last_pos = (idx + 1, 0);
     }
-    eprintln!("<< split_if_else_in_let result = \n{}", result);
-
-
     result
 }
 
