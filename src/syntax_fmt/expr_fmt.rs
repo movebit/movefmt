@@ -364,6 +364,10 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                 result = true;
             }
 
+            if Tok::RParen == get_end_tok(current) && next_tok == Tok::LParen {
+                result = true;
+            }
+
             println!("result = {}, next_tok = {:?}", result, next_tok);
             result
         },

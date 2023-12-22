@@ -269,6 +269,10 @@ impl Format {
                         || (nested_in_struct_definition && elements.len() > 0)
                         || fun_body
                 };
+                if fun_body && elements.len()== 0 {
+                    new_line_mode = false;
+                }
+
                 let b_add_indent = !note.map(|x| x == Note::ModuleAddress).unwrap_or_default();
 
                 match kind.kind {
@@ -375,7 +379,8 @@ impl Format {
                         self.process_same_line_comment(t.end_pos(), process_tail_comment_of_line);
                     }
                 }
-                self.add_comments(kind.end_pos, "end_of_nested_block".to_string());
+
+                self.add_comments(kind.end_pos, kind.end_token_tree().simple_str().unwrap_or_default().to_string());
                 if b_add_indent {
                     self.dec_depth();
                 }
@@ -499,8 +504,8 @@ impl Format {
                     let line_start = self.translate_line(c.start_offset);
                     let line_end = self.translate_line(end);
 
-                    if !content.contains("end_of_nested_block")
-                    && !content.contains(",") 
+                    if !content.contains(")")
+                    && !content.contains(",")
                     && !content.contains(";")
                     && !content.contains(".") {
                         self.push_str(" ");
