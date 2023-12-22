@@ -9,10 +9,10 @@ use move_compiler::Flags;
 use std::cell::Cell;
 use std::collections::BTreeSet;
 use crate::core::token_tree::{
-    Comment, CommentExtrator, CommentKind, Delimiter, NestKind_, Note, TokenTree,
+    Comment, CommentExtrator, CommentKind, Delimiter, NestKind, NestKind_, Note, TokenTree,
 };
 use crate::utils::FileLineMappingOneFile;
-use crate::syntax::parse_file_string;
+use crate::syntax::{parse_file_string, self};
 use crate::syntax_fmt::{expr_fmt, fun_fmt};
 
 pub enum FormatEnv {
@@ -133,37 +133,29 @@ impl Format {
         current: &TokenTree,
         next: Option<&TokenTree>,
     ) -> bool {
-        //
         if next.map(|x| x.simple_str()).flatten() == delimiter.map(|x| x.to_static_str()) {
             return false;
         }
-        let next_tok = next.map(|x| match x {
-            TokenTree::SimpleToken {
-                content: _,
-                pos: _,
-                tok,
-                note: _,
-            } => tok.clone(),
-            TokenTree::Nested {
-                elements: _,
-                kind,
-                note: _,
-            } => kind.kind.start_tok(),
-        });
-
-        let next_content = next.map(|x| match x {
-            TokenTree::SimpleToken {
-                content,
-                pos: _,
-                tok: _,
-                note: _,
-            } => content.clone(),
-            TokenTree::Nested {
-                elements: _,
-                kind,
-                note: _,
-            } => kind.kind.start_tok().to_string(),
-        });
+        let mut next_tok = None;
+        let mut next_content = None;
+        if let Some(next_tok_content) = next.map(|x| {  
+            match x {  
+                TokenTree::SimpleToken {  
+                    content,
+                    pos: _,  
+                    tok,  
+                    note: _,  
+                } => (tok.clone(), content.clone()),  
+                TokenTree::Nested {  
+                    elements: _,  
+                    kind,  
+                    note: _,  
+                } => (kind.kind.start_tok(), kind.kind.start_tok().to_string()),  
+            }
+        }) {
+            next_tok = Some(next_tok_content.0);
+            next_content = Some(next_tok_content.1);
+        }
 
         // special case for `}}`
         if match current {
@@ -216,6 +208,51 @@ impl Format {
             return true;
         }
         false
+    }
+
+    fn need_new_line_for_each_token_in_nested(
+        kind: &NestKind,
+        delimiter: Option<Delimiter>,
+        has_colon: bool,
+        t: &TokenTree,
+        next_t: Option<&TokenTree>,
+        index: usize,
+        len: usize,
+        new_line_mode: bool
+    ) -> bool {
+        let mut new_line = if new_line_mode {
+            let d = delimiter.map(|x| x.to_static_str());
+            let t_str = t.simple_str();
+            if (Self::need_new_line(kind.kind, delimiter, has_colon, t, next_t)
+                || (d == t_str && d.is_some()))
+                && index != len - 1
+            {
+                true
+            } else {
+                false
+            }
+        } else {
+            false
+        };
+
+        if let Some((next_tok, next_content)) = next_t.map(|x| match x {
+            TokenTree::SimpleToken {
+                content,
+                pos: _,
+                tok,
+                note: _,
+            } => (tok.clone(), content.clone()),
+            TokenTree::Nested {
+                elements: _,
+                kind,
+                note: _,
+            } => (kind.kind.start_tok(), kind.kind.start_tok().to_string())
+        }) {
+            if let Some(_) = syntax::token_to_ability(next_tok, &next_content) {
+                new_line = false;
+            }
+        }
+        new_line
     }
 
     fn format_token_trees_(
@@ -326,20 +363,18 @@ impl Format {
                     let next_t = elements.get(index + 1);
                     let pound_sign_new_line =
                         pound_sign.map(|x| (x + 1) == index).unwrap_or_default();
-                    let new_line = if new_line_mode {
-                        let d = delimiter.map(|x| x.to_static_str());
-                        let t_str = t.simple_str();
-                        if (Self::need_new_line(kind.kind, delimiter, has_colon, t, next_t)
-                            || (d == t_str && d.is_some()))
-                            && index != len - 1
-                        {
-                            true
-                        } else {
-                            false
-                        }
-                    } else {
-                        false
-                    };
+
+                    let new_line = Self::need_new_line_for_each_token_in_nested(
+                        kind,
+                        delimiter,
+                        has_colon,
+                        t,
+                        next_t,
+                        index,
+                        len,
+                        new_line_mode
+                    );
+
                     self.format_token_trees_(
                         t,
                         elements.get(index + 1),

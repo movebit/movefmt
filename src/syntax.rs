@@ -1788,7 +1788,7 @@ fn parse_optional_type_args(context: &mut Context) -> Result<Option<Vec<Type>>, 
     }
 }
 
-fn token_to_ability(token: Tok, content: &str) -> Option<Ability_> {
+pub fn token_to_ability(token: Tok, content: &str) -> Option<Ability_> {
     match (token, content) {
         (Tok::Copy, _) => Some(Ability_::Copy),
         (Tok::Identifier, Ability_::DROP) => Some(Ability_::Drop),
