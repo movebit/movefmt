@@ -136,9 +136,8 @@ impl Format {
         if next.map(|x| x.simple_str()).flatten() == delimiter.map(|x| x.to_static_str()) {
             return false;
         }
-        let mut next_tok = None;
-        let mut next_content = None;
-        if let Some(next_tok_content) = next.map(|x| {  
+
+        let b_judge_next_token = if let Some((next_tok, next_content)) = next.map(|x| {  
             match x {  
                 TokenTree::SimpleToken {  
                     content,
@@ -153,9 +152,35 @@ impl Format {
                 } => (kind.kind.start_tok(), kind.kind.start_tok().to_string()),  
             }
         }) {
-            next_tok = Some(next_tok_content.0);
-            next_content = Some(next_tok_content.1);
-        }
+            match next_tok {
+                Tok::Friend
+                | Tok::Const
+                | Tok::Fun
+                | Tok::While
+                | Tok::Use
+                | Tok::Struct
+                | Tok::Spec
+                | Tok::Return
+                | Tok::Public
+                | Tok::Native
+                | Tok::Move
+                | Tok::Module
+                | Tok::Loop
+                | Tok::Let
+                | Tok::Invariant
+                | Tok::If
+                | Tok::Continue
+                | Tok::Break
+                | Tok::NumSign
+                | Tok::Abort => true,
+                Tok::Identifier => {
+                    if next_content.as_str() == "entry" {
+                        true
+                    } else { false }
+                }
+                _ => false,
+            }
+        } else { true };
 
         // special case for `}}`
         if match current {
@@ -170,41 +195,7 @@ impl Format {
                 kind,
                 note: _,
             } => kind.kind == NestKind_::Brace,
-        } && kind == NestKind_::Brace
-            && match next_tok {
-                Some(x) => match x {
-                    Tok::Friend
-                    | Tok::Const
-                    | Tok::Fun
-                    | Tok::While
-                    | Tok::Use
-                    | Tok::Struct
-                    | Tok::Spec
-                    | Tok::Return
-                    | Tok::Public
-                    | Tok::Native
-                    | Tok::Move
-                    | Tok::Module
-                    | Tok::Loop
-                    | Tok::Let
-                    | Tok::Invariant
-                    | Tok::If
-                    | Tok::Continue
-                    | Tok::Break
-                    | Tok::NumSign
-                    | Tok::Abort => true,
-                    Tok::Identifier
-                        if next_content
-                            .map(|x| x.as_str() == "entry")
-                            .unwrap_or_default() =>
-                    {
-                        true
-                    }
-                    _ => false,
-                },
-                None => true,
-            }
-        {
+        } && kind == NestKind_::Brace && b_judge_next_token {
             return true;
         }
         false
