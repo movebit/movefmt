@@ -243,12 +243,12 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
             } else {
                 false
             };
-            result || 
-            Tok::NumValue == get_start_tok(current) 
+            result || Tok::NumValue == get_start_tok(current) 
                    || Tok::NumTypedValue == get_start_tok(current)
                    || Tok::Acquires == get_start_tok(current)
                    || Tok::Identifier == get_start_tok(current)
                    || Tok::RParen == get_end_tok(current)
+                   || Tok::Comma == get_end_tok(current)
         }
 
         (TokType::Star, _) => {
@@ -339,7 +339,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                         }
                     },
                     TokenTree::SimpleToken {
-                        content,
+                        content: _,
                         pos: _,
                         tok,
                         note: _,

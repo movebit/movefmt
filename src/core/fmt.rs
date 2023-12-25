@@ -203,20 +203,21 @@ impl Format {
 
     fn need_new_line_for_each_token_in_nested(
         kind: &NestKind,
+        elements: &Vec<TokenTree>,
         delimiter: Option<Delimiter>,
         has_colon: bool,
-        t: &TokenTree,
-        next_t: Option<&TokenTree>,
         index: usize,
-        len: usize,
         new_line_mode: bool
     ) -> bool {
+        let t = elements.get(index).unwrap();
+        let next_t = elements.get(index + 1);
+        let d = delimiter.map(|x| x.to_static_str());
+        let t_str = t.simple_str();
+
         let mut new_line = if new_line_mode {
-            let d = delimiter.map(|x| x.to_static_str());
-            let t_str = t.simple_str();
             if (Self::need_new_line(kind.kind, delimiter, has_colon, t, next_t)
-                || (d == t_str && d.is_some()))
-                && index != len - 1
+            || d == t_str && d.is_some())
+            && index != elements.len() - 1
             {
                 true
             } else {
@@ -225,6 +226,28 @@ impl Format {
         } else {
             false
         };
+
+        if d == t_str && d.is_some() {
+            if let Some(deli_str) = d {
+                if deli_str.contains(',')  {
+                    let mut idx = index;
+                    while idx > 0 {
+                        let ele = elements.get(idx).unwrap();
+                        if let None = ele.simple_str() {
+                            break;
+                        }
+                        if matches!(
+                            ele.simple_str().unwrap(),
+                            "acquires" | "reads" | "writes" | "pure" )
+                        {
+                            new_line = false;
+                            break;
+                        }
+                        idx = idx - 1;
+                    }
+                }
+            }
+        }
 
         if let Some((next_tok, next_content)) = next_t.map(|x| match x {
             TokenTree::SimpleToken {
@@ -357,12 +380,10 @@ impl Format {
 
                     let new_line = Self::need_new_line_for_each_token_in_nested(
                         kind,
+                        elements,
                         delimiter,
                         has_colon,
-                        t,
-                        next_t,
                         index,
-                        len,
                         new_line_mode
                     );
 
