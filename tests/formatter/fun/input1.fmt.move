@@ -6,9 +6,7 @@ module TestFunFormat {
 
     public fun test_long_fun_name_lllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll(v: u64)
         : SomeOtherStruct {
-        SomeOtherStruct {
-            some_field: v
-        }
+        SomeOtherStruct {some_field: v}
     }
 
     // test fun sign whith no whitespace

@@ -9,6 +9,106 @@ use std::collections::BTreeSet;
 use crate::utils::FileLineMappingOneFile;
 use crate::syntax::parse_file_string;
 
+pub fn add_space_line_in_two_fun(fmt_buffer: String) -> String {
+    use regex::Regex;
+    let re = Regex::new(r"}\s*fun").unwrap();
+    let mut ret_fmt_buffer = fmt_buffer.clone();
+    let text = fmt_buffer.clone();
+    for cap in re.clone().captures_iter(text.as_str()) {  
+        let cap = cap[0].to_string();
+        if cap.chars().filter(|c| *c == '\n').count() == 1 {
+            // eprintln!("cap = {:?}", cap);
+            match fmt_buffer.find(&cap) {
+                Some(idx) => {
+                    ret_fmt_buffer.insert(idx + 2, '\n');
+                    // eprintln!("after insert, cap = {:?}", &ret_fmt_buffer[idx..idx+cap.len()]);
+                },
+                _ => {},
+            }
+        } else {
+            // eprintln!("cap = {:?}", cap);
+        }
+    }
+    ret_fmt_buffer
+}
+
+#[derive(Debug, Default)]
+pub struct FunExtractor {
+    pub loc_vec: Vec<Loc>,
+    pub ret_ty_loc_vec: Vec<Loc>,
+    pub body_loc_vec: Vec<Loc>,
+    pub loc_line_vec: Vec<(u32, u32)>,
+    pub line_mapping: FileLineMappingOneFile,
+}
+
+impl FunExtractor {
+    pub fn new(fmt_buffer: String) -> Self {
+        let mut this_fun_extractor = Self {      
+            loc_vec: vec![],
+            ret_ty_loc_vec: vec![],
+            body_loc_vec: vec![],
+            loc_line_vec: vec![],
+            line_mapping: FileLineMappingOneFile::default(),
+        };
+
+        this_fun_extractor.line_mapping.update(&fmt_buffer);
+        let attrs: BTreeSet<String> = BTreeSet::new();    
+        let mut env = CompilationEnv::new(Flags::testing(), attrs);
+        let filehash = FileHash::empty();
+        let (defs, _) = parse_file_string(&mut env, filehash, &fmt_buffer).unwrap();
+        
+        for d in defs.iter() {
+            this_fun_extractor.collect_definition(d);
+        }
+
+        this_fun_extractor
+    }
+
+    fn collect_function(&mut self, d: &Function) {
+        match &d.body.value {
+            FunctionBody_::Defined(..) => {
+                let start_line = self.line_mapping.translate(d.loc.start(), d.loc.start()).unwrap().start.line;
+                let end_line = self.line_mapping.translate(d.loc.end(), d.loc.end()).unwrap().start.line;
+                self.loc_vec.push(d.loc);
+                self.ret_ty_loc_vec.push(d.signature.return_type.loc);
+                self.body_loc_vec.push(d.body.loc);
+                self.loc_line_vec.push((start_line, end_line));
+            }
+            FunctionBody_::Native => {}
+        }
+    }
+
+    fn collect_module(&mut self, d: &ModuleDefinition) {
+        for m in d.members.iter() {
+            match &m {
+                ModuleMember::Function(x) => self.collect_function(x),
+                _ => {},
+            }
+        }
+    }
+
+    fn collect_script(&mut self, d: &Script) {
+        self.collect_function(&d.function);
+    }
+
+    fn collect_definition(&mut self, d: &Definition) {
+        match d {
+            Definition::Module(x) => self.collect_module(x),
+            Definition::Address(x) => {
+                for x in x.modules.iter() {
+                    self.collect_module(x);
+                }
+            }
+            Definition::Script(x) => self.collect_script(x),
+        }
+    }
+
+
+}
+
+fn get_nth_line(s: &str, n: usize) -> Option<&str> {  
+    s.lines().nth(n)
+}
 
 pub fn fun_header_specifier_fmt(specifier: &str, indent_str: &String) -> String {
     // eprintln!("fun_specifier_str = {:?}", specifier);
@@ -162,98 +262,6 @@ pub fn fun_header_specifier_fmt(specifier: &str, indent_str: &String) -> String 
     ret_str
 }
 
-pub fn add_space_line_in_two_fun(fmt_buffer: String) -> String {
-    use regex::Regex;
-    let re = Regex::new(r"}\s*fun").unwrap();
-    let mut ret_fmt_buffer = fmt_buffer.clone();
-    let text = fmt_buffer.clone();
-    for cap in re.clone().captures_iter(text.as_str()) {  
-        let cap = cap[0].to_string();
-        if cap.chars().filter(|c| *c == '\n').count() == 1 {
-            // eprintln!("cap = {:?}", cap);
-            match fmt_buffer.find(&cap) {
-                Some(idx) => {
-                    ret_fmt_buffer.insert(idx + 2, '\n');
-                    // eprintln!("after insert, cap = {:?}", &ret_fmt_buffer[idx..idx+cap.len()]);
-                },
-                _ => {},
-            }
-        } else {
-            // eprintln!("cap = {:?}", cap);
-        }
-    }
-    ret_fmt_buffer
-}
-
-#[derive(Debug, Default)]
-pub struct FunExtractor {
-    pub loc_vec: Vec<Loc>,
-    pub loc_line_vec: Vec<(u32, u32)>,
-    pub line_mapping: FileLineMappingOneFile,
-}
-
-impl FunExtractor {
-    pub fn new(fmt_buffer: String) -> Self {
-        let mut this_fun_extractor = Self {      
-            loc_vec: vec![],
-            loc_line_vec: vec![],
-            line_mapping: FileLineMappingOneFile::default(),
-        };
-
-        this_fun_extractor.line_mapping.update(&fmt_buffer);
-        let attrs: BTreeSet<String> = BTreeSet::new();    
-        let mut env = CompilationEnv::new(Flags::testing(), attrs);
-        let filehash = FileHash::empty();
-        let (defs, _) = parse_file_string(&mut env, filehash, &fmt_buffer).unwrap();
-    
-        
-        for d in defs.iter() {
-            this_fun_extractor.collect_definition(d);
-        }
-
-        this_fun_extractor
-    }
-
-    fn collect_function(&mut self, d: &Function) {
-        match &d.body.value {
-            FunctionBody_::Defined(..) => {
-                let start_line = self.line_mapping.translate(d.loc.start(), d.loc.start()).unwrap().start.line;
-                let end_line = self.line_mapping.translate(d.loc.end(), d.loc.end()).unwrap().start.line;
-                self.loc_vec.push(d.loc);
-                self.loc_line_vec.push((start_line, end_line));
-            }
-            FunctionBody_::Native => {}
-        }
-    }
-
-    fn collect_module(&mut self, d: &ModuleDefinition) {
-        for m in d.members.iter() {
-            match &m {
-                ModuleMember::Function(x) => self.collect_function(x),
-                _ => {},
-            }
-        }
-    }
-
-    fn collect_script(&mut self, d: &Script) {
-        self.collect_function(&d.function);
-    }
-
-    fn collect_definition(&mut self, d: &Definition) {
-        match d {
-            Definition::Module(x) => self.collect_module(x),
-            Definition::Address(x) => {
-                for x in x.modules.iter() {
-                    self.collect_module(x);
-                }
-            }
-            Definition::Script(x) => self.collect_script(x),
-        }
-    }
-
-
-}
-
 pub fn add_blank_row_in_two_funs(fmt_buffer: String) -> String {
     let buf = fmt_buffer.clone();
     let mut result = fmt_buffer.clone();
@@ -293,10 +301,6 @@ pub fn add_blank_row_in_two_funs(fmt_buffer: String) -> String {
     result
 }
 
-fn get_nth_line(s: &str, n: usize) -> Option<&str> {  
-    s.lines().nth(n)
-}
-
 pub fn process_block_comment_before_fun_header(fmt_buffer: String) -> String {
     let buf = fmt_buffer.clone();
     let mut result = fmt_buffer.clone();
@@ -334,6 +338,125 @@ pub fn process_block_comment_before_fun_header(fmt_buffer: String) -> String {
     result
 }
 
+pub fn process_fun_header_too_long_v1(fmt_buffer: String) -> String {
+    let buf = fmt_buffer.clone();
+    let mut result = fmt_buffer.clone();
+    let fun_extractor = FunExtractor::new(fmt_buffer.clone());
+    let mut insert_char_nums = 0;
+    let mut fun_idx = 0;
+    for fun_loc in fun_extractor.loc_vec.iter() {
+        let ret_ty_loc = fun_extractor.ret_ty_loc_vec[fun_idx];
+        let body_loc = fun_extractor.body_loc_vec[fun_idx];
+        fun_idx = fun_idx + 1;
+        let mut insert_pos_is_before_ret_ty = true;
+        if ret_ty_loc.start() < fun_loc.start() {
+            // this fun return void
+            insert_pos_is_before_ret_ty = false;
+        }
+
+        if insert_pos_is_before_ret_ty {
+            let fun_name_str = &buf[fun_loc.start() as usize..ret_ty_loc.start() as usize ];
+            if fun_name_str.len() < 80  {
+                insert_pos_is_before_ret_ty = false;
+            }
+        }
+        
+        let fun_name_str = if insert_pos_is_before_ret_ty {
+            &buf[fun_loc.start() as usize..ret_ty_loc.start() as usize ]
+        } else {
+            &buf[fun_loc.start() as usize..body_loc.start() as usize ]
+        };
+        eprintln!("fun_name_str = {}", fun_name_str);
+        if fun_name_str.len() < 80  {
+            continue;
+        }
+
+        let mut insert_loc = ret_ty_loc.end() as usize - fun_loc.start() as usize;
+        if insert_pos_is_before_ret_ty {
+            let mut lexer = Lexer::new(fun_name_str, FileHash::empty());
+            lexer.advance().unwrap();
+            while lexer.peek() != Tok::EOF {
+                if lexer.peek() == Tok::Colon {
+                    insert_loc = lexer.start_loc();
+                }
+                lexer.advance().unwrap();
+            }
+        }
+
+        let mut line_mapping = FileLineMappingOneFile::default();
+        line_mapping.update(&fmt_buffer);
+        let start_line = line_mapping.translate(fun_loc.start(), fun_loc.start()).unwrap().start.line;
+        let fun_header_str = get_nth_line(buf.as_str(), start_line as usize).unwrap_or_default();
+        let trimed_header_prefix = fun_header_str.trim_start();
+        if trimed_header_prefix.len() > 0 {
+            let mut insert_str = "\n".to_string();
+            if let Some(indent) = fun_header_str.find(trimed_header_prefix) {
+                insert_str.push_str(" ".to_string().repeat(2*indent).as_str());
+            }
+            result.insert_str(fun_loc.start() as usize + insert_char_nums + insert_loc, 
+                        &insert_str);
+            insert_char_nums = insert_char_nums + insert_str.len();
+        }
+    }
+    result
+}
+
+pub fn process_fun_header_too_long(fmt_buffer: String) -> String {
+    let buf = fmt_buffer.clone();
+    let mut result = fmt_buffer.clone();
+    let fun_extractor = FunExtractor::new(fmt_buffer.clone());
+    let mut insert_char_nums = 0;
+    let mut fun_idx = 0;
+    for fun_loc in fun_extractor.loc_vec.iter() {
+        let ret_ty_loc = fun_extractor.ret_ty_loc_vec[fun_idx];
+        fun_idx = fun_idx + 1;
+        if ret_ty_loc.start() < fun_loc.start() {
+            // this fun return void
+            continue;
+        }
+
+        let mut fun_name_str = &buf[fun_loc.start() as usize..ret_ty_loc.start() as usize];
+        if fun_name_str.len() < 80  {
+            continue;
+        }
+        if fun_name_str.chars().filter(|&ch| ch == '\n').collect::<String>().len() > 2 {
+            // if it is multi line
+            continue;
+        }
+
+        let mut insert_loc = ret_ty_loc.end() as usize - fun_loc.start() as usize;
+        let mut lexer = Lexer::new(fun_name_str, FileHash::empty());
+        lexer.advance().unwrap();
+        while lexer.peek() != Tok::EOF {
+            if lexer.peek() == Tok::Colon {
+                insert_loc = lexer.start_loc();
+            }
+            lexer.advance().unwrap();
+        }
+        fun_name_str = &buf[fun_loc.start() as usize..(fun_loc.start() as usize) + insert_loc];
+        eprintln!("fun_name_str = {}", fun_name_str);
+        // there maybe comment bewteen fun_name and ret_ty
+        if fun_name_str.len() < 80  {
+            continue;
+        }
+
+        let mut line_mapping = FileLineMappingOneFile::default();
+        line_mapping.update(&fmt_buffer);
+        let start_line = line_mapping.translate(fun_loc.start(), fun_loc.start()).unwrap().start.line;
+        let fun_header_str = get_nth_line(buf.as_str(), start_line as usize).unwrap_or_default();
+        let trimed_header_prefix = fun_header_str.trim_start();
+        if trimed_header_prefix.len() > 0 {
+            let mut insert_str = "\n".to_string();
+            if let Some(indent) = fun_header_str.find(trimed_header_prefix) {
+                insert_str.push_str(" ".to_string().repeat(2*indent).as_str());
+            }
+            result.insert_str(fun_loc.start() as usize + insert_char_nums + insert_loc, 
+                        &insert_str);
+            insert_char_nums = insert_char_nums + insert_str.len();
+        }
+    }
+    result
+}
 
 #[test]
 fn test_rewrite_fun_header_1() {
@@ -410,5 +533,20 @@ fn test_process_block_comment_before_fun_header_1() {
         }
         ".to_string()
     );
+}
+
+#[test]
+fn test_process_fun_header_too_long1() {
+    let ret_str = process_fun_header_too_long(
+"
+module TestFunFormat {
+    fun test_long_fun_name_lllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll(v: u64): SomeOtherStruct {}
+
+    // xxxx
+    fun test_long_fun_name_lllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll(v: u64): SomeOtherStruct {}
+}
+".to_string());
+
+eprintln!("fun_specifier_fmted_str = --------------{}", ret_str);
 }
 
