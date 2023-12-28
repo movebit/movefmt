@@ -360,8 +360,10 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                 result = true;
             }
 
-            if Tok::RParen == get_end_tok(current) && next_tok == Tok::Exclaim {
-                result = true;
+            if next_tok == Tok::Exclaim {
+                result = if let TokType::Alphabet = TokType::from(get_start_tok(current)) {
+                    true
+                } else { false } || Tok::RParen == get_end_tok(current);
             }
 
             if Tok::RParen == get_end_tok(current) && next_tok == Tok::LParen {
