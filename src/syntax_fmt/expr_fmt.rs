@@ -1,5 +1,5 @@
 use crate::core::token_tree::{Note, TokenTree, NestKind_};
-use commentfmt::config::config_type::ConfigType;
+// use commentfmt::config::config_type::ConfigType;
 use move_command_line_common::files::FileHash;
 use move_compiler::parser::lexer::{Lexer, Tok};
 use move_ir_types::location::*;
@@ -447,7 +447,7 @@ impl ExpExtractor {
 
     fn collect_seq_item(&mut self, s: &SequenceItem) {
         match &s.value {
-            SequenceItem_::Bind(_, ty, e) => {
+            SequenceItem_::Bind(_, _, e) => {
                 self.collect_expr(&e);
             }
             _ => {}

@@ -4,7 +4,7 @@ module complex_module {
     use std::optional;
 
     // Struct with comments in various positions
-    struct ComplexStruct1<T, U> {
+    struct ComplexStruct1<T, U>{
         // Field 1 comment
         field1: /* Inline comment */ optional<T>,
         // Field 2 comment
@@ -12,7 +12,7 @@ module complex_module {
         // Field 3 comment
         field3: bool,
         // Field 4 comment
-        field4: /* Pre-comment */ SomeOtherStruct<T> /* Post-comment */ ,
+        field4: /* Pre-comment */ SomeOtherStruct<T> /* Post-comment */,
     } /* Struct footer comment */
 
     // Function using the struct

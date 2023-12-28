@@ -6,7 +6,7 @@ use move_compiler::diagnostics::Diagnostics;
 use move_compiler::parser::lexer::{Lexer, Tok};
 use move_compiler::shared::CompilationEnv;
 use move_compiler::Flags;
-use stderrlog::new;
+// use stderrlog::new;
 use std::cell::Cell;
 use std::collections::BTreeSet;
 use crate::core::token_tree::{
@@ -482,6 +482,7 @@ impl Format {
             if ret_copy.chars().last() == Some(' ') {
                 self.push_str(" ");
             }
+            let had_rm_added_new_line = self.ret.clone().into_inner().lines().count() < ret_copy.lines().count();
 
             // step6 -- paired effect with step2
             if b_add_indent {
@@ -489,7 +490,7 @@ impl Format {
             }
 
             // step7
-            if b_new_line_mode {
+            if b_new_line_mode || (!b_new_line_mode && had_rm_added_new_line){
                 eprintln!("end_of_nested_block, b_new_line_mode = true");
                 self.new_line(Some(kind.end_pos));
             }
