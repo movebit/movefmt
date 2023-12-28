@@ -14,7 +14,7 @@ use crate::core::token_tree::{
 };
 use crate::utils::FileLineMappingOneFile;
 use crate::syntax::{parse_file_string, self};
-use crate::syntax_fmt::{expr_fmt, fun_fmt};
+use crate::syntax_fmt::{expr_fmt, fun_fmt, spec_fmt};
 pub enum FormatEnv {
     FormatUse,
     FormatStruct,
@@ -80,6 +80,21 @@ impl Format {
         }
     }
 
+    fn post_process(&mut self) {
+        eprintln!("post_process >> meet Brace");
+        *self.ret.borrow_mut() = fun_fmt::process_block_comment_before_fun_header(self.ret.clone().into_inner());
+        *self.ret.borrow_mut() = fun_fmt::add_blank_row_in_two_funs(self.ret.clone().into_inner());
+        *self.ret.borrow_mut() = fun_fmt::process_fun_header_too_long(self.ret.clone().into_inner());
+        self.remove_trailing_whitespaces();
+        *self.ret.borrow_mut() = expr_fmt::split_if_else_in_let_block(self.ret.clone().into_inner());
+        self.remove_trailing_whitespaces();
+
+        if self.ret.clone().into_inner().contains("spec") {
+            *self.ret.borrow_mut() = spec_fmt::add_blank_row_in_two_blocks(self.ret.clone().into_inner());
+            self.remove_trailing_whitespaces();
+        }
+    }
+
     pub fn format_token_trees(mut self) -> String {
         let length = self.token_tree.len();
         let mut index = 0;
@@ -109,14 +124,8 @@ impl Format {
                     note: _,
                 } => {
                     if kind.kind == NestKind_::Brace {
-                        eprintln!("meet Brace");
                         self.new_line(Some(t.end_pos()));
-                        *self.ret.borrow_mut() = fun_fmt::process_block_comment_before_fun_header(self.ret.clone().into_inner());
-                        *self.ret.borrow_mut() = fun_fmt::add_blank_row_in_two_funs(self.ret.clone().into_inner());
-                        *self.ret.borrow_mut() = fun_fmt::process_fun_header_too_long(self.ret.clone().into_inner());
-                        self.remove_trailing_whitespaces();
-                        *self.ret.borrow_mut() = expr_fmt::split_if_else_in_let_block(self.ret.clone().into_inner());
-                        self.remove_trailing_whitespaces();
+                        self.post_process();
                     }
                 }
             }
@@ -227,6 +236,7 @@ impl Format {
             false
         };
 
+        // comma in fun resource access specifier not change new line
         if d == t_str && d.is_some() {
             if let Some(deli_str) = d {
                 if deli_str.contains(',')  {
@@ -254,6 +264,7 @@ impl Format {
             }
         }
 
+        // ablility not change new line
         if let Some((next_tok, next_content)) = next_t.map(|x| match x {
             TokenTree::SimpleToken {
                 content,
