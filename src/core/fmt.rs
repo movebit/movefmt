@@ -90,6 +90,7 @@ impl Format {
         self.remove_trailing_whitespaces();
 
         if self.ret.clone().into_inner().contains("spec") {
+            *self.ret.borrow_mut() = spec_fmt::process_block_comment_before_spec_header(self.ret.clone().into_inner());
             *self.ret.borrow_mut() = spec_fmt::add_blank_row_in_two_blocks(self.ret.clone().into_inner());
             *self.ret.borrow_mut() = spec_fmt::process_spec_fn_header_too_long(self.ret.clone().into_inner());
             self.remove_trailing_whitespaces();
@@ -318,7 +319,7 @@ impl Format {
         let stct_def = note.map(|x| x == Note::StructDefinition).unwrap_or_default();
         let fun_body = note.map(|x| x == Note::FunBody).unwrap_or_default();
 
-        const MAX_LEN_WHEN_NO_ADD_LINE: usize = 35;
+        const MAX_LEN_WHEN_NO_ADD_LINE: usize = 30;
         let length = self.analyze_token_tree_length(elements, MAX_LEN_WHEN_NO_ADD_LINE);
 
         if fun_body {
@@ -598,6 +599,8 @@ impl Format {
 
     fn add_comments(&self, pos: u32, content: String) {
         let mut comment_nums_before_cur_simple_token = 0;
+        let mut last_cmt_is_block_cmt = false;
+        let mut last_cmt_start_pos = 0;
         for c in &self.comments[self.comments_index.get()..] {
             if c.start_offset > pos {
                 break;
@@ -638,6 +641,7 @@ impl Format {
                     //     }
                     // }
                     self.new_line(None);
+                    last_cmt_is_block_cmt = false;
                 }
                 _ => {
                     let end = c.start_offset + (c.content.len() as u32);
@@ -653,14 +657,22 @@ impl Format {
                     if line_start != line_end {
                         self.new_line(None);
                     }
+                    last_cmt_is_block_cmt = true;
                 }
             }
             self.comments_index.set(self.comments_index.get() + 1);
             self.cur_line.set(self.translate_line(c.start_offset + (c.content.len() as u32) - 1));
             comment_nums_before_cur_simple_token = comment_nums_before_cur_simple_token + 1;
+            last_cmt_start_pos = c.start_offset;
             // eprintln!("in add_comments for loop: self.cur_line = {:?}\n", self.cur_line);
         }
         if comment_nums_before_cur_simple_token > 0 {
+            if last_cmt_is_block_cmt && self.translate_line(pos) - self.translate_line(last_cmt_start_pos) == 1 {
+                // process this case:
+                // line[i]: /*comment1*/ /*comment2*/
+                // line[i+1]: code // located in `pos`
+                self.new_line(None);
+            }
             eprintln!("add_comments[{:?}] before pos[{:?}] = {:?} return <<<<<<<<<\n", 
                 comment_nums_before_cur_simple_token, pos, content);
         }

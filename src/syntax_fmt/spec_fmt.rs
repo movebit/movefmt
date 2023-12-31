@@ -240,25 +240,21 @@ pub fn process_block_comment_before_spec_header(fmt_buffer: String) -> String {
     let spec_extractor = SpecExtractor::new(fmt_buffer.clone());
     let mut insert_char_nums = 0;
     let mut fun_idx = 0;
-    for (fun_start_line, _) in spec_extractor.fn_loc_line_vec.iter() {  
+    for (fun_start_line, _) in spec_extractor.spec_fn_loc_line_vec.iter() {  
         // eprintln!("fun header is {:?}", );
         let fun_header_str = get_nth_line(buf.as_str(), *fun_start_line as usize).unwrap_or_default();
         let filehash = FileHash::empty();
         let mut lexer = Lexer::new(fun_header_str, filehash);
         lexer.advance().unwrap();
         while lexer.peek() != Tok::EOF {
-            // eprintln!("spec_extractor.fn_loc_vec[fun_idx].start() = {:?}", spec_extractor.fn_loc_vec[fun_idx].start());
             let header_prefix = &fun_header_str[0..lexer.start_loc()];
             let trimed_header_prefix = header_prefix.trim_start();
             if trimed_header_prefix.len() > 0 {
-                // eprintln!("header_prefix = {:?}", header_prefix);
-                // result.insert(lexer.start_loc() + spec_extractor.fn_loc_vec[fun_idx].start() as usize, '\n');
-
                 let mut insert_str = "\n".to_string();
                 if let Some(indent) = header_prefix.find(trimed_header_prefix) {
                     insert_str.push_str(" ".to_string().repeat(indent).as_str());
                 }
-                result.insert_str(spec_extractor.fn_loc_vec[fun_idx].start() as usize + insert_char_nums, 
+                result.insert_str(spec_extractor.spec_fn_loc_vec[fun_idx].start() as usize + insert_char_nums, 
                     &insert_str);
                 insert_char_nums = insert_char_nums + insert_str.len();
             }
