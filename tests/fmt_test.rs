@@ -270,11 +270,12 @@ fn test_success_dir() {
     eprintln!("formated {} files", scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/struct"));
     eprintln!("formated {} files", scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/list"));
     eprintln!("formated {} files", scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/spec_struct"));
+    eprintln!("formated {} files", scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/spec_module"));
 }
 
 #[test]
 fn test_dir() {
-    eprintln!("formated {} files", scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/spec_module"));
+    eprintln!("formated {} files", scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/spec_fun"));
 }
 
 #[test]

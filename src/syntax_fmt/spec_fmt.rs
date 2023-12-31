@@ -1,7 +1,7 @@
 use move_command_line_common::files::FileHash;
 use move_compiler::parser::lexer::{Lexer, Tok};
 use move_ir_types::location::*;
-use move_compiler::shared::CompilationEnv;
+use move_compiler::shared::{CompilationEnv, Identifier};
 use move_compiler::Flags;
 use move_compiler::parser::ast::Definition;
 use move_compiler::parser::ast::*;
@@ -21,6 +21,7 @@ pub struct SpecExtractor {
     
     pub spec_fn_loc_vec: Vec<Loc>,
     pub spec_fn_name_loc_vec: Vec<Loc>,
+    pub spec_fn_para_loc_vec: Vec<Loc>,
     pub spec_fn_ret_ty_loc_vec: Vec<Loc>,
     pub spec_fn_body_loc_vec: Vec<Loc>,
     pub spec_fn_loc_line_vec: Vec<(u32, u32)>,
@@ -42,6 +43,7 @@ impl SpecExtractor {
             
             spec_fn_loc_vec: vec![],
             spec_fn_name_loc_vec: vec![],
+            spec_fn_para_loc_vec: vec![],
             spec_fn_ret_ty_loc_vec: vec![],
             spec_fn_body_loc_vec: vec![],
             spec_fn_loc_line_vec: vec![],
@@ -59,7 +61,6 @@ impl SpecExtractor {
         for d in defs.iter() {
             spec_extractor.collect_definition(d);
         }
-
         spec_extractor
     }
 
@@ -84,8 +85,31 @@ impl SpecExtractor {
     }
 
     fn collect_spec(&mut self, spec_block: &SpecBlock) {
+        // eprintln!("collect_spec spec_block = {:?}", spec_block);
         self.blk_loc_vec.push(spec_block.loc);
+
+        match &spec_block.value.target.value {
+            SpecBlockTarget_::Member(member_name, Some(signature)) => {
+                let start_line = self.line_mapping.translate(spec_block.value.target.loc.start(), spec_block.value.target.loc.start()).unwrap().start.line;
+                let end_line = self.line_mapping.translate(spec_block.value.target.loc.end(), spec_block.value.target.loc.end()).unwrap().start.line;
+                self.spec_fn_loc_vec.push(spec_block.value.target.loc);
+                self.spec_fn_name_loc_vec.push(member_name.loc);
+                self.spec_fn_para_loc_vec.push(
+                    if signature.parameters.len() > 0 {
+                        signature.parameters[0].0.loc()
+                    } else {
+                        signature.return_type.loc
+                    }
+                );
+                self.spec_fn_ret_ty_loc_vec.push(signature.return_type.loc);
+                // self.spec_fn_body_loc_vec.push(body.loc);
+                self.spec_fn_loc_line_vec.push((start_line, end_line));
+            },
+            _ => {}
+        }
+
         for m in spec_block.value.members.iter() {
+            // eprintln!("collect_spec spec_block.value.member = {:?}", m);
             match &m.value {
                 SpecBlockMember_::Function {
                     uninterpreted: _,
@@ -95,10 +119,17 @@ impl SpecExtractor {
                 } => {
                     match &body.value {
                         FunctionBody_::Defined(..) => {
-                            let start_line = self.line_mapping.translate(body.loc.start(), body.loc.start()).unwrap().start.line;
-                            let end_line = self.line_mapping.translate(body.loc.end(), body.loc.end()).unwrap().start.line;
-                            self.spec_fn_loc_vec.push(body.loc);
+                            let start_line = self.line_mapping.translate(m.loc.start(), m.loc.start()).unwrap().start.line;
+                            let end_line = self.line_mapping.translate(m.loc.end(), m.loc.end()).unwrap().start.line;
+                            self.spec_fn_loc_vec.push(m.loc);
                             self.spec_fn_name_loc_vec.push(name.0.loc);
+                            self.spec_fn_para_loc_vec.push(
+                                if signature.parameters.len() > 0 {
+                                    signature.parameters[0].0.loc()
+                                } else {
+                                    signature.return_type.loc
+                                }
+                            );
                             self.spec_fn_ret_ty_loc_vec.push(signature.return_type.loc);
                             self.spec_fn_body_loc_vec.push(body.loc);
                             self.spec_fn_loc_line_vec.push((start_line, end_line));
@@ -199,7 +230,7 @@ pub fn add_blank_row_in_two_blocks(fmt_buffer: String) -> String {
         }
     }
 
-    eprintln!("result = {}", result);
+    // eprintln!("result = {}", result);
     result
 }
 
@@ -246,23 +277,27 @@ pub fn process_spec_fn_header_too_long(fmt_buffer: String) -> String {
     let spec_extractor = SpecExtractor::new(fmt_buffer.clone());
     let mut insert_char_nums = 0;
     let mut fun_idx = 0;
-    for fun_loc in spec_extractor.fn_loc_vec.iter() {
-        let ret_ty_loc = spec_extractor.fn_ret_ty_loc_vec[fun_idx];
-        fun_idx = fun_idx + 1;
+    for fun_loc in spec_extractor.spec_fn_loc_vec.iter() {
+        eprintln!("spec_fun_loc = {:?}", fun_loc);
+        let ret_ty_loc = spec_extractor.spec_fn_ret_ty_loc_vec[fun_idx];
         if ret_ty_loc.start() < fun_loc.start() {
             // this fun return void
+            fun_idx = fun_idx + 1;
             continue;
         }
 
         let mut fun_name_str = &buf[fun_loc.start() as usize..ret_ty_loc.start() as usize];
         if fun_name_str.len() < 80  {
+            fun_idx = fun_idx + 1;
             continue;
         }
         if fun_name_str.chars().filter(|&ch| ch == '\n').collect::<String>().len() > 2 {
             // if it is multi line
+            fun_idx = fun_idx + 1;
             continue;
         }
 
+        let para_start_pos_in_header_line = spec_extractor.spec_fn_para_loc_vec[fun_idx].start() as usize - fun_loc.start() as usize;
         let mut insert_loc = ret_ty_loc.end() as usize - fun_loc.start() as usize;
         let mut lexer = Lexer::new(fun_name_str, FileHash::empty());
         lexer.advance().unwrap();
@@ -272,10 +307,18 @@ pub fn process_spec_fn_header_too_long(fmt_buffer: String) -> String {
             }
             lexer.advance().unwrap();
         }
+
+        // insert pos is (/*insert here*/para1...)/*or insert here*/ : return_type
+        insert_loc = if insert_loc <= para_start_pos_in_header_line {
+            insert_loc
+        } else {
+            para_start_pos_in_header_line
+        };
         fun_name_str = &buf[fun_loc.start() as usize..(fun_loc.start() as usize) + insert_loc];
-        eprintln!("fun_name_str = {}", fun_name_str);
+        eprintln!("spec_fun_name_str = {}", fun_name_str);
         // there maybe comment bewteen fun_name and ret_ty
         if fun_name_str.len() < 80  {
+            fun_idx = fun_idx + 1;
             continue;
         }
 
@@ -293,6 +336,7 @@ pub fn process_spec_fn_header_too_long(fmt_buffer: String) -> String {
                         &insert_str);
             insert_char_nums = insert_char_nums + insert_str.len();
         }
+        fun_idx = fun_idx + 1;
     }
     result
 }
@@ -311,4 +355,24 @@ fn test_add_blank_row_in_two_blocks_1() {
     }    
     "
     .to_string());
+}
+
+#[test]
+fn test_process_spec_fn_header_too_long_1() {
+    let result = process_spec_fn_header_too_long("
+    /// test_point: fun name too long
+    spec aptos_std::big_vector {
+        // -----------------
+        // Data invariants
+        // -----------------
+        
+        spec singletonlllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll<T: store>(element: T, bucket_size: u64): BigVector<T>{
+            ensures length(result) == 1;
+            ensures result.bucket_size == bucket_size;
+        }
+    }   
+    "
+    .to_string());
+
+    eprintln!("result = {}", result);
 }

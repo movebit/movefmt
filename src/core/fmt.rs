@@ -91,6 +91,7 @@ impl Format {
 
         if self.ret.clone().into_inner().contains("spec") {
             *self.ret.borrow_mut() = spec_fmt::add_blank_row_in_two_blocks(self.ret.clone().into_inner());
+            *self.ret.borrow_mut() = spec_fmt::process_spec_fn_header_too_long(self.ret.clone().into_inner());
             self.remove_trailing_whitespaces();
         }
     }

@@ -409,18 +409,20 @@ pub fn process_fun_header_too_long(fmt_buffer: String) -> String {
     let mut fun_idx = 0;
     for fun_loc in fun_extractor.loc_vec.iter() {
         let ret_ty_loc = fun_extractor.ret_ty_loc_vec[fun_idx];
-        fun_idx = fun_idx + 1;
         if ret_ty_loc.start() < fun_loc.start() {
             // this fun return void
+            fun_idx = fun_idx + 1;
             continue;
         }
 
         let mut fun_name_str = &buf[fun_loc.start() as usize..ret_ty_loc.start() as usize];
         if fun_name_str.len() < 80  {
+            fun_idx = fun_idx + 1;
             continue;
         }
         if fun_name_str.chars().filter(|&ch| ch == '\n').collect::<String>().len() > 2 {
             // if it is multi line
+            fun_idx = fun_idx + 1;
             continue;
         }
 
@@ -437,6 +439,7 @@ pub fn process_fun_header_too_long(fmt_buffer: String) -> String {
         eprintln!("fun_name_str = {}", fun_name_str);
         // there maybe comment bewteen fun_name and ret_ty
         if fun_name_str.len() < 80  {
+            fun_idx = fun_idx + 1;
             continue;
         }
 
@@ -454,6 +457,7 @@ pub fn process_fun_header_too_long(fmt_buffer: String) -> String {
                         &insert_str);
             insert_char_nums = insert_char_nums + insert_str.len();
         }
+        fun_idx = fun_idx + 1;
     }
     result
 }
