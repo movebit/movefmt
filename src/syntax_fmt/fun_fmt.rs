@@ -39,6 +39,8 @@ pub struct FunExtractor {
     pub body_loc_vec: Vec<Loc>,
     pub loc_line_vec: Vec<(u32, u32)>,
     pub line_mapping: FileLineMappingOneFile,
+    pub belong_module_for_fn: Vec<u32>,
+    pub cur_module_id: u32,
 }
 
 impl FunExtractor {
@@ -49,6 +51,8 @@ impl FunExtractor {
             body_loc_vec: vec![],
             loc_line_vec: vec![],
             line_mapping: FileLineMappingOneFile::default(),
+            belong_module_for_fn: vec![],
+            cur_module_id: 0,
         };
 
         this_fun_extractor.line_mapping.update(&fmt_buffer);
@@ -58,6 +62,7 @@ impl FunExtractor {
         let (defs, _) = parse_file_string(&mut env, filehash, &fmt_buffer).unwrap();
         
         for d in defs.iter() {
+            this_fun_extractor.cur_module_id = this_fun_extractor.cur_module_id + 1;
             this_fun_extractor.collect_definition(d);
         }
 
@@ -73,6 +78,7 @@ impl FunExtractor {
                 self.ret_ty_loc_vec.push(d.signature.return_type.loc);
                 self.body_loc_vec.push(d.body.loc);
                 self.loc_line_vec.push((start_line, end_line));
+                self.belong_module_for_fn.push(self.cur_module_id);
             }
             FunctionBody_::Native => {}
         }
@@ -282,7 +288,8 @@ pub fn add_blank_row_in_two_funs(fmt_buffer: String) -> String {
             } else {
                 let the_row_after_fun1_end = get_nth_line(buf.as_str(), (fun1_end_line + 1) as usize).unwrap_or_default();
                 let trimed_prefix = the_row_after_fun1_end.trim_start();
-                if trimed_prefix.len() > 0 {
+                if trimed_prefix.len() > 0
+                && fun_extractor.belong_module_for_fn[pre_fun_idx] == fun_extractor.belong_module_for_fn[next_fun_idx] {
                     // eprintln!("trimed_prefix = {:?}", trimed_prefix);
                     true 
                 } else {
