@@ -15,7 +15,9 @@ use crate::core::token_tree::{
 use crate::utils::FileLineMappingOneFile;
 use crate::syntax::{parse_file_string, self};
 use crate::syntax_fmt::{expr_fmt, fun_fmt, spec_fmt};
+
 pub enum FormatEnv {
+    FormatModule,
     FormatUse,
     FormatStruct,
     FormatExp,
@@ -31,14 +33,15 @@ pub enum FormatEnv {
 pub struct FormatContext {
     pub content: String,
     pub env: FormatEnv,
+    pub cur_module_name: String,
 }
   
 impl FormatContext {
-    pub fn new(content: String, env: FormatEnv) -> Self {  
-        FormatContext { content, env }
+    pub fn new(content: String, env: FormatEnv, cur_module_name: String) -> Self {  
+        FormatContext { content, env, cur_module_name }
     }
 
-    pub fn set_env(&mut self, env: FormatEnv) {  
+    pub fn set_env(&mut self, env: FormatEnv) {
         self.env = env;  
     }  
 }
@@ -52,7 +55,7 @@ pub struct Format {
     pub comments_index: Cell<usize>,
     pub ret: RefCell<String>,
     pub cur_line: Cell<u32>,
-    pub format_context: FormatContext,
+    pub format_context: RefCell<FormatContext>,
 }
 
 pub struct FormatConfig {
@@ -76,7 +79,7 @@ impl Format {
             line_mapping,
             ret: Default::default(),
             cur_line: Default::default(),
-            format_context,
+            format_context: format_context.into(),
         }
     }
 
@@ -556,6 +559,16 @@ impl Format {
                 eprintln!("SimpleToken[{:?}], add a new line", content);
                 self.new_line(None);
             }
+           
+            if content.contains("module") {
+                if self.format_context.borrow_mut().cur_module_name.len() > 0 
+                && (self.translate_line(*pos) - self.cur_line.get()) >= 1 {
+                    self.new_line(None);
+                }
+                self.format_context.borrow_mut().set_env(FormatEnv::FormatModule);
+                self.format_context.borrow_mut().cur_module_name = next_token.unwrap().simple_str().unwrap_or_default().to_string();
+                // Note: You can get the token tree of the entire format_context.env here
+            }
 
             self.push_str(&content.as_str());
             self.cur_line.set(self.translate_line(*pos));
@@ -969,6 +982,6 @@ pub fn format(content: impl AsRef<str>, config: FormatConfig) -> Result<String, 
     t.update(&content);
 
     let f = Format::new(config, ce, t, parse_result, 
-        FormatContext::new(content.to_string(), FormatEnv::FormatDefault));
+        FormatContext::new(content.to_string(), FormatEnv::FormatDefault, "".to_string()));
     Ok(f.format_token_trees())
 }
