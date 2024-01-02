@@ -2,7 +2,7 @@ module 0x42::LambdaTest1 {
     // Public inline function
     public inline fun inline_mul(a: u64, // Input parameter a
         b: u64) // Input parameter b
-    : u64 { // Returns a u64 value
+        : u64 { // Returns a u64 value
         // Multiply a and b
         a * b
     }

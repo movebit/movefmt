@@ -116,6 +116,17 @@ fn get_nth_line(s: &str, n: usize) -> Option<&str> {
     s.lines().nth(n)
 }
 
+fn get_space_cnt_before_line_str(s: &str) -> usize {
+    let mut result = 0;
+    let trimed_header_prefix = s.trim_start();
+    if trimed_header_prefix.len() > 0 {
+        if let Some(indent) = s.find(trimed_header_prefix) {
+            result = indent;
+        }
+    }
+    result
+}
+
 pub fn fun_header_specifier_fmt(specifier: &str, indent_str: &String) -> String {
     // eprintln!("fun_specifier_str = {:?}", specifier);
 
@@ -373,7 +384,7 @@ pub fn process_fun_header_too_long_v1(fmt_buffer: String) -> String {
         } else {
             &buf[fun_loc.start() as usize..body_loc.start() as usize ]
         };
-        eprintln!("fun_name_str = {}", fun_name_str);
+        // eprintln!("fun_name_str = {}", fun_name_str);
         if fun_name_str.len() < 80  {
             continue;
         }
@@ -466,6 +477,57 @@ pub fn process_fun_header_too_long(fmt_buffer: String) -> String {
         }
         fun_idx = fun_idx + 1;
     }
+    result
+}
+
+pub fn process_fun_ret_ty(fmt_buffer: String) -> String {
+    // process this case:
+    // fun fun_name()   
+    // : u64 {}
+    let buf = fmt_buffer.clone();
+    let mut result = fmt_buffer.clone();
+    let fun_extractor = FunExtractor::new(fmt_buffer.clone());
+    let mut insert_char_nums = 0;
+    let mut fun_idx = 0;
+    for fun_loc in fun_extractor.loc_vec.iter() {
+        let ret_ty_loc = fun_extractor.ret_ty_loc_vec[fun_idx];
+        if ret_ty_loc.start() < fun_loc.start() {
+            // this fun return void
+            fun_idx = fun_idx + 1;
+            continue;
+        }
+
+        let fun_name_str = &buf[fun_loc.start() as usize..ret_ty_loc.start() as usize];
+        if fun_name_str.lines().count() > 1 {
+            let fun_header_str = buf.lines().nth(fun_extractor.loc_line_vec[fun_idx].0 as usize).unwrap_or_default();
+            let ret_ty_str = fun_name_str.lines().last().unwrap_or_default();
+            let mut lexer = Lexer::new(ret_ty_str, FileHash::empty());
+            lexer.advance().unwrap();
+            if lexer.peek() != Tok::Colon {
+                continue;
+            }
+
+            // eprintln!("fun_header_str = {:?}, ret_ty_str = {:?}", fun_header_str, ret_ty_str);
+            let indent1 = get_space_cnt_before_line_str(fun_header_str);
+            let indent2 = get_space_cnt_before_line_str(ret_ty_str);
+            // eprintln!("indent1 = {}, indent2 = {}", indent1, indent2);
+            if indent1 == indent2 {
+                // eprintln!("fun_header_str = \n{:?}", &buf[0..(ret_ty_loc.start() as usize - ret_ty_str.len())]);
+                result.insert_str(ret_ty_loc.start() as usize - ret_ty_str.len() + insert_char_nums, 
+                " ".to_string().repeat(4).as_str());
+                insert_char_nums = insert_char_nums + 4;
+            }
+        }
+    }
+    // eprintln!("result = \n{}", result);
+    result
+}
+
+pub fn fmt_fun(fmt_buffer: String) -> String {
+    let mut result = process_block_comment_before_fun_header(fmt_buffer);
+    result = add_blank_row_in_two_funs(result);
+    result = process_fun_header_too_long(result);
+    result = process_fun_ret_ty(result);
     result
 }
 
@@ -577,4 +639,21 @@ module 0x42::LambdaTest1 {
 ".to_string());
 
 eprintln!("fun_specifier_fmted_str = --------------{}", ret_str);
+}
+
+#[test]
+fn test_process_fun_ret_ty() {
+    process_fun_ret_ty(
+"
+module 0x42::LambdaTest1 {  
+    /** Public inline function */  
+    public inline fun inline_mul(/** Input parameter a */ a: u64,   
+                                 /** Input parameter b */ b: u64)   
+    /** Returns a u64 value */ : u64 {  
+        /** Multiply a and b */  
+        a * b  
+    }  
+}
+".to_string()
+    );
 }

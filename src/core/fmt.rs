@@ -85,19 +85,13 @@ impl Format {
 
     fn post_process(&mut self) {
         eprintln!("post_process >> meet Brace");
-        *self.ret.borrow_mut() = fun_fmt::process_block_comment_before_fun_header(self.ret.clone().into_inner());
-        *self.ret.borrow_mut() = fun_fmt::add_blank_row_in_two_funs(self.ret.clone().into_inner());
-        *self.ret.borrow_mut() = fun_fmt::process_fun_header_too_long(self.ret.clone().into_inner());
-        self.remove_trailing_whitespaces();
+        *self.ret.borrow_mut() = fun_fmt::fmt_fun(self.ret.clone().into_inner());
         *self.ret.borrow_mut() = expr_fmt::split_if_else_in_let_block(self.ret.clone().into_inner());
-        self.remove_trailing_whitespaces();
 
         if self.ret.clone().into_inner().contains("spec") {
-            *self.ret.borrow_mut() = spec_fmt::process_block_comment_before_spec_header(self.ret.clone().into_inner());
-            *self.ret.borrow_mut() = spec_fmt::add_blank_row_in_two_blocks(self.ret.clone().into_inner());
-            *self.ret.borrow_mut() = spec_fmt::process_spec_fn_header_too_long(self.ret.clone().into_inner());
-            self.remove_trailing_whitespaces();
+            *self.ret.borrow_mut() = spec_fmt::fmt_spec(self.ret.clone().into_inner());
         }
+        self.remove_trailing_whitespaces();
     }
 
     pub fn format_token_trees(mut self) -> String {
@@ -229,9 +223,8 @@ impl Format {
         let t_str = t.simple_str();
 
         let mut new_line = if new_line_mode {
-            if (Self::need_new_line(kind.kind, delimiter, has_colon, t, next_t)
-            || d == t_str && d.is_some())
-            && index != elements.len() - 1
+            if Self::need_new_line(kind.kind, delimiter, has_colon, t, next_t)
+            || (d == t_str && d.is_some())
             {
                 true
             } else {
@@ -345,7 +338,7 @@ impl Format {
             | NestKind_::Bracket
             | NestKind_::Type
             | NestKind_::Lambda => {
-                if delimiter.is_none() {
+                if delimiter.is_none() && length <= MAX_LEN_WHEN_NO_ADD_LINE {
                     new_line_mode = false;
                 }
             }
@@ -459,7 +452,6 @@ impl Format {
                 }
             }
         }
-
     }
 
     fn format_nested_token(
@@ -560,6 +552,7 @@ impl Format {
                 self.new_line(None);
             }
            
+            // add blank row between module
             if content.contains("module") {
                 if self.format_context.borrow_mut().cur_module_name.len() > 0 
                 && (self.translate_line(*pos) - self.cur_line.get()) >= 1 {
