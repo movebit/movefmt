@@ -311,7 +311,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                             if Tok::Identifier == *tok {
                                 if content.contains("vector") {
                                     result = false;
-                                } else {
+                                } else if _is_bin_current {
                                     result = true;
                                 }
                             }
