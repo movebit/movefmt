@@ -427,7 +427,7 @@ pub fn process_fun_header_too_long(fmt_buffer: String) -> String {
             fun_idx = fun_idx + 1;
             continue;
         }
-        if fun_name_str.chars().filter(|&ch| ch == '\n').collect::<String>().len() > 2 {
+        if fun_name_str.chars().filter(|&ch| ch == '\n').collect::<String>().len() >= 2 {
             // if it is multi line
             fun_idx = fun_idx + 1;
             continue;
@@ -561,3 +561,20 @@ module TestFunFormat {
 eprintln!("fun_specifier_fmted_str = --------------{}", ret_str);
 }
 
+#[test]
+fn test_process_fun_header_too_long2() {
+    let ret_str = process_fun_header_too_long(
+"
+module 0x42::LambdaTest1 {
+    // Public inline function
+    public inline fun inline_mul(a: u64, // Input parameter a
+        b: u64) // Input parameter b
+    : u64 { // Returns a u64 value
+        // Multiply a and b
+        a * b
+    }
+}
+".to_string());
+
+eprintln!("fun_specifier_fmted_str = --------------{}", ret_str);
+}
