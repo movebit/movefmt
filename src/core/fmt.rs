@@ -34,11 +34,12 @@ pub struct FormatContext {
     pub content: String,
     pub env: FormatEnv,
     pub cur_module_name: String,
+    pub cur_tok: Tok,
 }
   
 impl FormatContext {
-    pub fn new(content: String, env: FormatEnv, cur_module_name: String) -> Self {  
-        FormatContext { content, env, cur_module_name }
+    pub fn new(content: String, env: FormatEnv) -> Self {  
+        FormatContext { content, env, cur_module_name: "".to_string(), cur_tok: Tok::Module }
     }
 
     pub fn set_env(&mut self, env: FormatEnv) {
@@ -467,6 +468,10 @@ impl Format {
             let (delimiter, has_colon) = Self::analyze_token_tree_delimiter(elements);
             let b_new_line_mode = self.get_new_line_mode_begin_nested(kind, elements, note, delimiter);
             let b_add_indent = !note.map(|x| x == Note::ModuleAddress).unwrap_or_default();
+            let nested_token_head = self.format_context.borrow().cur_tok;
+            if b_new_line_mode {
+                eprintln!("nested_token_head = [{:?}], add a new line", nested_token_head);
+            }
 
             // step1 -- format start_token
             self.format_token_trees_internal(&kind.start_token_tree(), None, b_new_line_mode);
@@ -476,7 +481,7 @@ impl Format {
                 self.inc_depth();
             }
 
-            // step3
+            // step3            
             if NestKind_::ParentTheses != kind.kind || !expr_fmt::judge_simple_statement(kind, elements) {
                 self.add_new_line_after_nested_begin(kind, elements, b_new_line_mode);
             }
@@ -502,7 +507,9 @@ impl Format {
             // step7
             if b_new_line_mode || (!b_new_line_mode && had_rm_added_new_line){
                 eprintln!("end_of_nested_block, b_new_line_mode = true");
-                self.new_line(Some(kind.end_pos));
+                if nested_token_head != Tok::If {
+                    self.new_line(Some(kind.end_pos));
+                }
             }
 
             // step8 -- format end_token
@@ -564,6 +571,11 @@ impl Format {
                 self.format_context.borrow_mut().cur_module_name = next_token.unwrap().simple_str().unwrap_or_default().to_string();
                 // Note: You can get the token tree of the entire format_context.env here
             }
+
+            if content.contains("if") {
+                self.format_context.borrow_mut().set_env(FormatEnv::FormatExp);
+            }
+            self.format_context.borrow_mut().cur_tok = *tok;
 
             self.push_str(&content.as_str());
             self.cur_line.set(self.translate_line(*pos));
@@ -977,6 +989,6 @@ pub fn format(content: impl AsRef<str>, config: FormatConfig) -> Result<String, 
     t.update(&content);
 
     let f = Format::new(config, ce, t, parse_result, 
-        FormatContext::new(content.to_string(), FormatEnv::FormatDefault, "".to_string()));
+        FormatContext::new(content.to_string(), FormatEnv::FormatDefault));
     Ok(f.format_token_trees())
 }
