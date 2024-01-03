@@ -339,7 +339,6 @@ pub fn process_spec_fn_header_too_long(fmt_buffer: String) -> String {
 
 pub fn fmt_spec(fmt_buffer: String) -> String {
     let mut result = process_block_comment_before_spec_header(fmt_buffer);
-    result = add_blank_row_in_two_blocks(result);
     result = process_spec_fn_header_too_long(result);
     result
 }

@@ -525,7 +525,6 @@ pub fn process_fun_ret_ty(fmt_buffer: String) -> String {
 
 pub fn fmt_fun(fmt_buffer: String) -> String {
     let mut result = process_block_comment_before_fun_header(fmt_buffer);
-    result = add_blank_row_in_two_funs(result);
     result = process_fun_header_too_long(result);
     result = process_fun_ret_ty(result);
     result

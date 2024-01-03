@@ -14,7 +14,7 @@ use crate::core::token_tree::{
 };
 use crate::utils::FileLineMappingOneFile;
 use crate::syntax::{parse_file_string, self};
-use crate::syntax_fmt::{expr_fmt, fun_fmt, spec_fmt};
+use crate::syntax_fmt::{expr_fmt, fun_fmt, spec_fmt, big_block_fmt};
 
 pub enum FormatEnv {
     FormatModule,
@@ -92,6 +92,7 @@ impl Format {
         if self.ret.clone().into_inner().contains("spec") {
             *self.ret.borrow_mut() = spec_fmt::fmt_spec(self.ret.clone().into_inner());
         }
+        *self.ret.borrow_mut() = big_block_fmt::fmt_big_block(self.ret.clone().into_inner());
         self.remove_trailing_whitespaces();
     }
 
@@ -562,9 +563,11 @@ impl Format {
             }
            
             // add blank row between module
-            if content.contains("module") {
+            if Tok::Module == *tok {
+                // eprintln!("SimpleToken[{:?}], cur_module_name = {:?}", content,  self.format_context.borrow_mut().cur_module_name);
                 if self.format_context.borrow_mut().cur_module_name.len() > 0 
                 && (self.translate_line(*pos) - self.cur_line.get()) >= 1 {
+                    // eprintln!("SimpleToken[{:?}], add blank row between module", content);
                     self.new_line(None);
                 }
                 self.format_context.borrow_mut().set_env(FormatEnv::FormatModule);

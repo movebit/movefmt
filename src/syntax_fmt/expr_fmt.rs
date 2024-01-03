@@ -412,13 +412,13 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
 pub(crate) fn judge_simple_statement(kind: &NestKind, elements: &Vec<TokenTree>) -> bool {
     if NestKind_::ParentTheses == kind.kind {
         let paren_num = get_paren_comma_num_in_statement(elements);
-        eprintln!("paren_num = {:?}", paren_num);
+        // eprintln!("paren_num = {:?}", paren_num);
         if paren_num.0 > 2 || paren_num.1 > 4 {
-            eprintln!("elements[0] = {:?}", elements[0].simple_str());
+            // eprintln!("elements[0] = {:?}", elements[0].simple_str());
             return false;
         }
         if paren_num.0 >= 1 && paren_num.1 >= 2 {
-            eprintln!("elements[0] = {:?}", elements[0].simple_str());
+            // eprintln!("elements[0] = {:?}", elements[0].simple_str());
             return false;
         }
     }
