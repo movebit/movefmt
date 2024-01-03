@@ -477,7 +477,9 @@ impl Format {
             }
 
             // step3
-            self.add_new_line_after_nested_begin(kind, elements, b_new_line_mode);
+            if NestKind_::ParentTheses != kind.kind || !expr_fmt::judge_simple_statement(kind, elements) {
+                self.add_new_line_after_nested_begin(kind, elements, b_new_line_mode);
+            }
 
             // step4 -- format elements
             self.format_each_token_in_nested_elements(kind, elements, delimiter, has_colon, b_new_line_mode);

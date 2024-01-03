@@ -1,5 +1,4 @@
-use crate::core::token_tree::{Note, TokenTree, NestKind_};
-// use commentfmt::config::config_type::ConfigType;
+use crate::core::token_tree::{NestKind, NestKind_, Note, TokenTree};
 use move_command_line_common::files::FileHash;
 use move_compiler::parser::lexer::{Lexer, Tok};
 use move_ir_types::location::*;
@@ -126,6 +125,39 @@ fn is_to_or_except(token: &Option<&TokenTree>) -> bool {
         Some(TokenTree::SimpleToken { content: con, .. }) => con.as_str() == "to" || con.as_str() == "except",  
         _ => false,  
     }  
+}
+
+fn get_nth_line(s: &str, n: usize) -> Option<&str> {  
+    s.lines().nth(n)
+}
+
+fn get_paren_comma_num_in_statement(elements: &Vec<TokenTree>) -> (usize, usize) {
+    let mut result = (0, 0);
+    for ele in elements {
+        if let TokenTree::Nested {
+            elements: recursive_elements,
+            kind,
+            note: _,
+        } = ele {
+            if NestKind_::ParentTheses == kind.kind {
+                let recursive_result = get_paren_comma_num_in_statement(recursive_elements);
+                result.0 = result.0 + recursive_result.0 + 1;
+                result.1 = result.1 + recursive_result.1 + 1;
+            }
+        }
+        if let TokenTree::SimpleToken {
+            content: _,
+            pos: _,
+            tok,
+            note: _,
+        } = ele {
+            if Tok::Comma == *tok {
+                result.1 = result.1 + 1;
+            }
+        }
+    }
+
+    result
 }
 
 pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool {
@@ -377,8 +409,20 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
     };
 }
 
-fn get_nth_line(s: &str, n: usize) -> Option<&str> {  
-    s.lines().nth(n)
+pub(crate) fn judge_simple_statement(kind: &NestKind, elements: &Vec<TokenTree>) -> bool {
+    if NestKind_::ParentTheses == kind.kind {
+        let paren_num = get_paren_comma_num_in_statement(elements);
+        eprintln!("paren_num = {:?}", paren_num);
+        if paren_num.0 > 2 || paren_num.1 > 4 {
+            eprintln!("elements[0] = {:?}", elements[0].simple_str());
+            return false;
+        }
+        if paren_num.0 >= 1 && paren_num.1 >= 2 {
+            eprintln!("elements[0] = {:?}", elements[0].simple_str());
+            return false;
+        }
+    }
+    true
 }
 
 #[derive(Debug, Default)]

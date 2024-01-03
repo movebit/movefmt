@@ -33,8 +33,7 @@ module 0x42::LambdaTest2 {
             g,
             LambdaTest1::inline_mul(
                 c,
-                LambdaTest1::inline_apply(
-                    |x| {
+                LambdaTest1::inline_apply(|x| {
                         LambdaTest1::inline_apply(|y| y, x)
                     },
                     3

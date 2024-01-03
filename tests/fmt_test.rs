@@ -272,13 +272,13 @@ fn test_success_dir() {
     fmt_num = fmt_num + scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/list");
     fmt_num = fmt_num + scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/spec_struct");
     fmt_num = fmt_num + scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/spec_module");
+    fmt_num = fmt_num + scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/lambda");
+    fmt_num = fmt_num + scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/spec_fun");
     eprintln!("formated {} files", fmt_num);
 }
 
 #[test]
 fn test_dir() {
-    // eprintln!("formated {} files", scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/spec_fun"));
-    eprintln!("formated {} files", scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/lambda"));
     // eprintln!("formated {} files", scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/other"));
 }
 
