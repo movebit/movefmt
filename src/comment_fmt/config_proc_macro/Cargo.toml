@@ -2,8 +2,6 @@
 name = "config_proc_macro"
 version = "0.3.0"
 edition = "2018"
-license = "Apache-2.0 OR MIT"
-categories = ["development-tools::procedural-macro-helpers"]
 
 [lib]
 proc-macro = true

@@ -74,33 +74,6 @@ pub fn filtered_str_fits(snippet: &str, max_width: usize, shape: Shape) -> bool 
 }
 
 /// Indent each line according to the specified `indent`.
-/// e.g.
-///
-/// ```rust,compile_fail
-/// foo!{
-/// x,
-/// y,
-/// foo(
-///     a,
-///     b,
-///     c,
-/// ),
-/// }
-/// ```
-///
-/// will become
-///
-/// ```rust,compile_fail
-/// foo!{
-///     x,
-///     y,
-///     foo(
-///         a,
-///         b,
-///         c,
-///     ),
-/// }
-/// ```
 pub fn trim_left_preserve_layout(
     orig: &str,
     indent: Indent,

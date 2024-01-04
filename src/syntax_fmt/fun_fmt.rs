@@ -9,7 +9,7 @@ use std::collections::BTreeSet;
 use crate::syntax_fmt::expr_fmt;
 use crate::utils::FileLineMappingOneFile;
 use crate::syntax::parse_file_string;
-use crate::core::token_tree::{NestKind, NestKind_, Note, TokenTree};
+use crate::core::token_tree::{NestKind, NestKind_, TokenTree};
 
 pub fn add_space_line_in_two_fun(fmt_buffer: String) -> String {
     use regex::Regex;
@@ -281,46 +281,6 @@ pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &String) -> 
     ret_str
 }
 
-pub(crate) fn add_blank_row_in_two_funs(fmt_buffer: String) -> String {
-    let buf = fmt_buffer.clone();
-    let mut result = fmt_buffer.clone();
-    let fun_extractor = FunExtractor::new(fmt_buffer.clone());
-    let mut insert_char_nums = 0;
-    let fun_nums = fun_extractor.loc_line_vec.len();
-    for pre_fun_idx in 0..fun_nums {
-        if pre_fun_idx == fun_nums - 1 {
-            break;
-        }
-        let next_fun_idx = pre_fun_idx + 1;
-        let fun1_end_line = fun_extractor.loc_line_vec[pre_fun_idx].1;
-        let fun2_start_line = fun_extractor.loc_line_vec[next_fun_idx].0;
-
-        let is_need_blank_row = {
-            if fun1_end_line + 1 == fun2_start_line {
-                true
-            } else {
-                let the_row_after_fun1_end = get_nth_line(buf.as_str(), (fun1_end_line + 1) as usize).unwrap_or_default();
-                let trimed_prefix = the_row_after_fun1_end.trim_start();
-                if trimed_prefix.len() > 0
-                && fun_extractor.belong_module_for_fn[pre_fun_idx] == fun_extractor.belong_module_for_fn[next_fun_idx] {
-                    // eprintln!("trimed_prefix = {:?}", trimed_prefix);
-                    true 
-                } else {
-                    false
-                }
-            }
-        };
-        if is_need_blank_row {
-            result.insert(fun_extractor.loc_vec[pre_fun_idx].end() as usize + insert_char_nums + 1, 
-                '\n');
-            insert_char_nums = insert_char_nums + 1;
-        }
-    }
-
-    // eprintln!("result = {}", result);
-    result
-}
-
 pub(crate) fn process_block_comment_before_fun_header(fmt_buffer: String) -> String {
     let buf = fmt_buffer.clone();
     let mut result = fmt_buffer.clone();
@@ -355,69 +315,6 @@ pub(crate) fn process_block_comment_before_fun_header(fmt_buffer: String) -> Str
         fun_idx = fun_idx + 1;
     }
 
-    result
-}
-
-pub(crate) fn process_fun_header_too_long_v1(fmt_buffer: String) -> String {
-    let buf = fmt_buffer.clone();
-    let mut result = fmt_buffer.clone();
-    let fun_extractor = FunExtractor::new(fmt_buffer.clone());
-    let mut insert_char_nums = 0;
-    let mut fun_idx = 0;
-    for fun_loc in fun_extractor.loc_vec.iter() {
-        let ret_ty_loc = fun_extractor.ret_ty_loc_vec[fun_idx];
-        let body_loc = fun_extractor.body_loc_vec[fun_idx];
-        fun_idx = fun_idx + 1;
-        let mut insert_pos_is_before_ret_ty = true;
-        if ret_ty_loc.start() < fun_loc.start() {
-            // this fun return void
-            insert_pos_is_before_ret_ty = false;
-        }
-
-        if insert_pos_is_before_ret_ty {
-            let fun_name_str = &buf[fun_loc.start() as usize..ret_ty_loc.start() as usize ];
-            if fun_name_str.len() < 80  {
-                insert_pos_is_before_ret_ty = false;
-            }
-        }
-        
-        let fun_name_str = if insert_pos_is_before_ret_ty {
-            &buf[fun_loc.start() as usize..ret_ty_loc.start() as usize ]
-        } else {
-            &buf[fun_loc.start() as usize..body_loc.start() as usize ]
-        };
-        // eprintln!("fun_name_str = {}", fun_name_str);
-        if fun_name_str.len() < 80  {
-            continue;
-        }
-
-        let mut insert_loc = ret_ty_loc.end() as usize - fun_loc.start() as usize;
-        if insert_pos_is_before_ret_ty {
-            let mut lexer = Lexer::new(fun_name_str, FileHash::empty());
-            lexer.advance().unwrap();
-            while lexer.peek() != Tok::EOF {
-                if lexer.peek() == Tok::Colon {
-                    insert_loc = lexer.start_loc();
-                }
-                lexer.advance().unwrap();
-            }
-        }
-
-        let mut line_mapping = FileLineMappingOneFile::default();
-        line_mapping.update(&fmt_buffer);
-        let start_line = line_mapping.translate(fun_loc.start(), fun_loc.start()).unwrap().start.line;
-        let fun_header_str = get_nth_line(buf.as_str(), start_line as usize).unwrap_or_default();
-        let trimed_header_prefix = fun_header_str.trim_start();
-        if trimed_header_prefix.len() > 0 {
-            let mut insert_str = "\n".to_string();
-            if let Some(indent) = fun_header_str.find(trimed_header_prefix) {
-                insert_str.push_str(" ".to_string().repeat(2*indent).as_str());
-            }
-            result.insert_str(fun_loc.start() as usize + insert_char_nums + insert_loc, 
-                        &insert_str);
-            insert_char_nums = insert_char_nums + insert_str.len();
-        }
-    }
     result
 }
 
@@ -535,7 +432,7 @@ pub(crate) fn process_fun_annotation(kind: NestKind, elements: Vec<TokenTree>) -
         fmt_result_str
     }
 
-    fn process_nested_token(nested_token_tree: &TokenTree, next_token: Option<&TokenTree>) -> String {
+    fn process_nested_token(nested_token_tree: &TokenTree) -> String {
         let mut fmt_result_str = "".to_string();
         if let TokenTree::Nested {
             elements,
@@ -561,7 +458,7 @@ pub(crate) fn process_fun_annotation(kind: NestKind, elements: Vec<TokenTree>) -
                 elements: _,
                 kind: _,
                 note: _,
-            } => process_nested_token(token, next_token),
+            } => process_nested_token(token),
             TokenTree::SimpleToken {
                 content: _,
                 pos: _,
@@ -577,8 +474,7 @@ pub(crate) fn process_fun_annotation(kind: NestKind, elements: Vec<TokenTree>) -
                 elements: elements,
                 kind: kind,
                 note: None,
-            },
-        None);
+            });
         eprintln!("fmt_result_str = {}", fmt_result_str);
         return fmt_result_str;
     }

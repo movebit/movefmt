@@ -9,8 +9,6 @@ use thiserror::Error;
 
 use crate::config::config_type::ConfigType;
 #[allow(unreachable_pub)]
-pub use crate::config::file_lines::{FileLines, FileName, Range};
-#[allow(unreachable_pub)]
 pub use crate::config::options::*;
 
 #[macro_use]
@@ -18,9 +16,8 @@ pub mod config_type;
 #[macro_use]
 #[allow(unreachable_pub)]
 pub mod options;
-pub mod file_lines;
 
-// This macro defines configuration options used in rustfmt. Each option
+// This macro defines configuration options used in movefmt. Each option
 // is defined as follows:
 //
 // `name: value type, default value, is stable, description;`
@@ -30,29 +27,6 @@ create_config! {
     hard_tabs: bool, false, true, "Use tab characters for indentation, spaces for alignment";
     tab_spaces: usize, 4, true, "Number of spaces per tab";
     newline_style: NewlineStyle, NewlineStyle::Auto, true, "Unix or Windows line endings";
-    indent_style: IndentStyle, IndentStyle::Block, false, "How do we indent expressions or items";
-
-    // Width Heuristics
-    use_small_heuristics: Heuristics, Heuristics::Default, true, "Whether to use different \
-        formatting for items and expressions if they satisfy a heuristic notion of 'small'";
-    width_heuristics: WidthHeuristics, WidthHeuristics::scaled(100), false,
-        "'small' heuristic values";
-    fn_call_width: usize, 60, true, "Maximum width of the args of a function call before \
-        falling back to vertical formatting.";
-    attr_fn_like_width: usize, 70, true, "Maximum width of the args of a function-like \
-        attributes before falling back to vertical formatting.";
-    struct_lit_width: usize, 18, true, "Maximum width in the body of a struct lit before \
-        falling back to vertical formatting.";
-    struct_variant_width: usize, 35, true, "Maximum width in the body of a struct variant before \
-        falling back to vertical formatting.";
-    array_width: usize, 60, true,  "Maximum width of an array literal before falling \
-        back to vertical formatting.";
-    chain_width: usize, 60, true, "Maximum length of a chain to fit on a single line.";
-    single_line_if_else_max_width: usize, 50, true, "Maximum line length for single line if-else \
-        expressions. A value of zero means always break if-else expressions.";
-    single_line_let_else_max_width: usize, 50, true, "Maximum line length for single line \
-        let-else statements. A value of zero means always format the divergent `else` block \
-        over multiple lines.";
 
     // Comments. macros, and strings
     wrap_comments: bool, false, false, "Break comments to fit on the line";
@@ -145,11 +119,11 @@ create_config! {
     condense_wildcard_suffixes: bool, false, false, "Replace strings of _ wildcards by a single .. \
                                                      in tuple patterns";
 
-    // Control options (changes the operation of rustfmt, rather than the formatting)
+    // Control options (changes the operation of movefmt, rather than the formatting)
     color: Color, Color::Auto, false,
         "What Color option to use when none is supplied: Always, Never, Auto";
     required_version: String, env!("CARGO_PKG_VERSION").to_owned(), false,
-        "Require a specific version of rustfmt";
+        "Require a specific version of movefmt";
     unstable_features: bool, false, false,
             "Enables unstable features. Only available on nightly channel";
     disable_all_formatting: bool, false, true, "Don't reformat anything";
@@ -164,9 +138,6 @@ create_config! {
 
     // Not user-facing
     verbose: Verbosity, Verbosity::Normal, false, "How much to information to emit to the user";
-    file_lines: FileLines, FileLines::all(), false,
-        "Lines to format; this is not supported in rustfmt.toml, and can only be specified \
-         via the --file-lines option";
     emit_mode: EmitMode, EmitMode::Files, false,
         "What emit Mode to use when none is supplied";
     make_backup: bool, false, false, "Backup changed files";
@@ -183,9 +154,7 @@ impl PartialConfig {
     pub fn to_toml(&self) -> Result<String, ToTomlError> {
         // Non-user-facing options can't be specified in TOML
         let mut cloned = self.clone();
-        cloned.file_lines = None;
         cloned.verbose = None;
-        cloned.width_heuristics = None;
         cloned.print_misformatted_file_names = None;
         cloned.merge_imports = None;
         cloned.fn_args_layout = None;
@@ -198,7 +167,7 @@ impl Config {
     /// Constructs a `Config` from the toml file specified at `file_path`.
     ///
     /// This method only looks at the provided path, for a method that
-    /// searches parents for a `rustfmt.toml` see `from_resolved_toml_path`.
+    /// searches parents for a `movefmt.toml` see `from_resolved_toml_path`.
     ///
     /// Returns a `Config` if the config could be read and parsed from
     /// the file, otherwise errors.
@@ -212,7 +181,7 @@ impl Config {
 
     /// Resolves the config for input in `dir`.
     ///
-    /// Searches for `rustfmt.toml` beginning with `dir`, and
+    /// Searches for `movefmt.toml` beginning with `dir`, and
     /// recursively checking parents of `dir` if no config file is found.
     /// If no config file exists in `dir` or in any parent, a
     /// default `Config` will be returned (and the returned path will be empty).
@@ -254,7 +223,7 @@ impl Config {
 
             // If none was found ther either, check in the user's configuration directory.
             if let Some(mut config_dir) = dirs::config_dir() {
-                config_dir.push("rustfmt");
+                config_dir.push("movefmt");
                 if let Some(path) = get_toml_path(&config_dir)? {
                     return Ok(Some(path));
                 }
@@ -327,16 +296,16 @@ pub fn load_config<O: CliOptions>(
     })
 }
 
-// Check for the presence of known config file names (`rustfmt.toml, `.rustfmt.toml`) in `dir`
+// Check for the presence of known config file names (`movefmt.toml, `.movefmt.toml`) in `dir`
 //
 // Return the path if a config file exists, empty if no file exists, and Error for IO errors
 fn get_toml_path(dir: &Path) -> Result<Option<PathBuf>, Error> {
-    const CONFIG_FILE_NAMES: [&str; 2] = [".rustfmt.toml", "rustfmt.toml"];
+    const CONFIG_FILE_NAMES: [&str; 2] = [".movefmt.toml", "movefmt.toml"];
     for config_file_name in &CONFIG_FILE_NAMES {
         let config_file = dir.join(config_file_name);
         match fs::metadata(&config_file) {
             // Only return if it's a file to handle the unlikely situation of a directory named
-            // `rustfmt.toml`.
+            // `movefmt.toml`.
             Ok(ref md) if md.is_file() => return Ok(Some(config_file)),
             // Return the error if it's something other than `NotFound`; otherwise we didn't
             // find the project file yet, and continue searching.
@@ -378,634 +347,4 @@ fn config_path(options: &dyn CliOptions) -> Result<Option<PathBuf>, Error> {
         }
         path => Ok(path.map(ToOwned::to_owned)),
     }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    use std::str;
-    use rustfmt_config_proc_macro::{nightly_only_test, stable_only_test};
-
-    #[allow(dead_code)]
-    mod mock {
-        use super::super::*;
-        use rustfmt_config_proc_macro::config_type;
-
-        #[config_type]
-        pub enum PartiallyUnstableOption {
-            V1,
-            V2,
-            #[unstable_variant]
-            V3,
-        }
-
-        create_config! {
-            // Options that are used by the generated functions
-            max_width: usize, 100, true, "Maximum width of each line";
-            required_version: String, env!("CARGO_PKG_VERSION").to_owned(), false,
-                "Require a specific version of rustfmt.";
-            ignore: IgnoreList, IgnoreList::default(), false,
-                "Skip formatting the specified files and directories.";
-            verbose: Verbosity, Verbosity::Normal, false,
-                "How much to information to emit to the user";
-            file_lines: FileLines, FileLines::all(), false,
-                "Lines to format; this is not supported in rustfmt.toml, and can only be specified \
-                    via the --file-lines option";
-
-            // merge_imports deprecation
-            imports_granularity: ImportGranularity, ImportGranularity::Preserve, false,
-                "Merge imports";
-            merge_imports: bool, false, false, "(deprecated: use imports_granularity instead)";
-
-            // fn_args_layout renamed to fn_params_layout
-            fn_args_layout: Density, Density::Tall, true,
-                "(deprecated: use fn_params_layout instead)";
-            fn_params_layout: Density, Density::Tall, true,
-                "Control the layout of parameters in a function signatures.";
-
-            // Width Heuristics
-            use_small_heuristics: Heuristics, Heuristics::Default, true,
-                "Whether to use different formatting for items and \
-                 expressions if they satisfy a heuristic notion of 'small'.";
-            width_heuristics: WidthHeuristics, WidthHeuristics::scaled(100), false,
-                "'small' heuristic values";
-
-            fn_call_width: usize, 60, true, "Maximum width of the args of a function call before \
-                falling back to vertical formatting.";
-            attr_fn_like_width: usize, 70, true, "Maximum width of the args of a function-like \
-                attributes before falling back to vertical formatting.";
-            struct_lit_width: usize, 18, true, "Maximum width in the body of a struct lit before \
-                falling back to vertical formatting.";
-            struct_variant_width: usize, 35, true, "Maximum width in the body of a struct \
-                variant before falling back to vertical formatting.";
-            array_width: usize, 60, true,  "Maximum width of an array literal before falling \
-                back to vertical formatting.";
-            chain_width: usize, 60, true, "Maximum length of a chain to fit on a single line.";
-            single_line_if_else_max_width: usize, 50, true, "Maximum line length for single \
-                line if-else expressions. A value of zero means always break if-else expressions.";
-            single_line_let_else_max_width: usize, 50, false, "Maximum line length for single \
-                line let-else statements. A value of zero means always format the divergent \
-                `else` block over multiple lines.";
-
-            // Options that are used by the tests
-            stable_option: bool, false, true, "A stable option";
-            unstable_option: bool, false, false, "An unstable option";
-            partially_unstable_option: PartiallyUnstableOption, PartiallyUnstableOption::V1, true,
-                "A partially unstable option";
-        }
-
-        #[cfg(test)]
-        mod partially_unstable_option {
-            use super::{Config, PartialConfig, PartiallyUnstableOption};
-            use rustfmt_config_proc_macro::{nightly_only_test, stable_only_test};
-            use std::path::Path;
-
-            /// From the config file, we can fill with a stable variant
-            #[test]
-            fn test_from_toml_stable_value() {
-                let toml = r#"
-                    partially_unstable_option = "V2"
-                "#;
-                let partial_config: PartialConfig = toml::from_str(toml).unwrap();
-                let config = Config::default();
-                let config = config.fill_from_parsed_config(partial_config, Path::new(""));
-                assert_eq!(
-                    config.partially_unstable_option(),
-                    PartiallyUnstableOption::V2
-                );
-            }
-
-            /// From the config file, we cannot fill with an unstable variant (stable only)
-            #[stable_only_test]
-            #[test]
-            fn test_from_toml_unstable_value_on_stable() {
-                let toml = r#"
-                    partially_unstable_option = "V3"
-                "#;
-                let partial_config: PartialConfig = toml::from_str(toml).unwrap();
-                let config = Config::default();
-                let config = config.fill_from_parsed_config(partial_config, Path::new(""));
-                assert_eq!(
-                    config.partially_unstable_option(),
-                    // default value from config, i.e. fill failed
-                    PartiallyUnstableOption::V1
-                );
-            }
-
-            /// From the config file, we can fill with an unstable variant (nightly only)
-            #[nightly_only_test]
-            #[test]
-            fn test_from_toml_unstable_value_on_nightly() {
-                let toml = r#"
-                    partially_unstable_option = "V3"
-                "#;
-                let partial_config: PartialConfig = toml::from_str(toml).unwrap();
-                let config = Config::default();
-                let config = config.fill_from_parsed_config(partial_config, Path::new(""));
-                assert_eq!(
-                    config.partially_unstable_option(),
-                    PartiallyUnstableOption::V3
-                );
-            }
-        }
-    }
-
-    #[test]
-    fn test_config_set() {
-        let mut config = Config::default();
-        config.set().verbose(Verbosity::Quiet);
-        assert_eq!(config.verbose(), Verbosity::Quiet);
-        config.set().verbose(Verbosity::Normal);
-        assert_eq!(config.verbose(), Verbosity::Normal);
-    }
-
-    #[test]
-    fn test_config_used_to_toml() {
-        let config = Config::default();
-
-        let merge_derives = config.merge_derives();
-        let skip_children = config.skip_children();
-
-        let used_options = config.used_options();
-        let toml = used_options.to_toml().unwrap();
-        assert_eq!(
-            toml,
-            format!("merge_derives = {merge_derives}\nskip_children = {skip_children}\n",)
-        );
-    }
-
-    #[test]
-    fn test_was_set() {
-        let config = Config::from_toml("hard_tabs = true", Path::new("")).unwrap();
-
-        assert_eq!(config.was_set().hard_tabs(), true);
-        assert_eq!(config.was_set().verbose(), false);
-    }
-
-    const PRINT_DOCS_STABLE_OPTION: &str = "stable_option <boolean> Default: false";
-    const PRINT_DOCS_UNSTABLE_OPTION: &str = "unstable_option <boolean> Default: false (unstable)";
-    const PRINT_DOCS_PARTIALLY_UNSTABLE_OPTION: &str =
-        "partially_unstable_option [V1|V2|V3 (unstable)] Default: V1";
-
-    #[test]
-    fn test_print_docs_exclude_unstable() {
-        use self::mock::Config;
-
-        let mut output = Vec::new();
-        Config::print_docs(&mut output, false);
-
-        let s = str::from_utf8(&output).unwrap();
-        assert_eq!(s.contains(PRINT_DOCS_STABLE_OPTION), true);
-        assert_eq!(s.contains(PRINT_DOCS_UNSTABLE_OPTION), false);
-        assert_eq!(s.contains(PRINT_DOCS_PARTIALLY_UNSTABLE_OPTION), true);
-    }
-
-    #[test]
-    fn test_print_docs_include_unstable() {
-        use self::mock::Config;
-
-        let mut output = Vec::new();
-        Config::print_docs(&mut output, true);
-
-        let s = str::from_utf8(&output).unwrap();
-        assert_eq!(s.contains(PRINT_DOCS_STABLE_OPTION), true);
-        assert_eq!(s.contains(PRINT_DOCS_UNSTABLE_OPTION), true);
-        assert_eq!(s.contains(PRINT_DOCS_PARTIALLY_UNSTABLE_OPTION), true);
-    }
-
-    #[test]
-    fn test_dump_default_config() {
-        let default_config = format!(
-            r#"max_width = 100
-hard_tabs = false
-tab_spaces = 4
-newline_style = "Auto"
-indent_style = "Block"
-use_small_heuristics = "Default"
-fn_call_width = 60
-attr_fn_like_width = 70
-struct_lit_width = 18
-struct_variant_width = 35
-array_width = 60
-chain_width = 60
-single_line_if_else_max_width = 50
-single_line_let_else_max_width = 50
-wrap_comments = false
-format_code_in_doc_comments = false
-doc_comment_code_block_width = 100
-comment_width = 80
-normalize_comments = false
-normalize_doc_attributes = false
-format_strings = false
-format_macro_matchers = false
-format_macro_bodies = true
-hex_literal_case = "Preserve"
-empty_item_single_line = true
-struct_lit_single_line = true
-fn_single_line = false
-where_single_line = false
-imports_indent = "Block"
-imports_layout = "Mixed"
-imports_granularity = "Preserve"
-group_imports = "Preserve"
-reorder_imports = true
-reorder_modules = true
-reorder_impl_items = false
-type_punctuation_density = "Wide"
-space_before_colon = false
-space_after_colon = true
-spaces_around_ranges = false
-binop_separator = "Front"
-remove_nested_parens = true
-combine_control_expr = true
-short_array_element_width_threshold = 10
-overflow_delimited_expr = false
-struct_field_align_threshold = 0
-enum_discrim_align_threshold = 0
-match_arm_blocks = true
-match_arm_leading_pipes = "Never"
-force_multiline_blocks = false
-fn_params_layout = "Tall"
-brace_style = "SameLineWhere"
-control_brace_style = "AlwaysSameLine"
-trailing_semicolon = true
-trailing_comma = "Vertical"
-match_block_trailing_comma = false
-blank_lines_upper_bound = 1
-blank_lines_lower_bound = 0
-edition = "2015"
-version = "One"
-inline_attribute_width = 0
-format_generated_files = true
-merge_derives = true
-use_try_shorthand = false
-use_field_init_shorthand = false
-force_explicit_abi = true
-condense_wildcard_suffixes = false
-color = "Auto"
-required_version = "{}"
-unstable_features = false
-disable_all_formatting = false
-skip_children = false
-hide_parse_errors = false
-error_on_line_overflow = false
-error_on_unformatted = false
-ignore = []
-emit_mode = "Files"
-make_backup = false
-"#,
-            env!("CARGO_PKG_VERSION")
-        );
-        let toml = Config::default().all_options().to_toml().unwrap();
-        assert_eq!(&toml, &default_config);
-    }
-
-    #[stable_only_test]
-    #[test]
-    fn test_as_not_nightly_channel() {
-        let mut config = Config::default();
-        assert_eq!(config.was_set().unstable_features(), false);
-        config.set().unstable_features(true);
-        assert_eq!(config.was_set().unstable_features(), false);
-    }
-
-    #[nightly_only_test]
-    #[test]
-    fn test_as_nightly_channel() {
-        let mut config = Config::default();
-        config.set().unstable_features(true);
-        // When we don't set the config from toml or command line options it
-        // doesn't get marked as set by the user.
-        assert_eq!(config.was_set().unstable_features(), false);
-        config.set().unstable_features(true);
-        assert_eq!(config.unstable_features(), true);
-    }
-
-    #[nightly_only_test]
-    #[test]
-    fn test_unstable_from_toml() {
-        let config = Config::from_toml("unstable_features = true", Path::new("")).unwrap();
-        assert_eq!(config.was_set().unstable_features(), true);
-        assert_eq!(config.unstable_features(), true);
-    }
-
-    #[cfg(test)]
-    mod deprecated_option_merge_imports {
-        use super::*;
-
-        #[nightly_only_test]
-        #[test]
-        fn test_old_option_set() {
-            let toml = r#"
-                unstable_features = true
-                merge_imports = true
-            "#;
-            let config = Config::from_toml(toml, Path::new("")).unwrap();
-            assert_eq!(config.imports_granularity(), ImportGranularity::Crate);
-        }
-
-        #[nightly_only_test]
-        #[test]
-        fn test_both_set() {
-            let toml = r#"
-                unstable_features = true
-                merge_imports = true
-                imports_granularity = "Preserve"
-            "#;
-            let config = Config::from_toml(toml, Path::new("")).unwrap();
-            assert_eq!(config.imports_granularity(), ImportGranularity::Preserve);
-        }
-
-        #[nightly_only_test]
-        #[test]
-        fn test_new_overridden() {
-            let toml = r#"
-                unstable_features = true
-                merge_imports = true
-            "#;
-            let mut config = Config::from_toml(toml, Path::new("")).unwrap();
-            config.override_value("imports_granularity", "Preserve");
-            assert_eq!(config.imports_granularity(), ImportGranularity::Preserve);
-        }
-
-        #[nightly_only_test]
-        #[test]
-        fn test_old_overridden() {
-            let toml = r#"
-                unstable_features = true
-                imports_granularity = "Module"
-            "#;
-            let mut config = Config::from_toml(toml, Path::new("")).unwrap();
-            config.override_value("merge_imports", "true");
-            // no effect: the new option always takes precedence
-            assert_eq!(config.imports_granularity(), ImportGranularity::Module);
-        }
-    }
-
-    #[cfg(test)]
-    mod use_small_heuristics {
-        use super::*;
-
-        #[test]
-        fn test_default_sets_correct_widths() {
-            let toml = r#"
-                use_small_heuristics = "Default"
-                max_width = 200
-            "#;
-            let config = Config::from_toml(toml, Path::new("")).unwrap();
-            assert_eq!(config.array_width(), 120);
-            assert_eq!(config.attr_fn_like_width(), 140);
-            assert_eq!(config.chain_width(), 120);
-            assert_eq!(config.fn_call_width(), 120);
-            assert_eq!(config.single_line_if_else_max_width(), 100);
-            assert_eq!(config.struct_lit_width(), 36);
-            assert_eq!(config.struct_variant_width(), 70);
-        }
-
-        #[test]
-        fn test_max_sets_correct_widths() {
-            let toml = r#"
-                use_small_heuristics = "Max"
-                max_width = 120
-            "#;
-            let config = Config::from_toml(toml, Path::new("")).unwrap();
-            assert_eq!(config.array_width(), 120);
-            assert_eq!(config.attr_fn_like_width(), 120);
-            assert_eq!(config.chain_width(), 120);
-            assert_eq!(config.fn_call_width(), 120);
-            assert_eq!(config.single_line_if_else_max_width(), 120);
-            assert_eq!(config.struct_lit_width(), 120);
-            assert_eq!(config.struct_variant_width(), 120);
-        }
-
-        #[test]
-        fn test_off_sets_correct_widths() {
-            let toml = r#"
-                use_small_heuristics = "Off"
-                max_width = 100
-            "#;
-            let config = Config::from_toml(toml, Path::new("")).unwrap();
-            assert_eq!(config.array_width(), usize::max_value());
-            assert_eq!(config.attr_fn_like_width(), usize::max_value());
-            assert_eq!(config.chain_width(), usize::max_value());
-            assert_eq!(config.fn_call_width(), usize::max_value());
-            assert_eq!(config.single_line_if_else_max_width(), 0);
-            assert_eq!(config.struct_lit_width(), 0);
-            assert_eq!(config.struct_variant_width(), 0);
-        }
-
-        #[test]
-        fn test_override_works_with_default() {
-            let toml = r#"
-                use_small_heuristics = "Default"
-                array_width = 20
-                attr_fn_like_width = 40
-                chain_width = 20
-                fn_call_width = 90
-                single_line_if_else_max_width = 40
-                struct_lit_width = 30
-                struct_variant_width = 34
-            "#;
-            let config = Config::from_toml(toml, Path::new("")).unwrap();
-            assert_eq!(config.array_width(), 20);
-            assert_eq!(config.attr_fn_like_width(), 40);
-            assert_eq!(config.chain_width(), 20);
-            assert_eq!(config.fn_call_width(), 90);
-            assert_eq!(config.single_line_if_else_max_width(), 40);
-            assert_eq!(config.struct_lit_width(), 30);
-            assert_eq!(config.struct_variant_width(), 34);
-        }
-
-        #[test]
-        fn test_override_with_max() {
-            let toml = r#"
-                use_small_heuristics = "Max"
-                array_width = 20
-                attr_fn_like_width = 40
-                chain_width = 20
-                fn_call_width = 90
-                single_line_if_else_max_width = 40
-                struct_lit_width = 30
-                struct_variant_width = 34
-            "#;
-            let config = Config::from_toml(toml, Path::new("")).unwrap();
-            assert_eq!(config.array_width(), 20);
-            assert_eq!(config.attr_fn_like_width(), 40);
-            assert_eq!(config.chain_width(), 20);
-            assert_eq!(config.fn_call_width(), 90);
-            assert_eq!(config.single_line_if_else_max_width(), 40);
-            assert_eq!(config.struct_lit_width(), 30);
-            assert_eq!(config.struct_variant_width(), 34);
-        }
-
-        #[test]
-        fn test_override_with_off() {
-            let toml = r#"
-                use_small_heuristics = "Off"
-                array_width = 20
-                attr_fn_like_width = 40
-                chain_width = 20
-                fn_call_width = 90
-                single_line_if_else_max_width = 40
-                struct_lit_width = 30
-                struct_variant_width = 34
-            "#;
-            let config = Config::from_toml(toml, Path::new("")).unwrap();
-            assert_eq!(config.array_width(), 20);
-            assert_eq!(config.attr_fn_like_width(), 40);
-            assert_eq!(config.chain_width(), 20);
-            assert_eq!(config.fn_call_width(), 90);
-            assert_eq!(config.single_line_if_else_max_width(), 40);
-            assert_eq!(config.struct_lit_width(), 30);
-            assert_eq!(config.struct_variant_width(), 34);
-        }
-
-        #[test]
-        fn test_fn_call_width_config_exceeds_max_width() {
-            let toml = r#"
-                max_width = 90
-                fn_call_width = 95
-            "#;
-            let config = Config::from_toml(toml, Path::new("")).unwrap();
-            assert_eq!(config.fn_call_width(), 90);
-        }
-
-        #[test]
-        fn test_attr_fn_like_width_config_exceeds_max_width() {
-            let toml = r#"
-                max_width = 80
-                attr_fn_like_width = 90
-            "#;
-            let config = Config::from_toml(toml, Path::new("")).unwrap();
-            assert_eq!(config.attr_fn_like_width(), 80);
-        }
-
-        #[test]
-        fn test_struct_lit_config_exceeds_max_width() {
-            let toml = r#"
-                max_width = 78
-                struct_lit_width = 90
-            "#;
-            let config = Config::from_toml(toml, Path::new("")).unwrap();
-            assert_eq!(config.struct_lit_width(), 78);
-        }
-
-        #[test]
-        fn test_struct_variant_width_config_exceeds_max_width() {
-            let toml = r#"
-                max_width = 80
-                struct_variant_width = 90
-            "#;
-            let config = Config::from_toml(toml, Path::new("")).unwrap();
-            assert_eq!(config.struct_variant_width(), 80);
-        }
-
-        #[test]
-        fn test_array_width_config_exceeds_max_width() {
-            let toml = r#"
-                max_width = 60
-                array_width = 80
-            "#;
-            let config = Config::from_toml(toml, Path::new("")).unwrap();
-            assert_eq!(config.array_width(), 60);
-        }
-
-        #[test]
-        fn test_chain_width_config_exceeds_max_width() {
-            let toml = r#"
-                max_width = 80
-                chain_width = 90
-            "#;
-            let config = Config::from_toml(toml, Path::new("")).unwrap();
-            assert_eq!(config.chain_width(), 80);
-        }
-
-        #[test]
-        fn test_single_line_if_else_max_width_config_exceeds_max_width() {
-            let toml = r#"
-                max_width = 70
-                single_line_if_else_max_width = 90
-            "#;
-            let config = Config::from_toml(toml, Path::new("")).unwrap();
-            assert_eq!(config.single_line_if_else_max_width(), 70);
-        }
-
-        #[test]
-        fn test_override_fn_call_width_exceeds_max_width() {
-            let mut config = Config::default();
-            config.override_value("fn_call_width", "101");
-            assert_eq!(config.fn_call_width(), 100);
-        }
-
-        #[test]
-        fn test_override_attr_fn_like_width_exceeds_max_width() {
-            let mut config = Config::default();
-            config.override_value("attr_fn_like_width", "101");
-            assert_eq!(config.attr_fn_like_width(), 100);
-        }
-
-        #[test]
-        fn test_override_struct_lit_exceeds_max_width() {
-            let mut config = Config::default();
-            config.override_value("struct_lit_width", "101");
-            assert_eq!(config.struct_lit_width(), 100);
-        }
-
-        #[test]
-        fn test_override_struct_variant_width_exceeds_max_width() {
-            let mut config = Config::default();
-            config.override_value("struct_variant_width", "101");
-            assert_eq!(config.struct_variant_width(), 100);
-        }
-
-        #[test]
-        fn test_override_array_width_exceeds_max_width() {
-            let mut config = Config::default();
-            config.override_value("array_width", "101");
-            assert_eq!(config.array_width(), 100);
-        }
-
-        #[test]
-        fn test_override_chain_width_exceeds_max_width() {
-            let mut config = Config::default();
-            config.override_value("chain_width", "101");
-            assert_eq!(config.chain_width(), 100);
-        }
-
-        #[test]
-        fn test_override_single_line_if_else_max_width_exceeds_max_width() {
-            let mut config = Config::default();
-            config.override_value("single_line_if_else_max_width", "101");
-            assert_eq!(config.single_line_if_else_max_width(), 100);
-        }
-    }
-
-    #[cfg(test)]
-    mod partially_unstable_option {
-        use super::mock::{Config, PartiallyUnstableOption};
-        use super::*;
-
-        /// From the command line, we can override with a stable variant.
-        #[test]
-        fn test_override_stable_value() {
-            let mut config = Config::default();
-            config.override_value("partially_unstable_option", "V2");
-            assert_eq!(
-                config.partially_unstable_option(),
-                PartiallyUnstableOption::V2
-            );
-        }
-
-        /// From the command line, we can override with an unstable variant.
-        #[test]
-        fn test_override_unstable_value() {
-            let mut config = Config::default();
-            config.override_value("partially_unstable_option", "V3");
-            assert_eq!(
-                config.partially_unstable_option(),
-                PartiallyUnstableOption::V3
-            );
-        }
-    }
-
 }

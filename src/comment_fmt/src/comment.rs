@@ -21,16 +21,6 @@ lazy_static! {
     static ref REFERENCE_LINK_URL: Regex = Regex::new(r"^\[.+\]\s?:").unwrap();
 }
 
-// 该函数的作用是判断给定的字符串comment是否符合自定义注释的格式.
-// 自定义注释的格式要求以//开头,后面紧跟一个非字母数字字符或非空白字符.
-
-// 下面是函数的工作原理:
-
-// 首先,通过!comment.starts_with("//")检查字符串comment是否以//开头,如果不是,则返回false.
-// 接下来,通过comment.chars().nth(2)获取字符串comment中索引为2的字符.如果索引为2的字符存在,则执行下一步,否则返回false.
-// 最后,通过!c.is_alphanumeric() && !c.is_whitespace()判断索引为2的字符是否既不是字母数字字符也不是空白字符.
-// 如果是,返回true,表示是自定义注释;否则,返回false.
-// 这样,您可以将一个字符串传递给is_custom_comment函数,并得到一个布尔值来判断该字符串是否符合自定义注释的格式.
 fn is_custom_comment(comment: &str) -> bool {
     if !comment.starts_with("//") {
         false
@@ -52,16 +42,6 @@ pub enum CommentStyle<'a> {
     Custom(&'a str),
 }
 
-// 从输入字符串s中提取第一行的开头部分,直到遇到第一个空格字符为止.如果输入字符串为空或没有空格字符,则返回一个空字符串.
-
-// 下面是函数的工作原理:
-// s.lines()将输入字符串按行拆分为迭代器.
-// next()获取迭代器的第一个元素,即第一行.
-// map_or("", |first_line| { ... })检查第一行是否存在,如果不存在则返回一个空字符串.
-// first_line.find(' ')在第一行中查找第一个空格字符的索引.
-// map_or(first_line, |space_index| &first_line[0..=space_index])如果找到了空格字符,则返回从第一行开头到空格字符处的子串,
-// 否则返回整个第一行.
-// 这样,您可以将输入字符串传递给custom_opener函数,并得到第一行的开头部分作为结果.
 fn custom_opener(s: &str) -> &str {
     s.lines().next().map_or("", |first_line| {
         first_line
@@ -175,35 +155,6 @@ pub fn rewrite_comment(
     identify_comment(orig, block_style, shape, config, false)
 }
 
-// 该函数的作用是识别和重写给定的注释字符串orig,并根据配置和注释样式进行格式化.
-// 函数根据注释的样式和配置参数进行不同的处理逻辑,并返回一个可选的重写后的字符串.
-
-// 函数内部定义了一些辅助函数和局部变量,用于处理不同类型的注释.根据注释的样式和配置参数,
-// 函数使用递归的方式处理注释的多行和嵌套情况,并将重写后的注释字符串进行拼接和返回.
-
-// identify_comment函数是一个用于识别和重写注释的函数.它接受多个参数,包括原始注释字符串orig,
-// 注释块样式block_style,格式化的形状shape,配置信息config以及一个布尔值is_doc_comment,表示是否为文档注释.
-
-// 函数的主要目标是将原始注释字符串进行格式化,并返回一个可选的重写后的字符串.下面是函数的实现细节的解释:
-
-// 首先,函数会根据原始注释字符串的风格调用comment_style函数,得到注释风格的枚举类型CommentStyle.
-// 接下来,函数会根据注释风格的不同分别处理:
-// 对于CommentStyle::DoubleSlash,CommentStyle::TripleSlash和CommentStyle::Doc类型的注释,函数调用
-// consume_same_line_comments函数来获取第一组相同风格的行注释,并返回一个元组,其中包含一个布尔值表示是否有空行以及第一组注释的大小.
-// 对于CommentStyle::Custom类型的注释,函数调用consume_same_line_comments函数来获取第一组相同风格的自定义注释,
-// 并返回一个元组,其中包含一个布尔值表示是否有空行以及第一组注释的大小.
-// 对于CommentStyle::DoubleBullet,CommentStyle::SingleBullet和CommentStyle::Exclamation类型的注释,
-// 函数会搜索注释的结束符,并跟踪注释的行数和大小.
-// 接下来,函数将原始注释字符串分为第一组注释和剩余部分,使用分隔位置first_group_ending.
-// 根据配置的不同和注释的风格,函数会选择不同的方式来重写第一组注释:
-// 如果配置中禁用了注释的规范化,并且第一组注释中有裸露的行(没有前导的注释标记),并且注释的风格是块注释,
-// 则函数调用trim_left_preserve_layout函数来保留第一组注释的布局.
-// 如果配置中禁用了注释的规范化,并且没有启用注释的换行,并且(对于文档注释块)没有启用在注释中格式化代码的选项,
-// 则函数调用light_rewrite_comment函数来轻量级地重写第一组注释.
-// 否则,函数调用rewrite_comment_inner函数来详细地重写第一组注释,根据注释的风格和配置参数进行格式化.
-// 最后,如果剩余部分为空,则函数返回重写后的第一组注释.否则,函数递归调用identify_comment函数来处理剩余部分,
-// 并将重写后的剩余部分与第一组注释拼接在一起,返回最终的重写后的注释字符串.
-// 总体来说,identify_comment函数通过递归和不同的处理逻辑来识别和重写注释,根据注释的样式和配置参数对注释进行格式化.
 fn identify_comment(
     orig: &str,
     block_style: bool,
@@ -265,18 +216,7 @@ fn identify_comment(
             let trimmed_opener = opener.trim_end();
             consume_same_line_comments(style, orig, trimmed_opener)
         }
-        
-        // 首先,获取注释的结束符号,并去除前导空白字符,得到closer变量.
-        // 然后,定义了一些变量,包括count,closing_symbol_offset,hbl,first.count用于记录注释中结束符号出现的次数,
-        // closing_symbol_offset用于记录注释内容的字节长度,hbl用于标记是否存在裸露的行(即非注释行),first用于标记是否是第一行.
-        // 接下来,对原始字符串进行逐行遍历.在每一行中,将closing_symbol_offset增加上当前行的字节长度(通过compute_len函数计算得到).
-        // 然后,对当前行进行修剪,去除前导空白字符,并将结果赋值给trimmed_line变量.
-        // 接着,检查trimmed_line是否以*,//或/*开头.如果不是,则将hbl设置为true,表示存在裸露的行.
-        // 在搜索结束符号时,首先判断是否是第一行.如果是第一行,则去除开启符号(通过style.opener().trim_end()获取)后的部分,
-        // 即从trimmed_line中去除开启符号,并将结果重新赋值给trimmed_line.
-        // 然后,检查trimmed_line是否以closer结尾.如果是,则将count减1.如果count等于0,表示已经找到了所有的结束符号,跳出循环.
-        // 最后,返回一个元组,包括hbl和closing_symbol_offset.其中,hbl表示是否存在裸露的行,closing_symbol_offset表示注释内容的字节长度.
-        // for a block comment, search for the closing symbol
+
         CommentStyle::DoubleBullet | CommentStyle::SingleBullet | CommentStyle::Exclamation => {
             let closer = style.closer().trim_start();
             let mut count = orig.matches(closer).count();
@@ -361,54 +301,26 @@ fn identify_comment(
             eprintln!("ret_cmt_str = {}", ret_cmt_str);
             ret_cmt_str
         })
-        /*
-        将rest进行trim_start()操作,去除前导空白字符,然后作为参数传递给identify_comment函数,
-        同时传递其他参数block_style,shape,config和is_doc_comment.
-
-        接着,通过.map(|rest_str| { ... })对identify_comment函数的返回结果进行处理.在闭包中,
-        通过format!宏将重写后的第一组注释,空行符和缩进拼接成一个新的字符串.
-
-        具体拼接的逻辑如下:
-
-        重写后的第一组注释作为第一个参数.
-        如果has_bare_lines为true且注释类型为行注释,则在重写后的第一组注释后插入一个空行符(\n);否则不插入空行符.
-        使用shape.indent.to_string(config)将缩进形状转换为字符串,并作为第三个参数.
-        rest_str作为第四个参数,即剩余部分的重写结果.
-        最终,返回的是拼接后的字符串,其中包括重写后的第一组注释,空行符(如果有的话),缩进和剩余部分的重写结果.
-        这样就将重写后的注释与剩余部分的重写结果连接在一起. 
-        */
     }
 }
 
-/// Enum indicating if the code block contains rust based on attributes
+/// Enum indicating if the code block contains move based on attributes
 enum CodeBlockAttribute {
-    Rust,
-    NotRust,
+    Move,
+    NotMove,
 }
 
 impl CodeBlockAttribute {
-    // 用于解析逗号分隔的属性列表.如果所有属性都是有效的Rust属性,则返回Rust;否则返回NotRust.
-
-    // 在new方法中,使用attributes.split(',')将属性列表拆分为单个属性.然后使用match语句对每个属性进行匹配和处理.
-
-    // 空字符串,"rust","should_panic","no_run","edition2015","edition2018","edition2021"
-    // 被认为是有效的Rust属性,不做任何操作.
-    // "ignore","compile_fail","text"被认为是不包含Rust代码的属性,直接返回NotRust.
-    // 其他属性被认为是不包含Rust代码的属性,直接返回NotRust.
-    // 如果所有属性都是有效的Rust属性,则最后返回Rust.
-    /// Parse comma separated attributes list. Return rust only if all
-    /// attributes are valid rust attributes
-    /// See <https://doc.rust-lang.org/rustdoc/print.html#attributes>
+    /// Parse comma separated attributes list. Return Move only if all
+    /// attributes are valid Move attributes
     fn new(attributes: &str) -> CodeBlockAttribute {
         for attribute in attributes.split(',') {
             match attribute.trim() {
-                "" | "rust" | "should_panic" | "no_run" | "edition2015" | "edition2018"
-                | "edition2021" => (),
-                "ignore" | "compile_fail" | "text" => return CodeBlockAttribute::NotRust,
-                _ => return CodeBlockAttribute::NotRust,
+                "" | "run" => (),
+                _ => return CodeBlockAttribute::NotMove,
             }
         }
-        CodeBlockAttribute::Rust
+        CodeBlockAttribute::Move
     }
 }
 
@@ -513,36 +425,6 @@ impl<'a> CommentRewrite<'a> {
         self.result
     }
 
-    // orig: &'a str:表示原始的文本字符串.
-    // i: usize:表示当前处理的文本行的索引.
-    // line: &'a str:表示当前处理的文本行的内容.
-    // has_leading_whitespace: bool:表示当前处理的文本行是否有前导空白字符.
-    // is_doc_comment: bool:表示当前处理的文本行是否是文档注释.
-    // 该函数的主要逻辑如下:
-
-    // 首先,函数会统计原始文本字符串中的换行符数量,并将结果保存在num_newlines变量中.
-    // 接着,函数判断当前是否处于一个代码块的属性中(self.code_block_attr是否存在).
-    // 如果是,则根据不同的条件对代码块进行处理.
-    // 如果当前行以"```"开头,则表示代码块结束,需要将代码块的内容添加到self.result中,并清空self.code_block_buffer.
-    // 然后将当前行添加到self.result中,并将self.code_block_attr设置为None.
-    // 如果当前行不是以"```"开头,则表示代码块还未结束,需要将当前行添加到self.code_block_buffer中,并在行末尾添加换行符.
-    // 最后,返回false表示处理未完成.
-    // 如果不处于代码块属性中,则继续进行后续处理.
-    // 首先,将self.code_block_attr设置为None.
-    // 如果当前行以"```"开头,则表示进入了一个新的代码块属性,需要将该属性保存到self.code_block_attr中.
-    // 如果self.result等于self.opener,则表示当前行是第一行,需要根据一些条件进行处理.
-    // 如果当前行是空行,则返回false表示处理未完成.
-    // 如果self.is_prev_line_multi_line为true并且当前行不为空,则在self.result末尾添加一个空格.
-    // 如果是最后一行并且当前行为空,则删除self.result中的尾部空格(如果存在),并返回true表示处理完成.
-    // 否则,将self.comment_line_separator添加到self.result中,并根据一些条件处理self.result末尾的空格.
-    // 判断当前行是否是Markdown标题文档注释,如果是,则将is_markdown_header_doc_comment设置为true.
-    // 根据一些条件判断是否需要对注释进行换行处理.
-    // 如果需要进行换行处理,则调用rewrite_string函数对当前行进行重写,并将结果添加到self.result中.
-    // 如果无法将当前行与前一行放在同一行,则将self.result末尾的空格删除,并在下一行开始进行重写.
-    // 如果无法对当前行进行重写,则将当前行直接添加到self.result中.
-    // 更新self.fmt.shape的值,用于下一行的重写.
-    // 返回false表示处理未完成.
-    // 这段代码的作用是对输入的文本行进行处理,根据不同的条件对注释进行重写,换行等操作,并将结果存储在self.result中.
     fn handle_line(
         &mut self,
         orig: &'a str,
@@ -657,19 +539,6 @@ impl<'a> CommentRewrite<'a> {
     }
 }
 
-// 首先,创建一个CommentRewrite实例,用于处理注释的重写操作.
-// 统计原始注释字符串的末尾换行符的数量,并将结果保存在line_breaks变量中.
-// 对原始注释字符串进行逐行处理.
-// 首先,去除行首和行尾的空白字符,并修剪注释行中的内容.
-// 如果当前行是最后一行且以"/"结尾(且不以"//"开头),则去除行尾的"/".
-// 对修剪后的注释行进行左对齐处理,并记录是否有前导空白字符.
-// 根据一些条件判断是否需要对注释行进行进一步处理.
-// 如果原始注释以"/*"开头且只有一行,则去除行首的空白字符,并将config.normalize_comments()的结果与
-// has_leading_whitespace进行逻辑或运算.
-// 否则,保持注释行不变,并将config.normalize_comments()的结果与has_leading_whitespace进行逻辑或运算.
-// 对每一行进行处理,调用rewriter.handle_line方法进行注释行的处理,如果返回true,则表示处理完成,退出循环.
-// 返回重写后的注释结果,通过Some包装.
-// 这段代码的作用是对输入的注释进行重写,根据不同的条件进行修剪,格式化等操作,并返回重写后的结果字符串.
 fn rewrite_comment_inner(
     orig: &str,
     block_style: bool,
@@ -714,12 +583,12 @@ fn rewrite_comment_inner(
     Some(rewriter.finish())
 }
 
-const RUSTFMT_CUSTOM_COMMENT_PREFIX: &str = "//#### ";
+const MOVEFMT_CUSTOM_COMMENT_PREFIX: &str = "//#### ";
 
 fn hide_sharp_behind_comment(s: &str) -> Cow<'_, str> {
     let s_trimmed = s.trim();
     if s_trimmed.starts_with("# ") || s_trimmed == "#" {
-        Cow::from(format!("{RUSTFMT_CUSTOM_COMMENT_PREFIX}{s}"))
+        Cow::from(format!("{MOVEFMT_CUSTOM_COMMENT_PREFIX}{s}"))
     } else {
         Cow::from(s)
     }
@@ -729,8 +598,8 @@ fn trim_custom_comment_prefix(s: &str) -> String {
     s.lines()
         .map(|line| {
             let left_trimmed = line.trim_start();
-            if left_trimmed.starts_with(RUSTFMT_CUSTOM_COMMENT_PREFIX) {
-                left_trimmed.trim_start_matches(RUSTFMT_CUSTOM_COMMENT_PREFIX)
+            if left_trimmed.starts_with(MOVEFMT_CUSTOM_COMMENT_PREFIX) {
+                left_trimmed.trim_start_matches(MOVEFMT_CUSTOM_COMMENT_PREFIX)
             } else {
                 line
             }
@@ -845,9 +714,6 @@ pub trait FindUncommented {
 }
 
 impl FindUncommented for str {
-    // 在字符串中查找未被注释的子字符串,并返回其起始位置.它通过迭代字符串的字符和给定的模式字符串来进行匹配.
-    // 如果找到了完全匹配的子字符串,则返回其起始位置减去模式字符串的长度.如果迭代完毕后仍未找到匹配的子字符串,
-    // 则检查模式字符串是否是搜索字符串的后缀,如果是,则返回搜索字符串的长度减去模式字符串的长度;否则返回None.
     fn find_uncommented(&self, pat: &str) -> Option<usize> {
         let mut needle_iter = pat.chars();
         for (kind, (i, b)) in CharClasses::new(self.char_indices()) {
@@ -871,11 +737,6 @@ impl FindUncommented for str {
         }
     }
 
-    // 在字符串中查找最后一个未被注释的子字符串,并返回其起始位置.
-    // 首先调用find_uncommented方法在整个字符串中查找匹配的子字符串.
-    // 如果找到了,则将起始位置保存在result变量中.然后,它在字符串的剩余部分继续调用find_last_uncommented方法,
-    // 并将找到的匹配子字符串的起始位置加上1后累加到result中.最后,返回result作为最后一个匹配子字符串的起始位置.
-    // 如果未找到匹配的子字符串,则返回None.
     fn find_last_uncommented(&self, pat: &str) -> Option<usize> {
         if let Some(left) = self.find_uncommented(pat) {
             let mut result = left;
@@ -890,13 +751,6 @@ impl FindUncommented for str {
     }
 }
 
-// 用于找到第一个注释之后的字节位置.传入的字符串预期以注释开头,并包含注释的分隔符.
-// 函数首先创建了一个CharClasses迭代器,用于对字符串的字符进行分类.然后通过遍历迭代器的元素,
-// 找到第一个属于FullCodeCharKind::Normal或FullCodeCharKind::InString的字符,并返回其字节位置.
-// 如果注释在s的末尾结束,则处理这种情况,并返回s的长度作为注释结束的位置.
-// 如果迭代器的状态为CharClassesStatus::Normal,则说明没有找到注释,返回None.
-
-// 这个函数用于在字符串中找到第一个注释之后的位置,并提供了一些示例来说明正确和错误的注释用法.
 // Returns the first byte position after the first comment. The given string
 // is expected to be prefixed by a comment, including delimiters.
 // Good: `/* /* inner */ outer */ code();`
@@ -947,19 +801,6 @@ impl RichChar for (usize, char) {
     }
 }
 
-// Normal:表示普通字符状态.
-// LitString:表示字符在字符串内部.
-// LitStringEscape:表示字符在字符串内部的转义序列中.
-// LitRawString(u32):表示字符在原始字符串内部,其中u32表示原始字符串的前缀长度.
-// RawStringPrefix(u32):表示字符在原始字符串前缀内部,其中u32表示原始字符串的前缀长度.
-// RawStringSuffix(u32):表示字符在原始字符串后缀内部,其中u32表示原始字符串的后缀长度.
-// LitChar:表示字符在字符字面值内部.
-// LitCharEscape:表示字符在字符字面值的转义序列内部.
-// BlockComment(u32):表示字符在块注释内部,其中u32表示块注释的嵌套深度.
-// StringInBlockComment(u32):表示字符在被块注释包围的字符串内部,其中u32表示块注释的嵌套深度.
-// BlockCommentOpening(u32):表示字符在注释开头的状态,其中u32表示注释的嵌套深度(在注释打开之后).
-// BlockCommentClosing(u32):表示字符在注释结尾的状态,其中u32表示注释的嵌套深度(在注释关闭之前).
-// LineComment:表示字符在行注释内部.
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 enum CharClassesStatus {
     Normal,
@@ -1306,11 +1147,6 @@ impl<'a> Iterator for LineClasses<'a> {
     }
 }
 
-/// 遍历字符串中的功能代码和注释部分.字符串的任何部分都可以是功能代码,一个块注释或一个行注释.
-/// 注释之间的空白部分被视为功能代码.行注释包含其结束的换行符.
-/// slice是一个对输入字符串的引用,表示要遍历的字符串.
-/// iter是一个CharClasses类型的迭代器,它对输入字符串的字符进行分类,
-/// 并使用Peekable进行包装,以便可以预览下一个元素.
 struct UngroupedCommentCodeSlices<'a> {
     slice: &'a str,
     iter: iter::Peekable<CharClasses<std::str::CharIndices<'a>>>,
@@ -1325,8 +1161,6 @@ struct UngroupedCommentCodeSlices<'a> {
 //     }
 // }
 
-// 遍历注释中的代码片段,将其分开
-// 将字符串分割成功能代码和注释部分,并提供一个迭代器来遍历这些部分
 impl<'a> Iterator for UngroupedCommentCodeSlices<'a> {
     type Item = (CodeCharKind, usize, &'a str);
 
@@ -1369,8 +1203,6 @@ impl<'a> Iterator for UngroupedCommentCodeSlices<'a> {
     }
 }
 
-// 在字符串中迭代出功能部分和注释部分的子串.
-// 第一个元素始终是一个可能为空的功能文本子串.行注释包含其结束的换行符.
 pub struct CommentCodeSlices<'a> {
     slice: &'a str,
     last_slice_kind: CodeCharKind,
@@ -1389,18 +1221,14 @@ impl<'a> CommentCodeSlices<'a> {
 
 impl<'a> Iterator for CommentCodeSlices<'a> {
     type Item = (CodeCharKind, usize, &'a str);
-    // 在迭代过程中返回下一个元素
-    // 每个元素是一个元组,包含了切片的类型,切片的起始位置和切片的子串
-    // 在迭代过程中返回字符串中交替出现的功能部分和注释部分的子串.
     fn next(&mut self) -> Option<Self::Item> {
-        // 检查上一个切片的结束位置是否等于字符串的长度,如果是,则返回None,表示迭代结束
         if self.last_slice_end == self.slice.len() {
             return None;
         }
 
-        let mut sub_slice_end = self.last_slice_end;  // 表示当前切片的结束位置
-        let mut first_whitespace = None;  // 表示第一个空白字符的位置(如果有的话)
-        let subslice = &self.slice[self.last_slice_end..];  // 表示当前切片的子串
+        let mut sub_slice_end = self.last_slice_end;
+        let mut first_whitespace = None;
+        let subslice = &self.slice[self.last_slice_end..];
         let mut iter = CharClasses::new(subslice.char_indices());
 
         for (kind, (i, c)) in &mut iter {
@@ -1408,14 +1236,10 @@ impl<'a> Iterator for CommentCodeSlices<'a> {
                 && &subslice[..2] == "//"
                 && [' ', '\t'].contains(&c);
 
-            // 如果当前字符是注释连接符(//后面的空白字符),并且
-            // first_whitespace为空,则将first_whitespace设置为当前索引
             if is_comment_connector && first_whitespace.is_none() {
                 first_whitespace = Some(i);
             }
 
-            // 当前字符的类型是否与上一个切片的类型相同,并且不是注释连接符.如果满足条件,
-            // 则将sub_slice_end设置为上一个切片的结束位置加上first_whitespace的值,并跳出循环
             if kind.to_codecharkind() == self.last_slice_kind && !is_comment_connector {
                 let last_index = match first_whitespace {
                     Some(j) => j,
@@ -1430,8 +1254,6 @@ impl<'a> Iterator for CommentCodeSlices<'a> {
             }
         }
 
-        // 方法检查是否是最后一个子切片.如果是,则将sub_slice_end设置为上一个切片的结束位置 加上
-        // first_whitespace的值(如果有的话),或者字符串的长度
         if let (None, true) = (iter.next(), sub_slice_end == self.last_slice_end) {
             // This was the last subslice.
             sub_slice_end = match first_whitespace {
@@ -1440,7 +1262,6 @@ impl<'a> Iterator for CommentCodeSlices<'a> {
             };
         }
 
-        // 根据上一个切片的类型,计算当前切片的类型,并构造一个元组(CodeCharKind, usize, &'a str)作为返回值
         let kind = match self.last_slice_kind {
             CodeCharKind::Comment => CodeCharKind::Normal,
             CodeCharKind::Normal => CodeCharKind::Comment,
