@@ -505,8 +505,14 @@ impl Format {
             let b_new_line_mode = self.get_new_line_mode_begin_nested(kind, elements, note, delimiter);
             let b_add_indent = !note.map(|x| x == Note::ModuleAddress).unwrap_or_default();
             let nested_token_head = self.format_context.borrow().cur_tok;
+
             if b_new_line_mode {
                 eprintln!("nested_token_head = [{:?}], add a new line", nested_token_head);
+            }
+
+            if Tok::NumSign == nested_token_head {
+                self.push_str(fun_fmt::process_fun_annotation(*kind, elements.to_vec()));
+                return;
             }
 
             // step1 -- format start_token
@@ -524,7 +530,7 @@ impl Format {
 
             // step4 -- format elements
             self.format_each_token_in_nested_elements(kind, elements, delimiter, has_colon, b_new_line_mode);
-            
+
             // step5 -- add_comments which before kind.end_pos
             self.add_comments(kind.end_pos, kind.end_token_tree().simple_str().unwrap_or_default().to_string());
             let ret_copy = self.ret.clone().into_inner();

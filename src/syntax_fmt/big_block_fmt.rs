@@ -137,7 +137,7 @@ pub fn add_blank_row_in_two_blocks(fmt_buffer: String) -> String {
             } else {
                 let the_row_after_blk1_end = get_nth_line(buf.as_str(), (blk1_end_line + 1) as usize).unwrap_or_default();
                 let trimed_prefix = the_row_after_blk1_end.trim_start().split(" ");
-                if trimed_prefix.count() > 1 {
+                if trimed_prefix.count() > 1 || the_row_after_blk1_end.trim_start().len() >= 2 {
                     // there are code or comment located in line(blk1_end_line + 1)
                     // eprintln!("trimed_prefix = {:?}", trimed_prefix);
                     // eprintln!("blk1_end_line = {:?}, blk2_start_line = {:?}", blk1_end_line, blk2_start_line);
@@ -276,6 +276,25 @@ spec std::string {
 }
     
 ".to_string());
+
+    eprintln!("result = {}", result);
+}
+
+#[test]
+fn test_add_blank_row_in_two_blocks_5() {
+    let result = add_blank_row_in_two_blocks(
+"
+address 0x1 {
+    module M {
+        #[test]
+        #[expected_failure(vector_error, minor_status = 1, location = Self)]
+        fun borrow_out_of_range() {}
+        #[test]
+        #[expected_failure(abort_code = 26113, location = extensions::table)]
+        fun test_destroy_fails() {}
+    }
+}
+    ".to_string());
 
     eprintln!("result = {}", result);
 }

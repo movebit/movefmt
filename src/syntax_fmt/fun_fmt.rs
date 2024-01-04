@@ -6,8 +6,10 @@ use move_compiler::Flags;
 use move_compiler::parser::ast::Definition;
 use move_compiler::parser::ast::*;
 use std::collections::BTreeSet;
+use crate::syntax_fmt::expr_fmt;
 use crate::utils::FileLineMappingOneFile;
 use crate::syntax::parse_file_string;
+use crate::core::token_tree::{NestKind, NestKind_, Note, TokenTree};
 
 pub fn add_space_line_in_two_fun(fmt_buffer: String) -> String {
     use regex::Regex;
@@ -127,7 +129,7 @@ fn get_space_cnt_before_line_str(s: &str) -> usize {
     result
 }
 
-pub fn fun_header_specifier_fmt(specifier: &str, indent_str: &String) -> String {
+pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &String) -> String {
     // eprintln!("fun_specifier_str = {:?}", specifier);
 
     let mut fun_specifiers_code = vec![];
@@ -279,7 +281,7 @@ pub fn fun_header_specifier_fmt(specifier: &str, indent_str: &String) -> String 
     ret_str
 }
 
-pub fn add_blank_row_in_two_funs(fmt_buffer: String) -> String {
+pub(crate) fn add_blank_row_in_two_funs(fmt_buffer: String) -> String {
     let buf = fmt_buffer.clone();
     let mut result = fmt_buffer.clone();
     let fun_extractor = FunExtractor::new(fmt_buffer.clone());
@@ -319,7 +321,7 @@ pub fn add_blank_row_in_two_funs(fmt_buffer: String) -> String {
     result
 }
 
-pub fn process_block_comment_before_fun_header(fmt_buffer: String) -> String {
+pub(crate) fn process_block_comment_before_fun_header(fmt_buffer: String) -> String {
     let buf = fmt_buffer.clone();
     let mut result = fmt_buffer.clone();
     let fun_extractor = FunExtractor::new(fmt_buffer.clone());
@@ -356,7 +358,7 @@ pub fn process_block_comment_before_fun_header(fmt_buffer: String) -> String {
     result
 }
 
-pub fn process_fun_header_too_long_v1(fmt_buffer: String) -> String {
+pub(crate) fn process_fun_header_too_long_v1(fmt_buffer: String) -> String {
     let buf = fmt_buffer.clone();
     let mut result = fmt_buffer.clone();
     let fun_extractor = FunExtractor::new(fmt_buffer.clone());
@@ -419,7 +421,7 @@ pub fn process_fun_header_too_long_v1(fmt_buffer: String) -> String {
     result
 }
 
-pub fn process_fun_header_too_long(fmt_buffer: String) -> String {
+pub(crate) fn process_fun_header_too_long(fmt_buffer: String) -> String {
     let buf = fmt_buffer.clone();
     let mut result = fmt_buffer.clone();
     let fun_extractor = FunExtractor::new(fmt_buffer.clone());
@@ -480,7 +482,7 @@ pub fn process_fun_header_too_long(fmt_buffer: String) -> String {
     result
 }
 
-pub fn process_fun_ret_ty(fmt_buffer: String) -> String {
+pub(crate) fn process_fun_ret_ty(fmt_buffer: String) -> String {
     // process this case:
     // fun fun_name()   
     // : u64 {}
@@ -521,6 +523,66 @@ pub fn process_fun_ret_ty(fmt_buffer: String) -> String {
     }
     // eprintln!("result = \n{}", result);
     result
+}
+
+pub(crate) fn process_fun_annotation(kind: NestKind, elements: Vec<TokenTree>) -> String {
+    fn process_simple_token(token: &TokenTree, next_token: Option<&TokenTree>) -> String {
+        let mut fmt_result_str = "".to_string();
+        fmt_result_str.push_str(token.simple_str().unwrap_or_default());
+        if expr_fmt::need_space(token, next_token) {
+            fmt_result_str.push_str(" ");
+        }
+        fmt_result_str
+    }
+
+    fn process_nested_token(nested_token_tree: &TokenTree, next_token: Option<&TokenTree>) -> String {
+        let mut fmt_result_str = "".to_string();
+        if let TokenTree::Nested {
+            elements,
+            kind,
+            note: _,
+        } = nested_token_tree {
+            fmt_result_str.push_str(kind.start_token_tree().simple_str().unwrap_or_default());
+            let mut internal_token_idx = 0;
+            while internal_token_idx < elements.len() {
+                let t = elements.get(internal_token_idx).unwrap();
+                let next_t = elements.get(internal_token_idx + 1);
+                fmt_result_str.push_str(&process_token_trees(t, next_t));
+                internal_token_idx = internal_token_idx + 1;
+            }
+            fmt_result_str.push_str(kind.end_token_tree().simple_str().unwrap_or_default());
+        }
+        fmt_result_str
+    }
+
+    fn process_token_trees(token: &TokenTree, next_token: Option<&TokenTree>) -> String {
+        match token {
+            TokenTree::Nested {
+                elements: _,
+                kind: _,
+                note: _,
+            } => process_nested_token(token, next_token),
+            TokenTree::SimpleToken {
+                content: _,
+                pos: _,
+                tok: _,
+                note: _,
+            } => process_simple_token(token, next_token)
+        }
+    }
+    
+    if NestKind_::Bracket == kind.kind {
+        let fmt_result_str = process_nested_token(
+            &TokenTree::Nested {
+                elements: elements,
+                kind: kind,
+                note: None,
+            },
+        None);
+        eprintln!("fmt_result_str = {}", fmt_result_str);
+        return fmt_result_str;
+    }
+    "".to_string()
 }
 
 pub fn fmt_fun(fmt_buffer: String) -> String {
