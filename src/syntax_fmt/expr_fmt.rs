@@ -425,6 +425,35 @@ pub(crate) fn judge_simple_statement(kind: &NestKind, elements: &Vec<TokenTree>)
     true
 }
 
+pub(crate) fn process_link_access(elements: &Vec<TokenTree>, idx: usize) -> (usize, usize) {
+    eprintln!("process_link_access >>");
+    if idx >= elements.len() - 1 {
+        return (0, 0);
+    }
+    let mut continue_dot_cnt = 0;
+    let mut index = idx;
+    while index <= elements.len() - 2 {        
+        let t = elements.get(index).unwrap();
+        // let next_t = elements.get(index + 1);
+
+        if !t.simple_str().unwrap_or_default().contains(".") {
+            break;
+        }
+        // if let Some(TokenTree::SimpleToken {
+        //     content,
+        //     pos: _,
+        //     tok: _,
+        //     note: _,
+        // }) = next_t {
+        //     eprint!("{} ", content);
+        // }
+        continue_dot_cnt = continue_dot_cnt + 1;
+        index = index + 2;
+    }
+    eprintln!("\n process_link_access << (continue_dot_cnt, index) = ({}, {})", continue_dot_cnt, index);
+    (continue_dot_cnt, index - 2)
+}
+
 #[derive(Debug, Default)]
 pub struct ExpExtractor {
     pub let_if_else_block_loc_vec: Vec<Loc>,

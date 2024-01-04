@@ -6,7 +6,6 @@ use move_compiler::diagnostics::Diagnostics;
 use move_compiler::parser::lexer::{Lexer, Tok};
 use move_compiler::shared::CompilationEnv;
 use move_compiler::Flags;
-// use stderrlog::new;
 use std::cell::Cell;
 use std::collections::BTreeSet;
 use crate::core::token_tree::{
@@ -390,6 +389,53 @@ impl Format {
         }
     }
 
+    fn format_single_token(
+        &self,
+        kind: &NestKind,
+        elements: &Vec<TokenTree>,
+        token: &TokenTree,
+        next_t: Option<&TokenTree>,
+        pound_sign_new_line: bool,
+        new_line: bool,
+        pound_sign: &mut Option<usize>,
+    ) {
+        self.format_token_trees_internal(
+            token,
+            next_t,
+            pound_sign_new_line || new_line,
+        );
+        if pound_sign_new_line {
+            eprintln!("in loop<TokenTree::Nested> pound_sign_new_line = true");
+            self.new_line(Some(token.end_pos()));
+            *pound_sign = None;
+            return;
+        }
+
+        if new_line {
+            let process_tail_comment_of_line = match next_t {
+                Some(next_token) => {
+                    let mut next_token_start_pos: u32 = 0;
+                    self.analyzer_token_tree_start_pos_(&mut next_token_start_pos, next_token);
+                    if self.translate_line(next_token_start_pos) > self.translate_line(token.end_pos()) {
+                        true
+                    } else {
+                        false
+                    }
+                }
+                None => {
+                    true
+                }
+            };
+            self.process_same_line_comment(token.end_pos(), process_tail_comment_of_line);
+        } else {
+            if let NestKind_::Brace = kind.kind {
+                if elements.len() == 1 {
+                    self.push_str(" ");
+                }
+            }
+        }
+    }
+
     fn format_each_token_in_nested_elements(
         &self,
         kind: &NestKind,
@@ -400,59 +446,48 @@ impl Format {
     ) {
         let mut pound_sign = None;
         let len = elements.len();
-        for index in 0..len {
-            let t = elements.get(index).unwrap();
-            if t.is_pound() {
-                pound_sign = Some(index)
-            }
-            let next_t = elements.get(index + 1);
+        let mut internal_token_idx = 0;
+        while internal_token_idx < len {
+            let t = elements.get(internal_token_idx).unwrap();
+            let next_t = elements.get(internal_token_idx + 1);
+
             let pound_sign_new_line =
-                pound_sign.map(|x| (x + 1) == index).unwrap_or_default();
+                pound_sign.map(|x| (x + 1) == internal_token_idx).unwrap_or_default();
 
             let new_line = Self::need_new_line_for_each_token_in_nested(
                 kind,
                 elements,
                 delimiter,
                 has_colon,
-                index,
+                internal_token_idx,
                 b_new_line_mode
             );
 
-            self.format_token_trees_internal(
-                t,
-                elements.get(index + 1),
-                pound_sign_new_line || new_line,
-            );
-            if pound_sign_new_line {
-                eprintln!("in loop<TokenTree::Nested> pound_sign_new_line = true");
-                self.new_line(Some(t.end_pos()));
-                pound_sign = None;
-                continue;
+            if t.is_pound() {
+                pound_sign = Some(internal_token_idx)
             }
 
-            if new_line {
-                let process_tail_comment_of_line = match next_t {
-                    Some(next_token) => {
-                        let mut next_token_start_pos: u32 = 0;
-                        self.analyzer_token_tree_start_pos_(&mut next_token_start_pos, next_token);
-                        if self.translate_line(next_token_start_pos) > self.translate_line(t.end_pos()) {
-                            true
-                        } else {
-                            false
-                        }
+            if Tok::Period == self.format_context.borrow().cur_tok {
+                let (continue_dot_cnt, index) = expr_fmt::process_link_access(elements, internal_token_idx + 1);
+                if continue_dot_cnt > 3 && index > internal_token_idx {
+                    self.inc_depth();
+                    let mut is_dot_new_line = true;
+                    while internal_token_idx <= index + 1 {
+                        let t = elements.get(internal_token_idx).unwrap();
+                        let next_t = elements.get(internal_token_idx + 1);
+                        self.format_single_token(kind, elements, t, next_t, false, is_dot_new_line, &mut pound_sign);
+                        internal_token_idx = internal_token_idx + 1;
+                        is_dot_new_line = !is_dot_new_line;
                     }
-                    None => {
-                        true
-                    }
-                };
-                self.process_same_line_comment(t.end_pos(), process_tail_comment_of_line);
-            } else {
-                if let NestKind_::Brace = kind.kind {
-                    if elements.len() == 1 {
-                        self.push_str(" ");
-                    }
+                    // eprintln!("after processed link access, ret = {}", self.ret.clone().into_inner());
+                    // eprintln!("after processed link access, internal_token_idx = {}, len = {}", internal_token_idx, len);
+                    self.dec_depth();
+                    continue;
                 }
             }
+
+            self.format_single_token(kind, elements, t, next_t, pound_sign_new_line, new_line, &mut pound_sign);
+            internal_token_idx = internal_token_idx + 1;
         }
     }
 
