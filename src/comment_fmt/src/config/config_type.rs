@@ -148,7 +148,6 @@ macro_rules! create_config {
                 }
             )+
                 self.set_ignore(dir);
-                self.set_fn_args_layout();
                 self
             }
 
@@ -233,18 +232,6 @@ macro_rules! create_config {
 
             fn set_ignore(&mut self, dir: &Path) {
                 self.ignore.2.add_prefix(dir);
-            }
-
-            fn set_fn_args_layout(&mut self) {
-                if self.was_set().fn_args_layout() {
-                    eprintln!(
-                        "Warning: the `fn_args_layout` option is deprecated. \
-                        Use `fn_params_layout`. instead"
-                    );
-                    if !self.was_set().fn_params_layout() {
-                        self.fn_params_layout.2 = self.fn_args_layout();
-                    }
-                }
             }
 
             #[allow(unreachable_pub)]

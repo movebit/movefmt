@@ -252,14 +252,12 @@ fn identify_comment(
 
     let (first_group, rest) = orig.split_at(first_group_ending);
     let rewritten_first_group =
-        if !config.normalize_comments() && has_bare_lines && style.is_block_comment() {
+        if has_bare_lines && style.is_block_comment() {
             trim_left_preserve_layout(first_group, shape.indent, config)?
-        } else if !config.normalize_comments()
-            && !config.wrap_comments()
-            && !(
+        } else if !(
                 // `format_code_in_doc_comments` should only take effect on doc comments,
                 // so we only consider it when this comment block is a doc comment block.
-                is_doc_comment && config.format_code_in_doc_comments()
+                is_doc_comment
             )
         {
             light_rewrite_comment(first_group, shape.indent, config, is_doc_comment)
@@ -353,7 +351,7 @@ impl<'a> CommentRewrite<'a> {
                 CommentStyle::SingleBullet,
             )
         } else {
-            let style = comment_style(orig, config.normalize_comments());
+            let style = comment_style(orig, false);
             (style.to_str_tuplet(), style)
         };
 
@@ -479,8 +477,7 @@ impl<'a> CommentRewrite<'a> {
         // 4) No URLS were found in the comment
         // If this changes, the documentation in ../Configurations.md#wrap_comments
         // should be changed accordingly.
-        let should_wrap_comment = self.fmt.config.wrap_comments()
-            && !is_markdown_header_doc_comment
+        let should_wrap_comment = !is_markdown_header_doc_comment
             && unicode_str_width(line) > self.fmt.shape.width
             && !has_url(line)
             && !is_table_item(line);
@@ -567,10 +564,10 @@ fn rewrite_comment_inner(
             if orig.starts_with("/*") && line_breaks == 0 {
                 (
                     line.trim_start(),
-                    has_leading_whitespace || config.normalize_comments(),
+                    has_leading_whitespace,
                 )
             } else {
-                (line, has_leading_whitespace || config.normalize_comments())
+                (line, has_leading_whitespace)
             }
         });
 

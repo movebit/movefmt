@@ -42,7 +42,7 @@ enum Operation {
     /// Format files and their child modules.
     Format {
         files: Vec<PathBuf>,
-        minimal_config_path: Option<String>,
+        config_path: Option<String>,
     },
     /// Print the help message.
     Help(HelpOp),
@@ -78,9 +78,6 @@ pub enum OperationError {
     /// An unknown print-config option was requested.
     #[error("Unknown print-config option: `{0}`.")]
     UnknownPrintConfigTopic(String),
-    /// Attempt to generate a minimal config from standard input.
-    #[error("The `--print-config=minimal` option doesn't work with standard input.")]
-    MinimalPathWithStdin,
     /// An io error during reading or writing.
     #[error("{0}")]
     IoError(IoError),
@@ -113,10 +110,8 @@ fn make_opts() -> Options {
     opts.optopt(
         "",
         "print-config",
-        "Dumps a default or minimal config to PATH. A minimal config is the \
-         subset of the current config file used for formatting the current program. \
-         `current` writes to stdout current config as if formatting the file at PATH.",
-        "[default|minimal|current] PATH",
+        "Dumps a default or current config to PATH(eg: movefmt.config).",
+        "[default|current] PATH",
     );
     opts.optflag(
         "l",
@@ -164,8 +159,8 @@ fn execute(opts: &Options) -> Result<i32> {
         Operation::Stdin { input } => format_string(input, options),
         Operation::Format {
             files,
-            minimal_config_path,
-        } => format(files, minimal_config_path, &options),
+            config_path,
+        } => format(files, config_path, &options),
         _ => Ok(0)
     }
 }
@@ -180,10 +175,10 @@ fn format_string(input: String, options: GetOptsOptions) -> Result<i32> {
 
 fn format(
     files: Vec<PathBuf>,
-    minimal_config_path: Option<String>,
+    config_path: Option<String>,
     options: &GetOptsOptions,
 ) -> Result<i32> {
-    println!("files = {:?}, minimal_config_path = {:?}, options = {:?}", files, minimal_config_path, options);
+    println!("files = {:?}, config_path = {:?}, options = {:?}", files, config_path, options);
     for file in files {
         let content_origin = std::fs::read_to_string(&file.as_path()).unwrap();
         let attrs: BTreeSet<String> = BTreeSet::new();
@@ -229,18 +224,12 @@ fn determine_operation(matches: &Matches) -> Result<Operation, OperationError> {
     }
     let mut free_matches = matches.free.iter();
 
-    let mut minimal_config_path = None;
+    let mut config_path = None;
     if let Some(kind) = matches.opt_str("print-config") {
         let path = free_matches.next().cloned();
         match kind.as_str() {
             "default" => return Ok(Operation::ConfigOutputDefault { path }),
             "current" => return Ok(Operation::ConfigOutputCurrent { path }),
-            "minimal" => {
-                minimal_config_path = path;
-                if minimal_config_path.is_none() {
-                    eprintln!("WARNING: PATH required for `--print-config minimal`.");
-                }
-            }
             _ => {
                 return Err(OperationError::UnknownPrintConfigTopic(kind));
             }
@@ -262,18 +251,14 @@ fn determine_operation(matches: &Matches) -> Result<Operation, OperationError> {
 
     // if no file argument is supplied, read from stdin
     if files.is_empty() {
-        if minimal_config_path.is_some() {
-            return Err(OperationError::MinimalPathWithStdin);
-        }
         let mut buffer = String::new();
         io::stdin().read_to_string(&mut buffer)?;
-
         return Ok(Operation::Stdin { input: buffer });
     }
 
     Ok(Operation::Format {
         files,
-        minimal_config_path,
+        config_path,
     })
 }
 

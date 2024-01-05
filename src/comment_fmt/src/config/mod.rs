@@ -28,69 +28,17 @@ create_config! {
     tab_spaces: usize, 4, true, "Number of spaces per tab";
     newline_style: NewlineStyle, NewlineStyle::Auto, true, "Unix or Windows line endings";
 
-    // Comments. macros, and strings
-    wrap_comments: bool, false, false, "Break comments to fit on the line";
-    format_code_in_doc_comments: bool, false, false, "Format the code snippet in doc comments.";
-    doc_comment_code_block_width: usize, 100, false, "Maximum width for code snippets in doc \
-        comments. No effect unless format_code_in_doc_comments = true";
-    comment_width: usize, 80, false,
-        "Maximum length of comments. No effect unless wrap_comments = true";
-    normalize_comments: bool, false, false, "Convert /* */ comments to // comments where possible";
-    normalize_doc_attributes: bool, false, false, "Normalize doc attributes as doc comments";
-    format_strings: bool, false, false, "Format string literals where necessary";
-    format_macro_matchers: bool, false, false,
-        "Format the metavariable matching patterns in macros";
-    format_macro_bodies: bool, true, false, "Format the bodies of macros";
-    hex_literal_case: HexLiteralCase, HexLiteralCase::Preserve, false,
-        "Format hexadecimal integer literals";
-
     // Single line expressions and items
     empty_item_single_line: bool, true, false,
         "Put empty-body functions and impls on a single line";
-    struct_lit_single_line: bool, true, false,
-        "Put small struct literals on a single line";
-    fn_single_line: bool, false, false, "Put single-expression functions on a single line";
-    where_single_line: bool, false, false, "Force where-clauses to be on a single line";
 
     // Imports
-    imports_indent: IndentStyle, IndentStyle::Block, false, "Indent of imports";
     imports_granularity: ImportGranularity, ImportGranularity::Preserve, false,
         "Merge or split imports to the provided granularity";
-    group_imports: GroupImportsTactic, GroupImportsTactic::Preserve, false,
-        "Controls the strategy for how imports are grouped together";
-    merge_imports: bool, false, false, "(deprecated: use imports_granularity instead)";
 
-    // Ordering
-    reorder_imports: bool, true, true, "Reorder import and extern crate statements alphabetically";
-    reorder_modules: bool, true, true, "Reorder module statements alphabetically in group";
-    reorder_impl_items: bool, false, false, "Reorder impl items";
-
-    // Spaces around punctuation
-    type_punctuation_density: TypeDensity, TypeDensity::Wide, false,
-        "Determines if '+' or '=' are wrapped in spaces in the punctuation of types";
-    space_before_colon: bool, false, false, "Leave a space before the colon";
-    space_after_colon: bool, true, false, "Leave a space after the colon";
-    spaces_around_ranges: bool, false, false, "Put spaces around the  .. and ..= range operators";
-
-    // Misc.
     remove_nested_parens: bool, true, true, "Remove nested parens";
-    combine_control_expr: bool, true, false, "Combine control expressions with function calls";
-    short_array_element_width_threshold: usize, 10, true,
-        "Width threshold for an array element to be considered short";
-    overflow_delimited_expr: bool, false, false,
-        "Allow trailing bracket/brace delimited expressions to overflow";
     struct_field_align_threshold: usize, 0, false,
         "Align struct fields if their diffs fits within threshold";
-    enum_discrim_align_threshold: usize, 0, false,
-        "Align enum variants discrims, if their diffs fit within threshold";
-    match_arm_blocks: bool, true, false, "Wrap the body of arms in blocks when it does not fit on \
-        the same line with the pattern of arms";
-    match_arm_leading_pipes: MatchArmLeadingPipe, MatchArmLeadingPipe::Never, true,
-        "Determines whether leading pipes are emitted on match arms";
-    force_multiline_blocks: bool, false, false,
-        "Force multiline closure bodies and match arms to be wrapped in a block";
-    fn_args_layout: Density, Density::Tall, true,
-        "(deprecated: use fn_params_layout instead)";
     fn_params_layout: Density, Density::Tall, true,
         "Control the layout of parameters in function signatures.";
     brace_style: BraceStyle, BraceStyle::SameLineWhere, false, "Brace style for items";
@@ -98,52 +46,14 @@ create_config! {
         "Brace style for control flow constructs";
     trailing_semicolon: bool, true, false,
         "Add trailing semicolon after break, continue and return";
-    match_block_trailing_comma: bool, false, true,
-        "Put a trailing comma after a block based match arm (non-block arms are not affected)";
     blank_lines_upper_bound: usize, 1, false,
         "Maximum number of blank lines which can be put between items";
     blank_lines_lower_bound: usize, 0, false,
         "Minimum number of blank lines which must be put between items";
-    edition: Edition, Edition::Edition2015, true, "The edition of the parser (RFC 2052)";
-    version: Version, Version::One, false, "Version of formatting rules";
-    inline_attribute_width: usize, 0, false,
-        "Write an item and its attribute on the same line \
-        if their combined width is below a threshold";
-    format_generated_files: bool, true, false, "Format generated files";
-
-    // Options that can change the source code beyond whitespace/blocks (somewhat linty things)
-    merge_derives: bool, true, true, "Merge multiple `#[derive(...)]` into a single one";
-    use_try_shorthand: bool, false, true, "Replace uses of the try! macro by the ? shorthand";
-    use_field_init_shorthand: bool, false, true, "Use field initialization shorthand if possible";
-    force_explicit_abi: bool, true, true, "Always print the abi for extern items";
-    condense_wildcard_suffixes: bool, false, false, "Replace strings of _ wildcards by a single .. \
-                                                     in tuple patterns";
-
-    // Control options (changes the operation of movefmt, rather than the formatting)
-    color: Color, Color::Auto, false,
-        "What Color option to use when none is supplied: Always, Never, Auto";
-    required_version: String, env!("CARGO_PKG_VERSION").to_owned(), false,
-        "Require a specific version of movefmt";
-    unstable_features: bool, false, false,
-            "Enables unstable features. Only available on nightly channel";
-    disable_all_formatting: bool, false, true, "Don't reformat anything";
-    skip_children: bool, false, false, "Don't reformat out of line modules";
-    hide_parse_errors: bool, false, false, "Hide errors from the parser";
-    error_on_line_overflow: bool, false, false, "Error if unable to get all lines within max_width";
-    error_on_unformatted: bool, false, false,
-        "Error if unable to get comments or string literals within max_width, \
-         or they are left with trailing whitespaces";
     ignore: IgnoreList, IgnoreList::default(), false,
         "Skip formatting the specified files and directories";
-
-    // Not user-facing
-    verbose: Verbosity, Verbosity::Normal, false, "How much to information to emit to the user";
     emit_mode: EmitMode, EmitMode::Files, false,
         "What emit Mode to use when none is supplied";
-    make_backup: bool, false, false, "Backup changed files";
-    print_misformatted_file_names: bool, false, true,
-        "Prints the names of mismatched files that were formatted. Prints the names of \
-         files that would be formatted when used with `--check` mode. ";
 }
 
 #[derive(Error, Debug)]
@@ -154,11 +64,6 @@ impl PartialConfig {
     pub fn to_toml(&self) -> Result<String, ToTomlError> {
         // Non-user-facing options can't be specified in TOML
         let mut cloned = self.clone();
-        cloned.verbose = None;
-        cloned.print_misformatted_file_names = None;
-        cloned.merge_imports = None;
-        cloned.fn_args_layout = None;
-
         ::toml::to_string(&cloned).map_err(ToTomlError)
     }
 }
