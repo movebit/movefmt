@@ -2,13 +2,17 @@ use anyhow::{format_err, Result};
 use io::Error as IoError;
 use thiserror::Error;
 use tracing_subscriber::EnvFilter;
-// use std::collections::HashMap;
 use std::env;
-// use std::fs::File;
 use std::io::{self, Read, Write};
 use std::path::PathBuf;
-// use std::str::FromStr;
 use getopts::{Matches, Options};
+use movefmt::{
+    core::fmt::FormatConfig,
+    syntax::parse_file_string,
+};
+use move_command_line_common::files::FileHash;
+use move_compiler::{shared::CompilationEnv, Flags};
+use std::collections::BTreeSet;
 
 fn main() {
     tracing_subscriber::fmt()
@@ -58,15 +62,6 @@ pub enum EmitMode {
     Files,
     /// Writes the output to stdout.
     Stdout,
-    /// Displays how much of the input file was processed
-    Coverage,
-    /// Unfancy stdout
-    Checkstyle,
-    /// Writes the resulting diffs in a JSON format. Returns an empty array
-    /// `[]` if there were no diffs.
-    Json,
-    /// Output the changed lines (for internal value only)
-    ModifiedLines,
     /// Checks if a diff can be generated. If so, movefmt outputs a diff and
     /// quits with exit code 1.
     /// This option is designed to be run in CI where a non-zero exit signifies
@@ -106,12 +101,6 @@ enum HelpOp {
 fn make_opts() -> Options {
     let mut opts = Options::new();
 
-    opts.optflag(
-        "",
-        "check",
-        "Run in 'check' mode. Exits with 0 if input is formatted correctly. Exits \
-         with 1 and prints a diff if formatting is required.",
-    );
     let emit_opts = "[files|stdout]";
     opts.optopt("", "emit", "What data to emit and how", emit_opts);
     opts.optopt(
@@ -182,6 +171,10 @@ fn execute(opts: &Options) -> Result<i32> {
 }
 
 fn format_string(input: String, options: GetOptsOptions) -> Result<i32> {
+    println!("input = {}, options = {:?}", input, options);
+    let output =
+        movefmt::core::fmt::format(input, FormatConfig { indent_size: 4 }).unwrap();
+    println!("output = {}", output);
     Ok(0)
 }
 
@@ -190,6 +183,22 @@ fn format(
     minimal_config_path: Option<String>,
     options: &GetOptsOptions,
 ) -> Result<i32> {
+    println!("files = {:?}, minimal_config_path = {:?}, options = {:?}", files, minimal_config_path, options);
+    for file in files {
+        let content_origin = std::fs::read_to_string(&file.as_path()).unwrap();
+        let attrs: BTreeSet<String> = BTreeSet::new();
+        let mut env = CompilationEnv::new(Flags::testing(), attrs);
+        match parse_file_string(&mut env, FileHash::empty(), &content_origin) {
+            Ok(_) => {
+                let formatted_text =
+                    movefmt::core::fmt::format(content_origin, FormatConfig { indent_size: 4 }).unwrap();
+                std::fs::write(file, formatted_text)?;
+            }
+            Err(_) => {
+                eprintln!("file '{:?}' skipped because of parse not ok", file);
+            }
+        }
+    }
     Ok(0)
 }
 
@@ -276,7 +285,6 @@ struct GetOptsOptions {
     quiet: bool,
     verbose: bool,    
     emit_mode: Option<EmitMode>,
-    check: bool,
     print_misformatted_file_names: bool,
 }
 
@@ -289,12 +297,7 @@ impl GetOptsOptions {
             return Err(format_err!("Can't use both `--verbose` and `--quiet`"));
         }
 
-        options.check = matches.opt_present("check");
         if let Some(ref emit_str) = matches.opt_str("emit") {
-            if options.check {
-                return Err(format_err!("Invalid to use `--emit` and `--check`"));
-            }
-
             options.emit_mode = Some(emit_mode_from_emit_str(emit_str)?);
         }
 

@@ -3,7 +3,6 @@
 mod attrs;
 mod config_type;
 mod item_enum;
-mod item_struct;
 mod utils;
 use proc_macro::TokenStream;
 use syn::parse_macro_input;
