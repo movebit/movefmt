@@ -13,18 +13,6 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use crate::config::Config;
 
 #[config_type]
-pub enum NewlineStyle {
-    /// Auto-detect based on the raw source input.
-    Auto,
-    /// Force CRLF (`\r\n`).
-    Windows,
-    /// Force CR (`\n`).
-    Unix,
-    /// `\r\n` in Windows, `\n` on other platforms.
-    Native,
-}
-
-#[config_type]
 /// Where to put the opening brace of items (`fn`, `impl`, etc.).
 pub enum BraceStyle {
     /// Put the opening brace on the next line.
@@ -144,6 +132,8 @@ pub enum ReportTactic {
 pub enum EmitMode {
     /// Emits to files.
     Files,
+    /// Emits to new files, eg: xxx.fmt.move.
+    NewFiles,
     /// Writes the output to stdout.
     Stdout,
     /// Checks if a diff can be generated. If so, movefmt outputs a diff and
@@ -151,36 +141,6 @@ pub enum EmitMode {
     /// This option is designed to be run in CI where a non-zero exit signifies
     /// non-standard code formatting. Used for `--check`.
     Diff,
-}
-
-/// Client-preference for coloured output.
-#[config_type]
-pub enum Color {
-    /// Always use color, whether it is a piped or terminal output
-    Always,
-    /// Never use color
-    Never,
-    /// Automatically use color, if supported by terminal
-    Auto,
-}
-
-#[config_type]
-/// movefmt format style version.
-pub enum Version {
-    /// 1.x.y. When specified, movefmt will format in the same style as 1.0.0.
-    One,
-    /// 2.x.y. When specified, movefmt will format in the the latest style.
-    Two,
-}
-
-impl Color {
-    /// Whether we should use a coloured terminal.
-    pub fn use_colored_tty(self) -> bool {
-        match self {
-            Color::Always | Color::Auto => true,
-            Color::Never => false,
-        }
-    }
 }
 
 /// How chatty should movefmt be?

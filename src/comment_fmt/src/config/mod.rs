@@ -22,38 +22,13 @@ pub mod options;
 //
 // `name: value type, default value, is stable, description;`
 create_config! {
-    // Fundamental stuff
-    max_width: usize, 100, true, "Maximum width of each line";
+    max_width: usize, 90, true, "Maximum width of each line";
+    indent_size: usize, 4, true, "Indent size";
     hard_tabs: bool, false, true, "Use tab characters for indentation, spaces for alignment";
     tab_spaces: usize, 4, true, "Number of spaces per tab";
-    newline_style: NewlineStyle, NewlineStyle::Auto, true, "Unix or Windows line endings";
-
-    // Single line expressions and items
-    empty_item_single_line: bool, true, false,
-        "Put empty-body functions and impls on a single line";
-
-    // Imports
-    imports_granularity: ImportGranularity, ImportGranularity::Preserve, false,
-        "Merge or split imports to the provided granularity";
-
-    remove_nested_parens: bool, true, true, "Remove nested parens";
-    struct_field_align_threshold: usize, 0, false,
-        "Align struct fields if their diffs fits within threshold";
-    fn_params_layout: Density, Density::Tall, true,
-        "Control the layout of parameters in function signatures.";
-    brace_style: BraceStyle, BraceStyle::SameLineWhere, false, "Brace style for items";
-    control_brace_style: ControlBraceStyle, ControlBraceStyle::AlwaysSameLine, false,
-        "Brace style for control flow constructs";
-    trailing_semicolon: bool, true, false,
-        "Add trailing semicolon after break, continue and return";
-    blank_lines_upper_bound: usize, 1, false,
-        "Maximum number of blank lines which can be put between items";
-    blank_lines_lower_bound: usize, 0, false,
-        "Minimum number of blank lines which must be put between items";
-    ignore: IgnoreList, IgnoreList::default(), false,
-        "Skip formatting the specified files and directories";
-    emit_mode: EmitMode, EmitMode::Files, false,
+    emit_mode: EmitMode, EmitMode::Files, true,
         "What emit Mode to use when none is supplied";
+    verbose: Verbosity, Verbosity::Normal, true, "How much to information to emit to the user";
 }
 
 #[derive(Error, Debug)]
@@ -63,7 +38,7 @@ pub struct ToTomlError(toml::ser::Error);
 impl PartialConfig {
     pub fn to_toml(&self) -> Result<String, ToTomlError> {
         // Non-user-facing options can't be specified in TOML
-        let mut cloned = self.clone();
+        let cloned = self.clone();
         ::toml::to_string(&cloned).map_err(ToTomlError)
     }
 }
@@ -80,7 +55,7 @@ impl Config {
         let mut file = File::open(&file_path)?;
         let mut toml = String::new();
         file.read_to_string(&mut toml)?;
-        Config::from_toml(&toml, file_path.parent().unwrap())
+        Config::from_toml(&toml)
             .map_err(|err| Error::new(ErrorKind::InvalidData, err))
     }
 
@@ -143,7 +118,7 @@ impl Config {
         }
     }
 
-    pub fn from_toml(toml: &str, dir: &Path) -> Result<Config, String> {
+    pub fn from_toml(toml: &str) -> Result<Config, String> {
         let parsed: ::toml::Value = toml
             .parse()
             .map_err(|e| format!("Could not parse TOML: {}", e))?;
@@ -162,7 +137,7 @@ impl Config {
                 if !err.is_empty() {
                     eprint!("{err}");
                 }
-                Ok(Config::default().fill_from_parsed_config(parsed_config, dir))
+                Ok(Config::default().fill_from_parsed_config(parsed_config))
             }
             Err(e) => {
                 err.push_str("Error: Decoding config file failed:\n");

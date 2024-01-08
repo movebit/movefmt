@@ -3,13 +3,15 @@ use io::Error as IoError;
 use thiserror::Error;
 use tracing_subscriber::EnvFilter;
 use std::env;
+use std::fs::File;
 use std::io::{self, Read, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use getopts::{Matches, Options};
 use movefmt::{
     core::fmt::FormatConfig,
     syntax::parse_file_string,
 };
+use commentfmt::{load_config, Config, CliOptions, Verbosity, EmitMode};
 use move_command_line_common::files::FileHash;
 use move_compiler::{shared::CompilationEnv, Flags};
 use std::collections::BTreeSet;
@@ -42,7 +44,6 @@ enum Operation {
     /// Format files and their child modules.
     Format {
         files: Vec<PathBuf>,
-        config_path: Option<String>,
     },
     /// Print the help message.
     Help(HelpOp),
@@ -54,19 +55,6 @@ enum Operation {
     ConfigOutputCurrent { path: Option<String> },
     /// No file specified, read from stdin
     Stdin { input: String },
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum EmitMode {
-    /// Emits to files.
-    Files,
-    /// Writes the output to stdout.
-    Stdout,
-    /// Checks if a diff can be generated. If so, movefmt outputs a diff and
-    /// quits with exit code 1.
-    /// This option is designed to be run in CI where a non-zero exit signifies
-    /// non-standard code formatting. Used for `--check`.
-    Diff,
 }
 
 /// movefmt operations errors.
@@ -97,27 +85,20 @@ enum HelpOp {
 
 fn make_opts() -> Options {
     let mut opts = Options::new();
+    let emit_opts = "[files|new_files|stdout|check_diff]";
 
-    let emit_opts = "[files|stdout]";
     opts.optopt("", "emit", "What data to emit and how", emit_opts);
     opts.optopt(
         "",
         "config-path",
-        "Recursively searches the given path for the movefmt.toml config file. If not \
-         found reverts to the input file path",
+        "Recursively searches the given path for the movefmt.toml config file",
         "[Path for the configuration file]",
     );
     opts.optopt(
         "",
         "print-config",
-        "Dumps a default or current config to PATH(eg: movefmt.config).",
+        "Dumps a default or current config to PATH(eg: movefmt.config)",
         "[default|current] PATH",
-    );
-    opts.optflag(
-        "l",
-        "files-with-diff",
-        "Prints the names of mismatched files that were formatted. Prints the names of \
-         files that would be formatted when used with `--check` mode. ",
     );
     opts.optmulti(
         "",
@@ -129,10 +110,7 @@ fn make_opts() -> Options {
     opts.optflag("v", "verbose", "Print verbose output");
     opts.optflag("q", "quiet", "Print less output");
     opts.optflag("V", "version", "Show version information");
-    let help_topics = "`config`";
-    let mut help_topic_msg = "Show this message or help about a specific topic: ".to_owned();
-    help_topic_msg.push_str(help_topics);
-
+    let help_topic_msg = "Show help".to_owned();
     opts.optflagopt("h", "help", &help_topic_msg, "=TOPIC");
 
     opts
@@ -156,12 +134,35 @@ fn execute(opts: &Options) -> Result<i32> {
             print_version();
             Ok(0)
         }
+        Operation::ConfigOutputDefault { path } => {
+            let toml = Config::default().all_options().to_toml()?;
+            if let Some(path) = path {
+                let mut file = File::create(path)?;
+                file.write_all(toml.as_bytes())?;
+            } else {
+                io::stdout().write_all(toml.as_bytes())?;
+            }
+            Ok(0)
+        }
+        Operation::ConfigOutputCurrent { path } => {
+            let path = match path {
+                Some(path) => path,
+                None => return Err(format_err!("PATH required for `--print-config current`")),
+            };
+
+            let file = PathBuf::from(path);
+            let file = file.canonicalize().unwrap_or(file);
+
+            let (config, _) = load_config(Some(file.parent().unwrap()), Some(options))?;
+            let toml = config.all_options().to_toml()?;
+            io::stdout().write_all(toml.as_bytes())?;
+
+            Ok(0)
+        }
         Operation::Stdin { input } => format_string(input, options),
         Operation::Format {
             files,
-            config_path,
-        } => format(files, config_path, &options),
-        _ => Ok(0)
+        } => format(files, &options),
     }
 }
 
@@ -175,10 +176,9 @@ fn format_string(input: String, options: GetOptsOptions) -> Result<i32> {
 
 fn format(
     files: Vec<PathBuf>,
-    config_path: Option<String>,
     options: &GetOptsOptions,
 ) -> Result<i32> {
-    println!("files = {:?}, config_path = {:?}, options = {:?}", files, config_path, options);
+    println!("files = {:?}, options = {:?}", files, options);
     for file in files {
         let content_origin = std::fs::read_to_string(&file.as_path()).unwrap();
         let attrs: BTreeSet<String> = BTreeSet::new();
@@ -223,8 +223,6 @@ fn determine_operation(matches: &Matches) -> Result<Operation, OperationError> {
         }
     }
     let mut free_matches = matches.free.iter();
-
-    let mut config_path = None;
     if let Some(kind) = matches.opt_str("print-config") {
         let path = free_matches.next().cloned();
         match kind.as_str() {
@@ -257,8 +255,7 @@ fn determine_operation(matches: &Matches) -> Result<Operation, OperationError> {
     }
 
     Ok(Operation::Format {
-        files,
-        config_path,
+        files
     })
 }
 
@@ -268,9 +265,9 @@ fn determine_operation(matches: &Matches) -> Result<Operation, OperationError> {
 #[derive(Clone, Debug, Default)]
 struct GetOptsOptions {
     quiet: bool,
-    verbose: bool,    
+    verbose: bool,
+    config_path: Option<PathBuf>,
     emit_mode: Option<EmitMode>,
-    print_misformatted_file_names: bool,
 }
 
 impl GetOptsOptions {
@@ -282,22 +279,37 @@ impl GetOptsOptions {
             return Err(format_err!("Can't use both `--verbose` and `--quiet`"));
         }
 
+        options.config_path = matches.opt_str("config-path").map(PathBuf::from);
         if let Some(ref emit_str) = matches.opt_str("emit") {
             options.emit_mode = Some(emit_mode_from_emit_str(emit_str)?);
         }
-
-        if matches.opt_present("files-with-diff") {
-            options.print_misformatted_file_names = true;
-        }
-
         Ok(options)
     }
+}
 
+impl CliOptions for GetOptsOptions {
+    fn apply_to(self, config: &mut Config) {
+        if self.verbose {
+            config.set().verbose(Verbosity::Verbose);
+        } else if self.quiet {
+            config.set().verbose(Verbosity::Quiet);
+        } else {
+            config.set().verbose(Verbosity::Normal);
+        }
+        if let Some(emit_mode) = self.emit_mode {
+            config.set().emit_mode(emit_mode);
+        }
+    }
+
+    fn config_path(&self) -> Option<&Path> {
+        self.config_path.as_deref()
+    }
 }
 
 fn emit_mode_from_emit_str(emit_str: &str) -> Result<EmitMode> {
     match emit_str {
         "files" => Ok(EmitMode::Files),
+        "new_files" => Ok(EmitMode::NewFiles),
         "stdout" => Ok(EmitMode::Stdout),
         _ => Err(format_err!("Invalid value for `--emit`")),
     }

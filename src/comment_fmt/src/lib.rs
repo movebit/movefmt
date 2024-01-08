@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use thiserror::Error;
 
 pub use crate::config::{
-    load_config, CliOptions, Color, Config, Edition, EmitMode, NewlineStyle, Verbosity,
+    load_config, CliOptions, Config, Edition, EmitMode, Verbosity,
 };
 
 #[macro_use]

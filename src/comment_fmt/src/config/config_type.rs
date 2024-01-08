@@ -135,7 +135,7 @@ macro_rules! create_config {
                 ConfigWasSet(self)
             }
 
-            fn fill_from_parsed_config(mut self, parsed: PartialConfig, dir: &Path) -> Config {
+            fn fill_from_parsed_config(mut self, parsed: PartialConfig) -> Config {
             $(
                 if let Some(option_value) = parsed.$i {
                     let option_stable = self.$i.3;
@@ -147,7 +147,6 @@ macro_rules! create_config {
                     }
                 }
             )+
-                self.set_ignore(dir);
                 self
             }
 
@@ -228,10 +227,6 @@ macro_rules! create_config {
                 match key {
                     &_ => (),
                 }
-            }
-
-            fn set_ignore(&mut self, dir: &Path) {
-                self.ignore.2.add_prefix(dir);
             }
 
             #[allow(unreachable_pub)]
