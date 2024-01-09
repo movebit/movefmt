@@ -85,7 +85,7 @@ impl SpecExtractor {
     }
 
     fn collect_spec(&mut self, spec_block: &SpecBlock) {
-        // eprintln!("collect_spec spec_block = {:?}", spec_block);
+        // tracing::debug!("collect_spec spec_block = {:?}", spec_block);
         self.blk_loc_vec.push(spec_block.loc);
 
         match &spec_block.value.target.value {
@@ -109,7 +109,7 @@ impl SpecExtractor {
         }
 
         for m in spec_block.value.members.iter() {
-            // eprintln!("collect_spec spec_block.value.member = {:?}", m);
+            // tracing::debug!("collect_spec spec_block.value.member = {:?}", m);
             match &m.value {
                 SpecBlockMember_::Function {
                     uninterpreted: _,
@@ -182,13 +182,13 @@ pub fn add_blank_row_in_two_blocks(fmt_buffer: String) -> String {
     let buf = fmt_buffer.clone();
     let mut result = fmt_buffer.clone();
     let spec_extractor = SpecExtractor::new(fmt_buffer.clone());
-    // eprintln!("stct_loc_vec = {:?}", spec_extractor.stct_loc_vec);
-    // eprintln!("blk_loc_vec = {:?}", spec_extractor.blk_loc_vec);
-    // eprintln!("spec_fn_loc_vec = {:?}", spec_extractor.spec_fn_loc_vec);
-    // eprintln!("spec_fn_name_loc_vec = {:?}", spec_extractor.spec_fn_name_loc_vec);
-    // eprintln!("spec_fn_ret_ty_loc_vec = {:?}", spec_extractor.spec_fn_ret_ty_loc_vec);
-    // eprintln!("spec_fn_body_loc_vec = {:?}", spec_extractor.spec_fn_body_loc_vec);
-    // eprintln!("spec_fn_loc_line_vec = {:?}", spec_extractor.spec_fn_loc_line_vec);
+    // tracing::debug!("stct_loc_vec = {:?}", spec_extractor.stct_loc_vec);
+    // tracing::debug!("blk_loc_vec = {:?}", spec_extractor.blk_loc_vec);
+    // tracing::debug!("spec_fn_loc_vec = {:?}", spec_extractor.spec_fn_loc_vec);
+    // tracing::debug!("spec_fn_name_loc_vec = {:?}", spec_extractor.spec_fn_name_loc_vec);
+    // tracing::debug!("spec_fn_ret_ty_loc_vec = {:?}", spec_extractor.spec_fn_ret_ty_loc_vec);
+    // tracing::debug!("spec_fn_body_loc_vec = {:?}", spec_extractor.spec_fn_body_loc_vec);
+    // tracing::debug!("spec_fn_loc_line_vec = {:?}", spec_extractor.spec_fn_loc_line_vec);
 
     // self.line_mapping.translate(d.loc.start(), d.loc.start()).unwrap().start.line;
 
@@ -216,7 +216,7 @@ pub fn add_blank_row_in_two_blocks(fmt_buffer: String) -> String {
                 let trimed_prefix = the_row_after_blk1_end.trim_start();
                 if trimed_prefix.len() > 0 {
                     // there are code or comment located in line(blk1_end_line + 1)
-                    // eprintln!("trimed_prefix = {:?}", trimed_prefix);
+                    // tracing::debug!("trimed_prefix = {:?}", trimed_prefix);
                     true 
                 } else {
                     false
@@ -230,7 +230,7 @@ pub fn add_blank_row_in_two_blocks(fmt_buffer: String) -> String {
         }
     }
 
-    // eprintln!("result = {}", result);
+    // tracing::debug!("result = {}", result);
     result
 }
 
@@ -241,7 +241,7 @@ pub fn process_block_comment_before_spec_header(fmt_buffer: String) -> String {
     let mut insert_char_nums = 0;
     let mut fun_idx = 0;
     for (fun_start_line, _) in spec_extractor.spec_fn_loc_line_vec.iter() {  
-        // eprintln!("fun header is {:?}", );
+        // tracing::debug!("fun header is {:?}", );
         let fun_header_str = get_nth_line(buf.as_str(), *fun_start_line as usize).unwrap_or_default();
         let filehash = FileHash::empty();
         let mut lexer = Lexer::new(fun_header_str, filehash);
@@ -258,7 +258,7 @@ pub fn process_block_comment_before_spec_header(fmt_buffer: String) -> String {
                     &insert_str);
                 insert_char_nums = insert_char_nums + insert_str.len();
             }
-            // eprintln!("token[{:?}] = {:?}", lexer.start_loc(), lexer.content());
+            // tracing::debug!("token[{:?}] = {:?}", lexer.start_loc(), lexer.content());
             break;
         }
         fun_idx = fun_idx + 1;
@@ -274,7 +274,7 @@ pub fn process_spec_fn_header_too_long(fmt_buffer: String) -> String {
     let mut insert_char_nums = 0;
     let mut fun_idx = 0;
     for fun_loc in spec_extractor.spec_fn_loc_vec.iter() {
-        eprintln!("spec_fun_loc = {:?}", fun_loc);
+        tracing::debug!("spec_fun_loc = {:?}", fun_loc);
         let ret_ty_loc = spec_extractor.spec_fn_ret_ty_loc_vec[fun_idx];
         if ret_ty_loc.start() < fun_loc.start() {
             // this fun return void
@@ -311,7 +311,7 @@ pub fn process_spec_fn_header_too_long(fmt_buffer: String) -> String {
             para_start_pos_in_header_line
         };
         fun_name_str = &buf[fun_loc.start() as usize..(fun_loc.start() as usize) + insert_loc];
-        eprintln!("spec_fun_name_str = {}", fun_name_str);
+        tracing::debug!("spec_fun_name_str = {}", fun_name_str);
         // there maybe comment bewteen fun_name and ret_ty
         if fun_name_str.len() < 80  {
             fun_idx = fun_idx + 1;
@@ -376,5 +376,5 @@ fn test_process_spec_fn_header_too_long_1() {
     "
     .to_string());
 
-    eprintln!("result = {}", result);
+    tracing::debug!("result = {}", result);
 }

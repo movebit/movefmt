@@ -9,6 +9,8 @@ use move_package::source_package::layout::SourcePackageLayout;
 
 use std::collections::HashMap;
 use std::{path::*, vec};
+use std::time::{Duration, Instant};
+
 
 /// Double way mapping between FileHash and FilePath.
 #[derive(Debug, Default)]
@@ -426,13 +428,76 @@ impl From<&Location> for PathAndRange {
     }
 }
 
+#[derive(Clone, Copy, Debug)]
+pub enum Timer {
+    Disabled,
+    Initialized(Instant),
+    DoneParsing(Instant, Instant),
+    DoneFormatting(Instant, Instant, Instant),
+}
+
+impl Timer {
+    pub fn start() -> Timer {
+        if cfg!(target_arch = "wasm32") {
+            Timer::Disabled
+        } else {
+            Timer::Initialized(Instant::now())
+        }
+    }
+    pub fn done_parsing(self) -> Self {
+        match self {
+            Timer::Disabled => Timer::Disabled,
+            Timer::Initialized(init_time) => Timer::DoneParsing(init_time, Instant::now()),
+            _ => panic!("Timer can only transition to DoneParsing from Initialized state"),
+        }
+    }
+
+    pub fn done_formatting(self) -> Self {
+        match self {
+            Timer::Disabled => Timer::Disabled,
+            Timer::DoneParsing(init_time, parse_time) => {
+                Timer::DoneFormatting(init_time, parse_time, Instant::now())
+            }
+            _ => panic!("Timer can only transition to DoneFormatting from DoneParsing state"),
+        }
+    }
+
+    /// Returns the time it took to parse the source files in seconds.
+    pub fn get_parse_time(&self) -> f32 {
+        match *self {
+            Timer::Disabled => panic!("this platform cannot time execution"),
+            Timer::DoneParsing(init, parse_time) | Timer::DoneFormatting(init, parse_time, _) => {
+                // This should never underflow since `Instant::now()` guarantees monotonicity.
+                Self::duration_to_f32(parse_time.duration_since(init))
+            }
+            Timer::Initialized(..) => unreachable!(),
+        }
+    }
+
+    /// Returns the time it took to go from the parsed AST to the formatted output. Parsing time is
+    /// not included.
+    pub fn get_format_time(&self) -> f32 {
+        match *self {
+            Timer::Disabled => panic!("this platform cannot time execution"),
+            Timer::DoneFormatting(_init, parse_time, format_time) => {
+                Self::duration_to_f32(format_time.duration_since(parse_time))
+            }
+            Timer::DoneParsing(..) | Timer::Initialized(..) => unreachable!(),
+        }
+    }
+
+    pub fn duration_to_f32(d: Duration) -> f32 {
+        d.as_secs() as f32 + d.subsec_nanos() as f32 / 1_000_000_000f32
+    }
+}
+
+
 pub const PROJECT_FILE_NAME: &str = "Move.toml";
 
 #[cfg(not(target_os = "windows"))]
 pub fn cpu_pprof(_seconds: u64) {
     use std::fs::File;
     use std::str::FromStr;
-    use std::time::Duration;
     let guard = pprof::ProfilerGuardBuilder::default()
         .frequency(1000)
         .blocklist(&["libc", "libgcc", "pthread", "vdso"])
@@ -448,7 +513,7 @@ pub fn cpu_pprof(_seconds: u64) {
                 tmp.push("movefmt-flamegraph.svg");
                 let file = File::create(tmp.clone()).unwrap();
                 report.flamegraph(file).unwrap();
-                eprintln!("pprof file at {:?}", tmp.as_path());
+                tracing::debug!("pprof file at {:?}", tmp.as_path());
             }
             Result::Err(e) => {
                 log::error!("build report failed,err:{}", e);

@@ -224,7 +224,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                         note: _,
                     } => {
                         next_tok = *tok;
-                        // println!("content = {:?}", content);                    
+                        // tracing::debug!("content = {:?}", content);                    
                         if Tok::ByteStringValue == *tok {
                             result = true;
                         }
@@ -236,7 +236,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                 if Tok::AtSign == next_tok {
                     result = true;
                 }
-                // println!("after Comma, result = {}, next_tok = {:?}", result, next_tok);
+                // tracing::debug!("after Comma, result = {}, next_tok = {:?}", result, next_tok);
             }
             result
         },
@@ -334,7 +334,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                             note: _,
                         } => {
                             next_tok = *tok;
-                            // println!("content = {:?}", content);
+                            // tracing::debug!("content = {:?}", content);
                             if Tok::NumValue == *tok 
                             || Tok::NumTypedValue == *tok
                             || Tok::LParen == *tok {
@@ -377,7 +377,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                         note: _,
                     } => {
                         next_tok = *tok;
-                        // println!("content = {:?}", content);
+                        // tracing::debug!("content = {:?}", content);
                         if Tok::Slash == *tok || Tok::LBrace == *tok {
                             result = true;
                         }
@@ -402,7 +402,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                 result = true;
             }
 
-            // println!("result = {}, next_tok = {:?}", result, next_tok);
+            // tracing::debug!("result = {}, next_tok = {:?}", result, next_tok);
             result
         },
         _ => false,
@@ -412,13 +412,13 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
 pub(crate) fn judge_simple_statement(kind: &NestKind, elements: &Vec<TokenTree>) -> bool {
     if NestKind_::ParentTheses == kind.kind {
         let paren_num = get_paren_comma_num_in_statement(elements);
-        // eprintln!("paren_num = {:?}", paren_num);
+        // tracing::debug!("paren_num = {:?}", paren_num);
         if paren_num.0 > 2 || paren_num.1 > 4 {
-            // eprintln!("elements[0] = {:?}", elements[0].simple_str());
+            // tracing::debug!("elements[0] = {:?}", elements[0].simple_str());
             return false;
         }
         if paren_num.0 >= 1 && paren_num.1 >= 2 {
-            // eprintln!("elements[0] = {:?}", elements[0].simple_str());
+            // tracing::debug!("elements[0] = {:?}", elements[0].simple_str());
             return false;
         }
     }
@@ -426,7 +426,7 @@ pub(crate) fn judge_simple_statement(kind: &NestKind, elements: &Vec<TokenTree>)
 }
 
 pub(crate) fn process_link_access(elements: &Vec<TokenTree>, idx: usize) -> (usize, usize) {
-    eprintln!("process_link_access >>");
+    tracing::debug!("process_link_access >>");
     if idx >= elements.len() - 1 {
         return (0, 0);
     }
@@ -450,7 +450,7 @@ pub(crate) fn process_link_access(elements: &Vec<TokenTree>, idx: usize) -> (usi
         continue_dot_cnt = continue_dot_cnt + 1;
         index = index + 2;
     }
-    eprintln!("\n process_link_access << (continue_dot_cnt, index) = ({}, {})", continue_dot_cnt, index);
+    tracing::debug!("\n process_link_access << (continue_dot_cnt, index) = ({}, {})", continue_dot_cnt, index);
     (continue_dot_cnt, index - 2)
 }
 
@@ -490,7 +490,7 @@ impl ExpExtractor {
         for d in defs.iter() {
             this_exp_extractor.collect_definition(d);
         }
-        // eprintln!("this_exp_extractor = {:?}\n{:?}\n{:?}\n{:?}", 
+        // tracing::debug!("this_exp_extractor = {:?}\n{:?}\n{:?}\n{:?}", 
         //     this_exp_extractor.let_if_else_block, 
         //     this_exp_extractor.if_cond_in_let, 
         //     this_exp_extractor.then_in_let, 
@@ -626,7 +626,7 @@ pub fn split_if_else_in_let_block(fmt_buffer: String) -> String {
             branch_content.push_str(&end_str[0..range.end.character as usize].trim_start());
         }
 
-        // eprintln!("branch_content = {}", branch_content);
+        // tracing::debug!("branch_content = {}", branch_content);
         branch_content
     };
 
@@ -728,7 +728,7 @@ pub fn split_if_else_in_let_block(fmt_buffer: String) -> String {
 
         last_pos = (exp_extractor.else_in_let[idx].end.line as usize, exp_extractor.else_in_let[idx].end.character as usize);
     }
-    // eprintln!("last_pos = \n{:?}", last_pos);
+    // tracing::debug!("last_pos = \n{:?}", last_pos);
     for idx in last_pos.0..fmt_buffer.lines().count() as usize {
         result.push_str(&get_nth_line(&fmt_buffer, idx).unwrap_or_default()[last_pos.1..]);
         if idx != fmt_buffer.lines().count() - 1 {

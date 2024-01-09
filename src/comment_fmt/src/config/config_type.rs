@@ -267,7 +267,7 @@ where
     match (nightly, option_stable, variant_stable) {
         // Stable with an unstable option
         (false, false, _) => {
-            eprintln!(
+            tracing::info!(
                 "Warning: can't set `{option_name} = {option_value:?}`, unstable features are only \
                        available in nightly channel."
             );
@@ -275,7 +275,7 @@ where
         }
         // Stable with a stable option, but an unstable variant
         (false, true, false) => {
-            eprintln!(
+            tracing::info!(
                 "Warning: can't set `{option_name} = {option_value:?}`, unstable variants are only \
                        available in nightly channel."
             );

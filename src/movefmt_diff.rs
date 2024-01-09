@@ -174,7 +174,7 @@ impl OutputWriter {
                     t.reset().unwrap();
                 }
             }
-            None => println!("{msg}"),
+            None => tracing::debug!("{msg}"),
         }
     }
 }

@@ -754,10 +754,10 @@ impl CommentExtrator {
                 }
             };
         }
-        // eprintln!("xxxx:{}", content.len());
+        // tracing::info!("xxxx:{}", content.len());
         while index <= last_index {
             let c = content.get(index).unwrap();
-            // eprintln!(
+            // tracing::info!(
             //     "index:{} state:{:?} c:{:?} last:{}",
             //     index, state, *c as char, last_index
             // );
@@ -881,7 +881,7 @@ mod comment_test {
         let token_tree = parse.parse_tokens();
         let s = serde_json::to_string(&token_tree).unwrap();
         // check this using some online json tool.
-        eprintln!("json:{}", s);
+        tracing::info!("json:{}", s);
     }
 
     #[test]

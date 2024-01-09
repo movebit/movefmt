@@ -272,7 +272,7 @@ fn identify_comment(
             )?
         };
     if rest.is_empty() {
-        // eprintln!("rewritten_first_group = \n{}", rewritten_first_group);
+        // tracing::info!("rewritten_first_group = \n{}", rewritten_first_group);
         Some(rewritten_first_group)
     } else {
         identify_comment(
@@ -296,7 +296,7 @@ fn identify_comment(
                     shape.indent.to_string(config),
                     rest_str
                 );
-            eprintln!("ret_cmt_str = {}", ret_cmt_str);
+            tracing::info!("ret_cmt_str = {}", ret_cmt_str);
             ret_cmt_str
         })
     }

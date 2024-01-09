@@ -105,15 +105,15 @@ fn add_space_for_comments(input: &str) -> String {
         } else {
             output.push_str(&format!("{}", trimmed));
             let end_pos = start_position + trimmed.len();
-            // eprintln!("output = {}", output);
-            // eprintln!("line.len = {}, start_position = {}, end_pos = {}", line.len(), start_position, end_pos);
+            // tracing::debug!("output = {}", output);
+            // tracing::debug!("line.len = {}, start_position = {}, end_pos = {}", line.len(), start_position, end_pos);
             output.push_str(&format!("{}", &line[end_pos..]));
             if !trimmed.starts_with("//") {
                 output.push_str("\n");
             }
         }
     }
-    // eprintln!("input = {:?}, output = {:?}", input, output);
+    // tracing::debug!("input = {:?}, output = {:?}", input, output);
     // output
     input.to_string()
 }      

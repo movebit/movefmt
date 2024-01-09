@@ -14,6 +14,8 @@ use crate::core::token_tree::{
 use crate::utils::FileLineMappingOneFile;
 use crate::syntax::{parse_file_string, self};
 use crate::syntax_fmt::{expr_fmt, fun_fmt, spec_fmt, big_block_fmt};
+use commentfmt::{Config, Verbosity};
+
 
 pub enum FormatEnv {
     FormatModule,
@@ -84,7 +86,7 @@ impl Format {
     }
 
     fn post_process(&mut self) {
-        eprintln!("post_process >> meet Brace");
+        tracing::debug!("post_process >> meet Brace");
         *self.ret.borrow_mut() = fun_fmt::fmt_fun(self.ret.clone().into_inner());
         *self.ret.borrow_mut() = expr_fmt::split_if_else_in_let_block(self.ret.clone().into_inner());
 
@@ -286,7 +288,7 @@ impl Format {
 
     fn process_fn_header_before_before_fn_nested(&self) {
         let cur_ret = self.ret.clone().into_inner();
-        // eprintln!("fun_header = {:?}", &self.format_context.content[(kind.start_pos as usize)..(kind.end_pos as usize)]);
+        // tracing::debug!("fun_header = {:?}", &self.format_context.content[(kind.start_pos as usize)..(kind.end_pos as usize)]);
         if let Some(last_fun_idx) = cur_ret.rfind("fun") {
             let fun_header: &str = &cur_ret[last_fun_idx..];
             if let Some(specifier_idx) = fun_header.rfind("fun") {
@@ -302,7 +304,7 @@ impl Format {
             }
         }
         if self.ret.clone().into_inner().contains("writes") {
-            eprintln!("self.last_line = {:?}", self.last_line());
+            tracing::debug!("self.last_line = {:?}", self.last_line());
         }
     }
 
@@ -377,7 +379,7 @@ impl Format {
                 // let source = self.format_context.content.clone();
                 // let start_pos: usize = next_token_start_pos as usize;
                 // let (_, next_str) = source.split_at(start_pos);                                                  
-                // eprintln!("after format_token_trees_internal<TokenTree::Nested-start_token_tree> return, next_token = {:?}", 
+                // tracing::debug!("after format_token_trees_internal<TokenTree::Nested-start_token_tree> return, next_token = {:?}", 
                 //     next_str);
                 // process line tail comment
                 self.process_same_line_comment(kind.start_pos, true);
@@ -405,7 +407,7 @@ impl Format {
             pound_sign_new_line || new_line,
         );
         if pound_sign_new_line {
-            eprintln!("in loop<TokenTree::Nested> pound_sign_new_line = true");
+            tracing::debug!("in loop<TokenTree::Nested> pound_sign_new_line = true");
             self.new_line(Some(token.end_pos()));
             *pound_sign = None;
             return;
@@ -479,8 +481,8 @@ impl Format {
                         internal_token_idx = internal_token_idx + 1;
                         is_dot_new_line = !is_dot_new_line;
                     }
-                    // eprintln!("after processed link access, ret = {}", self.ret.clone().into_inner());
-                    // eprintln!("after processed link access, internal_token_idx = {}, len = {}", internal_token_idx, len);
+                    // tracing::debug!("after processed link access, ret = {}", self.ret.clone().into_inner());
+                    // tracing::debug!("after processed link access, internal_token_idx = {}, len = {}", internal_token_idx, len);
                     self.dec_depth();
                     continue;
                 }
@@ -507,7 +509,7 @@ impl Format {
             let nested_token_head = self.format_context.borrow().cur_tok;
 
             if b_new_line_mode {
-                eprintln!("nested_token_head = [{:?}], add a new line", nested_token_head);
+                tracing::debug!("nested_token_head = [{:?}], add a new line", nested_token_head);
             }
 
             if Tok::NumSign == nested_token_head {
@@ -548,7 +550,7 @@ impl Format {
 
             // step7
             if b_new_line_mode || (!b_new_line_mode && had_rm_added_new_line){
-                eprintln!("end_of_nested_block, b_new_line_mode = true");
+                tracing::debug!("end_of_nested_block, b_new_line_mode = true");
                 if nested_token_head != Tok::If {
                     self.new_line(Some(kind.end_pos));
                 }
@@ -598,17 +600,17 @@ impl Format {
             */
             if (self.translate_line(*pos) - self.cur_line.get()) > 1 {
                 // There are multiple blank lines between the cur_line and the current code simple_token
-                eprintln!("self.translate_line(*pos) = {}, self.cur_line.get() = {}", self.translate_line(*pos), self.cur_line.get());
-                eprintln!("SimpleToken[{:?}], add a new line", content);
+                tracing::debug!("self.translate_line(*pos) = {}, self.cur_line.get() = {}", self.translate_line(*pos), self.cur_line.get());
+                tracing::debug!("SimpleToken[{:?}], add a new line", content);
                 self.new_line(None);
             }
            
             // add blank row between module
             if Tok::Module == *tok {
-                // eprintln!("SimpleToken[{:?}], cur_module_name = {:?}", content,  self.format_context.borrow_mut().cur_module_name);
+                // tracing::debug!("SimpleToken[{:?}], cur_module_name = {:?}", content,  self.format_context.borrow_mut().cur_module_name);
                 if self.format_context.borrow_mut().cur_module_name.len() > 0 
                 && (self.translate_line(*pos) - self.cur_line.get()) >= 1 {
-                    // eprintln!("SimpleToken[{:?}], add blank row between module", content);
+                    // tracing::debug!("SimpleToken[{:?}], add blank row between module", content);
                     self.new_line(None);
                 }
                 self.format_context.borrow_mut().set_env(FormatEnv::FormatModule);
@@ -629,8 +631,8 @@ impl Format {
             if self.last_line_length() > 90
                 && Self::tok_suitable_for_new_line(tok.clone(), note.clone(), next_token)
             {
-                eprintln!("last_line = {:?}", self.last_line());
-                eprintln!("SimpleToken{:?}, add a new line because of split line", content);
+                tracing::debug!("last_line = {:?}", self.last_line());
+                tracing::debug!("SimpleToken{:?}, add a new line because of split line", content);
                 self.new_line(None);
                 return;
             }
@@ -681,9 +683,9 @@ impl Format {
                 self.new_line(None);
             }
 
-            // eprintln!("-- add_comments: line(c.start_offset) - cur_line = {:?}", 
+            // tracing::debug!("-- add_comments: line(c.start_offset) - cur_line = {:?}", 
             //     self.translate_line(c.start_offset) - self.cur_line.get());
-            // eprintln!("c.content.as_str() = {:?}\n", c.content.as_str());
+            // tracing::debug!("c.content.as_str() = {:?}\n", c.content.as_str());
             if self.no_space_or_new_line_for_comment() {
                 self.push_str(" ");
             }
@@ -728,7 +730,7 @@ impl Format {
             self.cur_line.set(self.translate_line(c.start_offset + (c.content.len() as u32) - 1));
             comment_nums_before_cur_simple_token = comment_nums_before_cur_simple_token + 1;
             last_cmt_start_pos = c.start_offset;
-            // eprintln!("in add_comments for loop: self.cur_line = {:?}\n", self.cur_line);
+            // tracing::debug!("in add_comments for loop: self.cur_line = {:?}\n", self.cur_line);
         }
         if comment_nums_before_cur_simple_token > 0 {
             if last_cmt_is_block_cmt && self.translate_line(pos) - self.translate_line(last_cmt_start_pos) == 1 {
@@ -737,7 +739,7 @@ impl Format {
                 // line[i+1]: code // located in `pos`
                 self.new_line(None);
             }
-            eprintln!("add_comments[{:?}] before pos[{:?}] = {:?} return <<<<<<<<<\n", 
+            tracing::debug!("add_comments[{:?}] before pos[{:?}] = {:?} return <<<<<<<<<\n", 
                 comment_nums_before_cur_simple_token, pos, content);
         }
     }
@@ -868,17 +870,17 @@ impl Format {
             if self.translate_line(add_line_comment_pos) != self.translate_line(c.start_offset) {
                 break;
             }
-            // eprintln!("self.translate_line(c.start_offset) = {}, self.cur_line.get() = {}", self.translate_line(c.start_offset), self.cur_line.get());
-            // eprintln!("add a new line[{:?}], meet comment", c.content);
+            // tracing::debug!("self.translate_line(c.start_offset) = {}, self.cur_line.get() = {}", self.translate_line(c.start_offset), self.cur_line.get());
+            // tracing::debug!("add a new line[{:?}], meet comment", c.content);
             // if (self.translate_line(c.start_offset) - self.cur_line.get()) > 1 {
-            //     eprintln!("add a black line");
+            //     tracing::debug!("add a black line");
             //     self.new_line(None);
             // }
             // self.push_str(c.content.as_str());
             let kind = c.comment_kind();
             let fmted_cmt_str = c.format_comment(
                 kind, self.depth.get() * self.config.indent_size, 0);
-            // eprintln!("fmted_cmt_str in same_line = \n{}", fmted_cmt_str);
+            // tracing::debug!("fmted_cmt_str in same_line = \n{}", fmted_cmt_str);
             /*
             let buffer = self.ret.clone();
             if !buffer.clone().borrow().chars().last().unwrap_or(' ').is_ascii_whitespace()
@@ -901,13 +903,13 @@ impl Format {
                     let line_start = self.translate_line(c.start_offset);
                     let line_end = self.translate_line(end);
                     if line_start != line_end {
-                        eprintln!("in new_line, add CommentKind::BlockComment");
+                        tracing::debug!("in new_line, add CommentKind::BlockComment");
                         self.new_line(None);
                         call_new_line = true;
                     }
                 }
                 _ => {
-                    // eprintln!("-- process_same_line_comment, add CommentKind::_({})", c.content);
+                    // tracing::debug!("-- process_same_line_comment, add CommentKind::_({})", c.content);
                     self.new_line(None);
                     call_new_line = true;
                 }
@@ -916,7 +918,7 @@ impl Format {
             self.cur_line.set(self.translate_line(c.start_offset + (c.content.len() as u32) - 1));
         }
         if cur_line != self.cur_line.get() || call_new_line {
-            eprintln!("success new line, return <<<<<<<<<<<<<<<<< \n");
+            tracing::debug!("success new line, return <<<<<<<<<<<<<<<<< \n");
             return;
         }
         self.push_str("\n");
@@ -976,7 +978,7 @@ impl Format {
             .flatten()
             .unwrap_or_default()
         {
-            // eprintln!("tok_suitable_for_new_line ret false");
+            // tracing::debug!("tok_suitable_for_new_line ret false");
             return false;
         }
         let is_bin = note.map(|x| x == Note::BinaryOP).unwrap_or_default();
@@ -1002,7 +1004,7 @@ impl Format {
             | Tok::NumValue => true,
             _ => false,
         };
-        // eprintln!("tok_suitable_for_new_line ret = {}", ret);
+        // tracing::debug!("tok_suitable_for_new_line ret = {}", ret);
         ret
     }
 
@@ -1018,8 +1020,7 @@ impl Format {
     }
 }
 
-
-pub fn format(content: impl AsRef<str>, config: FormatConfig) -> Result<String, Diagnostics> {
+pub fn format_simple(content: impl AsRef<str>, config: FormatConfig) -> Result<String, Diagnostics> {
     let content = content.as_ref();
     let attrs: BTreeSet<String> = BTreeSet::new();
     let mut env = CompilationEnv::new(Flags::testing(), attrs);
@@ -1035,4 +1036,34 @@ pub fn format(content: impl AsRef<str>, config: FormatConfig) -> Result<String, 
     let f = Format::new(config, ce, t, parse_result, 
         FormatContext::new(content.to_string(), FormatEnv::FormatDefault));
     Ok(f.format_token_trees())
+}
+
+pub fn format_entry(content: impl AsRef<str>, config: Config) -> Result<String, Diagnostics> {
+    let mut timer = crate::utils::Timer::start();
+    let content = content.as_ref();
+    let attrs: BTreeSet<String> = BTreeSet::new();
+    let mut env = CompilationEnv::new(Flags::testing(), attrs);
+    let filehash = FileHash::empty();
+    let (defs, _) = parse_file_string(&mut env, filehash, &content)?;
+    timer = timer.done_parsing();
+    let lexer = Lexer::new(&content, filehash);
+    let parse = crate::core::token_tree::Parser::new(lexer, &defs);
+    let parse_result = parse.parse_tokens();
+    let ce = CommentExtrator::new(content).unwrap();
+    let mut t = FileLineMappingOneFile::default();
+    t.update(&content);
+
+    let f = Format::new(FormatConfig { indent_size: config.indent_size() }, 
+        ce, t, parse_result, 
+        FormatContext::new(content.to_string(), FormatEnv::FormatDefault));
+    let result = f.format_token_trees();
+    timer = timer.done_formatting();
+    if config.verbose() == Verbosity::Verbose {
+        println!(
+            "Spent {0:.3} secs in the parsing phase, and {1:.3} secs in the formatting phase",
+            timer.get_parse_time(),
+            timer.get_format_time(),
+        );
+    }
+    Ok(result)
 }

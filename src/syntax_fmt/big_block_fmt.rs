@@ -114,7 +114,7 @@ pub fn add_blank_row_in_two_blocks(fmt_buffer: String) -> String {
     let buf = fmt_buffer.clone();
     let mut result = fmt_buffer.clone();
     let big_block_extractor = BigBlockExtractor::new(fmt_buffer.clone());
-    // eprintln!("blocks = {:?}", big_block_extractor.blk_loc_vec);
+    // tracing::debug!("blocks = {:?}", big_block_extractor.blk_loc_vec);
     let mut insert_char_nums = 0;
     for pre_blk_idx in 0..big_block_extractor.blk_loc_vec.len() {
         if pre_blk_idx == big_block_extractor.blk_loc_vec.len() - 1 {
@@ -139,8 +139,8 @@ pub fn add_blank_row_in_two_blocks(fmt_buffer: String) -> String {
                 let trimed_prefix = the_row_after_blk1_end.trim_start().split(" ");
                 if trimed_prefix.count() > 1 || the_row_after_blk1_end.trim_start().len() >= 2 {
                     // there are code or comment located in line(blk1_end_line + 1)
-                    // eprintln!("trimed_prefix = {:?}", trimed_prefix);
-                    // eprintln!("blk1_end_line = {:?}, blk2_start_line = {:?}", blk1_end_line, blk2_start_line);
+                    // tracing::debug!("trimed_prefix = {:?}", trimed_prefix);
+                    // tracing::debug!("blk1_end_line = {:?}, blk2_start_line = {:?}", blk1_end_line, blk2_start_line);
                     true 
                 } else {
                     false
@@ -178,7 +178,7 @@ fn test_add_blank_row_in_two_blocks_1() {
     "
     .to_string());
 
-    eprintln!("result = {}", result);
+    tracing::debug!("result = {}", result);
 }
 
 #[test]
@@ -222,7 +222,7 @@ module Test {
 }
 ".to_string());
 
-    eprintln!("result = {}", result);
+    tracing::debug!("result = {}", result);
 }
 
 #[test]
@@ -255,7 +255,7 @@ module test_module4 {
 }
 ".to_string());
 
-    eprintln!("result = {}", result);
+    tracing::debug!("result = {}", result);
 }
 
 #[test]
@@ -277,7 +277,7 @@ spec std::string {
     
 ".to_string());
 
-    eprintln!("result = {}", result);
+    tracing::debug!("result = {}", result);
 }
 
 #[test]
@@ -296,5 +296,5 @@ address 0x1 {
 }
     ".to_string());
 
-    eprintln!("result = {}", result);
+    tracing::debug!("result = {}", result);
 }

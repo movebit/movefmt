@@ -25,7 +25,7 @@ fn main() {
     let exit_code = match execute(&opts) {
         Ok(code) => code,
         Err(e) => {
-            eprintln!("{e:#}");
+            tracing::info!("{e:#}");
             1
         }
     };
@@ -167,10 +167,10 @@ fn execute(opts: &Options) -> Result<i32> {
 }
 
 fn format_string(input: String, options: GetOptsOptions) -> Result<i32> {
-    println!("input = {}, options = {:?}", input, options);
+    tracing::info!("input = {}, options = {:?}", input, options);
     let output =
-        movefmt::core::fmt::format(input, FormatConfig { indent_size: 4 }).unwrap();
-    println!("output = {}", output);
+        movefmt::core::fmt::format_simple(input, FormatConfig { indent_size: 4 }).unwrap();
+    tracing::info!("output = {}", output);
     Ok(0)
 }
 
@@ -178,19 +178,61 @@ fn format(
     files: Vec<PathBuf>,
     options: &GetOptsOptions,
 ) -> Result<i32> {
-    println!("files = {:?}, options = {:?}", files, options);
+    let (config, config_path) = load_config(None, Some(options.clone()))?;
+    let mut use_config = config.clone();
+    tracing::info!("config.[verbose, indent] = [{:?}, {:?}], {:?}", config.verbose(), config.indent_size(), options);
+
+    if config.verbose() == Verbosity::Verbose {
+        if let Some(path) = config_path.as_ref() {
+            println!("Using movefmt config file {}", path.display());
+        }
+    }
+
     for file in files {
+        if !file.exists() {
+            eprintln!("Error: file `{}` does not exist", file.to_str().unwrap());
+            continue;
+        } else if file.is_dir() {
+            eprintln!("Error: `{}` is a directory", file.to_str().unwrap());
+            continue;
+        } else {
+            // Check the file directory if the config-path could not be read or not provided
+            if config_path.is_none() {
+                let (local_config, config_path) =
+                    load_config(Some(file.parent().unwrap()), Some(options.clone()))?;
+                tracing::debug!("local config_path = {:?}", config_path);
+                if local_config.verbose() == Verbosity::Verbose {
+                    if let Some(path) = config_path {
+                        println!(
+                            "Using movefmt local config file {} for {}",
+                            path.display(),
+                            file.display()
+                        );
+                        use_config = local_config.clone();
+                    }
+                }
+            } else {
+                if use_config.verbose() == Verbosity::Verbose {
+                    println!(
+                        "Using movefmt config file {} for {}",
+                        config_path.clone().unwrap_or_default().display(),
+                        file.display()
+                    );
+                }
+            }
+        }
+        
         let content_origin = std::fs::read_to_string(&file.as_path()).unwrap();
         let attrs: BTreeSet<String> = BTreeSet::new();
         let mut env = CompilationEnv::new(Flags::testing(), attrs);
         match parse_file_string(&mut env, FileHash::empty(), &content_origin) {
             Ok(_) => {
                 let formatted_text =
-                    movefmt::core::fmt::format(content_origin, FormatConfig { indent_size: 4 }).unwrap();
+                    movefmt::core::fmt::format_entry(content_origin, use_config.clone()).unwrap();
                 std::fs::write(file, formatted_text)?;
             }
             Err(_) => {
-                eprintln!("file '{:?}' skipped because of parse not ok", file);
+                tracing::info!("file '{:?}' skipped because of parse not ok", file);
             }
         }
     }
