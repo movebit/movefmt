@@ -7,7 +7,8 @@ spec aptos_std::capability {
         fun cap<CapState>(addr: address): CapState;
 
         // When the address is equal, the capabilities are equal
-        axiom<CapState> forall c1: address, c2: address: (c1 == c2 ==>
+        axiom<CapState> forall c1: address, c2: address: (
+            c1 == c2 ==>
             cap<CapState>(c1) ==
             cap<CapState>(c2)
         );

@@ -131,19 +131,17 @@ fn get_nth_line(s: &str, n: usize) -> Option<&str> {
     s.lines().nth(n)
 }
 
-fn get_paren_comma_num_in_statement(elements: &Vec<TokenTree>) -> (usize, usize) {
+fn get_nested_and_comma_num(elements: &Vec<TokenTree>) -> (usize, usize) {
     let mut result = (0, 0);
     for ele in elements {
         if let TokenTree::Nested {
             elements: recursive_elements,
-            kind,
+            kind: _,
             note: _,
         } = ele {
-            if NestKind_::ParentTheses == kind.kind {
-                let recursive_result = get_paren_comma_num_in_statement(recursive_elements);
-                result.0 = result.0 + recursive_result.0 + 1;
-                result.1 = result.1 + recursive_result.1;
-            }
+            let recursive_result = get_nested_and_comma_num(recursive_elements);
+            result.0 = result.0 + recursive_result.0 + 1;
+            result.1 = result.1 + recursive_result.1;
         }
         if let TokenTree::SimpleToken {
             content: _,
@@ -409,16 +407,15 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
     };
 }
 
-pub(crate) fn judge_simple_statement(kind: &NestKind, elements: &Vec<TokenTree>) -> bool {
+pub(crate) fn judge_simple_paren_expr(kind: &NestKind, elements: &Vec<TokenTree>) -> bool {
+    if elements.len() == 0 { return true };
     if NestKind_::ParentTheses == kind.kind {
-        let paren_num = get_paren_comma_num_in_statement(elements);
-        // tracing::debug!("paren_num = {:?}", paren_num);
+        let paren_num = get_nested_and_comma_num(elements);
+        tracing::debug!("elements[0] = {:?}, paren_num = {:?}", elements[0].simple_str(), paren_num);
         if paren_num.0 > 2 || paren_num.1 > 4 {
-            // tracing::debug!("elements[0] = {:?}", elements[0].simple_str());
             return false;
         }
         if paren_num.0 >= 1 && paren_num.1 >= 2 {
-            // tracing::debug!("elements[0] = {:?}", elements[0].simple_str());
             return false;
         }
     }

@@ -265,7 +265,6 @@ impl Format {
             }
         }
 
-        // ablility not change new line
         if let Some((next_tok, next_content)) = next_t.map(|x| match x {
             TokenTree::SimpleToken {
                 content,
@@ -279,9 +278,12 @@ impl Format {
                 note: _,
             } => (kind.kind.start_tok(), kind.kind.start_tok().to_string())
         }) {
+            // ablility not change new line
             if let Some(_) = syntax::token_to_ability(next_tok, &next_content) {
                 new_line = false;
             }
+
+            // TODO: need judge `self.ret + t_str.len() > 90`, if true, then new_line = true;
         }
         new_line
     }
@@ -508,7 +510,7 @@ impl Format {
             note,
         } = token {
             let (delimiter, has_colon) = Self::analyze_token_tree_delimiter(elements);
-            let b_new_line_mode = self.get_new_line_mode_begin_nested(kind, elements, note, delimiter);
+            let mut b_new_line_mode = self.get_new_line_mode_begin_nested(kind, elements, note, delimiter);
             let b_add_indent = !note.map(|x| x == Note::ModuleAddress).unwrap_or_default();
             let nested_token_head = self.format_context.borrow().cur_tok;
 
@@ -529,9 +531,14 @@ impl Format {
                 self.inc_depth();
             }
 
-            // step3            
-            if NestKind_::ParentTheses != kind.kind || !expr_fmt::judge_simple_statement(kind, elements) {
+            // step3
+            let is_simple_paren_expr = expr_fmt::judge_simple_paren_expr(kind, elements);
+            if NestKind_::ParentTheses != kind.kind || !is_simple_paren_expr {
                 self.add_new_line_after_nested_begin(kind, elements, b_new_line_mode);
+            } else {
+                if NestKind_::ParentTheses == kind.kind && is_simple_paren_expr && b_new_line_mode {
+                    b_new_line_mode = false;
+                }
             }
 
             // step4 -- format elements
@@ -555,8 +562,10 @@ impl Format {
             // step7
             if b_new_line_mode || (!b_new_line_mode && had_rm_added_new_line){
                 tracing::debug!("end_of_nested_block, b_new_line_mode = true");
-                if nested_token_head != Tok::If {
-                    self.new_line(Some(kind.end_pos));
+                if NestKind_::ParentTheses != kind.kind || !is_simple_paren_expr {
+                    if nested_token_head != Tok::If {
+                        self.new_line(Some(kind.end_pos));
+                    }
                 }
             }
 

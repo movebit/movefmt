@@ -18,7 +18,8 @@ module 0x42::LambdaTest2 {
 
     public inline fun inline_apply2(g: |u64| u64, c: u64): u64 {
 
-        LambdaTest1::inline_apply1(|z| {
+        LambdaTest1::inline_apply1(
+            |z| {
                 let a: u64 = LambdaTest1::inline_mul(z, 1);
                 let b: u64 = LambdaTest1::inline_mul(
                     c,
