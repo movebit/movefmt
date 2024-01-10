@@ -142,7 +142,7 @@ fn get_paren_comma_num_in_statement(elements: &Vec<TokenTree>) -> (usize, usize)
             if NestKind_::ParentTheses == kind.kind {
                 let recursive_result = get_paren_comma_num_in_statement(recursive_elements);
                 result.0 = result.0 + recursive_result.0 + 1;
-                result.1 = result.1 + recursive_result.1 + 1;
+                result.1 = result.1 + recursive_result.1;
             }
         }
         if let TokenTree::SimpleToken {

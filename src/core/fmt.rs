@@ -330,16 +330,20 @@ impl Format {
                     .map(|x| x == Delimiter::Semicolon)
                     .unwrap_or_default()
                 || (stct_def && elements.len() > 0)
-                || fun_body
+                || (fun_body && elements.len() > 0)
         };
-        if fun_body && elements.len()== 0 {
-            new_line_mode = false;
-        }
 
         match kind.kind {
+            NestKind_::Type => {
+                new_line_mode = length > MAX_LEN_WHEN_NO_ADD_LINE;
+                // if delimiter.is_none() {
+                //     new_line_mode = length + self.last_line().len() > 90 - MAX_LEN_WHEN_NO_ADD_LINE;
+                // } else {
+                //     new_line_mode = !(length <= MAX_LEN_WHEN_NO_ADD_LINE);
+                // }
+            }
             NestKind_::ParentTheses
             | NestKind_::Bracket
-            | NestKind_::Type
             | NestKind_::Lambda => {
                 if delimiter.is_none() && length <= MAX_LEN_WHEN_NO_ADD_LINE {
                     new_line_mode = false;
