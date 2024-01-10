@@ -1,6 +1,6 @@
 use movefmt::{
     core::token_tree::{CommentExtrator, CommentExtratorErr, TokenTree},
-    utils::FileLineMapping,
+    utils::*,
     syntax::parse_file_string, 
     movefmt_diff,
 };
@@ -13,28 +13,7 @@ use move_compiler::{
     shared::CompilationEnv,
     Flags,
 };
-
-use std::path::{Path, PathBuf};
-
-fn mk_result_filepath(x: &PathBuf) -> PathBuf {
-    let mut x = x.clone();
-    let b = x
-        .components()
-        .last()
-        .map(|x| x.as_os_str().to_str())
-        .flatten()
-        .unwrap()
-        .to_string();
-    let index = b.as_str().rfind(".").unwrap();
-    x.pop();
-    let mut ret = x.clone();
-    ret.push(format!(
-        "{}{}",
-        b.as_str()[0..index].to_string(),
-        ".fmt.out"
-    ));
-    ret
-}
+use std::path::Path;
 
 fn scan_dir(dir: &str) -> usize {
     let mut num: usize = 0;

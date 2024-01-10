@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::fs;
 use std::collections::HashMap;
 
-const DIFF_CONTEXT_SIZE: usize = 3;
+pub const DIFF_CONTEXT_SIZE: usize = 3;
 
 #[derive(Debug, PartialEq)]
 pub(crate) enum DiffLine {
@@ -16,7 +16,7 @@ pub(crate) enum DiffLine {
 }
 
 #[derive(Debug, PartialEq)]
-pub(crate) struct Mismatch {
+pub struct Mismatch {
     /// The line number in the formatted version.
     pub(crate) line_number: u32,
     /// The line number in the original version.
@@ -180,7 +180,7 @@ impl OutputWriter {
 }
 
 // Produces a diff between the expected output and actual output of movefmt.
-pub(crate) fn make_diff(expected: &str, actual: &str, context_size: usize) -> Vec<Mismatch> {
+pub fn make_diff(expected: &str, actual: &str, context_size: usize) -> Vec<Mismatch> {
     let mut line_number = 1;
     let mut line_number_orig = 1;
     let mut context_queue: VecDeque<&str> = VecDeque::with_capacity(context_size);

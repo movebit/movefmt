@@ -5,12 +5,10 @@
 use lsp_types::{Location, Position};
 use move_command_line_common::files::FileHash;
 use move_ir_types::location::*;
-use move_package::source_package::layout::SourcePackageLayout;
 
 use std::collections::HashMap;
 use std::{path::*, vec};
 use std::time::{Duration, Instant};
-
 
 /// Double way mapping between FileHash and FilePath.
 #[derive(Debug, Default)]
@@ -289,122 +287,6 @@ pub(crate) fn normal_path(p: &Path) -> PathBuf {
     normal_path_components(&x)
 }
 
-pub trait GetPosition {
-    fn get_position(&self) -> (PathBuf, u32 /* line */, u32 /* col */);
-    fn in_range(x: &impl GetPosition, range: &FileRange) -> bool {
-        let (filepath, line, col) = x.get_position();
-        if filepath != range.path.clone() {
-            return false;
-        }
-        if line < range.line_start {
-            return false;
-        }
-        if line == range.line_start && col < range.col_start {
-            return false;
-        }
-        if line > range.line_end {
-            return false;
-        }
-        if line == range.line_end && col > range.col_end {
-            return false;
-        }
-        true
-    }
-}
-
-pub struct GetPositionStruct {
-    pub fpath: PathBuf,
-    pub line: u32,
-    pub col: u32,
-}
-
-impl GetPosition for GetPositionStruct {
-    fn get_position(&self) -> (PathBuf, u32 /* line */, u32 /* col */) {
-        (self.fpath.clone(), self.line, self.col)
-    }
-}
-
-pub fn discover_manifest_and_kind(x: &Path) -> Option<(PathBuf, SourcePackageLayout)> {
-    let mut x: Vec<_> = x.components().collect();
-    // We should be able at least pop one.
-    x.pop()?;
-    let mut layout = None;
-    while x.len() > 0 {
-        while x.len() > 0 {
-            layout = x
-                .last()
-                .map(|x| match x.as_os_str().to_str().unwrap() {
-                    "tests" => Some(SourcePackageLayout::Tests),
-                    "sources" => Some(SourcePackageLayout::Sources),
-                    "scripts" => Some(SourcePackageLayout::Scripts),
-                    _ => return None,
-                })
-                .flatten();
-            if layout.is_some() {
-                break;
-            }
-            x.pop();
-        }
-        let layout = layout.clone()?;
-        // Pop tests or sources ...
-        x.pop()?;
-        let mut manifest_dir = PathBuf::new();
-        for x in x.iter() {
-            manifest_dir.push(x);
-        }
-        // check if manifest exists.
-        let mut manifest_file = manifest_dir.clone();
-        manifest_file.push(PROJECT_FILE_NAME);
-        if manifest_file.exists() {
-            return Some((manifest_dir, layout));
-        }
-    }
-    None
-}
-
-#[test]
-fn discover_manifest_and_kind_test() {
-    let (_, kind) = discover_manifest_and_kind(
-        PathBuf::from("/Users/yuyang/projects/test-move2/scripts/aaa.move").as_path(),
-    )
-    .unwrap();
-    assert!(kind == SourcePackageLayout::Scripts);
-    let (_, kind) = discover_manifest_and_kind(
-        PathBuf::from("/Users/yuyang/projects/test-move2/sources/some.move").as_path(),
-    )
-    .unwrap();
-    assert!(kind == SourcePackageLayout::Sources);
-    let (_, kind) = discover_manifest_and_kind(
-        PathBuf::from("/Users/yuyang/projects/test-move2/sources/configs/some.move").as_path(),
-    )
-    .unwrap();
-    assert!(kind == SourcePackageLayout::Sources);
-    let (_, kind) = discover_manifest_and_kind(
-        PathBuf::from("/Users/yuyang/projects/test-move2/sources/tests/some.move").as_path(),
-    )
-    .unwrap();
-    assert!(kind == SourcePackageLayout::Sources);
-    let (_, kind) = discover_manifest_and_kind(
-        PathBuf::from("/Users/yuyang/projects/test-move2/tests/some.move").as_path(),
-    )
-    .unwrap();
-    assert!(kind == SourcePackageLayout::Tests);
-}
-
-pub fn is_sub_dir(p: PathBuf, mut sub: PathBuf) -> bool {
-    while sub.pop() {
-        if p == sub {
-            return true;
-        }
-    }
-    false
-}
-
-/// There command should implemented in `LSP` client.
-pub enum MoveAnalyzerClientCommands {
-    GotoDefinition(Location),
-}
-
 use lsp_types::Range;
 
 #[derive(Clone, serde::Serialize)]
@@ -491,6 +373,25 @@ impl Timer {
     }
 }
 
+pub fn mk_result_filepath(x: &PathBuf) -> PathBuf {
+    let mut x = x.clone();
+    let b = x
+        .components()
+        .last()
+        .map(|x| x.as_os_str().to_str())
+        .flatten()
+        .unwrap()
+        .to_string();
+    let index = b.as_str().rfind(".").unwrap();
+    x.pop();
+    let mut ret = x.clone();
+    ret.push(format!(
+        "{}{}",
+        b.as_str()[0..index].to_string(),
+        ".fmt.out"
+    ));
+    ret
+}
 
 pub const PROJECT_FILE_NAME: &str = "Move.toml";
 

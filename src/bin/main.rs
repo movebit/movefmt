@@ -9,12 +9,11 @@ use std::path::{Path, PathBuf};
 use getopts::{Matches, Options};
 use movefmt::{
     core::fmt::FormatConfig,
-    syntax::parse_file_string,
+    core::fmt::format_simple,
+    core::fmt::format_entry,
+    movefmt_diff::{DIFF_CONTEXT_SIZE, make_diff},
 };
 use commentfmt::{load_config, Config, CliOptions, Verbosity, EmitMode};
-use move_command_line_common::files::FileHash;
-use move_compiler::{shared::CompilationEnv, Flags};
-use std::collections::BTreeSet;
 
 fn main() {
     tracing_subscriber::fmt()
@@ -169,7 +168,7 @@ fn execute(opts: &Options) -> Result<i32> {
 fn format_string(input: String, options: GetOptsOptions) -> Result<i32> {
     tracing::info!("input = {}, options = {:?}", input, options);
     let output =
-        movefmt::core::fmt::format_simple(input, FormatConfig { indent_size: 4 }).unwrap();
+        format_simple(input, FormatConfig { indent_size: 4 }).unwrap();
     tracing::info!("output = {}", output);
     Ok(0)
 }
@@ -223,13 +222,22 @@ fn format(
         }
         
         let content_origin = std::fs::read_to_string(&file.as_path()).unwrap();
-        let attrs: BTreeSet<String> = BTreeSet::new();
-        let mut env = CompilationEnv::new(Flags::testing(), attrs);
-        match parse_file_string(&mut env, FileHash::empty(), &content_origin) {
-            Ok(_) => {
-                let formatted_text =
-                    movefmt::core::fmt::format_entry(content_origin, use_config.clone()).unwrap();
-                std::fs::write(file, formatted_text)?;
+        match format_entry(content_origin.clone(), use_config.clone()) {
+            Ok(formatted_text) => {
+                match config.emit_mode() {
+                    EmitMode::NewFiles => {
+                        std::fs::write(movefmt::utils::mk_result_filepath(&file.to_path_buf()), formatted_text)?
+                    },
+                    EmitMode::Files => {
+                        std::fs::write(movefmt::utils::mk_result_filepath(&file.to_path_buf()), formatted_text)?;
+                    },
+                    EmitMode::Stdout => {
+                        println!("{}", formatted_text);
+                    }
+                    _ => {
+                        make_diff(&formatted_text, &content_origin, DIFF_CONTEXT_SIZE);
+                    }
+                }
             }
             Err(_) => {
                 tracing::info!("file '{:?}' skipped because of parse not ok", file);
