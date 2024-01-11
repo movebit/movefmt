@@ -287,7 +287,7 @@ pub fn process_spec_fn_header_too_long(fmt_buffer: String) -> String {
             fun_idx = fun_idx + 1;
             continue;
         }
-        if fun_name_str.chars().filter(|&ch| ch == '\n').collect::<String>().len() > 2 {
+        if fun_name_str.chars().filter(|&ch| ch == '\n').collect::<String>().len() >= 1 {
             // if it is multi line
             fun_idx = fun_idx + 1;
             continue;

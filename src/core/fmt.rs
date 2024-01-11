@@ -87,6 +87,7 @@ impl Format {
 
     fn post_process(&mut self) {
         tracing::debug!("post_process >> meet Brace");
+        self.remove_trailing_whitespaces();
         *self.ret.borrow_mut() = fun_fmt::fmt_fun(self.ret.clone().into_inner());
         *self.ret.borrow_mut() = expr_fmt::split_if_else_in_let_block(self.ret.clone().into_inner());
 
@@ -282,8 +283,6 @@ impl Format {
             if let Some(_) = syntax::token_to_ability(next_tok, &next_content) {
                 new_line = false;
             }
-
-            // TODO: need judge `self.ret + t_str.len() > 90`, if true, then new_line = true;
         }
         new_line
     }
@@ -536,7 +535,10 @@ impl Format {
             if NestKind_::ParentTheses != kind.kind || !is_simple_paren_expr {
                 self.add_new_line_after_nested_begin(kind, elements, b_new_line_mode);
             } else {
-                if NestKind_::ParentTheses == kind.kind && is_simple_paren_expr && b_new_line_mode {
+                if NestKind_::ParentTheses == kind.kind && is_simple_paren_expr {
+                    if self.get_cur_line_len() > 90 {
+                        self.add_new_line_after_nested_begin(kind, elements, true);
+                    }
                     b_new_line_mode = false;
                 }
             }
@@ -562,10 +564,8 @@ impl Format {
             // step7
             if b_new_line_mode || (!b_new_line_mode && had_rm_added_new_line){
                 tracing::debug!("end_of_nested_block, b_new_line_mode = true");
-                if NestKind_::ParentTheses != kind.kind || !is_simple_paren_expr {
-                    if nested_token_head != Tok::If {
-                        self.new_line(Some(kind.end_pos));
-                    }
+                if nested_token_head != Tok::If {
+                    self.new_line(Some(kind.end_pos));
                 }
             }
 
@@ -636,14 +636,18 @@ impl Format {
             }
             self.format_context.borrow_mut().cur_tok = *tok;
 
+            if self.judge_change_new_line_when_over_limits(tok.clone(), note.clone(), next_token) {
+                tracing::debug!("last_line = {:?}", self.last_line());
+                tracing::debug!("SimpleToken{:?} too long, add a new line because of split line", content);
+                self.new_line(None);
+            }
+
             self.push_str(&content.as_str());
             self.cur_line.set(self.translate_line(*pos));
             if new_line_after {
                 return;
             }
-            if self.last_line_length() > 90
-                && Self::tok_suitable_for_new_line(tok.clone(), note.clone(), next_token)
-            {
+            if self.judge_change_new_line_when_over_limits(tok.clone(), note.clone(), next_token) {
                 tracing::debug!("last_line = {:?}", self.last_line());
                 tracing::debug!("SimpleToken{:?}, add a new line because of split line", content);
                 self.new_line(None);
@@ -1000,7 +1004,6 @@ impl Format {
             Tok::ExclaimEqual
             | Tok::Percent
             | Tok::AmpAmp
-            | Tok::ColonColon
             | Tok::Plus
             | Tok::Minus
             | Tok::Period
@@ -1014,11 +1017,43 @@ impl Format {
             | Tok::LessEqualEqualGreater
             | Tok::GreaterEqual
             | Tok::GreaterGreater
-            | Tok::NumValue => true,
+            | Tok::NumValue
+            | Tok::Comma
+             => true,
             _ => false,
         };
         // tracing::debug!("tok_suitable_for_new_line ret = {}", ret);
         ret
+    }
+
+    fn get_cur_line_len(&self) -> usize {
+        let last_ret = self.last_line();
+        let mut tokens_len = 0;
+        let mut special_key = false;
+        let mut lexer = Lexer::new(&last_ret, FileHash::empty());
+        lexer.advance().unwrap();
+        while lexer.peek() != Tok::EOF {
+            tokens_len = tokens_len + lexer.content().len();
+            if !special_key {
+                special_key = matches!(
+                    lexer.peek(),
+                    Tok::If | Tok::LBrace | Tok::Module | Tok::Script | Tok::Struct | Tok::Fun |
+                    Tok::Public | Tok::Inline | Tok::Colon | Tok::Spec
+                );
+            }
+            lexer.advance().unwrap();
+        }
+
+        if special_key {
+            tokens_len
+        } else {
+            last_ret.len()
+        }
+    }
+
+    fn judge_change_new_line_when_over_limits(&self, tok: Tok, note: Option<Note>, next: Option<&TokenTree>) -> bool {
+        self.get_cur_line_len() + tok.to_string().len() > 90 && 
+        Self::tok_suitable_for_new_line(tok.clone(), note.clone(), next)
     }
 
     fn remove_trailing_whitespaces(&mut self) {

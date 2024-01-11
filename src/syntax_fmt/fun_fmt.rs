@@ -517,31 +517,6 @@ fn test_rewrite_fun_header_3() {
 }
 
 #[test]
-fn test_add_space_line_in_two_funs_1() {
-    add_blank_row_in_two_funs(
-    "
-    module TestFunFormat {
-        
-        struct SomeOtherStruct has drop {
-            some_field: u64,
-        } 
-
-        /* BlockComment1 */ public fun multi_arg(p1: u64, p2: u64): u64 {
-            p1 + p2
-        }
-        // test two fun Close together without any blank lines, and here is a InlineComment
-        /* BlockComment2 */ public fun multi_arg22(p1: u64, p2: u64): u64 {
-            p1 + p2
-        } 
-        /* BlockComment3 */ /* BlockComment4 */ fun multi_arg22(p1: u64, p2: u64): u64 {
-            p1 + p2
-        }
-    }
-    ".to_string()
-    );
-}
-
-#[test]
 fn test_process_block_comment_before_fun_header_1() {
     process_block_comment_before_fun_header(
         "
