@@ -5,8 +5,8 @@ use move_compiler::Flags;
 use move_compiler::parser::ast::Definition;
 use move_compiler::parser::ast::*;
 use std::collections::BTreeSet;
-use crate::utils::FileLineMappingOneFile;
-use crate::syntax::parse_file_string;
+use crate::tools::utils::FileLineMappingOneFile;
+use crate::tools::syntax::parse_file_string;
 
 #[derive(Debug, Default)]
 pub struct BigBlockExtractor {

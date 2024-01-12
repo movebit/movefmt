@@ -12,8 +12,8 @@ use crate::core::token_tree::{
     Comment, CommentExtrator, CommentKind, Delimiter, NestKind, NestKind_, Note, TokenTree,
     analyze_token_tree_length
 };
-use crate::utils::FileLineMappingOneFile;
-use crate::syntax::{parse_file_string, self};
+use crate::tools::utils::{FileLineMappingOneFile, Timer};
+use crate::tools::syntax::{parse_file_string, self};
 use crate::syntax_fmt::{expr_fmt, fun_fmt, spec_fmt, big_block_fmt};
 use commentfmt::{Config, Verbosity};
 
@@ -1051,7 +1051,7 @@ impl Format {
 }
 
 pub fn format_entry(content: impl AsRef<str>, config: Config) -> Result<String, Diagnostics> {
-    let mut timer = crate::utils::Timer::start();
+    let mut timer = Timer::start();
     let content = content.as_ref();
     let attrs: BTreeSet<String> = BTreeSet::new();
     let mut env = CompilationEnv::new(Flags::testing(), attrs);

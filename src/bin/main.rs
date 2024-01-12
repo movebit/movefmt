@@ -9,7 +9,8 @@ use std::path::{Path, PathBuf};
 use getopts::{Matches, Options};
 use movefmt::{
     core::fmt::format_entry,
-    movefmt_diff::{DIFF_CONTEXT_SIZE, make_diff},
+    tools::movefmt_diff::{DIFF_CONTEXT_SIZE, make_diff},
+    tools::utils::*
 };
 use commentfmt::{load_config, Config, CliOptions, Verbosity, EmitMode};
 
@@ -224,10 +225,10 @@ fn format(
             Ok(formatted_text) => {
                 match config.emit_mode() {
                     EmitMode::NewFiles => {
-                        std::fs::write(movefmt::utils::mk_result_filepath(&file.to_path_buf()), formatted_text)?
+                        std::fs::write(mk_result_filepath(&file.to_path_buf()), formatted_text)?
                     },
                     EmitMode::Files => {
-                        std::fs::write(movefmt::utils::mk_result_filepath(&file.to_path_buf()), formatted_text)?;
+                        std::fs::write(mk_result_filepath(&file.to_path_buf()), formatted_text)?;
                     },
                     EmitMode::Stdout => {
                         println!("{}", formatted_text);

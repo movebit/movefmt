@@ -1,8 +1,8 @@
 use movefmt::{
     core::token_tree::{CommentExtrator, CommentExtratorErr, TokenTree},
-    utils::*,
-    syntax::parse_file_string, 
-    movefmt_diff,
+    tools::utils::*,
+    tools::syntax::parse_file_string, 
+    tools::movefmt_diff,
 };
 use tracing_subscriber::EnvFilter;
 use std::collections::BTreeSet;

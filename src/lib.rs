@@ -32,10 +32,7 @@ macro_rules! impl_convert_loc {
 }
 extern crate move_ir_types;
 
-#[macro_use]
-pub mod utils;
-pub mod syntax;
 pub mod core;
 // pub mod app;
 pub mod syntax_fmt;
-pub mod movefmt_diff;
+pub mod tools;
