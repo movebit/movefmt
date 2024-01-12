@@ -336,14 +336,18 @@ impl Format {
                     .unwrap_or_default()
                 || (stct_def && elements.len() > 0)
                 || (fun_body && elements.len() > 0)
-                || self.get_cur_line_len() > self.global_cfg.max_width()
+                || self.get_cur_line_len() + nested_token_len > self.global_cfg.max_width()
         };
-        if new_line_mode {
+        if new_line_mode && kind.kind != NestKind_::Type {
             return true;
         }
 
         match kind.kind {
             NestKind_::Type => {
+                // added in 20240112: if type in fun header, not change new line
+                if fun_fmt::is_generic_ty_in_fun_header(self.format_context.borrow().content.clone(), kind) {
+                    return false;
+                }
                 new_line_mode = nested_token_len > max_len_when_no_add_line;
             }
             NestKind_::ParentTheses => {
