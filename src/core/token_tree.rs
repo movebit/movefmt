@@ -664,6 +664,37 @@ impl<'a> Parser<'a> {
     }
 }
 
+fn analyzer_token_tree_length_(ret: &mut usize, token_tree: &TokenTree, max: usize) {
+    match token_tree {
+        TokenTree::SimpleToken { content, .. } => {
+            *ret = *ret + content.len();
+        }
+        TokenTree::Nested { elements, .. } => {
+            for t in elements.iter() {
+                analyzer_token_tree_length_(ret, t, max);
+                if *ret > max {
+                    return;
+                }
+            }
+            *ret = *ret + 2; // for delimiter.
+        }
+    }
+}
+
+/// analyzer How long is list of token_tree
+pub(crate) fn analyze_token_tree_length(token_tree: &Vec<TokenTree>, max: usize) -> usize {
+    let mut ret = usize::default();
+    for t in token_tree.iter() {
+        analyzer_token_tree_length_(&mut ret, t, max);
+        if ret > max {
+            return ret;
+        }
+    }
+    ret
+}
+
+
+// ===================================================================================================
 #[derive(Default, Debug)]
 pub struct CommentExtrator {
     pub comments: Vec<Comment>,

@@ -5,8 +5,8 @@ module TestFunFormat {
     }
 
     public fun test_long_fun_name_lllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll(
-        v: u64)
-        : SomeOtherStruct {
+        v: u64
+    ): SomeOtherStruct {
         SomeOtherStruct {some_field: v}
     }
 

@@ -1,4 +1,4 @@
-use crate::core::token_tree::{NestKind, NestKind_, Note, TokenTree};
+use crate::core::token_tree::{NestKind, NestKind_, Note, TokenTree, analyze_token_tree_length};
 use move_command_line_common::files::FileHash;
 use move_compiler::parser::lexer::{Lexer, Tok};
 use move_ir_types::location::*;
@@ -415,7 +415,10 @@ pub(crate) fn judge_simple_paren_expr(kind: &NestKind, elements: &Vec<TokenTree>
         if paren_num.0 > 2 || paren_num.1 > 4 {
             return false;
         }
-        if paren_num.0 >= 1 && paren_num.1 >= 2 {
+        if paren_num.0 >= 1 && paren_num.1 >= 4 {
+            return false;
+        }
+        if analyze_token_tree_length(elements, 100) >= 35 {
             return false;
         }
     }

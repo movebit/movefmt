@@ -10,6 +10,7 @@ use std::cell::Cell;
 use std::collections::BTreeSet;
 use crate::core::token_tree::{
     Comment, CommentExtrator, CommentKind, Delimiter, NestKind, NestKind_, Note, TokenTree,
+    analyze_token_tree_length
 };
 use crate::utils::FileLineMappingOneFile;
 use crate::syntax::{parse_file_string, self};
@@ -320,19 +321,22 @@ impl Format {
         let fun_body = note.map(|x| x == Note::FunBody).unwrap_or_default();
 
         const MAX_LEN_WHEN_NO_ADD_LINE: usize = 30;
-        let length = self.analyze_token_tree_length(elements, MAX_LEN_WHEN_NO_ADD_LINE);
+        let length = analyze_token_tree_length(elements, MAX_LEN_WHEN_NO_ADD_LINE);
 
         if fun_body {
             self.process_fn_header_before_before_fn_nested();
         }
         let mut new_line_mode = {
-            length > MAX_LEN_WHEN_NO_ADD_LINE
-                || delimiter
+                delimiter
                     .map(|x| x == Delimiter::Semicolon)
                     .unwrap_or_default()
                 || (stct_def && elements.len() > 0)
                 || (fun_body && elements.len() > 0)
+                || self.get_cur_line_len() > 90
         };
+        if new_line_mode {
+            return true;
+        }
 
         match kind.kind {
             NestKind_::Type => {
@@ -343,18 +347,23 @@ impl Format {
                 //     new_line_mode = !(length <= MAX_LEN_WHEN_NO_ADD_LINE);
                 // }
             }
-            NestKind_::ParentTheses
-            | NestKind_::Bracket
-            | NestKind_::Lambda => {
+            NestKind_::ParentTheses => {
+                if self.format_context.borrow().cur_tok == Tok::If {
+                    new_line_mode = false;    
+                } else {
+                    new_line_mode = !expr_fmt::judge_simple_paren_expr(kind, elements);
+                }
+            }
+            NestKind_::Bracket => {
+                new_line_mode = length > MAX_LEN_WHEN_NO_ADD_LINE;
+            }
+            NestKind_::Lambda => {
                 if delimiter.is_none() && length <= MAX_LEN_WHEN_NO_ADD_LINE {
                     new_line_mode = false;
                 }
             }
             NestKind_::Brace => {
-                // added by lzw: 20231213
-                if self.last_line().contains("module") {
-                    new_line_mode = true;
-                }
+                new_line_mode = self.last_line().contains("module") || length > MAX_LEN_WHEN_NO_ADD_LINE;
             }
         }
         new_line_mode
@@ -406,6 +415,13 @@ impl Format {
         new_line: bool,
         pound_sign: &mut Option<usize>,
     ) {
+        if !new_line && token.simple_str().is_some() {
+            if let NestKind_::Brace = kind.kind {
+                if elements.len() == 1 {
+                    self.push_str(" ");
+                }
+            }
+        }
         self.format_token_trees_internal(
             token,
             next_t,
@@ -509,7 +525,7 @@ impl Format {
             note,
         } = token {
             let (delimiter, has_colon) = Self::analyze_token_tree_delimiter(elements);
-            let mut b_new_line_mode = self.get_new_line_mode_begin_nested(kind, elements, note, delimiter);
+            let b_new_line_mode = self.get_new_line_mode_begin_nested(kind, elements, note, delimiter);
             let b_add_indent = !note.map(|x| x == Note::ModuleAddress).unwrap_or_default();
             let nested_token_head = self.format_context.borrow().cur_tok;
 
@@ -531,20 +547,17 @@ impl Format {
             }
 
             // step3
-            let is_simple_paren_expr = expr_fmt::judge_simple_paren_expr(kind, elements);
-            if NestKind_::ParentTheses != kind.kind || !is_simple_paren_expr {
+            if b_new_line_mode {
                 self.add_new_line_after_nested_begin(kind, elements, b_new_line_mode);
-            } else {
-                if NestKind_::ParentTheses == kind.kind && is_simple_paren_expr {
-                    if self.get_cur_line_len() > 90 {
-                        self.add_new_line_after_nested_begin(kind, elements, true);
-                    }
-                    b_new_line_mode = false;
-                }
             }
 
             // step4 -- format elements
-            self.format_each_token_in_nested_elements(kind, elements, delimiter, has_colon, b_new_line_mode);
+            let need_change_line_for_each_item_in_paren = if NestKind_::ParentTheses == kind.kind {
+                !expr_fmt::judge_simple_paren_expr(kind, elements)
+            } else {
+                b_new_line_mode
+            };
+            self.format_each_token_in_nested_elements(kind, elements, delimiter, has_colon, need_change_line_for_each_item_in_paren);
 
             // step5 -- add_comments which before kind.end_pos
             self.add_comments(kind.end_pos, kind.end_token_tree().simple_str().unwrap_or_default().to_string());
@@ -847,35 +860,6 @@ impl Format {
         }
     }
 
-    fn analyzer_token_tree_length_(&self, ret: &mut usize, token_tree: &TokenTree, max: usize) {
-        match token_tree {
-            TokenTree::SimpleToken { content, .. } => {
-                *ret = *ret + content.len();
-            }
-            TokenTree::Nested { elements, .. } => {
-                for t in elements.iter() {
-                    self.analyzer_token_tree_length_(ret, t, max);
-                    if *ret > max {
-                        return;
-                    }
-                }
-                *ret = *ret + 2; // for delimiter.
-            }
-        }
-    }
-
-    /// analyzer How long is list of token_tree
-    fn analyze_token_tree_length(&self, token_tree: &Vec<TokenTree>, max: usize) -> usize {
-        let mut ret = usize::default();
-        for t in token_tree.iter() {
-            self.analyzer_token_tree_length_(&mut ret, t, max);
-            if ret > max {
-                return ret;
-            }
-        }
-        ret
-    }
-
     fn process_same_line_comment(&self, add_line_comment_pos: u32, process_tail_comment_of_line: bool) {
         let cur_line = self.cur_line.get();
         let mut call_new_line = false;
@@ -1018,7 +1002,6 @@ impl Format {
             | Tok::GreaterEqual
             | Tok::GreaterGreater
             | Tok::NumValue
-            | Tok::Comma
              => true,
             _ => false,
         };

@@ -4,7 +4,7 @@ use movefmt::{
     syntax::parse_file_string, 
     movefmt_diff,
 };
-
+use tracing_subscriber::EnvFilter;
 use std::collections::BTreeSet;
 use move_command_line_common::files::FileHash;
 
@@ -51,8 +51,13 @@ fn scan_dir(dir: &str) -> usize {
 #[test]
 fn test_single_file() {
     eprintln!("================== test_single_file ===================");
+    std::env::set_var("MOVEFMT_LOG", "movefmt=DEBUG");
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_env("MOVEFMT_LOG"))
+        .init();
+
     test_on_file(&Path::new(
-        "/data/lzw/rust_projects/movefmt/tests/formatter/other/input1.move",
+        "/data/lzw/rust_projects/movefmt/tests/formatter/fun/input7.move",
     ));
 }
 
@@ -242,6 +247,11 @@ fn extract_tokens(content: &str) -> Result<Vec<ExtractToken>, Vec<String>> {
 
 #[test]
 fn test_success_dir() {
+    std::env::set_var("MOVEFMT_LOG", "movefmt=DEBUG");
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_env("MOVEFMT_LOG"))
+        .init();
+
     let mut fmt_num = 0;
     // eprintln!("formated {} files", scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/use"));
     fmt_num = fmt_num + scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/tuple");
