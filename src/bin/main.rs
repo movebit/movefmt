@@ -8,8 +8,6 @@ use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 use getopts::{Matches, Options};
 use movefmt::{
-    core::fmt::FormatConfig,
-    core::fmt::format_simple,
     core::fmt::format_entry,
     movefmt_diff::{DIFF_CONTEXT_SIZE, make_diff},
 };
@@ -167,9 +165,9 @@ fn execute(opts: &Options) -> Result<i32> {
 
 fn format_string(input: String, options: GetOptsOptions) -> Result<i32> {
     tracing::info!("input = {}, options = {:?}", input, options);
-    let output =
-        format_simple(input, FormatConfig { indent_size: 4 }).unwrap();
-    tracing::info!("output = {}", output);
+    let (config, _) = load_config(None, Some(options.clone()))?;
+    let output = format_entry(input.clone(), config.clone());
+    tracing::info!("output = {:?}", output);
     Ok(0)
 }
 

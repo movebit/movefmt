@@ -263,6 +263,7 @@ fn test_success_dir() {
     fmt_num = fmt_num + scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/spec_module");
     fmt_num = fmt_num + scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/lambda");
     fmt_num = fmt_num + scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/spec_fun");
+    fmt_num = fmt_num + scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/other");
     eprintln!("formated {} files", fmt_num);
 }
 

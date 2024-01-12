@@ -1,5 +1,5 @@
 use crate::core::token_tree::{Comment, CommentKind};
-use commentfmt::{shape::*, comment::*, config::*};
+use commentfmt::{shape::*, comment::*, Config};
 
 impl Comment {
     /// format comment
@@ -21,21 +21,21 @@ impl Comment {
         }
     }
 
-    pub fn format_doc_comment_with_multi_star(
+    fn format_doc_comment_with_multi_star(
         &self,
         block_indent: usize, 
-        alignment: usize
+        alignment: usize,
+        config: &Config
     ) -> String {
         let mut result = self.content.to_string();
         let block_style = false;
         let indent = Indent::new(block_indent, alignment);
         let shape = Shape {
-            width: 90,
+            width: config.max_width(),
             indent,
             offset: 0,
         };
 
-        let config = &Config::default();
         let mut cmt_str = String::from("");
         cmt_str.push_str(result.as_str());
         if let Some(comment) = rewrite_comment(&cmt_str, block_style, shape, config) {
@@ -48,12 +48,13 @@ impl Comment {
         &self,
         kind: CommentKind,
         block_indent: usize, 
-        alignment: usize
+        alignment: usize,
+        config: &Config
     ) -> String {
         if CommentKind::DocComment == kind {
             add_space_for_comments(&self.content)
         } else {
-            self.format_doc_comment_with_multi_star(block_indent, alignment)
+            self.format_doc_comment_with_multi_star(block_indent, alignment, config)
         }
     }
 }

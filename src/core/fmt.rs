@@ -50,7 +50,8 @@ impl FormatContext {
 }
 
 pub struct Format {
-    pub config: FormatConfig,
+    pub local_cfg: FormatConfig,
+    pub global_cfg: Config,
     pub depth: Cell<usize>,
     pub token_tree: Vec<TokenTree>,
     pub comments: Vec<Comment>,
@@ -61,13 +62,15 @@ pub struct Format {
     pub format_context: RefCell<FormatContext>,
 }
 
+#[derive(Clone, Default)]
 pub struct FormatConfig {
+    pub max_with: usize,
     pub indent_size: usize,
 }
 
 impl Format {
     fn new(
-        config: FormatConfig,
+        global_cfg: Config,
         comments: CommentExtrator,
         line_mapping: FileLineMappingOneFile,
         token_tree: Vec<TokenTree>,
@@ -75,7 +78,8 @@ impl Format {
     ) -> Self {
         Self {
             comments_index: Default::default(),
-            config,
+            local_cfg: FormatConfig { max_with: global_cfg.max_width(), indent_size: global_cfg.indent_size() },
+            global_cfg,
             depth: Default::default(),
             token_tree,
             comments: comments.comments,
@@ -295,7 +299,7 @@ impl Format {
             let fun_header: &str = &cur_ret[last_fun_idx..];
             if let Some(specifier_idx) = fun_header.rfind("fun") {
                 let indent_str = " ".to_string()
-                    .repeat((self.depth.get() + 1) * self.config.indent_size);
+                    .repeat((self.depth.get() + 1) * self.local_cfg.indent_size);
                 let fun_specifier_fmted_str = fun_fmt::fun_header_specifier_fmt(
                     &fun_header[specifier_idx+1..], &indent_str);
 
@@ -320,8 +324,8 @@ impl Format {
         let stct_def = note.map(|x| x == Note::StructDefinition).unwrap_or_default();
         let fun_body = note.map(|x| x == Note::FunBody).unwrap_or_default();
 
-        const MAX_LEN_WHEN_NO_ADD_LINE: usize = 30;
-        let length = analyze_token_tree_length(elements, MAX_LEN_WHEN_NO_ADD_LINE);
+        let max_len_when_no_add_line: usize = self.global_cfg.max_width() / 3;
+        let nested_token_len = analyze_token_tree_length(elements, self.global_cfg.max_width());
 
         if fun_body {
             self.process_fn_header_before_before_fn_nested();
@@ -332,7 +336,7 @@ impl Format {
                     .unwrap_or_default()
                 || (stct_def && elements.len() > 0)
                 || (fun_body && elements.len() > 0)
-                || self.get_cur_line_len() > 90
+                || self.get_cur_line_len() > self.global_cfg.max_width()
         };
         if new_line_mode {
             return true;
@@ -340,12 +344,7 @@ impl Format {
 
         match kind.kind {
             NestKind_::Type => {
-                new_line_mode = length > MAX_LEN_WHEN_NO_ADD_LINE;
-                // if delimiter.is_none() {
-                //     new_line_mode = length + self.last_line().len() > 90 - MAX_LEN_WHEN_NO_ADD_LINE;
-                // } else {
-                //     new_line_mode = !(length <= MAX_LEN_WHEN_NO_ADD_LINE);
-                // }
+                new_line_mode = nested_token_len > max_len_when_no_add_line;
             }
             NestKind_::ParentTheses => {
                 if self.format_context.borrow().cur_tok == Tok::If {
@@ -355,15 +354,15 @@ impl Format {
                 }
             }
             NestKind_::Bracket => {
-                new_line_mode = length > MAX_LEN_WHEN_NO_ADD_LINE;
+                new_line_mode = nested_token_len > max_len_when_no_add_line;
             }
             NestKind_::Lambda => {
-                if delimiter.is_none() && length <= MAX_LEN_WHEN_NO_ADD_LINE {
+                if delimiter.is_none() && nested_token_len <= max_len_when_no_add_line {
                     new_line_mode = false;
                 }
             }
             NestKind_::Brace => {
-                new_line_mode = self.last_line().contains("module") || length > MAX_LEN_WHEN_NO_ADD_LINE;
+                new_line_mode = self.last_line().contains("module") || nested_token_len > max_len_when_no_add_line;
             }
         }
         new_line_mode
@@ -721,7 +720,7 @@ impl Format {
             }
 
             self.push_str(c.format_comment(
-                c.comment_kind(), self.depth.get() * self.config.indent_size, 0));
+                c.comment_kind(), self.depth.get() * self.local_cfg.indent_size, 0, &self.global_cfg));
 
             match c.comment_kind() {
                 CommentKind::DocComment => {
@@ -803,7 +802,7 @@ impl Format {
     fn indent(&self) {
         self.push_str(
             " ".to_string()
-                .repeat(self.depth.get() * self.config.indent_size)
+                .repeat(self.depth.get() * self.local_cfg.indent_size)
                 .as_str(),
         );
     }
@@ -880,7 +879,7 @@ impl Format {
             // self.push_str(c.content.as_str());
             let kind = c.comment_kind();
             let fmted_cmt_str = c.format_comment(
-                kind, self.depth.get() * self.config.indent_size, 0);
+                kind, self.depth.get() * self.local_cfg.indent_size, 0, &self.global_cfg);
             // tracing::debug!("fmted_cmt_str in same_line = \n{}", fmted_cmt_str);
             /*
             let buffer = self.ret.clone();
@@ -1035,7 +1034,7 @@ impl Format {
     }
 
     fn judge_change_new_line_when_over_limits(&self, tok: Tok, note: Option<Note>, next: Option<&TokenTree>) -> bool {
-        self.get_cur_line_len() + tok.to_string().len() > 90 && 
+        self.get_cur_line_len() + tok.to_string().len() > self.global_cfg.max_width() && 
         Self::tok_suitable_for_new_line(tok.clone(), note.clone(), next)
     }
 
@@ -1049,24 +1048,6 @@ impl Format {
             .join("\n");
         *self.ret.borrow_mut() = result;
     }
-}
-
-pub fn format_simple(content: impl AsRef<str>, config: FormatConfig) -> Result<String, Diagnostics> {
-    let content = content.as_ref();
-    let attrs: BTreeSet<String> = BTreeSet::new();
-    let mut env = CompilationEnv::new(Flags::testing(), attrs);
-    let filehash = FileHash::empty();
-    let (defs, _) = parse_file_string(&mut env, filehash, &content)?;
-    let lexer = Lexer::new(&content, filehash);
-    let parse = crate::core::token_tree::Parser::new(lexer, &defs);
-    let parse_result = parse.parse_tokens();
-    let ce = CommentExtrator::new(content).unwrap();
-    let mut t = FileLineMappingOneFile::default();
-    t.update(&content);
-
-    let f = Format::new(config, ce, t, parse_result, 
-        FormatContext::new(content.to_string(), FormatEnv::FormatDefault));
-    Ok(f.format_token_trees())
 }
 
 pub fn format_entry(content: impl AsRef<str>, config: Config) -> Result<String, Diagnostics> {
@@ -1084,7 +1065,7 @@ pub fn format_entry(content: impl AsRef<str>, config: Config) -> Result<String, 
     let mut t = FileLineMappingOneFile::default();
     t.update(&content);
 
-    let f = Format::new(FormatConfig { indent_size: config.indent_size() }, 
+    let f = Format::new(config.clone(), 
         ce, t, parse_result, 
         FormatContext::new(content.to_string(), FormatEnv::FormatDefault));
     let result = f.format_token_trees();
