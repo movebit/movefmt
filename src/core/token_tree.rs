@@ -891,7 +891,7 @@ impl CommentExtrator {
 #[cfg(test)]
 mod comment_test {
     use move_command_line_common::files::FileHash;
-    use crate::syntax::parse_file_string;
+    use crate::tools::syntax::parse_file_string;
     use move_compiler::{shared::CompilationEnv, Flags};
     use std::collections::BTreeSet;
 

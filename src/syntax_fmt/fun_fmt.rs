@@ -545,7 +545,7 @@ fn test_process_block_comment_before_fun_header_1() {
                 p1 + p2
             }
         }
-        ".to_string()
+        ".to_string(), Config::default()
     );
 }
 
@@ -559,7 +559,7 @@ module TestFunFormat {
     // xxxx
     fun test_long_fun_name_lllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll(v: u64): SomeOtherStruct {}
 }
-".to_string());
+".to_string(), Config::default());
 
 tracing::debug!("fun_specifier_fmted_str = --------------{}", ret_str);
 }
@@ -577,7 +577,7 @@ module 0x42::LambdaTest1 {
         a * b
     }
 }
-".to_string());
+".to_string(), Config::default());
 
 tracing::debug!("fun_specifier_fmted_str = --------------{}", ret_str);
 }
@@ -595,6 +595,6 @@ module 0x42::LambdaTest1 {
         a * b  
     }  
 }
-".to_string()
+".to_string(), Config::default()
     );
 }

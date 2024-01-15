@@ -373,7 +373,9 @@ fn test_process_spec_fn_header_too_long_1() {
         }
     }   
     "
-    .to_string());
+    .to_string(),
+    Config::default()
+);
 
     tracing::debug!("result = {}", result);
 }

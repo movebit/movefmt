@@ -12,11 +12,11 @@ use crate::core::token_tree::{
     Comment, CommentExtrator, CommentKind, Delimiter, NestKind, NestKind_, Note, TokenTree,
     analyze_token_tree_length
 };
+use crate::syntax_fmt::branch_fmt::{BranchExtractor, BranchKind};
 use crate::tools::utils::{FileLineMappingOneFile, Timer};
 use crate::tools::syntax::{parse_file_string, self};
 use crate::syntax_fmt::{expr_fmt, fun_fmt, spec_fmt, big_block_fmt};
 use commentfmt::{Config, Verbosity};
-
 
 pub enum FormatEnv {
     FormatModule,
@@ -60,6 +60,7 @@ pub struct Format {
     pub ret: RefCell<String>,
     pub cur_line: Cell<u32>,
     pub format_context: RefCell<FormatContext>,
+    pub branch_extractor: BranchExtractor,
 }
 
 #[derive(Clone, Default)]
@@ -71,23 +72,36 @@ pub struct FormatConfig {
 impl Format {
     fn new(
         global_cfg: Config,
-        comments: CommentExtrator,
-        line_mapping: FileLineMappingOneFile,
-        token_tree: Vec<TokenTree>,
+        content: &str,
         format_context: FormatContext,
     ) -> Self {
+        let ce: CommentExtrator = CommentExtrator::new(content).unwrap();
+        let mut line_mapping = FileLineMappingOneFile::default();
+        line_mapping.update(&content);
         Self {
             comments_index: Default::default(),
             local_cfg: FormatConfig { max_with: global_cfg.max_width(), indent_size: global_cfg.indent_size() },
             global_cfg,
             depth: Default::default(),
-            token_tree,
-            comments: comments.comments,
+            token_tree: vec![],
+            comments: ce.comments,
             line_mapping,
             ret: Default::default(),
             cur_line: Default::default(),
             format_context: format_context.into(),
+            branch_extractor: BranchExtractor::new(content.to_string(), BranchKind::ComIfElse),
         }
+    }
+
+    fn generate_token_tree(&mut self, content: &str) -> Result<String, Diagnostics> {
+        // let attrs: BTreeSet<String> = BTreeSet::new();
+        let mut env = CompilationEnv::new(Flags::testing(), BTreeSet::new());
+        let (defs, _) = parse_file_string(&mut env, FileHash::empty(), &content)?;
+        let lexer = Lexer::new(&content, FileHash::empty());
+        let parse = crate::core::token_tree::Parser::new(lexer, &defs);
+        self.token_tree = parse.parse_tokens();
+        self.branch_extractor.preprocess(defs);
+        Ok("parse ok".to_string())
     }
 
     fn post_process(&mut self) {
@@ -633,7 +647,20 @@ impl Format {
                 tracing::debug!("SimpleToken[{:?}], add a new line", content);
                 self.new_line(None);
             }
-           
+
+            // added in 20240115
+            if Tok::LBrace != *tok && self.branch_extractor.need_new_line_in_then_without_brace(
+                self.last_line(), 
+                *pos, 
+                self.global_cfg.clone()) {
+                tracing::debug!("need_new_line_in_then_without_brace[{:?}], add a new line", content);
+                self.inc_depth();
+                self.new_line(None);
+            }
+            if Tok::RBrace != *tok && self.branch_extractor.added_new_line_in_then_without_brace(*pos) {
+                self.dec_depth();
+            }
+
             // add blank row between module
             if Tok::Module == *tok {
                 // tracing::debug!("SimpleToken[{:?}], cur_module_name = {:?}", content,  self.format_context.borrow_mut().cur_module_name);
@@ -1057,22 +1084,15 @@ impl Format {
 pub fn format_entry(content: impl AsRef<str>, config: Config) -> Result<String, Diagnostics> {
     let mut timer = Timer::start();
     let content = content.as_ref();
-    let attrs: BTreeSet<String> = BTreeSet::new();
-    let mut env = CompilationEnv::new(Flags::testing(), attrs);
-    let filehash = FileHash::empty();
-    let (defs, _) = parse_file_string(&mut env, filehash, &content)?;
-    timer = timer.done_parsing();
-    let lexer = Lexer::new(&content, filehash);
-    let parse = crate::core::token_tree::Parser::new(lexer, &defs);
-    let parse_result = parse.parse_tokens();
-    let ce = CommentExtrator::new(content).unwrap();
-    let mut t = FileLineMappingOneFile::default();
-    t.update(&content);
 
-    let f = Format::new(config.clone(), 
-        ce, t, parse_result, 
+    let mut full_fmt = Format::new(config.clone(), 
+        content,
         FormatContext::new(content.to_string(), FormatEnv::FormatDefault));
-    let result = f.format_token_trees();
+
+    full_fmt.generate_token_tree(content)?;
+    timer = timer.done_parsing();
+
+    let result = full_fmt.format_token_trees();
     timer = timer.done_formatting();
     if config.verbose() == Verbosity::Verbose {
         println!(

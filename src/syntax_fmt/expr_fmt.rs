@@ -127,6 +127,7 @@ fn is_to_or_except(token: &Option<&TokenTree>) -> bool {
     }  
 }
 
+#[inline(always)]
 fn get_nth_line(s: &str, n: usize) -> Option<&str> {  
     s.lines().nth(n)
 }
