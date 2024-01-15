@@ -8,6 +8,7 @@ use move_compiler::parser::ast::*;
 use std::collections::BTreeSet;
 use crate::tools::utils::FileLineMappingOneFile;
 use crate::tools::syntax::parse_file_string;
+use commentfmt::Config;
 
 #[derive(Debug, Default)]
 pub struct SpecExtractor {
@@ -234,7 +235,7 @@ pub fn add_blank_row_in_two_blocks(fmt_buffer: String) -> String {
     result
 }
 
-pub fn process_block_comment_before_spec_header(fmt_buffer: String) -> String {
+pub fn process_block_comment_before_spec_header(fmt_buffer: String, config: Config) -> String {
     let buf = fmt_buffer.clone();
     let mut result = fmt_buffer.clone();
     let spec_extractor = SpecExtractor::new(fmt_buffer.clone());
@@ -247,13 +248,9 @@ pub fn process_block_comment_before_spec_header(fmt_buffer: String) -> String {
         let mut lexer = Lexer::new(fun_header_str, filehash);
         lexer.advance().unwrap();
         while lexer.peek() != Tok::EOF {
-            let header_prefix = &fun_header_str[0..lexer.start_loc()];
-            let trimed_header_prefix = header_prefix.trim_start();
-            if trimed_header_prefix.len() > 0 {
+            if fun_header_str[0..lexer.start_loc()].trim_start().len() > 0 {
                 let mut insert_str = "\n".to_string();
-                if let Some(indent) = header_prefix.find(trimed_header_prefix) {
-                    insert_str.push_str(" ".to_string().repeat(indent).as_str());
-                }
+                insert_str.push_str(" ".to_string().repeat(config.indent_size()).as_str());
                 result.insert_str(spec_extractor.spec_fn_loc_vec[fun_idx].start() as usize + insert_char_nums, 
                     &insert_str);
                 insert_char_nums = insert_char_nums + insert_str.len();
@@ -267,7 +264,7 @@ pub fn process_block_comment_before_spec_header(fmt_buffer: String) -> String {
     result
 }
 
-pub fn process_spec_fn_header_too_long(fmt_buffer: String) -> String {
+pub fn process_spec_fn_header_too_long(fmt_buffer: String, config: Config) -> String {
     let buf = fmt_buffer.clone();
     let mut result = fmt_buffer.clone();
     let spec_extractor = SpecExtractor::new(fmt_buffer.clone());
@@ -283,12 +280,14 @@ pub fn process_spec_fn_header_too_long(fmt_buffer: String) -> String {
         }
 
         let mut fun_name_str = &buf[fun_loc.start() as usize..ret_ty_loc.start() as usize];
-        if fun_name_str.len() < 80  {
+        if fun_name_str.chars().filter(|&ch| ch == '\n').collect::<String>().len() >= 1 {
+            // if it is multi line
             fun_idx = fun_idx + 1;
             continue;
         }
-        if fun_name_str.chars().filter(|&ch| ch == '\n').collect::<String>().len() >= 1 {
-            // if it is multi line
+
+        let ret_ty_len = (ret_ty_loc.end() - ret_ty_loc.start()) as usize;
+        if fun_name_str.len() + ret_ty_len < config.max_width() {
             fun_idx = fun_idx + 1;
             continue;
         }
@@ -313,7 +312,7 @@ pub fn process_spec_fn_header_too_long(fmt_buffer: String) -> String {
         fun_name_str = &buf[fun_loc.start() as usize..(fun_loc.start() as usize) + insert_loc];
         tracing::debug!("spec_fun_name_str = {}", fun_name_str);
         // there maybe comment bewteen fun_name and ret_ty
-        if fun_name_str.len() < 80  {
+        if fun_name_str.len() + ret_ty_len < config.max_width() {
             fun_idx = fun_idx + 1;
             continue;
         }
@@ -326,7 +325,7 @@ pub fn process_spec_fn_header_too_long(fmt_buffer: String) -> String {
         if trimed_header_prefix.len() > 0 {
             let mut insert_str = "\n".to_string();
             if let Some(indent) = fun_header_str.find(trimed_header_prefix) {
-                insert_str.push_str(" ".to_string().repeat(2*indent).as_str());
+                insert_str.push_str(" ".to_string().repeat(indent + config.indent_size()).as_str());
             }
             result.insert_str(fun_loc.start() as usize + insert_char_nums + insert_loc, 
                         &insert_str);
@@ -337,9 +336,9 @@ pub fn process_spec_fn_header_too_long(fmt_buffer: String) -> String {
     result
 }
 
-pub fn fmt_spec(fmt_buffer: String) -> String {
-    let mut result = process_block_comment_before_spec_header(fmt_buffer);
-    result = process_spec_fn_header_too_long(result);
+pub fn fmt_spec(fmt_buffer: String, config: Config) -> String {
+    let mut result = process_block_comment_before_spec_header(fmt_buffer, config.clone());
+    result = process_spec_fn_header_too_long(result, config.clone());
     result
 }
 

@@ -97,7 +97,7 @@ impl Format {
         *self.ret.borrow_mut() = expr_fmt::split_if_else_in_let_block(self.ret.clone().into_inner());
 
         if self.ret.clone().into_inner().contains("spec") {
-            *self.ret.borrow_mut() = spec_fmt::fmt_spec(self.ret.clone().into_inner());
+            *self.ret.borrow_mut() = spec_fmt::fmt_spec(self.ret.clone().into_inner(), self.global_cfg.clone());
         }
         *self.ret.borrow_mut() = big_block_fmt::fmt_big_block(self.ret.clone().into_inner());
         self.remove_trailing_whitespaces();
