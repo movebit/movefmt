@@ -93,7 +93,7 @@ impl Format {
     fn post_process(&mut self) {
         tracing::debug!("post_process >> meet Brace");
         self.remove_trailing_whitespaces();
-        *self.ret.borrow_mut() = fun_fmt::fmt_fun(self.ret.clone().into_inner());
+        *self.ret.borrow_mut() = fun_fmt::fmt_fun(self.ret.clone().into_inner(), self.global_cfg.clone());
         *self.ret.borrow_mut() = expr_fmt::split_if_else_in_let_block(self.ret.clone().into_inner());
 
         if self.ret.clone().into_inner().contains("spec") {

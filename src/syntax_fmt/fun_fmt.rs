@@ -10,6 +10,8 @@ use crate::syntax_fmt::expr_fmt;
 use crate::tools::utils::FileLineMappingOneFile;
 use crate::tools::syntax::parse_file_string;
 use crate::core::token_tree::{NestKind, NestKind_, TokenTree};
+use commentfmt::Config;
+
 
 pub fn add_space_line_in_two_fun(fmt_buffer: String) -> String {
     use regex::Regex;
@@ -294,7 +296,7 @@ pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &String) -> 
     ret_str
 }
 
-pub(crate) fn process_block_comment_before_fun_header(fmt_buffer: String) -> String {
+pub(crate) fn process_block_comment_before_fun_header(fmt_buffer: String, config: Config) -> String {
     let buf = fmt_buffer.clone();
     let mut result = fmt_buffer.clone();
     let fun_extractor = FunExtractor::new(fmt_buffer.clone());
@@ -308,16 +310,9 @@ pub(crate) fn process_block_comment_before_fun_header(fmt_buffer: String) -> Str
         lexer.advance().unwrap();
         while lexer.peek() != Tok::EOF {
             // tracing::debug!("fun_extractor.loc_vec[fun_idx].start() = {:?}", fun_extractor.loc_vec[fun_idx].start());
-            let header_prefix = &fun_header_str[0..lexer.start_loc()];
-            let trimed_header_prefix = header_prefix.trim_start();
-            if trimed_header_prefix.len() > 0 {
-                // tracing::debug!("header_prefix = {:?}", header_prefix);
-                // result.insert(lexer.start_loc() + fun_extractor.loc_vec[fun_idx].start() as usize, '\n');
-
+            if fun_header_str[0..lexer.start_loc()].trim_start().len() > 0 {
                 let mut insert_str = "\n".to_string();
-                if let Some(indent) = header_prefix.find(trimed_header_prefix) {
-                    insert_str.push_str(" ".to_string().repeat(indent).as_str());
-                }
+                insert_str.push_str(" ".to_string().repeat(config.indent_size()).as_str());
                 result.insert_str(fun_extractor.loc_vec[fun_idx].start() as usize + insert_char_nums, 
                     &insert_str);
                 insert_char_nums = insert_char_nums + insert_str.len();
@@ -331,7 +326,7 @@ pub(crate) fn process_block_comment_before_fun_header(fmt_buffer: String) -> Str
     result
 }
 
-pub(crate) fn process_fun_header_too_long(fmt_buffer: String) -> String {
+pub(crate) fn process_fun_header_too_long(fmt_buffer: String, config: Config) -> String {
     let buf = fmt_buffer.clone();
     let mut result = fmt_buffer.clone();
     let fun_extractor = FunExtractor::new(fmt_buffer.clone());
@@ -346,12 +341,13 @@ pub(crate) fn process_fun_header_too_long(fmt_buffer: String) -> String {
         }
 
         let mut fun_name_str = &buf[fun_loc.start() as usize..ret_ty_loc.start() as usize];
-        if fun_name_str.len() < 80  {
+        if fun_name_str.chars().filter(|&ch| ch == '\n').collect::<String>().len() >= 1 {
+            // if it is multi line
             fun_idx = fun_idx + 1;
             continue;
         }
-        if fun_name_str.chars().filter(|&ch| ch == '\n').collect::<String>().len() >= 2 {
-            // if it is multi line
+        let ret_ty_len = (ret_ty_loc.end() - ret_ty_loc.start()) as usize;
+        if fun_name_str.len() + ret_ty_len < config.max_width()  {
             fun_idx = fun_idx + 1;
             continue;
         }
@@ -368,7 +364,7 @@ pub(crate) fn process_fun_header_too_long(fmt_buffer: String) -> String {
         fun_name_str = &buf[fun_loc.start() as usize..(fun_loc.start() as usize) + insert_loc];
         tracing::debug!("fun_name_str = {}", fun_name_str);
         // there maybe comment bewteen fun_name and ret_ty
-        if fun_name_str.len() < 80  {
+        if fun_name_str.len() + ret_ty_len < config.max_width()  {
             fun_idx = fun_idx + 1;
             continue;
         }
@@ -381,7 +377,7 @@ pub(crate) fn process_fun_header_too_long(fmt_buffer: String) -> String {
         if trimed_header_prefix.len() > 0 {
             let mut insert_str = "\n".to_string();
             if let Some(indent) = fun_header_str.find(trimed_header_prefix) {
-                insert_str.push_str(" ".to_string().repeat(2*indent).as_str());
+                insert_str.push_str(" ".to_string().repeat(indent + config.indent_size()).as_str());
             }
             result.insert_str(fun_loc.start() as usize + insert_char_nums + insert_loc, 
                         &insert_str);
@@ -392,7 +388,7 @@ pub(crate) fn process_fun_header_too_long(fmt_buffer: String) -> String {
     result
 }
 
-pub(crate) fn process_fun_ret_ty(fmt_buffer: String) -> String {
+pub(crate) fn process_fun_ret_ty(fmt_buffer: String, config: Config) -> String {
     // process this case:
     // fun fun_name()   
     // : u64 {}
@@ -426,8 +422,8 @@ pub(crate) fn process_fun_ret_ty(fmt_buffer: String) -> String {
             if indent1 == indent2 {
                 // tracing::debug!("fun_header_str = \n{:?}", &buf[0..(ret_ty_loc.start() as usize - ret_ty_str.len())]);
                 result.insert_str(ret_ty_loc.start() as usize - ret_ty_str.len() + insert_char_nums, 
-                " ".to_string().repeat(4).as_str());
-                insert_char_nums = insert_char_nums + 4;
+                " ".to_string().repeat(config.indent_size()).as_str());
+                insert_char_nums = insert_char_nums + config.indent_size();
             }
         }
     }
@@ -494,10 +490,10 @@ pub(crate) fn process_fun_annotation(kind: NestKind, elements: Vec<TokenTree>) -
     "".to_string()
 }
 
-pub fn fmt_fun(fmt_buffer: String) -> String {
-    let mut result = process_block_comment_before_fun_header(fmt_buffer);
-    result = process_fun_header_too_long(result);
-    result = process_fun_ret_ty(result);
+pub fn fmt_fun(fmt_buffer: String, config: Config) -> String {
+    let mut result = process_block_comment_before_fun_header(fmt_buffer, config.clone());
+    result = process_fun_header_too_long(result, config.clone());
+    result = process_fun_ret_ty(result, config.clone());
     result
 }
 
