@@ -12,7 +12,8 @@ use crate::core::token_tree::{
     Comment, CommentExtrator, CommentKind, Delimiter, NestKind, NestKind_, Note, TokenTree,
     analyze_token_tree_length
 };
-use crate::syntax_fmt::branch_fmt::{BranchExtractor, BranchKind};
+use crate::syntax_fmt::branch_fmt::{BranchExtractor, BranchKind, self};
+use crate::syntax_fmt::fun_fmt::FunExtractor;
 use crate::tools::utils::{FileLineMappingOneFile, Timer};
 use crate::tools::syntax::{parse_file_string, self};
 use crate::syntax_fmt::{expr_fmt, fun_fmt, spec_fmt, big_block_fmt};
@@ -49,6 +50,11 @@ impl FormatContext {
     }  
 }
 
+pub struct SyntaxExtractor {
+    pub branch_extractor: BranchExtractor,
+    pub fun_extractor: FunExtractor,
+}
+
 pub struct Format {
     pub local_cfg: FormatConfig,
     pub global_cfg: Config,
@@ -60,7 +66,7 @@ pub struct Format {
     pub ret: RefCell<String>,
     pub cur_line: Cell<u32>,
     pub format_context: RefCell<FormatContext>,
-    pub branch_extractor: BranchExtractor,
+    pub syntax_extractor: SyntaxExtractor,
 }
 
 #[derive(Clone, Default)]
@@ -78,6 +84,10 @@ impl Format {
         let ce: CommentExtrator = CommentExtrator::new(content).unwrap();
         let mut line_mapping = FileLineMappingOneFile::default();
         line_mapping.update(&content);
+        let syntax_extractor = SyntaxExtractor {
+            branch_extractor: BranchExtractor::new(content.to_string(), BranchKind::ComIfElse),
+            fun_extractor: FunExtractor::new(content.to_string()),
+        };
         Self {
             comments_index: Default::default(),
             local_cfg: FormatConfig { max_with: global_cfg.max_width(), indent_size: global_cfg.indent_size() },
@@ -89,7 +99,7 @@ impl Format {
             ret: Default::default(),
             cur_line: Default::default(),
             format_context: format_context.into(),
-            branch_extractor: BranchExtractor::new(content.to_string(), BranchKind::ComIfElse),
+            syntax_extractor,
         }
     }
 
@@ -100,7 +110,7 @@ impl Format {
         let lexer = Lexer::new(&content, FileHash::empty());
         let parse = crate::core::token_tree::Parser::new(lexer, &defs);
         self.token_tree = parse.parse_tokens();
-        self.branch_extractor.preprocess(defs);
+        self.syntax_extractor.branch_extractor.preprocess(defs);
         Ok("parse ok".to_string())
     }
 
@@ -108,7 +118,8 @@ impl Format {
         tracing::debug!("post_process >> meet Brace");
         self.remove_trailing_whitespaces();
         *self.ret.borrow_mut() = fun_fmt::fmt_fun(self.ret.clone().into_inner(), self.global_cfg.clone());
-        *self.ret.borrow_mut() = expr_fmt::split_if_else_in_let_block(self.ret.clone().into_inner());
+        *self.ret.borrow_mut() = branch_fmt::split_if_else_in_let_block(
+            self.ret.clone().into_inner(), self.global_cfg.clone());
 
         if self.ret.clone().into_inner().contains("spec") {
             *self.ret.borrow_mut() = spec_fmt::fmt_spec(self.ret.clone().into_inner(), self.global_cfg.clone());
@@ -359,7 +370,7 @@ impl Format {
         match kind.kind {
             NestKind_::Type => {
                 // added in 20240112: if type in fun header, not change new line
-                if fun_fmt::is_generic_ty_in_fun_header(self.format_context.borrow().content.clone(), kind) {
+                if self.syntax_extractor.fun_extractor.is_generic_ty_in_fun_header(kind) {
                     return false;
                 }
                 new_line_mode = nested_token_len > max_len_when_no_add_line;
@@ -630,7 +641,7 @@ impl Format {
             note
         } = token {
             // added in 20240115
-            if Tok::LBrace != *tok && self.branch_extractor.need_new_line_in_then_without_brace(
+            if Tok::LBrace != *tok && self.syntax_extractor.branch_extractor.need_new_line_in_then_without_brace(
                 self.last_line(), 
                 *pos, 
                 self.global_cfg.clone()) {
@@ -659,7 +670,7 @@ impl Format {
             }
 
             // added in 20240115
-            if Tok::RBrace != *tok && self.branch_extractor.added_new_line_in_then_without_brace(*pos) {
+            if Tok::RBrace != *tok && self.syntax_extractor.branch_extractor.added_new_line_in_then_without_brace(*pos) {
                 self.dec_depth();
             }
 

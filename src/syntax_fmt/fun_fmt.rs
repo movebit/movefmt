@@ -112,8 +112,6 @@ impl FunExtractor {
             Definition::Script(x) => self.collect_script(x),
         }
     }
-
-
 }
 
 fn get_nth_line(s: &str, n: usize) -> Option<&str> {  
@@ -131,17 +129,19 @@ fn get_space_cnt_before_line_str(s: &str) -> usize {
     result
 }
 
-pub(crate) fn is_generic_ty_in_fun_header(fmt_buffer: String, kind: &NestKind) -> bool {
-    let fun_extractor = FunExtractor::new(fmt_buffer.clone());
-    let mut fun_idx = 0;
-    for fun_loc in fun_extractor.loc_vec.iter() {
-        let body_loc = fun_extractor.body_loc_vec[fun_idx];
-        fun_idx = fun_idx + 1;
-        if fun_loc.start() < kind.start_pos && kind.end_pos < body_loc.start() {
-            return true;
+impl FunExtractor {
+    pub(crate) fn is_generic_ty_in_fun_header(&self, kind: &NestKind) -> bool {
+        let mut fun_idx = 0;
+        for fun_loc in self.loc_vec.iter() {
+            let body_loc = self.body_loc_vec[fun_idx];
+            fun_idx = fun_idx + 1;
+            if fun_loc.start() < kind.start_pos && kind.end_pos < body_loc.start() {
+                return true;
+            }
         }
+        false
     }
-    false
+
 }
 
 pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &String) -> String {
