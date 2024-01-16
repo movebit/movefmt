@@ -168,7 +168,7 @@ pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &String) -> 
     lexer.advance().unwrap();
     while lexer.peek() != Tok::EOF {
         fun_specifiers_code.push((lexer.start_loc() as u32, 
-            (lexer.start_loc() + lexer.content().len()) as u32, lexer.content().clone().to_string()));
+            (lexer.start_loc() + lexer.content().len()) as u32, lexer.content().to_string()));
         lexer.advance().unwrap();
     }
 
