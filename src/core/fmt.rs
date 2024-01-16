@@ -117,15 +117,19 @@ impl Format {
     fn post_process(&mut self) {
         tracing::debug!("post_process >> meet Brace");
         self.remove_trailing_whitespaces();
+        tracing::debug!("post_process -- fmt_fun");
         *self.ret.borrow_mut() = fun_fmt::fmt_fun(self.ret.clone().into_inner(), self.global_cfg.clone());
+        tracing::debug!("post_process -- split_if_else_in_let_block");
         *self.ret.borrow_mut() = branch_fmt::split_if_else_in_let_block(
             self.ret.clone().into_inner(), self.global_cfg.clone());
 
-        if self.ret.clone().into_inner().contains("spec") {
+        if self.ret.clone().into_inner().contains("spec ") {
             *self.ret.borrow_mut() = spec_fmt::fmt_spec(self.ret.clone().into_inner(), self.global_cfg.clone());
         }
+        tracing::debug!("post_process -- fmt_big_block");
         *self.ret.borrow_mut() = big_block_fmt::fmt_big_block(self.ret.clone().into_inner());
         self.remove_trailing_whitespaces();
+        tracing::debug!("post_process << done !!!");
     }
 
     pub fn format_token_trees(mut self) -> String {
@@ -345,7 +349,7 @@ impl Format {
         elements: &Vec<TokenTree>,
         note: &Option<Note>,
         delimiter: Option<Delimiter>,
-    ) -> bool {
+    ) -> (bool, Option<bool>) {
         let stct_def = note.map(|x| x == Note::StructDefinition).unwrap_or_default();
         let fun_body = note.map(|x| x == Note::FunBody).unwrap_or_default();
 
@@ -364,14 +368,14 @@ impl Format {
                 || self.get_cur_line_len() + nested_token_len > self.global_cfg.max_width()
         };
         if new_line_mode && kind.kind != NestKind_::Type {
-            return true;
+            return (true, None);
         }
 
         match kind.kind {
             NestKind_::Type => {
                 // added in 20240112: if type in fun header, not change new line
                 if self.syntax_extractor.fun_extractor.is_generic_ty_in_fun_header(kind) {
-                    return false;
+                    return (false, None);
                 }
                 new_line_mode = nested_token_len > max_len_when_no_add_line;
             }
@@ -379,7 +383,8 @@ impl Format {
                 if self.format_context.borrow().cur_tok == Tok::If {
                     new_line_mode = false;    
                 } else {
-                    new_line_mode = !expr_fmt::judge_simple_paren_expr(kind, elements);
+                    new_line_mode = !expr_fmt::judge_simple_paren_expr(kind, elements, self.global_cfg.clone());
+                    return (new_line_mode, Some(new_line_mode));
                 }
             }
             NestKind_::Bracket => {
@@ -394,7 +399,7 @@ impl Format {
                 new_line_mode = self.last_line().contains("module") || nested_token_len > max_len_when_no_add_line;
             }
         }
-        new_line_mode
+        (new_line_mode, None)
     }
     
     fn add_new_line_after_nested_begin(
@@ -553,7 +558,7 @@ impl Format {
             note,
         } = token {
             let (delimiter, has_colon) = Self::analyze_token_tree_delimiter(elements);
-            let b_new_line_mode = self.get_new_line_mode_begin_nested(kind, elements, note, delimiter);
+            let (b_new_line_mode, opt_mode) = self.get_new_line_mode_begin_nested(kind, elements, note, delimiter);
             let b_add_indent = !note.map(|x| x == Note::ModuleAddress).unwrap_or_default();
             let nested_token_head = self.format_context.borrow().cur_tok;
 
@@ -581,7 +586,11 @@ impl Format {
 
             // step4 -- format elements
             let need_change_line_for_each_item_in_paren = if NestKind_::ParentTheses == kind.kind {
-                !expr_fmt::judge_simple_paren_expr(kind, elements)
+                if opt_mode.is_none() {
+                    !expr_fmt::judge_simple_paren_expr(kind, elements, self.global_cfg.clone())
+                } else {
+                    opt_mode.unwrap()
+                }
             } else {
                 b_new_line_mode
             };

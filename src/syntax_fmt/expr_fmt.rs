@@ -1,5 +1,6 @@
 use crate::core::token_tree::{NestKind, NestKind_, Note, TokenTree, analyze_token_tree_length};
 use move_compiler::parser::lexer::Tok;
+use commentfmt::Config;
 
 pub enum TokType {
     /// abc like token,
@@ -394,7 +395,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
     };
 }
 
-pub(crate) fn judge_simple_paren_expr(kind: &NestKind, elements: &Vec<TokenTree>) -> bool {
+pub(crate) fn judge_simple_paren_expr(kind: &NestKind, elements: &Vec<TokenTree>, config: Config) -> bool {
     if elements.len() == 0 { return true };
     if NestKind_::ParentTheses == kind.kind {
         let paren_num = get_nested_and_comma_num(elements);
@@ -405,12 +406,14 @@ pub(crate) fn judge_simple_paren_expr(kind: &NestKind, elements: &Vec<TokenTree>
         if paren_num.0 >= 1 && paren_num.1 >= 4 {
             return false;
         }
-        if analyze_token_tree_length(elements, 100) >= 35 {
+        if analyze_token_tree_length(elements, config.max_width() / 2) >= config.max_width() - 55 {
             return false;
         }
     }
     true
 }
+
+// TODO(20240116): add fn judge_simple_nested_blk()
 
 pub(crate) fn process_link_access(elements: &Vec<TokenTree>, idx: usize) -> (usize, usize) {
     tracing::debug!("process_link_access >>");
@@ -421,22 +424,12 @@ pub(crate) fn process_link_access(elements: &Vec<TokenTree>, idx: usize) -> (usi
     let mut index = idx;
     while index <= elements.len() - 2 {        
         let t = elements.get(index).unwrap();
-        // let next_t = elements.get(index + 1);
-
         if !t.simple_str().unwrap_or_default().contains(".") {
             break;
         }
-        // if let Some(TokenTree::SimpleToken {
-        //     content,
-        //     pos: _,
-        //     tok: _,
-        //     note: _,
-        // }) = next_t {
-        //     eprint!("{} ", content);
-        // }
         continue_dot_cnt = continue_dot_cnt + 1;
         index = index + 2;
     }
-    tracing::debug!("\n process_link_access << (continue_dot_cnt, index) = ({}, {})", continue_dot_cnt, index);
+    tracing::debug!("process_link_access << (continue_dot_cnt, index) = ({}, {})", continue_dot_cnt, index);
     (continue_dot_cnt, index - 2)
 }

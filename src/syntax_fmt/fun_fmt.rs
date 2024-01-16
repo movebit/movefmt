@@ -130,18 +130,34 @@ fn get_space_cnt_before_line_str(s: &str) -> usize {
 }
 
 impl FunExtractor {
-    pub(crate) fn is_generic_ty_in_fun_header(&self, kind: &NestKind) -> bool {
-        let mut fun_idx = 0;
-        for fun_loc in self.loc_vec.iter() {
-            let body_loc = self.body_loc_vec[fun_idx];
-            fun_idx = fun_idx + 1;
-            if fun_loc.start() < kind.start_pos && kind.end_pos < body_loc.start() {
-                return true;
+    pub(crate) fn is_generic_ty_in_fun_header(&self, kind: &NestKind) -> bool {  
+        let loc_vec = &self.loc_vec;  
+        let body_loc_vec = &self.body_loc_vec;  
+  
+        let len = loc_vec.len();  
+        let mut left = 0;  
+        let mut right = len;  
+          
+        while left < right {
+            if kind.end_pos < loc_vec[left].start() || kind.start_pos > loc_vec[right - 1].end() {
+                return false;
             }
-        }
-        false
-    }
 
+            let mid = left + (right - left) / 2;  
+            let mid_loc = loc_vec[mid];  
+            let mid_body_loc = body_loc_vec[mid];  
+              
+            if mid_loc.start() < kind.start_pos && kind.end_pos < mid_body_loc.start() {  
+                return true;  
+            } else if mid_loc.start() < kind.start_pos {  
+                left = mid + 1;
+            } else {  
+                right = mid;
+            }  
+        }  
+          
+        false  
+    }
 }
 
 pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &String) -> String {
@@ -302,11 +318,9 @@ pub(crate) fn process_block_comment_before_fun_header(fmt_buffer: String, config
     let fun_extractor = FunExtractor::new(fmt_buffer.clone());
     let mut insert_char_nums = 0;
     let mut fun_idx = 0;
-    for (fun_start_line, _) in fun_extractor.loc_line_vec.iter() {  
-        // tracing::debug!("fun header is {:?}", );
+    for (fun_start_line, _) in fun_extractor.loc_line_vec.iter() {
         let fun_header_str = get_nth_line(buf.as_str(), *fun_start_line as usize).unwrap_or_default();
-        let filehash = FileHash::empty();
-        let mut lexer = Lexer::new(fun_header_str, filehash);
+        let mut lexer = Lexer::new(fun_header_str, FileHash::empty());
         lexer.advance().unwrap();
         while lexer.peek() != Tok::EOF {
             // tracing::debug!("fun_extractor.loc_vec[fun_idx].start() = {:?}", fun_extractor.loc_vec[fun_idx].start());

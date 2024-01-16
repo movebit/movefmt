@@ -44,11 +44,6 @@ pub struct BranchExtractor {
     pub added_new_line_branch: RefCell<HashMap<ByteIndex, bool>>,
 }
 
-#[inline(always)]
-fn get_nth_line(s: &str, n: usize) -> Option<&str> {  
-    s.lines().nth(n)
-}
-
 impl BranchExtractor {
     pub fn new(fmt_buffer: String, cur_kind: BranchKind) -> Self {
 
@@ -176,170 +171,6 @@ impl BranchExtractor {
         }
     }
 
-    // fn split_if_else_in_let_block_internal(&self, config: Config) -> String {
-    //     let mut result = "".to_string();
-    //     let process_branch = |range: lsp_types::Range| {
-    //         let mut branch_content = "".to_string();
-    //         let mut indent_str = "".to_string();
-
-    //         let first_line = get_nth_line(&self.source, range.start.line as usize).unwrap_or_default();
-    //         let header_prefix = &first_line[0..range.start.character as usize];
-    //         let trimed_header_prefix = header_prefix.trim_start();
-    //         if trimed_header_prefix.len() > 0 {
-    //             if let Some(indent) = header_prefix.find(trimed_header_prefix) {
-    //                 indent_str.push_str(" ".to_string().repeat(indent).as_str());
-    //             }
-    //             indent_str.push_str(" ".to_string().repeat(config.indent_size()).as_str());  // increase indent
-    //         }
-
-    //         for line_idx in range.start.line..range.end.line {
-    //             let this_line = get_nth_line(&self.source, line_idx as usize).unwrap_or_default();
-    //             if line_idx == range.start.line {
-    //                 branch_content.push_str(&"\n".to_string());
-    //                 branch_content.push_str(&indent_str);
-    //                 branch_content.push_str(&this_line[range.start.character as usize..].trim_start());
-    //             } else {
-    //                 if branch_content.lines().last()
-    //                     .map(|x| x.len()).unwrap_or_default() > config.max_width() - 40 ||
-    //                     branch_content.lines().last().unwrap().contains("//") {
-    //                     branch_content.push_str(&"\n".to_string());
-    //                     branch_content.push_str(&indent_str);
-    //                 } else {
-    //                     branch_content.push_str(&" ".to_string());
-    //                 }
-    //                 branch_content.push_str(this_line.trim_start());
-    //             }
-    //         }
-    //         let end_str = get_nth_line(&self.source, range.end.line as usize).unwrap_or_default();
-    //         if range.start.line == range.end.line {
-    //             branch_content.push_str(&"\n".to_string());
-    //             branch_content.push_str(&indent_str);
-    //             branch_content.push_str(&end_str[range.start.character as usize .. range.end.character as usize].trim_start());
-    //         } else {
-    //             if branch_content.lines().last()
-    //                 .map(|x| x.len()).unwrap_or_default() > config.max_width() - 40 ||
-    //                 branch_content.lines().last().unwrap().contains("//") {
-    //                 branch_content.push_str(&"\n".to_string());
-    //                 branch_content.push_str(&indent_str);
-    //             } else {
-    //                 branch_content.push_str(&" ".to_string());
-    //             }   
-    //             branch_content.push_str(&end_str[0..range.end.character as usize].trim_start());
-    //         }
-
-    //         // tracing::debug!("branch_content = {}", branch_content);
-    //         branch_content
-    //     };
-
-    //     let get_else_pos = |let_if_else_loc: Loc, else_branch_in_let_loc: Loc| {
-    //         let branch_str = &self.source[0..let_if_else_loc.end() as usize];
-    //         let mut lexer = Lexer::new(&branch_str, FileHash::empty());
-    //         lexer.advance().unwrap();
-    //         let mut else_in_let_vec = vec![];
-    //         while lexer.peek() != Tok::EOF {
-    //             if lexer.start_loc() >= else_branch_in_let_loc.start() as usize {
-    //                 break;
-    //             }
-    //             if let Tok::Else = lexer.peek() {
-    //                 else_in_let_vec.push((lexer.start_loc(), lexer.start_loc() + lexer.content().len()));
-    //             }
-    //             lexer.advance().unwrap();
-    //         }
-
-    //         let ret_pos = else_in_let_vec.last().unwrap();
-    //         (ret_pos.0, ret_pos.1)
-    //     };
-
-    //     let mut need_split_idx = vec![];
-    //     for let_if_else_idx in 0..self.let_if_else.let_if_else_block.len() {
-    //         let start = self.let_if_else.let_if_else_block[let_if_else_idx].start;
-    //         let end = self.let_if_else.let_if_else_block[let_if_else_idx].end;
-    //         if end.line == start.line && end.character - start.character < 70 {
-    //             continue;
-    //         }
-    //         let then_str = process_branch(self.let_if_else.then_in_let[let_if_else_idx]);
-    //         if then_str.contains("{") && then_str.contains("}") {
-    //             // note: maybe comment has "{" or "}"
-    //             continue;
-    //         }
-    //         need_split_idx.push(let_if_else_idx);
-    //     }
-
-    //     let mut last_pos = (0, 0);
-    //     for idx in need_split_idx {
-    //         let then_str = process_branch(self.let_if_else.then_in_let[idx]);
-    //         let else_str = process_branch(self.let_if_else.else_in_let[idx]);
-    //         let if_cond_range = self.let_if_else.if_cond_in_let[idx];
-    //         let cond_end_line = get_nth_line(&self.source, if_cond_range.end.line as usize).unwrap_or_default();
-
-    //         // append line[last_line, if ()]
-    //         // eg:
-    //         /*
-    //         // line_x -- last_line
-    //         // ...
-    //         // line_x_plus_n
-    //         if (...)
-    //             ...
-    //         else
-    //             ...
-    //         */
-    //         for idx in last_pos.0..if_cond_range.end.line as usize {
-    //             result.push_str(&get_nth_line(&self.source, idx).unwrap_or_default()[last_pos.1..]);
-    //             result.push_str(&"\n".to_string());
-    //             last_pos = (idx + 1, 0);
-    //         }
-    //         result.push_str(&cond_end_line[0..(if_cond_range.end.character) as usize]);
-
-    //         // append line[if (), then)
-    //         // eg:
-    //         /*
-    //         if (...) /* maybe there has comment1 */ ...
-    //         /* maybe there has 
-    //         comment2 */ else /* maybe there has 
-    //         comment3 */ 
-    //             ...
-    //         */
-    //         if if_cond_range.end.line == self.let_if_else.then_in_let[idx].start.line {
-    //             result.push_str(&cond_end_line[if_cond_range.end.character as usize..self.let_if_else.then_in_let[idx].start.character as usize]);
-    //         }
-    //         result.push_str(&then_str);
-
-    //         // there maybe comment before else
-    //         let else_pos = get_else_pos(self.let_if_else.let_if_else_block_loc_vec[idx],
-    //             self.let_if_else.else_in_let_loc_vec[idx]);
-    //         result.push_str(&self.source[self.let_if_else.then_in_let_loc_vec[idx].end() as usize..else_pos.0]);
-            
-    //         // append "\n$indent_str$else"
-    //         let mut indent_str = "".to_string();
-    //         let header_prefix = &cond_end_line[0..if_cond_range.end.character as usize];
-    //         let trimed_header_prefix = header_prefix.trim_start();
-    //         if trimed_header_prefix.len() > 0 {
-    //             if let Some(indent) = header_prefix.find(trimed_header_prefix) {
-    //                 indent_str.push_str(" ".to_string().repeat(indent).as_str());
-    //             }
-    //         }
-    //         result.push_str(&"\n".to_string());
-    //         result.push_str(&indent_str);
-    //         result.push_str(&"else".to_string());
-
-    //         // there maybe comment after else
-    //         result.push_str(&self.source[else_pos.1..self.let_if_else.else_in_let_loc_vec[idx].start() as usize]);
-    //         // append else branch content
-    //         result.push_str(&else_str);
-
-    //         last_pos = (self.let_if_else.else_in_let[idx].end.line as usize, self.let_if_else.else_in_let[idx].end.character as usize);
-    //     }
-    //     // tracing::debug!("last_pos = \n{:?}", last_pos);
-    //     for idx in last_pos.0..self.source.lines().count() as usize {
-    //         result.push_str(&get_nth_line(&self.source, idx).unwrap_or_default()[last_pos.1..]);
-    //         if idx != self.source.lines().count() - 1 {
-    //             result.push_str(&"\n".to_string());
-    //         }
-    //         last_pos = (idx + 1, 0);
-    //     }
-    //     result
-    // }
-
     pub fn need_new_line_in_then_without_brace(&self, cur_line: String, then_start_pos: ByteIndex, config: Config) -> bool {
         for then_loc in &self.com_if_else.then_loc_vec {
             if then_loc.start() == then_start_pos {
@@ -362,6 +193,7 @@ impl BranchExtractor {
 }
 
 pub fn split_if_else_in_let_block(fmt_buffer: String, config: Config) -> String {
+    tracing::debug!("split_if_else_in_let_block >>");
     use std::collections::BTreeSet;
     use move_compiler::shared::CompilationEnv;
     use crate::tools::syntax::parse_file_string;
@@ -373,11 +205,13 @@ pub fn split_if_else_in_let_block(fmt_buffer: String, config: Config) -> String 
     branch_extractor.preprocess(defs);
 
     let mut result = "".to_string();
+    let fmt_lines = fmt_buffer.lines();
+
     let process_branch = |range: lsp_types::Range| {
         let mut branch_content = "".to_string();
         let mut indent_str = "".to_string();
 
-        let first_line = get_nth_line(&fmt_buffer, range.start.line as usize).unwrap_or_default();
+        let first_line = fmt_lines.clone().nth(range.start.line as usize).unwrap_or_default();
         let header_prefix = &first_line[0..range.start.character as usize];
         let trimed_header_prefix = header_prefix.trim_start();
         if trimed_header_prefix.len() > 0 {
@@ -388,7 +222,7 @@ pub fn split_if_else_in_let_block(fmt_buffer: String, config: Config) -> String 
         }
 
         for line_idx in range.start.line..range.end.line {
-            let this_line = get_nth_line(&fmt_buffer, line_idx as usize).unwrap_or_default();
+            let this_line = fmt_lines.clone().nth(line_idx as usize).unwrap_or_default();
             if line_idx == range.start.line {
                 branch_content.push_str(&"\n".to_string());
                 branch_content.push_str(&indent_str);
@@ -405,7 +239,7 @@ pub fn split_if_else_in_let_block(fmt_buffer: String, config: Config) -> String 
                 branch_content.push_str(this_line.trim_start());
             }
         }
-        let end_str = get_nth_line(&fmt_buffer, range.end.line as usize).unwrap_or_default();
+        let end_str = fmt_lines.clone().nth(range.end.line as usize).unwrap_or_default();
         if range.start.line == range.end.line {
             branch_content.push_str(&"\n".to_string());
             branch_content.push_str(&indent_str);
@@ -465,7 +299,7 @@ pub fn split_if_else_in_let_block(fmt_buffer: String, config: Config) -> String 
         let then_str = process_branch(branch_extractor.let_if_else.then_in_let[idx]);
         let else_str = process_branch(branch_extractor.let_if_else.else_in_let[idx]);
         let if_cond_range = branch_extractor.let_if_else.if_cond_in_let[idx];
-        let cond_end_line = get_nth_line(&fmt_buffer, if_cond_range.end.line as usize).unwrap_or_default();
+        let cond_end_line = fmt_lines.clone().nth(if_cond_range.end.line as usize).unwrap_or_default();
 
         // append line[last_line, if ()]
         // eg:
@@ -479,7 +313,7 @@ pub fn split_if_else_in_let_block(fmt_buffer: String, config: Config) -> String 
             ...
         */
         for idx in last_pos.0..if_cond_range.end.line as usize {
-            result.push_str(&get_nth_line(&fmt_buffer, idx).unwrap_or_default()[last_pos.1..]);
+            result.push_str(&fmt_lines.clone().nth(idx).unwrap_or_default()[last_pos.1..]);
             result.push_str(&"\n".to_string());
             last_pos = (idx + 1, 0);
         }
@@ -524,14 +358,15 @@ pub fn split_if_else_in_let_block(fmt_buffer: String, config: Config) -> String 
 
         last_pos = (branch_extractor.let_if_else.else_in_let[idx].end.line as usize, branch_extractor.let_if_else.else_in_let[idx].end.character as usize);
     }
-    // tracing::debug!("last_pos = \n{:?}", last_pos);
-    for idx in last_pos.0..fmt_buffer.lines().count() as usize {
-        result.push_str(&get_nth_line(&fmt_buffer, idx).unwrap_or_default()[last_pos.1..]);
-        if idx != fmt_buffer.lines().count() - 1 {
-            result.push_str(&"\n".to_string());
-        }
-        last_pos = (idx + 1, 0);
+    tracing::debug!("split_if_else_in_let_block -- processed need_split_idx");
+    tracing::debug!("last_pos = {:?}", last_pos);
+    let mut byte_idx = 0;
+    for idx in 0..last_pos.0 {
+        byte_idx = byte_idx + fmt_lines.clone().nth(idx).unwrap_or_default().chars().count() + 1;
     }
+    byte_idx = byte_idx + fmt_lines.clone().nth(last_pos.0).unwrap_or_default()[..last_pos.1].len();
+    result.push_str(&fmt_buffer[byte_idx..]);
+    tracing::debug!("split_if_else_in_let_block << done !!!");
     result
 }
 
