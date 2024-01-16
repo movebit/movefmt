@@ -629,6 +629,16 @@ impl Format {
             tok,
             note
         } = token {
+            // added in 20240115
+            if Tok::LBrace != *tok && self.branch_extractor.need_new_line_in_then_without_brace(
+                self.last_line(), 
+                *pos, 
+                self.global_cfg.clone()) {
+                tracing::debug!("need_new_line_in_then_without_brace[{:?}], add a new line", content);
+                self.inc_depth();
+                self.new_line(None);
+            }
+
             // add comment(xxx) before current simple_token
             self.add_comments(*pos, content.clone());
             /*
@@ -649,14 +659,6 @@ impl Format {
             }
 
             // added in 20240115
-            if Tok::LBrace != *tok && self.branch_extractor.need_new_line_in_then_without_brace(
-                self.last_line(), 
-                *pos, 
-                self.global_cfg.clone()) {
-                tracing::debug!("need_new_line_in_then_without_brace[{:?}], add a new line", content);
-                self.inc_depth();
-                self.new_line(None);
-            }
             if Tok::RBrace != *tok && self.branch_extractor.added_new_line_in_then_without_brace(*pos) {
                 self.dec_depth();
             }

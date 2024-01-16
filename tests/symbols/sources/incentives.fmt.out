@@ -1470,8 +1470,7 @@ module econia::incentives {
         // If an Econia fee store for the quote coin type has not
         // already been initialized at the fee account:
         if (!exists<EconiaFeeStore<QuoteCoinType>>(fee_account_address))
-        // Move to the Econia fee account an empty one.
-
+            // Move to the Econia fee account an empty one.
             move_to<EconiaFeeStore<QuoteCoinType>>(
                 &fee_account,
                 EconiaFeeStore {map: tablist::new()}
@@ -1528,8 +1527,7 @@ module econia::incentives {
         if (!exists<
                 IntegratorFeeStores<QuoteCoinType>
             >(integrator_address))
-        // Move to the integrator account an empty one.
-
+            // Move to the integrator account an empty one.
             move_to<
                 IntegratorFeeStores<QuoteCoinType>
             >(
@@ -1709,8 +1707,7 @@ module econia::incentives {
         );
         // If a utility coin store does not already exist at account,
         if (!exists<UtilityCoinStore<CoinType>>(address_of(fee_account)))
-        // Move to the fee account an initialized one.
-
+            // Move to the fee account an initialized one.
             move_to<UtilityCoinStore<CoinType>>(
                 fee_account,
                 UtilityCoinStore {coins: coin::zero<CoinType>()}
@@ -2153,8 +2150,8 @@ module econia::incentives {
         );
         // If Econia does not have coin store for coin type:
         if (!coin::is_account_registered<QuoteCoinType>(@econia))
-        // Register one.
-        coin::register<QuoteCoinType>(econia);
+            // Register one.
+            coin::register<QuoteCoinType>(econia);
         // Deposit quote coins to coin store under Econia account.
         coin::deposit(@econia, coins);
     }
@@ -2204,8 +2201,8 @@ module econia::incentives {
         let coins = withdraw_utility_coins_internal<UtilityCoinType>(econia, all, amount);
         // If Econia does not have coin store for coin type:
         if (!coin::is_account_registered<UtilityCoinType>(@econia))
-        // Register one.
-        coin::register<UtilityCoinType>(econia);
+            // Register one.
+            coin::register<UtilityCoinType>(econia);
         // Deposit utility coins to coin store under Econia account.
         coin::deposit(@econia, coins);
     }
