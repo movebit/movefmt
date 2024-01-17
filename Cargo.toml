@@ -20,42 +20,26 @@ app = { path = "src/app/mod.rs" }
 [dependencies]
 diff = "0.1"
 term = "0.7"
-cfg-if = "1.0.0"
 lazy_static = "1.4.0"
-wait-timeout = "0.2.0"
 regex = "1.5.5"
 bisection = "0.1.0"
 anyhow = "1.0.52"
 codespan-reporting = "0.11.1"
-derivative = "2.2.0"
-dunce = "1.0.2"
-im = "15.1.0"
 lsp-types = "0.94.0"
-petgraph = "0.5.1"
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0.64"
-tempfile = "3.2.0"
 url = "2.2.2"
-clap = { version = "3.1.8", features = ["derive"] }
-crossbeam = "0.8"
 thiserror = "1.0.40"
 walkdir = "2"
-log = "0.4.14"
-stderrlog = "0.5.4"
-enum-iterator = "1.2.0"
 getopts = "0.2"
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
-
+commentfmt = { version = "1.6.0", path = "src/comment_fmt" }
 move-command-line-common = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "989b7434e47f99f39269956fee23200c32331a98", package = "move-command-line-common" }
 move-compiler = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "989b7434e47f99f39269956fee23200c32331a98", package = "move-compiler" }
 move-ir-types = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "989b7434e47f99f39269956fee23200c32331a98", package = "move-ir-types" }
 move-package = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "989b7434e47f99f39269956fee23200c32331a98", package = "move-package" }
 move-symbol-pool = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "989b7434e47f99f39269956fee23200c32331a98", package = "move-symbol-pool" }
 move-core-types = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "989b7434e47f99f39269956fee23200c32331a98", package = "move-core-types" }
-
-commentfmt = { version = "1.6.0", path = "src/comment_fmt" }
-
 
 [target.'cfg(not(target_os= "windows"))'.dependencies]
 pprof = { version = "0.11.0" , features = ["flamegraph" , "protobuf"]}
@@ -64,5 +48,4 @@ pprof = { version = "0.11.0" , features = ["flamegraph" , "protobuf"]}
 debug = true
 
 [features]
-aptos = []
 pprof = []

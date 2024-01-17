@@ -417,7 +417,7 @@ pub fn cpu_pprof(_seconds: u64) {
                 tracing::debug!("pprof file at {:?}", tmp.as_path());
             }
             Result::Err(e) => {
-                log::error!("build report failed,err:{}", e);
+                tracing::error!("build report failed,err:{}", e);
             }
         };
     });
