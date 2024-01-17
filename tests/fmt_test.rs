@@ -57,7 +57,7 @@ fn test_single_file() {
         .init();
 
     test_on_file(&Path::new(
-        "/data/lzw/rust_projects/movefmt/tests/formatter/fun/input7.move",
+        "./tests/formatter/fun/input7.move",
     ));
 }
 
@@ -253,29 +253,29 @@ fn test_success_dir() {
         .init();
 
     let mut fmt_num = 0;
-    // eprintln!("formated {} files", scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/use"));
-    fmt_num = fmt_num + scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/tuple");
-    fmt_num = fmt_num + scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/expr");
-    fmt_num = fmt_num + scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/fun");
-    fmt_num = fmt_num + scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/struct");
-    fmt_num = fmt_num + scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/list");
-    fmt_num = fmt_num + scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/spec_struct");
-    fmt_num = fmt_num + scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/spec_module");
-    fmt_num = fmt_num + scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/lambda");
-    fmt_num = fmt_num + scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/spec_fun");
-    fmt_num = fmt_num + scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/other");
+    // eprintln!("formated {} files", scan_dir("./tests/formatter/use"));
+    fmt_num = fmt_num + scan_dir("./tests/formatter/tuple");
+    fmt_num = fmt_num + scan_dir("./tests/formatter/expr");
+    fmt_num = fmt_num + scan_dir("./tests/formatter/fun");
+    fmt_num = fmt_num + scan_dir("./tests/formatter/struct");
+    fmt_num = fmt_num + scan_dir("./tests/formatter/list");
+    fmt_num = fmt_num + scan_dir("./tests/formatter/spec_struct");
+    fmt_num = fmt_num + scan_dir("./tests/formatter/spec_module");
+    fmt_num = fmt_num + scan_dir("./tests/formatter/lambda");
+    fmt_num = fmt_num + scan_dir("./tests/formatter/spec_fun");
+    fmt_num = fmt_num + scan_dir("./tests/formatter/other");
     eprintln!("formated {} files", fmt_num);
 }
 
 #[test]
 fn test_dir() {
-    eprintln!("formated {} files", scan_dir("/data/lzw/rust_projects/movefmt/tests/formatter/other"));
+    eprintln!("formated {} files", scan_dir("./tests/formatter/other"));
 }
 
 #[test]
 fn regression_test_main() {
     let mut num: usize = 0;
-    for ten_dir in walkdir::WalkDir::new("/data/lzw/rust_projects/movefmt/tests/formatter") {
+    for ten_dir in walkdir::WalkDir::new("./tests/formatter") {
         let ten_dir = match ten_dir {
             Ok(ten_dir) => ten_dir,
             Err(_) => {
