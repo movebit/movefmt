@@ -63,8 +63,8 @@ fn add_space_for_comments(input: &str) -> String {
     let mut output = String::new();
     for line in input.lines() {
         let trimmed = line.trim();
-        let start_position = line.find(&trimmed).unwrap_or(0);  
-        output.push_str(&format!("{}", &line[0..start_position]));
+        let start_position = line.find(trimmed).unwrap_or(0);  
+        output.push_str(&line[0..start_position]);
         if trimmed.starts_with("///") && trimmed.chars().nth(3).map_or(true, |c| c != ' ') {
             output.push_str(&format!("/// {}", &trimmed[3..]));
         }
@@ -79,16 +79,15 @@ fn add_space_for_comments(input: &str) -> String {
             output.push_str(&format!("// {}", &trimmed[2..]));
         }
         else if trimmed.starts_with("/*") && trimmed.ends_with("*/") {  
-            // 处理单行块注释
+            // process single block comment
             let trimmed_cmt = &trimmed[2..trimmed.len() - 2].trim();
             output.push_str(&format!("/* {} */", &trimmed_cmt));  
-        } else if trimmed.starts_with("*") {  
-            // 处理多行块注释中的行
+        } else if trimmed.starts_with('*') {  
+            // process each line of multi-line block comment
             if trimmed == "*/" {
                 output.push_str("*/");
             }
             else if trimmed.ends_with("*/") {
-                // 处理多行块注释的结束符
                 if trimmed.chars().nth(1).map_or(true, |c| c != ' ')  {
                     output.push_str(&format!("* {}\n{}*/", &trimmed[1..trimmed.len() - 2], &line[0..start_position]));
                 } else {
@@ -101,16 +100,16 @@ fn add_space_for_comments(input: &str) -> String {
                 } else {
                     output.push_str(&format!("*{}", &trimmed[1..]));
                 }
-                output.push_str("\n");
+                output.push('\n');
             }
         } else {
-            output.push_str(&format!("{}", trimmed));
+            output.push_str(trimmed);
             let end_pos = start_position + trimmed.len();
             // tracing::debug!("output = {}", output);
             // tracing::debug!("line.len = {}, start_position = {}, end_pos = {}", line.len(), start_position, end_pos);
-            output.push_str(&format!("{}", &line[end_pos..]));
+            output.push_str(&line[end_pos..]);
             if !trimmed.starts_with("//") {
-                output.push_str("\n");
+                output.push('\n');
             }
         }
     }

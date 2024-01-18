@@ -147,12 +147,12 @@ impl TokenTree {
                 pos: _,
                 tok: _,
                 note,
-            } => note.clone(),
+            } => *note,
             TokenTree::Nested {
                 elements: _,
                 kind: _,
                 note,
-            } => note.clone(),
+            } => *note,
         }
     }
     pub fn end_pos(&self) -> u32 {
@@ -267,23 +267,22 @@ impl<'a> Parser<'a> {
                 // try drop
                 for (_, end) in &self.type_lambda_pair[self.type_lambda_pair_index..] {
                     if end < &pos {
-                        //
-                        self.type_lambda_pair_index = self.type_lambda_pair_index + 1;
+                        self.type_lambda_pair_index += 1;
                     } else {
                         break;
                     }
                 }
 
-                for (start, end) in &self.type_lambda_pair[self.type_lambda_pair_index..] {
+                if let Some((start, end)) = self.type_lambda_pair[self.type_lambda_pair_index..].iter().next() {
                     if &pos >= start && &pos <= end {
                         return Some(t);
                     } else {
                         return None;
                     }
                 }
-                return None;
+                None
             }
-            _ => return Some(t),
+            _ => Some(t),
         }
     }
 
@@ -376,8 +375,6 @@ impl<'a> Parser<'a> {
             }
         });
 
-        //// all collector functions.
-
         fn collect_definition(p: &mut Parser, d: &Definition) {
             match d {
                 Definition::Module(x) => collect_module(p, x),
@@ -420,7 +417,7 @@ impl<'a> Parser<'a> {
 
         fn collect_seq_item(p: &mut Parser, s: &SequenceItem) {
             match &s.value {
-                SequenceItem_::Seq(e) => collect_expr(p, &e),
+                SequenceItem_::Seq(e) => collect_expr(p, e),
                 SequenceItem_::Declare(_, ty) => {
                     if let Some(ty) = ty {
                         collect_ty(p, ty);
@@ -430,7 +427,7 @@ impl<'a> Parser<'a> {
                     if let Some(ty) = ty {
                         collect_ty(p, ty);
                     }
-                    collect_expr(p, &e);
+                    collect_expr(p, e);
                 }
             }
         }
@@ -667,7 +664,7 @@ impl<'a> Parser<'a> {
 fn analyzer_token_tree_length_(ret: &mut usize, token_tree: &TokenTree, max: usize) {
     match token_tree {
         TokenTree::SimpleToken { content, .. } => {
-            *ret = *ret + content.len();
+            *ret += content.len();
         }
         TokenTree::Nested { elements, .. } => {
             for t in elements.iter() {
@@ -676,7 +673,7 @@ fn analyzer_token_tree_length_(ret: &mut usize, token_tree: &TokenTree, max: usi
                     return;
                 }
             }
-            *ret = *ret + 2; // for delimiter.
+            *ret += 2; // for delimiter.
         }
     }
 }
@@ -779,7 +776,7 @@ impl CommentExtrator {
                         depth = 0;
                         state = ExtratorCommentState::Init;
                     } else {
-                        depth = depth - 1;
+                        depth -= 1;
                         state = ExtratorCommentState::BlockComment;
                     }
                 }
@@ -814,14 +811,12 @@ impl CommentExtrator {
                     } else if *c == STAR {
                         comment.push(SLASH);
                         comment.push(STAR);
-                        depth = depth + 1;
+                        depth += 1;
                         state = ExtratorCommentState::BlockComment;
+                    } else if depth == 0 {
+                        state = ExtratorCommentState::Init;
                     } else {
-                        if depth == 0 {
-                            state = ExtratorCommentState::Init;
-                        } else {
-                            state = ExtratorCommentState::BlockComment;
-                        }
+                        state = ExtratorCommentState::BlockComment;
                     }
                 }
                 ExtratorCommentState::BlockComment => {

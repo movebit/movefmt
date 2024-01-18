@@ -20,9 +20,9 @@ pub struct PathBufHashMap {
 impl PathBufHashMap {
     pub fn update(&mut self, path: PathBuf, hash: FileHash) {
         if let Some(hash) = self.path_2_hash.get(&path) {
-            self.hash_2_path.remove(&hash);
+            self.hash_2_path.remove(hash);
         }
-        self.path_2_hash.insert(path.clone(), hash.clone());
+        self.path_2_hash.insert(path.clone(), hash);
         self.hash_2_path.insert(hash, path);
     }
     pub(crate) fn get_hash(&self, path: &PathBuf) -> Option<&'_ FileHash> {
@@ -104,9 +104,9 @@ impl FileLineMapping {
         fn search(vec: &[ByteIndex], byte_index: ByteIndex) -> (u32, u32) {
             let mut index = bisection::bisect_left(vec, &byte_index);
             if vec[index] != byte_index {
-                index = index - 1;
+                index -= 1;
             }
-            (index as u32, byte_index - vec[index as usize])
+            (index as u32, byte_index - vec[index])
         }
 
         let (line_start, col_start) = search(&vec[..], start_index);
@@ -233,10 +233,7 @@ impl FileRange {
 /// Path concat from
 pub fn path_concat(p1: &Path, p2: &Path) -> PathBuf {
     let p2: Vec<_> = p2.components().collect();
-    let is_abs = match p2.get(0).unwrap() {
-        Component::RootDir | Component::Prefix(_) => true,
-        _ => false,
-    };
+    let is_abs = matches!(p2.get(0).unwrap(), Component::RootDir | Component::Prefix(_));
     let mut p1: Vec<_> = p1.components().collect();
     normal_path_components(if is_abs {
         &p2
@@ -263,7 +260,7 @@ pub fn path_concat_move_toml(p1: &Path, p2: &Path) -> PathBuf {
     }
 }
 
-pub fn normal_path_components<'a>(x: &Vec<Component<'a>>) -> PathBuf {
+pub fn normal_path_components(x: &Vec<Component<'_>>) -> PathBuf {
     let mut ret = PathBuf::new();
     for v in x {
         match v {
@@ -378,16 +375,15 @@ pub fn mk_result_filepath(x: &PathBuf) -> PathBuf {
     let b = x
         .components()
         .last()
-        .map(|x| x.as_os_str().to_str())
-        .flatten()
+        .and_then(|x| x.as_os_str().to_str())
         .unwrap()
         .to_string();
-    let index = b.as_str().rfind(".").unwrap();
+    let index = b.as_str().rfind('.').unwrap();
     x.pop();
     let mut ret = x.clone();
     ret.push(format!(
         "{}{}",
-        b.as_str()[0..index].to_string(),
+        &b.as_str()[0..index],
         ".fmt.out"
     ));
     ret

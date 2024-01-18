@@ -22,12 +22,9 @@ pub fn add_space_line_in_two_fun(fmt_buffer: String) -> String {
         let cap = cap[0].to_string();
         if cap.chars().filter(|c| *c == '\n').count() == 1 {
             // tracing::debug!("cap = {:?}", cap);
-            match fmt_buffer.find(&cap) {
-                Some(idx) => {
-                    ret_fmt_buffer.insert(idx + 2, '\n');
-                    // tracing::debug!("after insert, cap = {:?}", &ret_fmt_buffer[idx..idx+cap.len()]);
-                },
-                _ => {},
+            if let Some(idx) = fmt_buffer.find(&cap) {
+                ret_fmt_buffer.insert(idx + 2, '\n');
+                // tracing::debug!("after insert, cap = {:?}", &ret_fmt_buffer[idx..idx+cap.len()]);
             }
         } else {
             // tracing::debug!("cap = {:?}", cap);
@@ -66,7 +63,7 @@ impl FunExtractor {
         let (defs, _) = parse_file_string(&mut env, filehash, &fmt_buffer).unwrap();
         
         for d in defs.iter() {
-            this_fun_extractor.cur_module_id = this_fun_extractor.cur_module_id + 1;
+            this_fun_extractor.cur_module_id += 1;
             this_fun_extractor.collect_definition(d);
         }
 
@@ -90,10 +87,7 @@ impl FunExtractor {
 
     fn collect_module(&mut self, d: &ModuleDefinition) {
         for m in d.members.iter() {
-            match &m {
-                ModuleMember::Function(x) => self.collect_function(x),
-                _ => {},
-            }
+            if let ModuleMember::Function(x) = &m { self.collect_function(x) }
         }
     }
 
@@ -121,7 +115,7 @@ fn get_nth_line(s: &str, n: usize) -> Option<&str> {
 fn get_space_cnt_before_line_str(s: &str) -> usize {
     let mut result = 0;
     let trimed_header_prefix = s.trim_start();
-    if trimed_header_prefix.len() > 0 {
+    if !trimed_header_prefix.is_empty(){
         if let Some(indent) = s.find(trimed_header_prefix) {
             result = indent;
         }
@@ -172,17 +166,9 @@ pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &String) -> 
         lexer.advance().unwrap();
     }
 
-    // let tokens: Vec<&str> = specifier.split(' ').collect();  
-  
-    // for token in tokens {  
-    //     tracing::debug!("{}", token);  
-    // }  
-    // tracing::debug!("-======================");
-
-    let mut tokens = specifier.split_whitespace();
-   
+    // let tokens: Vec<&str> = specifier.split(' ').collect();
     let mut fun_specifiers = vec![];
-    while let Some(token) = tokens.next() {  
+    for token in specifier.split_whitespace() {
         fun_specifiers.push(token);
     }
 
@@ -204,21 +190,20 @@ pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &String) -> 
             if i + 1 == fun_specifiers.len() {
                 return chain;
             }
-            let mut old_last_substr_len = last_substr_len.clone();
+            let mut old_last_substr_len = *last_substr_len;
             for j in (i + 1)..fun_specifiers.len() {
                 let mut this_token_is_comment = true;
-                let iter_specifier = &specifier[last_substr_len.clone()..];
+                let iter_specifier = &specifier[*last_substr_len..];
                 if let Some(idx) = iter_specifier.find(fun_specifiers[j]) {
                     // if this token's pos not comment
-                    for token_idx in 0..fun_specifiers_code.len() {
-                        let token = &fun_specifiers_code[token_idx];
-                        if token.0 == (idx + last_substr_len.clone()) as u32 {
+                    for token in &mut *fun_specifiers_code {
+                        if token.0 == (idx + *last_substr_len) as u32 {
                             this_token_is_comment = false;
                             break;
                         }
                     }
-                    old_last_substr_len = last_substr_len.clone();
-                    *last_substr_len = last_substr_len.clone() + idx + fun_specifiers[j].len();
+                    old_last_substr_len = *last_substr_len;
+                    *last_substr_len = *last_substr_len + idx + fun_specifiers[j].len();
                 }
         
                 if this_token_is_comment {
@@ -236,9 +221,9 @@ pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &String) -> 
                     *last_substr_len =  old_last_substr_len;
                     break;
                 } else {
-                    let judge_new_line = &specifier[old_last_substr_len..last_substr_len.clone()];
+                    let judge_new_line = &specifier[old_last_substr_len..*last_substr_len];
                     // tracing::debug!("judge_new_line = {:?}", judge_new_line);
-                    if judge_new_line.contains("\n") {
+                    if judge_new_line.contains('\n') {
                         chain.push("\n".to_string());
                         let tmp_indent_str = " ".to_string()
                                     .repeat(indent_str.clone().chars().filter(|c| *c == ' ').count() - 2);
@@ -285,11 +270,11 @@ pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &String) -> 
                 found_specifier = true;
             }
 
-            fun_specifier_fmted_str.push_str(&"\n".to_string());
-            fun_specifier_fmted_str.push_str(&indent_str);
-            fun_specifier_fmted_str.push_str(&specifier_set.to_string());
+            fun_specifier_fmted_str.push('\n');
+            fun_specifier_fmted_str.push_str(indent_str);
+            fun_specifier_fmted_str.push_str(specifier_set);
             if specifier_set != "pure" {
-                fun_specifier_fmted_str.push_str(&" ".to_string());
+                fun_specifier_fmted_str.push(' ');
                 fun_specifier_fmted_str.push_str(&(parse_access_specifier_list(
                     &mut last_substr_len, &mut fun_specifiers_code).join(" ")));
             }
@@ -304,7 +289,7 @@ pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &String) -> 
     let mut ret_str = specifier[0..first_specifier_idx].to_string();
     if found_specifier {
         ret_str.push_str(fun_specifier_fmted_str.as_str());
-        ret_str.push_str(&" ".to_string());
+        ret_str.push(' ');
         // tracing::debug!("fun_specifier_fmted_str = --------------{}", ret_str);
     } else {
         ret_str = specifier.to_string();
@@ -322,19 +307,14 @@ pub(crate) fn process_block_comment_before_fun_header(fmt_buffer: String, config
         let fun_header_str = get_nth_line(buf.as_str(), *fun_start_line as usize).unwrap_or_default();
         let mut lexer = Lexer::new(fun_header_str, FileHash::empty());
         lexer.advance().unwrap();
-        while lexer.peek() != Tok::EOF {
-            // tracing::debug!("fun_extractor.loc_vec[fun_idx].start() = {:?}", fun_extractor.loc_vec[fun_idx].start());
-            if fun_header_str[0..lexer.start_loc()].trim_start().len() > 0 {
-                let mut insert_str = "\n".to_string();
-                insert_str.push_str(" ".to_string().repeat(config.indent_size()).as_str());
-                result.insert_str(fun_extractor.loc_vec[fun_idx].start() as usize + insert_char_nums, 
-                    &insert_str);
-                insert_char_nums = insert_char_nums + insert_str.len();
-            }
-            // tracing::debug!("token[{:?}] = {:?}", lexer.start_loc(), lexer.content());
-            break;
+        if lexer.peek() != Tok::EOF && !fun_header_str[0..lexer.start_loc()].trim_start().is_empty() {
+            let mut insert_str = "\n".to_string();
+            insert_str.push_str(" ".to_string().repeat(config.indent_size()).as_str());
+            result.insert_str(fun_extractor.loc_vec[fun_idx].start() as usize + insert_char_nums, 
+                &insert_str);
+            insert_char_nums += insert_str.len();
         }
-        fun_idx = fun_idx + 1;
+        fun_idx += 1;
     }
 
     result
@@ -350,19 +330,19 @@ pub(crate) fn process_fun_header_too_long(fmt_buffer: String, config: Config) ->
         let ret_ty_loc = fun_extractor.ret_ty_loc_vec[fun_idx];
         if ret_ty_loc.start() < fun_loc.start() {
             // this fun return void
-            fun_idx = fun_idx + 1;
+            fun_idx += 1;
             continue;
         }
 
         let mut fun_name_str = &buf[fun_loc.start() as usize..ret_ty_loc.start() as usize];
-        if fun_name_str.chars().filter(|&ch| ch == '\n').collect::<String>().len() >= 1 {
+        if !fun_name_str.chars().filter(|&ch| ch == '\n').collect::<String>().is_empty() {
             // if it is multi line
-            fun_idx = fun_idx + 1;
+            fun_idx += 1;
             continue;
         }
         let ret_ty_len = (ret_ty_loc.end() - ret_ty_loc.start()) as usize;
         if fun_name_str.len() + ret_ty_len < config.max_width()  {
-            fun_idx = fun_idx + 1;
+            fun_idx += 1;
             continue;
         }
 
@@ -379,7 +359,7 @@ pub(crate) fn process_fun_header_too_long(fmt_buffer: String, config: Config) ->
         tracing::debug!("fun_name_str = {}", fun_name_str);
         // there maybe comment bewteen fun_name and ret_ty
         if fun_name_str.len() + ret_ty_len < config.max_width()  {
-            fun_idx = fun_idx + 1;
+            fun_idx += 1;
             continue;
         }
 
@@ -388,16 +368,16 @@ pub(crate) fn process_fun_header_too_long(fmt_buffer: String, config: Config) ->
         let start_line = line_mapping.translate(fun_loc.start(), fun_loc.start()).unwrap().start.line;
         let fun_header_str = get_nth_line(buf.as_str(), start_line as usize).unwrap_or_default();
         let trimed_header_prefix = fun_header_str.trim_start();
-        if trimed_header_prefix.len() > 0 {
+        if !trimed_header_prefix.is_empty() {
             let mut insert_str = "\n".to_string();
             if let Some(indent) = fun_header_str.find(trimed_header_prefix) {
                 insert_str.push_str(" ".to_string().repeat(indent + config.indent_size()).as_str());
             }
             result.insert_str(fun_loc.start() as usize + insert_char_nums + insert_loc, 
                         &insert_str);
-            insert_char_nums = insert_char_nums + insert_str.len();
+            insert_char_nums += insert_str.len();
         }
-        fun_idx = fun_idx + 1;
+        fun_idx += 1;
     }
     result
 }
@@ -415,7 +395,7 @@ pub(crate) fn process_fun_ret_ty(fmt_buffer: String, config: Config) -> String {
         let ret_ty_loc = fun_extractor.ret_ty_loc_vec[fun_idx];
         if ret_ty_loc.start() < fun_loc.start() {
             // this fun return void
-            fun_idx = fun_idx + 1;
+            fun_idx += 1;
             continue;
         }
 
@@ -437,7 +417,7 @@ pub(crate) fn process_fun_ret_ty(fmt_buffer: String, config: Config) -> String {
                 // tracing::debug!("fun_header_str = \n{:?}", &buf[0..(ret_ty_loc.start() as usize - ret_ty_str.len())]);
                 result.insert_str(ret_ty_loc.start() as usize - ret_ty_str.len() + insert_char_nums, 
                 " ".to_string().repeat(config.indent_size()).as_str());
-                insert_char_nums = insert_char_nums + config.indent_size();
+                insert_char_nums += config.indent_size();
             }
         }
     }
@@ -450,7 +430,7 @@ pub(crate) fn process_fun_annotation(kind: NestKind, elements: Vec<TokenTree>) -
         let mut fmt_result_str = "".to_string();
         fmt_result_str.push_str(token.simple_str().unwrap_or_default());
         if expr_fmt::need_space(token, next_token) {
-            fmt_result_str.push_str(" ");
+            fmt_result_str.push(' ');
         }
         fmt_result_str
     }
@@ -468,7 +448,7 @@ pub(crate) fn process_fun_annotation(kind: NestKind, elements: Vec<TokenTree>) -
                 let t = elements.get(internal_token_idx).unwrap();
                 let next_t = elements.get(internal_token_idx + 1);
                 fmt_result_str.push_str(&process_token_trees(t, next_t));
-                internal_token_idx = internal_token_idx + 1;
+                internal_token_idx += 1;
             }
             fmt_result_str.push_str(kind.end_token_tree().simple_str().unwrap_or_default());
         }
@@ -494,8 +474,8 @@ pub(crate) fn process_fun_annotation(kind: NestKind, elements: Vec<TokenTree>) -
     if NestKind_::Bracket == kind.kind {
         let fmt_result_str = process_nested_token(
             &TokenTree::Nested {
-                elements: elements,
-                kind: kind,
+                elements,
+                kind,
                 note: None,
             });
         tracing::debug!("fmt_result_str = {}", fmt_result_str);

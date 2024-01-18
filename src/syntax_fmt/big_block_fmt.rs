@@ -136,7 +136,7 @@ pub fn add_blank_row_in_two_blocks(fmt_buffer: String) -> String {
                 true
             } else {
                 let the_row_after_blk1_end = get_nth_line(buf.as_str(), (blk1_end_line + 1) as usize).unwrap_or_default();
-                let trimed_prefix = the_row_after_blk1_end.trim_start().split(" ");
+                let trimed_prefix = the_row_after_blk1_end.trim_start().split(' ');
                 if trimed_prefix.count() > 1 || the_row_after_blk1_end.trim_start().len() >= 2 {
                     // there are code or comment located in line(blk1_end_line + 1)
                     // tracing::debug!("trimed_prefix = {:?}", trimed_prefix);
@@ -150,10 +150,10 @@ pub fn add_blank_row_in_two_blocks(fmt_buffer: String) -> String {
         if is_need_blank_row {
             let mut insert_pos = big_block_extractor.blk_loc_vec[pre_blk_idx].end() as usize + insert_char_nums;
             while result.chars().nth(insert_pos).unwrap_or_default() != '\n' {
-                insert_pos = insert_pos + 1;
+                insert_pos += 1;
             }
             result.insert(insert_pos, '\n');
-            insert_char_nums = insert_char_nums + 1;
+            insert_char_nums += 1;
         }
     }
     result

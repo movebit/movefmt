@@ -89,56 +89,47 @@ impl SpecExtractor {
         // tracing::debug!("collect_spec spec_block = {:?}", spec_block);
         self.blk_loc_vec.push(spec_block.loc);
 
-        match &spec_block.value.target.value {
-            SpecBlockTarget_::Member(member_name, Some(signature)) => {
-                let start_line = self.line_mapping.translate(spec_block.value.target.loc.start(), spec_block.value.target.loc.start()).unwrap().start.line;
-                let end_line = self.line_mapping.translate(spec_block.value.target.loc.end(), spec_block.value.target.loc.end()).unwrap().start.line;
-                self.spec_fn_loc_vec.push(spec_block.value.target.loc);
-                self.spec_fn_name_loc_vec.push(member_name.loc);
-                self.spec_fn_para_loc_vec.push(
-                    if signature.parameters.len() > 0 {
-                        signature.parameters[0].0.loc()
-                    } else {
-                        signature.return_type.loc
-                    }
-                );
-                self.spec_fn_ret_ty_loc_vec.push(signature.return_type.loc);
-                // self.spec_fn_body_loc_vec.push(body.loc);
-                self.spec_fn_loc_line_vec.push((start_line, end_line));
-            },
-            _ => {}
+        if let SpecBlockTarget_::Member(member_name, Some(signature)) = &spec_block.value.target.value {
+            let start_line = self.line_mapping.translate(spec_block.value.target.loc.start(), spec_block.value.target.loc.start()).unwrap().start.line;
+            let end_line = self.line_mapping.translate(spec_block.value.target.loc.end(), spec_block.value.target.loc.end()).unwrap().start.line;
+            self.spec_fn_loc_vec.push(spec_block.value.target.loc);
+            self.spec_fn_name_loc_vec.push(member_name.loc);
+            self.spec_fn_para_loc_vec.push(
+                if !signature.parameters.is_empty() {
+                    signature.parameters[0].0.loc()
+                } else {
+                    signature.return_type.loc
+                }
+            );
+            self.spec_fn_ret_ty_loc_vec.push(signature.return_type.loc);
+            // self.spec_fn_body_loc_vec.push(body.loc);
+            self.spec_fn_loc_line_vec.push((start_line, end_line));
         }
 
         for m in spec_block.value.members.iter() {
             // tracing::debug!("collect_spec spec_block.value.member = {:?}", m);
-            match &m.value {
-                SpecBlockMember_::Function {
-                    uninterpreted: _,
-                    name,
-                    signature,
-                    body,
-                } => {
-                    match &body.value {
-                        FunctionBody_::Defined(..) => {
-                            let start_line = self.line_mapping.translate(m.loc.start(), m.loc.start()).unwrap().start.line;
-                            let end_line = self.line_mapping.translate(m.loc.end(), m.loc.end()).unwrap().start.line;
-                            self.spec_fn_loc_vec.push(m.loc);
-                            self.spec_fn_name_loc_vec.push(name.0.loc);
-                            self.spec_fn_para_loc_vec.push(
-                                if signature.parameters.len() > 0 {
-                                    signature.parameters[0].0.loc()
-                                } else {
-                                    signature.return_type.loc
-                                }
-                            );
-                            self.spec_fn_ret_ty_loc_vec.push(signature.return_type.loc);
-                            self.spec_fn_body_loc_vec.push(body.loc);
-                            self.spec_fn_loc_line_vec.push((start_line, end_line));
-                        },
-                        FunctionBody_::Native => {}
-                    }
+            if let SpecBlockMember_::Function {
+                uninterpreted: _,
+                name,
+                signature,
+                body,
+            } = &m.value {
+                if let FunctionBody_::Defined(..) = &body.value {
+                    let start_line = self.line_mapping.translate(m.loc.start(), m.loc.start()).unwrap().start.line;
+                    let end_line = self.line_mapping.translate(m.loc.end(), m.loc.end()).unwrap().start.line;
+                    self.spec_fn_loc_vec.push(m.loc);
+                    self.spec_fn_name_loc_vec.push(name.0.loc);
+                    self.spec_fn_para_loc_vec.push(
+                        if !signature.parameters.is_empty() {
+                            signature.parameters[0].0.loc()
+                        } else {
+                            signature.return_type.loc
+                        }
+                    );
+                    self.spec_fn_ret_ty_loc_vec.push(signature.return_type.loc);
+                    self.spec_fn_body_loc_vec.push(body.loc);
+                    self.spec_fn_loc_line_vec.push((start_line, end_line));
                 }
-                _ => {}
             }
         }
     }
@@ -215,7 +206,7 @@ pub fn add_blank_row_in_two_blocks(fmt_buffer: String) -> String {
             } else {
                 let the_row_after_blk1_end = get_nth_line(buf.as_str(), (blk1_end_line + 1) as usize).unwrap_or_default();
                 let trimed_prefix = the_row_after_blk1_end.trim_start();
-                if trimed_prefix.len() > 0 {
+                if !trimed_prefix.is_empty() {
                     // there are code or comment located in line(blk1_end_line + 1)
                     // tracing::debug!("trimed_prefix = {:?}", trimed_prefix);
                     true 
@@ -227,7 +218,7 @@ pub fn add_blank_row_in_two_blocks(fmt_buffer: String) -> String {
         if is_need_blank_row {
             result.insert(spec_extractor.blk_loc_vec[pre_blk_idx].end() as usize + insert_char_nums + 1, 
                 '\n');
-            insert_char_nums = insert_char_nums + 1;
+            insert_char_nums += 1;
         }
     }
 
@@ -247,18 +238,14 @@ pub fn process_block_comment_before_spec_header(fmt_buffer: String, config: Conf
         let filehash = FileHash::empty();
         let mut lexer = Lexer::new(fun_header_str, filehash);
         lexer.advance().unwrap();
-        while lexer.peek() != Tok::EOF {
-            if fun_header_str[0..lexer.start_loc()].trim_start().len() > 0 {
-                let mut insert_str = "\n".to_string();
-                insert_str.push_str(" ".to_string().repeat(config.indent_size()).as_str());
-                result.insert_str(spec_extractor.spec_fn_loc_vec[fun_idx].start() as usize + insert_char_nums, 
-                    &insert_str);
-                insert_char_nums = insert_char_nums + insert_str.len();
-            }
-            // tracing::debug!("token[{:?}] = {:?}", lexer.start_loc(), lexer.content());
-            break;
+        if lexer.peek() != Tok::EOF && !fun_header_str[0..lexer.start_loc()].trim_start().is_empty() {
+            let mut insert_str = "\n".to_string();
+            insert_str.push_str(" ".to_string().repeat(config.indent_size()).as_str());
+            result.insert_str(spec_extractor.spec_fn_loc_vec[fun_idx].start() as usize + insert_char_nums, 
+                &insert_str);
+            insert_char_nums += insert_str.len();
         }
-        fun_idx = fun_idx + 1;
+        fun_idx += 1;
     }
 
     result
@@ -275,20 +262,20 @@ pub fn process_spec_fn_header_too_long(fmt_buffer: String, config: Config) -> St
         let ret_ty_loc = spec_extractor.spec_fn_ret_ty_loc_vec[fun_idx];
         if ret_ty_loc.start() < fun_loc.start() {
             // this fun return void
-            fun_idx = fun_idx + 1;
+            fun_idx += 1;
             continue;
         }
 
         let mut fun_name_str = &buf[fun_loc.start() as usize..ret_ty_loc.start() as usize];
-        if fun_name_str.chars().filter(|&ch| ch == '\n').collect::<String>().len() >= 1 {
+        if !fun_name_str.chars().filter(|&ch| ch == '\n').collect::<String>().is_empty() {
             // if it is multi line
-            fun_idx = fun_idx + 1;
+            fun_idx += 1;
             continue;
         }
 
         let ret_ty_len = (ret_ty_loc.end() - ret_ty_loc.start()) as usize;
         if fun_name_str.len() + ret_ty_len < config.max_width() {
-            fun_idx = fun_idx + 1;
+            fun_idx += 1;
             continue;
         }
 
@@ -313,7 +300,7 @@ pub fn process_spec_fn_header_too_long(fmt_buffer: String, config: Config) -> St
         tracing::debug!("spec_fun_name_str = {}", fun_name_str);
         // there maybe comment bewteen fun_name and ret_ty
         if fun_name_str.len() + ret_ty_len < config.max_width() {
-            fun_idx = fun_idx + 1;
+            fun_idx += 1;
             continue;
         }
 
@@ -322,16 +309,16 @@ pub fn process_spec_fn_header_too_long(fmt_buffer: String, config: Config) -> St
         let start_line = line_mapping.translate(fun_loc.start(), fun_loc.start()).unwrap().start.line;
         let fun_header_str = get_nth_line(buf.as_str(), start_line as usize).unwrap_or_default();
         let trimed_header_prefix = fun_header_str.trim_start();
-        if trimed_header_prefix.len() > 0 {
+        if !trimed_header_prefix.is_empty() {
             let mut insert_str = "\n".to_string();
             if let Some(indent) = fun_header_str.find(trimed_header_prefix) {
                 insert_str.push_str(" ".to_string().repeat(indent + config.indent_size()).as_str());
             }
             result.insert_str(fun_loc.start() as usize + insert_char_nums + insert_loc, 
                         &insert_str);
-            insert_char_nums = insert_char_nums + insert_str.len();
+            insert_char_nums += insert_str.len();
         }
-        fun_idx = fun_idx + 1;
+        fun_idx += 1;
     }
     result
 }
