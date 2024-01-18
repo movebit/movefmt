@@ -209,18 +209,16 @@ fn format(
                         use_config = local_config.clone();
                     }
                 }
-            } else {
-                if use_config.verbose() == Verbosity::Verbose {
-                    println!(
-                        "Using movefmt config file {} for {}",
-                        config_path.clone().unwrap_or_default().display(),
-                        file.display()
-                    );
-                }
+            } else if use_config.verbose() == Verbosity::Verbose {
+                println!(
+                    "Using movefmt config file {} for {}",
+                    config_path.clone().unwrap_or_default().display(),
+                    file.display()
+                );
             }
         }
         
-        let content_origin = std::fs::read_to_string(&file.as_path()).unwrap();
+        let content_origin = std::fs::read_to_string(file.as_path()).unwrap();
         match format_entry(content_origin.clone(), use_config.clone()) {
             Ok(formatted_text) => {
                 match config.emit_mode() {
@@ -263,12 +261,10 @@ fn print_version() {
 fn determine_operation(matches: &Matches) -> Result<Operation, OperationError> {
     if matches.opt_present("h") {
         let topic = matches.opt_str("h");
-        if topic == None {
+        if topic.is_none() {
             return Ok(Operation::Help(HelpOp::None));
         } else if topic == Some("config".to_owned()) {
             return Ok(Operation::Help(HelpOp::Config));
-        } else {
-            return Err(OperationError::UnknownHelpTopic(topic.unwrap()));
         }
     }
     let mut free_matches = matches.free.iter();
@@ -321,9 +317,11 @@ struct GetOptsOptions {
 
 impl GetOptsOptions {
     pub fn from_matches(matches: &Matches) -> Result<GetOptsOptions> {
-        let mut options = GetOptsOptions::default();
-        options.verbose = matches.opt_present("verbose");
-        options.quiet = matches.opt_present("quiet");
+        let mut options = GetOptsOptions {  
+            verbose: matches.opt_present("verbose"),  
+            quiet: matches.opt_present("quiet"),  
+            ..Default::default()  
+        };
         if options.verbose && options.quiet {
             return Err(format_err!("Can't use both `--verbose` and `--quiet`"));
         }

@@ -370,8 +370,8 @@ impl Timer {
     }
 }
 
-pub fn mk_result_filepath(x: &PathBuf) -> PathBuf {
-    let mut x = x.clone();
+pub fn mk_result_filepath(x: &Path) -> PathBuf {
+    let mut x = x.to_path_buf();
     let b = x
         .components()
         .last()

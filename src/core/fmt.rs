@@ -245,7 +245,7 @@ impl Format {
 
     fn need_new_line_for_each_token_in_nested(
         kind: &NestKind,
-        elements: &Vec<TokenTree>,
+        elements: &[TokenTree],
         delimiter: Option<Delimiter>,
         has_colon: bool,
         index: usize,
@@ -431,14 +431,16 @@ impl Format {
 
     fn format_single_token(
         &self,
-        kind: &NestKind,
-        elements: &Vec<TokenTree>,
-        token: &TokenTree,
-        next_t: Option<&TokenTree>,
+        nested_token: &TokenTree,
+        internal_token_idx: usize,
         pound_sign_new_line: bool,
         new_line: bool,
         pound_sign: &mut Option<usize>,
     ) {
+        let TokenTree::Nested { elements, kind, note: _ } = nested_token else { return; };
+        let token = elements.get(internal_token_idx).unwrap();
+        let next_t = elements.get(internal_token_idx + 1);
+
         if !new_line && token.simple_str().is_some() {
             if let NestKind_::Brace = kind.kind {
                 if elements.len() == 1 {
@@ -485,13 +487,11 @@ impl Format {
         has_colon: bool,
         b_new_line_mode: bool
     ) {
+        let nested_token = TokenTree::Nested { elements: elements.clone(), kind: *kind, note: None };
         let mut pound_sign = None;
         let len = elements.len();
         let mut internal_token_idx = 0;
         while internal_token_idx < len {
-            let t = elements.get(internal_token_idx).unwrap();
-            let next_t = elements.get(internal_token_idx + 1);
-
             let pound_sign_new_line =
                 pound_sign.map(|x| (x + 1) == internal_token_idx).unwrap_or_default();
 
@@ -504,7 +504,7 @@ impl Format {
                 b_new_line_mode
             );
 
-            if t.is_pound() {
+            if elements.get(internal_token_idx).unwrap().is_pound() {
                 pound_sign = Some(internal_token_idx)
             }
 
@@ -514,9 +514,7 @@ impl Format {
                     self.inc_depth();
                     let mut is_dot_new_line = true;
                     while internal_token_idx <= index + 1 {
-                        let t = elements.get(internal_token_idx).unwrap();
-                        let next_t = elements.get(internal_token_idx + 1);
-                        self.format_single_token(kind, elements, t, next_t, false, is_dot_new_line, &mut pound_sign);
+                        self.format_single_token(&nested_token, internal_token_idx, false, is_dot_new_line, &mut pound_sign);
                         internal_token_idx += 1;
                         is_dot_new_line = !is_dot_new_line;
                     }
@@ -527,7 +525,7 @@ impl Format {
                 }
             }
 
-            self.format_single_token(kind, elements, t, next_t, pound_sign_new_line, new_line, &mut pound_sign);
+            self.format_single_token(&nested_token, internal_token_idx, pound_sign_new_line, new_line, &mut pound_sign);
             internal_token_idx += 1;
         }
     }
@@ -848,7 +846,7 @@ impl Format {
 
     /// analyzer a `Nested` token tree.
     fn analyze_token_tree_delimiter(
-        token_tree: &Vec<TokenTree>,
+        token_tree: &[TokenTree],
     ) -> (
         Option<Delimiter>, // if this is a `Delimiter::Semicolon` we can know this is a function body or etc.
         bool,              // has a `:`

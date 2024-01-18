@@ -679,7 +679,7 @@ fn analyzer_token_tree_length_(ret: &mut usize, token_tree: &TokenTree, max: usi
 }
 
 /// analyzer How long is list of token_tree
-pub(crate) fn analyze_token_tree_length(token_tree: &Vec<TokenTree>, max: usize) -> usize {
+pub(crate) fn analyze_token_tree_length(token_tree: &[TokenTree], max: usize) -> usize {
     let mut ret = usize::default();
     for t in token_tree.iter() {
         analyzer_token_tree_length_(&mut ret, t, max);
@@ -852,17 +852,9 @@ impl CommentExtrator {
                     }
                 }
                 ExtratorCommentState::Quote => {
-                    // handle \"
+                    // handle \" or handle \\
                     if *c == BLACK_SLASH
-                        && content.get(index + 1).map(|x| *x == QUOTE).unwrap_or(false)
-                    {
-                        index += 2;
-                        continue;
-                    } else if *c == BLACK_SLASH  // handle \\
-                        && content
-                            .get(index + 1)
-                            .map(|x| *x == BLACK_SLASH)
-                            .unwrap_or(false)
+                        && content.get(index + 1).map(|x| *x == QUOTE || *x == BLACK_SLASH).unwrap_or(false)
                     {
                         index += 2;
                         continue;

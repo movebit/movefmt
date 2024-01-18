@@ -41,7 +41,7 @@ impl Comment {
         if let Some(comment) = rewrite_comment(&cmt_str, block_style, shape, config) {
             result = comment;
         }
-        add_space_for_comments(result.as_str())
+        result
     }
 
     pub fn format_comment(
@@ -52,71 +52,70 @@ impl Comment {
         config: &Config
     ) -> String {
         if CommentKind::DocComment == kind {
-            add_space_for_comments(&self.content)
+            self.content.clone()
         } else {
             self.format_doc_comment_with_multi_star(block_indent, alignment, config)
         }
     }
 }
 
-fn add_space_for_comments(input: &str) -> String {
-    let mut output = String::new();
-    for line in input.lines() {
-        let trimmed = line.trim();
-        let start_position = line.find(trimmed).unwrap_or(0);  
-        output.push_str(&line[0..start_position]);
-        if trimmed.starts_with("///") && trimmed.chars().nth(3).map_or(true, |c| c != ' ') {
-            output.push_str(&format!("/// {}", &trimmed[3..]));
-        }
-        else if trimmed.starts_with("//!") && trimmed.chars().nth(3).map_or(true, |c| c != ' ') {
-            output.push_str(&format!("//! {}", &trimmed[3..]));
-        }
-        else if trimmed.starts_with("//*") && trimmed.chars().nth(3).map_or(true, |c| c != ' ') {
-            output.push_str(&format!("//* {}", &trimmed[3..]));
-        }
-        else if trimmed.starts_with("//") && trimmed.chars().nth(2).map_or(
-            true, |c| c != ' ' && c != '/' && c != '#') {
-            output.push_str(&format!("// {}", &trimmed[2..]));
-        }
-        else if trimmed.starts_with("/*") && trimmed.ends_with("*/") {  
-            // process single block comment
-            let trimmed_cmt = &trimmed[2..trimmed.len() - 2].trim();
-            output.push_str(&format!("/* {} */", &trimmed_cmt));  
-        } else if trimmed.starts_with('*') {  
-            // process each line of multi-line block comment
-            if trimmed == "*/" {
-                output.push_str("*/");
-            }
-            else if trimmed.ends_with("*/") {
-                if trimmed.chars().nth(1).map_or(true, |c| c != ' ')  {
-                    output.push_str(&format!("* {}\n{}*/", &trimmed[1..trimmed.len() - 2], &line[0..start_position]));
-                } else {
-                    output.push_str(&format!("*{}\n{}*/", &trimmed[1..trimmed.len() - 2], &line[0..start_position]));  
-                }
-            } 
-            else {
-                if trimmed.chars().nth(1).map_or(true, |c| c != ' ') {
-                    output.push_str(&format!("* {}", &trimmed[1..]));
-                } else {
-                    output.push_str(&format!("*{}", &trimmed[1..]));
-                }
-                output.push('\n');
-            }
-        } else {
-            output.push_str(trimmed);
-            let end_pos = start_position + trimmed.len();
-            // tracing::debug!("output = {}", output);
-            // tracing::debug!("line.len = {}, start_position = {}, end_pos = {}", line.len(), start_position, end_pos);
-            output.push_str(&line[end_pos..]);
-            if !trimmed.starts_with("//") {
-                output.push('\n');
-            }
-        }
-    }
-    // tracing::debug!("input = {:?}, output = {:?}", input, output);
-    // output
-    input.to_string()
-}      
+// fn add_space_for_comments(input: &str) -> String {
+//     let mut output = String::new();
+//     for line in input.lines() {
+//         let trimmed = line.trim();
+//         let start_position = line.find(trimmed).unwrap_or(0);  
+//         output.push_str(&line[0..start_position]);
+//         if trimmed.starts_with("///") && trimmed.chars().nth(3).map_or(true, |c| c != ' ') {
+//             output.push_str(&format!("/// {}", &trimmed[3..]));
+//         }
+//         else if trimmed.starts_with("//!") && trimmed.chars().nth(3).map_or(true, |c| c != ' ') {
+//             output.push_str(&format!("//! {}", &trimmed[3..]));
+//         }
+//         else if trimmed.starts_with("//*") && trimmed.chars().nth(3).map_or(true, |c| c != ' ') {
+//             output.push_str(&format!("//* {}", &trimmed[3..]));
+//         }
+//         else if trimmed.starts_with("//") && trimmed.chars().nth(2).map_or(
+//             true, |c| c != ' ' && c != '/' && c != '#') {
+//             output.push_str(&format!("// {}", &trimmed[2..]));
+//         }
+//         else if trimmed.starts_with("/*") && trimmed.ends_with("*/") {  
+//             // process single block comment
+//             let trimmed_cmt = &trimmed[2..trimmed.len() - 2].trim();
+//             output.push_str(&format!("/* {} */", &trimmed_cmt));  
+//         } else if trimmed.starts_with('*') {  
+//             // process each line of multi-line block comment
+//             if trimmed == "*/" {
+//                 output.push_str("*/");
+//             }
+//             else if trimmed.ends_with("*/") {
+//                 if trimmed.chars().nth(1).map_or(true, |c| c != ' ')  {
+//                     output.push_str(&format!("* {}\n{}*/", &trimmed[1..trimmed.len() - 2], &line[0..start_position]));
+//                 } else {
+//                     output.push_str(&format!("*{}\n{}*/", &trimmed[1..trimmed.len() - 2], &line[0..start_position]));  
+//                 }
+//             } 
+//             else {
+//                 if trimmed.chars().nth(1).map_or(true, |c| c != ' ') {
+//                     output.push_str(&format!("* {}", &trimmed[1..]));
+//                 } else {
+//                     output.push_str(&format!("*{}", &trimmed[1..]));
+//                 }
+//                 output.push('\n');
+//             }
+//         } else {
+//             output.push_str(trimmed);
+//             let end_pos = start_position + trimmed.len();
+//             // tracing::debug!("output = {}", output);
+//             // tracing::debug!("line.len = {}, start_position = {}, end_pos = {}", line.len(), start_position, end_pos);
+//             output.push_str(&line[end_pos..]);
+//             if !trimmed.starts_with("//") {
+//                 output.push('\n');
+//             }
+//         }
+//     }
+//     // tracing::debug!("input = {:?}, output = {:?}", input, output);
+//     output
+// }      
 
 #[test]
 fn test_rewrite_comment_1() {

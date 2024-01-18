@@ -231,8 +231,7 @@ pub fn process_block_comment_before_spec_header(fmt_buffer: String, config: Conf
     let mut result = fmt_buffer.clone();
     let spec_extractor = SpecExtractor::new(fmt_buffer.clone());
     let mut insert_char_nums = 0;
-    let mut fun_idx = 0;
-    for (fun_start_line, _) in spec_extractor.spec_fn_loc_line_vec.iter() {  
+    for (fun_idx, (fun_start_line, _)) in spec_extractor.spec_fn_loc_line_vec.iter().enumerate() {  
         // tracing::debug!("fun header is {:?}", );
         let fun_header_str = get_nth_line(buf.as_str(), *fun_start_line as usize).unwrap_or_default();
         let filehash = FileHash::empty();
@@ -245,7 +244,6 @@ pub fn process_block_comment_before_spec_header(fmt_buffer: String, config: Conf
                 &insert_str);
             insert_char_nums += insert_str.len();
         }
-        fun_idx += 1;
     }
 
     result

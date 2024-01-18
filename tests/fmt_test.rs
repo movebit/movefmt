@@ -269,7 +269,11 @@ fn test_success_dir() {
 
 #[test]
 fn test_dir() {
-    eprintln!("formated {} files", scan_dir("./tests/formatter/other"));
+    std::env::set_var("MOVEFMT_LOG", "movefmt=DEBUG");
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_env("MOVEFMT_LOG"))
+        .init();
+    eprintln!("formated {} files", scan_dir("./tests/formatter/use"));
 }
 
 #[test]

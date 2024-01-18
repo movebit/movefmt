@@ -154,7 +154,7 @@ impl FunExtractor {
     }
 }
 
-pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &String) -> String {
+pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &str) -> String {
     // tracing::debug!("fun_specifier_str = {:?}", specifier);
 
     let mut fun_specifiers_code = vec![];
@@ -191,10 +191,10 @@ pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &String) -> 
                 return chain;
             }
             let mut old_last_substr_len = *last_substr_len;
-            for j in (i + 1)..fun_specifiers.len() {
+            for (j, item_j) in fun_specifiers.iter().enumerate().skip(i + 1) {
                 let mut this_token_is_comment = true;
                 let iter_specifier = &specifier[*last_substr_len..];
-                if let Some(idx) = iter_specifier.find(fun_specifiers[j]) {
+                if let Some(idx) = iter_specifier.find(item_j) {
                     // if this token's pos not comment
                     for token in &mut *fun_specifiers_code {
                         if token.0 == (idx + *last_substr_len) as u32 {
@@ -203,17 +203,17 @@ pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &String) -> 
                         }
                     }
                     old_last_substr_len = *last_substr_len;
-                    *last_substr_len = *last_substr_len + idx + fun_specifiers[j].len();
+                    *last_substr_len = *last_substr_len + idx + item_j.len();
                 }
-        
+            
                 if this_token_is_comment {
-                    // tracing::debug!("intern> this token is comment -- {}",  fun_specifiers[j]);
-                    chain.push(fun_specifiers[j].to_string());
+                    // tracing::debug!("intern> this token is comment -- {}",  item_j);
+                    chain.push(item_j.to_string());
                     continue;
                 }
-
+            
                 if matches!(
-                    fun_specifiers[j],
+                    *item_j,
                     "acquires" | "reads" | "writes" | "pure" |
                     "!acquires" | "!reads" | "!writes"
                 ) {
@@ -226,11 +226,11 @@ pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &String) -> 
                     if judge_new_line.contains('\n') {
                         chain.push("\n".to_string());
                         let tmp_indent_str = " ".to_string()
-                                    .repeat(indent_str.clone().chars().filter(|c| *c == ' ').count() - 2);
+                                    .repeat(indent_str.to_owned().chars().filter(|c| *c == ' ').count() - 2);
                         chain.push(tmp_indent_str.clone());
                     }
-
-                    chain.push(fun_specifiers[j].to_string());
+            
+                    chain.push(item_j.to_string());
                 }
             }
             // tracing::debug!("intern> chain[{:?}] -- {:?}", i, chain);
@@ -302,8 +302,7 @@ pub(crate) fn process_block_comment_before_fun_header(fmt_buffer: String, config
     let mut result = fmt_buffer.clone();
     let fun_extractor = FunExtractor::new(fmt_buffer.clone());
     let mut insert_char_nums = 0;
-    let mut fun_idx = 0;
-    for (fun_start_line, _) in fun_extractor.loc_line_vec.iter() {
+    for (fun_idx, (fun_start_line, _)) in fun_extractor.loc_line_vec.iter().enumerate() {
         let fun_header_str = get_nth_line(buf.as_str(), *fun_start_line as usize).unwrap_or_default();
         let mut lexer = Lexer::new(fun_header_str, FileHash::empty());
         lexer.advance().unwrap();
@@ -314,7 +313,6 @@ pub(crate) fn process_block_comment_before_fun_header(fmt_buffer: String, config
                 &insert_str);
             insert_char_nums += insert_str.len();
         }
-        fun_idx += 1;
     }
 
     result
