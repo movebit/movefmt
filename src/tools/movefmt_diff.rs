@@ -277,7 +277,7 @@ where
     }
 }
 
-fn print_mismatches_default_message(result: HashMap<PathBuf, Vec<Mismatch>>) {
+pub fn print_mismatches_default_message(result: HashMap<PathBuf, Vec<Mismatch>>) {
     for (file_name, diff) in result {
         let mismatch_msg_formatter =
             |line_num| format!("\nMismatch at {}:{}:", file_name.display(), line_num);

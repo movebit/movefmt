@@ -5,11 +5,12 @@ use tracing_subscriber::EnvFilter;
 use std::env;
 use std::fs::File;
 use std::io::{self, Read, Write};
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use getopts::{Matches, Options};
 use movefmt::{
     core::fmt::format_entry,
-    tools::movefmt_diff::{DIFF_CONTEXT_SIZE, make_diff},
+    tools::movefmt_diff::{DIFF_CONTEXT_SIZE, make_diff, print_mismatches_default_message},
     tools::utils::*
 };
 use commentfmt::{load_config, Config, CliOptions, Verbosity, EmitMode};
@@ -95,7 +96,7 @@ fn make_opts() -> Options {
     opts.optopt(
         "",
         "print-config",
-        "Dumps a default or current config to PATH(eg: movefmt.config)",
+        "Dumps a default or current config to PATH(eg: movefmt.toml)",
         "[default|current] PATH",
     );
     opts.optmulti(
@@ -176,6 +177,7 @@ fn format(
     files: Vec<PathBuf>,
     options: &GetOptsOptions,
 ) -> Result<i32> {
+    eprintln!("options = {:?}", options);
     let (config, config_path) = load_config(None, Some(options.clone()))?;
     let mut use_config = config.clone();
     tracing::info!("config.[verbose, indent] = [{:?}, {:?}], {:?}", config.verbose(), config.indent_size(), options);
@@ -221,18 +223,26 @@ fn format(
         let content_origin = std::fs::read_to_string(file.as_path()).unwrap();
         match format_entry(content_origin.clone(), use_config.clone()) {
             Ok(formatted_text) => {
-                match config.emit_mode() {
+                let emit_mode = if let Some(op_emit) = options.emit_mode {
+                    op_emit
+                } else { use_config.emit_mode() };
+                match emit_mode {
                     EmitMode::NewFiles => {
                         std::fs::write(mk_result_filepath(&file.to_path_buf()), formatted_text)?
                     },
                     EmitMode::Files => {
-                        std::fs::write(mk_result_filepath(&file.to_path_buf()), formatted_text)?;
+                        std::fs::write(&file.to_path_buf(), formatted_text)?;
                     },
                     EmitMode::Stdout => {
                         println!("{}", formatted_text);
                     }
-                    _ => {
-                        make_diff(&formatted_text, &content_origin, DIFF_CONTEXT_SIZE);
+                    EmitMode::Diff => {
+                        let compare = make_diff(&formatted_text, &content_origin, DIFF_CONTEXT_SIZE);
+                        if !compare.is_empty() {
+                            let mut failures = HashMap::new();
+                            failures.insert(file.to_owned(), compare);
+                            print_mismatches_default_message(failures);
+                        }
                     }
                 }
             }
@@ -304,8 +314,6 @@ fn determine_operation(matches: &Matches) -> Result<Operation, OperationError> {
     })
 }
 
-// const STABLE_EMIT_MODES: [EmitMode; 3] = [EmitMode::Files, EmitMode::Stdout, EmitMode::Diff];
-
 /// Parsed command line options.
 #[derive(Clone, Debug, Default)]
 struct GetOptsOptions {
@@ -313,6 +321,7 @@ struct GetOptsOptions {
     verbose: bool,
     config_path: Option<PathBuf>,
     emit_mode: Option<EmitMode>,
+    inline_config: HashMap<String, String>,
 }
 
 impl GetOptsOptions {
@@ -330,6 +339,29 @@ impl GetOptsOptions {
         if let Some(ref emit_str) = matches.opt_str("emit") {
             options.emit_mode = Some(emit_mode_from_emit_str(emit_str)?);
         }
+        options.inline_config = matches
+            .opt_strs("config")
+            .iter()
+            .flat_map(|config| config.split(','))
+            .map(
+                |key_val| match key_val.char_indices().find(|(_, ch)| *ch == '=') {
+                    Some((middle, _)) => {
+                        let (key, val) = (&key_val[..middle], &key_val[middle + 1..]);
+                        if !Config::is_valid_key_val(key, val) {
+                            Err(format_err!("invalid key=val pair: `{}`", key_val))
+                        } else {
+                            Ok((key.to_string(), val.to_string()))
+                        }
+                    }
+
+                    None => Err(format_err!(
+                        "--config expects comma-separated list of key=val pairs, found `{}`",
+                        key_val
+                    )),
+                },
+            )
+            .collect::<Result<HashMap<_, _>, _>>()?;
+
         Ok(options)
     }
 }
@@ -346,6 +378,9 @@ impl CliOptions for GetOptsOptions {
         if let Some(emit_mode) = self.emit_mode {
             config.set().emit_mode(emit_mode);
         }
+        for (key, val) in self.inline_config {
+            config.override_value(&key, &val);
+        }
     }
 
     fn config_path(&self) -> Option<&Path> {
@@ -358,6 +393,7 @@ fn emit_mode_from_emit_str(emit_str: &str) -> Result<EmitMode> {
         "files" => Ok(EmitMode::Files),
         "new_files" => Ok(EmitMode::NewFiles),
         "stdout" => Ok(EmitMode::Stdout),
+        "check_diff" => Ok(EmitMode::Diff),
         _ => Err(format_err!("Invalid value for `--emit`")),
     }
 }
