@@ -57,7 +57,7 @@ fn test_single_file() {
         .init();
 
     test_on_file(&Path::new(
-        "./tests/formatter/fun/input7.move",
+        "./tests/complex/input4.move",
     ));
 }
 

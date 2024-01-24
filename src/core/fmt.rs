@@ -630,11 +630,12 @@ impl Format {
             note
         } = token {
             // added in 20240115
-            if Tok::LBrace != *tok && self.syntax_extractor.branch_extractor.need_new_line_in_then_without_brace(
+            // updated in 20240124
+            if Tok::LBrace != *tok && self.syntax_extractor.branch_extractor.need_new_line_after_branch(
                 self.last_line(), 
                 *pos, 
                 self.global_cfg.clone()) {
-                tracing::debug!("need_new_line_in_then_without_brace[{:?}], add a new line", content);
+                tracing::debug!("need_new_line_after_branch[{:?}], add a new line", content);
                 self.inc_depth();
                 self.new_line(None);
             }
@@ -659,8 +660,16 @@ impl Format {
             }
 
             // added in 20240115
-            if Tok::RBrace != *tok && self.syntax_extractor.branch_extractor.added_new_line_in_then_without_brace(*pos) {
-                self.dec_depth();
+            // updated in 20240124
+            if Tok::RBrace != *tok {
+                let tok_end_pos = *pos + content.len() as u32;
+                let mut nested_branch_depth = 
+                    self.syntax_extractor.branch_extractor.added_new_line_after_branch(tok_end_pos);
+                tracing::debug!("nested_branch_depth[{:?}] = [{:?}]", content, nested_branch_depth);
+                while nested_branch_depth > 0 {
+                    self.dec_depth();
+                    nested_branch_depth -= 1;
+                }
             }
 
             // add blank row between module

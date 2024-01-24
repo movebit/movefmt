@@ -41,7 +41,7 @@ pub struct BranchExtractor {
     pub cur_kind: BranchKind,
     pub source: String,
     pub line_mapping: FileLineMappingOneFile,
-    pub added_new_line_branch: RefCell<HashMap<ByteIndex, bool>>,
+    pub added_new_line_branch: RefCell<HashMap<ByteIndex, usize>>,
 }
 
 impl BranchExtractor {
@@ -96,8 +96,10 @@ impl BranchExtractor {
             if let BranchKind::ComIfElse = self.cur_kind {
                 self.com_if_else.if_else_blk_loc_vec.push(e.loc);
                 self.com_if_else.then_loc_vec.push(then_.loc);
+                self.collect_expr(then_.as_ref());
                 if let Some(el) = eles_opt {
                     self.com_if_else.else_loc_vec.push(el.loc);
+                    self.collect_expr(el.as_ref());
                 } else {
                     self.com_if_else.else_loc_vec.push(then_.loc);
                 }
@@ -168,25 +170,75 @@ impl BranchExtractor {
         }
     }
 
-    pub fn need_new_line_in_then_without_brace(&self, cur_line: String, then_start_pos: ByteIndex, config: Config) -> bool {
+    fn need_new_line_in_then_without_brace(&self, cur_line: String, then_start_pos: ByteIndex, config: Config) -> bool {
         for then_loc in &self.com_if_else.then_loc_vec {
             if then_loc.start() == then_start_pos {
                 let has_added = cur_line.len() as u32 + then_loc.end() - then_loc.start() > config.max_width() as u32;
-                self.added_new_line_branch.borrow_mut().insert(then_start_pos, has_added);
+
+                let new_line_cnt = 
+                    if self.added_new_line_branch.borrow().contains_key(&then_loc.end()) {
+                        self.added_new_line_branch.borrow_mut()[&then_loc.end()]
+                    } else {
+                        0
+                    };
+                self.added_new_line_branch.borrow_mut().insert(then_loc.end(), new_line_cnt + has_added as usize);
                 return has_added;
             }
         }
         false
     }
 
-    pub fn added_new_line_in_then_without_brace(&self, then_end_pos: ByteIndex) -> bool {
-        for then_loc in &self.com_if_else.then_loc_vec {
-            if then_loc.end() == then_end_pos && self.added_new_line_branch.borrow().contains_key(&then_loc.start()){
-                return self.added_new_line_branch.borrow()[&then_loc.start()];
+    fn need_new_line_after_else(&self, cur_line: String, else_start_pos: ByteIndex, config: Config) -> bool {
+        for (else_loc_idx, else_loc) in self.com_if_else.else_loc_vec.iter().enumerate() {
+            if else_loc.start() == else_start_pos {
+                let mut has_added = cur_line.len() as u32 + else_loc.end() - else_loc.start() > config.max_width() as u32;
+                if !has_added && else_loc_idx + 1 < self.com_if_else.else_loc_vec.len() {
+                    has_added = self.get_loc_range(self.com_if_else.else_loc_vec[else_loc_idx + 1]).start.line == self.get_loc_range(*else_loc).end.line;
+                }
+
+                let new_line_cnt = 
+                    if self.added_new_line_branch.borrow().contains_key(&else_loc.end()) {
+                        self.added_new_line_branch.borrow_mut()[&else_loc.end()]
+                    } else {
+                        0
+                    };
+
+                tracing::debug!("need_new_line_after_else --> has_added[{:?}] = {:?}, new_line_cnt = {}", cur_line, has_added, new_line_cnt);
+                self.added_new_line_branch.borrow_mut().insert(else_loc.end(), new_line_cnt + has_added as usize);
+                return has_added;
             }
         }
         false
     }
+
+    pub fn need_new_line_after_branch(&self, cur_line: String, branch_start_pos: ByteIndex, config: Config) -> bool {
+        self.need_new_line_in_then_without_brace(cur_line.clone(), branch_start_pos, config.clone()) ||
+        self.need_new_line_after_else(cur_line.clone(), branch_start_pos, config.clone())
+    }
+
+    fn added_new_line_in_then_without_brace(&self, then_end_pos: ByteIndex) -> usize {
+        for then_loc in &self.com_if_else.then_loc_vec {
+            if then_loc.end() == then_end_pos && self.added_new_line_branch.borrow().contains_key(&then_loc.end()) {
+                return self.added_new_line_branch.borrow_mut()[&then_loc.end()];
+            }
+        }
+        0
+    }
+
+    fn added_new_line_after_else(&self, else_end_pos: ByteIndex) -> usize {
+        for else_loc in &self.com_if_else.else_loc_vec {
+            if else_loc.end() == else_end_pos && self.added_new_line_branch.borrow().contains_key(&else_loc.end()) {
+                return self.added_new_line_branch.borrow_mut()[&else_loc.end()];
+            }
+        }
+        0
+    }
+
+    pub fn added_new_line_after_branch(&self, branch_end_pos: ByteIndex) -> usize {
+        self.added_new_line_in_then_without_brace(branch_end_pos) +
+        self.added_new_line_after_else(branch_end_pos)
+    }
+
 }
 
 pub fn split_if_else_in_let_block(fmt_buffer: String, config: Config) -> String {
