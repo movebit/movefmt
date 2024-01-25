@@ -1,6 +1,9 @@
-use crate::core::token_tree::{NestKind, NestKind_, Note, TokenTree, analyze_token_tree_length};
-use move_compiler::parser::lexer::Tok;
+// Copyright (c) The BitsLab.MoveBit Contributors
+// SPDX-License-Identifier: Apache-2.0
+
+use crate::core::token_tree::{analyze_token_tree_length, NestKind, NestKind_, Note, TokenTree};
 use commentfmt::Config;
+use move_compiler::parser::lexer::Tok;
 
 pub enum TokType {
     /// abc like token,
@@ -111,12 +114,14 @@ fn get_end_tok(t: &TokenTree) -> Tok {
     }
 }
 
-fn is_to_or_except(token: &Option<&TokenTree>) -> bool {  
-    match token {  
-        None => false,  
-        Some(TokenTree::SimpleToken { content: con, .. }) => con.as_str() == "to" || con.as_str() == "except",  
-        _ => false,  
-    }  
+fn is_to_or_except(token: &Option<&TokenTree>) -> bool {
+    match token {
+        None => false,
+        Some(TokenTree::SimpleToken { content: con, .. }) => {
+            con.as_str() == "to" || con.as_str() == "except"
+        }
+        _ => false,
+    }
 }
 
 fn get_nested_and_comma_num(elements: &Vec<TokenTree>) -> (usize, usize) {
@@ -126,7 +131,8 @@ fn get_nested_and_comma_num(elements: &Vec<TokenTree>) -> (usize, usize) {
             elements: recursive_elements,
             kind: _,
             note: _,
-        } = ele {
+        } = ele
+        {
             let recursive_result = get_nested_and_comma_num(recursive_elements);
             result.0 += recursive_result.0 + 1;
             result.1 += recursive_result.1;
@@ -136,7 +142,8 @@ fn get_nested_and_comma_num(elements: &Vec<TokenTree>) -> (usize, usize) {
             pos: _,
             tok,
             note: _,
-        } = ele {
+        } = ele
+        {
             if Tok::Comma == *tok {
                 result.1 += 1;
             }
@@ -184,9 +191,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
     ) {
         (TokType::Alphabet, TokType::Alphabet) => true,
         (TokType::MathSign, _) => true,
-        (TokType::Sign, TokType::Alphabet) => {
-            Tok::Exclaim != get_end_tok(current)
-        },
+        (TokType::Sign, TokType::Alphabet) => Tok::Exclaim != get_end_tok(current),
         (TokType::Sign, TokType::Number) => true,
         (TokType::Sign, TokType::String | TokType::AtSign) => {
             let mut result = false;
@@ -202,7 +207,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                         // if kind.kind.start_tok() == Tok::LBrace {
                         //     result = true;
                         // }
-                    },
+                    }
                     TokenTree::SimpleToken {
                         content: _,
                         pos: _,
@@ -210,7 +215,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                         note: _,
                     } => {
                         next_tok = *tok;
-                        // tracing::debug!("content = {:?}", content);                    
+                        // tracing::debug!("content = {:?}", content);
                         if Tok::ByteStringValue == *tok {
                             result = true;
                         }
@@ -223,7 +228,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                 // tracing::debug!("after Comma, result = {}, next_tok = {:?}", result, next_tok);
             }
             result
-        },
+        }
         (_, TokType::MathSign) => true,
         (TokType::Alphabet, TokType::String) => true,
         (TokType::Number, TokType::Alphabet) => true,
@@ -237,17 +242,18 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
 
         (_, TokType::Amp) => is_bin_next,
         (_, TokType::Star) => {
-            let result = if is_bin_next || is_apply_next { 
-                is_to_execpt 
+            let result = if is_bin_next || is_apply_next {
+                is_to_execpt
             } else {
                 false
             };
-            result || Tok::NumValue == get_start_tok(current) 
-                   || Tok::NumTypedValue == get_start_tok(current)
-                   || Tok::Acquires == get_start_tok(current)
-                   || Tok::Identifier == get_start_tok(current)
-                   || Tok::RParen == get_end_tok(current)
-                   || Tok::Comma == get_end_tok(current)
+            result
+                || Tok::NumValue == get_start_tok(current)
+                || Tok::NumTypedValue == get_start_tok(current)
+                || Tok::Acquires == get_start_tok(current)
+                || Tok::Identifier == get_start_tok(current)
+                || Tok::RParen == get_end_tok(current)
+                || Tok::Comma == get_end_tok(current)
         }
 
         (TokType::Star, _) => {
@@ -255,9 +261,9 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                 return true;
             }
             match next {
-                None => {},
+                None => {}
                 Some(next_) => {
-                    if let TokenTree::Nested{elements, ..} = next_ {
+                    if let TokenTree::Nested { elements, .. } = next_ {
                         // if elements.len() > 0 {
                         //     elements[0]
                         //     .get_note()
@@ -267,7 +273,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                         //     false
                         // }
                         if Tok::LParen == get_start_tok(next_) {
-                            return elements.len() > 2    
+                            return elements.len() > 2;
                         }
                     }
                 }
@@ -287,7 +293,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                             if kind.kind == NestKind_::Brace {
                                 result = true;
                             }
-                        },
+                        }
                         TokenTree::SimpleToken {
                             content,
                             pos: _,
@@ -295,9 +301,10 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                             note: _,
                         } => {
                             // tracing::debug!("content = {:?}", content);
-                            if Tok::NumValue == *tok 
-                            || Tok::NumTypedValue == *tok
-                            || Tok::LParen == *tok {
+                            if Tok::NumValue == *tok
+                                || Tok::NumTypedValue == *tok
+                                || Tok::LParen == *tok
+                            {
                                 result = true;
                             }
                             if Tok::Identifier == *tok {
@@ -329,7 +336,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                         if kind.kind.start_tok() == Tok::LBrace {
                             result = true;
                         }
-                    },
+                    }
                     TokenTree::SimpleToken {
                         content: _,
                         pos: _,
@@ -344,16 +351,18 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                     }
                 }
             }
-            if Tok::Let == get_start_tok(current) || 
-               Tok::Slash == get_start_tok(current) || 
-               Tok::If == get_start_tok(current) || 
-               Tok::Else == get_start_tok(current) ||
-               Tok::While == get_start_tok(current) {
+            if Tok::Let == get_start_tok(current)
+                || Tok::Slash == get_start_tok(current)
+                || Tok::If == get_start_tok(current)
+                || Tok::Else == get_start_tok(current)
+                || Tok::While == get_start_tok(current)
+            {
                 result = true;
             }
 
             if next_tok == Tok::Exclaim {
-                result = matches!(TokType::from(get_start_tok(current)), TokType::Alphabet) || Tok::RParen == get_end_tok(current);
+                result = matches!(TokType::from(get_start_tok(current)), TokType::Alphabet)
+                    || Tok::RParen == get_end_tok(current);
             }
 
             if Tok::RParen == get_end_tok(current) && next_tok == Tok::LParen {
@@ -362,16 +371,26 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
 
             // tracing::debug!("result = {}, next_tok = {:?}", result, next_tok);
             result
-        },
+        }
         _ => false,
     }
 }
 
-pub(crate) fn judge_simple_paren_expr(kind: &NestKind, elements: &Vec<TokenTree>, config: Config) -> bool {
-    if elements.is_empty() { return true };
+pub(crate) fn judge_simple_paren_expr(
+    kind: &NestKind,
+    elements: &Vec<TokenTree>,
+    config: Config,
+) -> bool {
+    if elements.is_empty() {
+        return true;
+    };
     if NestKind_::ParentTheses == kind.kind {
         let paren_num = get_nested_and_comma_num(elements);
-        tracing::debug!("elements[0] = {:?}, paren_num = {:?}", elements[0].simple_str(), paren_num);
+        tracing::debug!(
+            "elements[0] = {:?}, paren_num = {:?}",
+            elements[0].simple_str(),
+            paren_num
+        );
         if paren_num.0 > 2 || paren_num.1 > 4 {
             return false;
         }
@@ -385,8 +404,6 @@ pub(crate) fn judge_simple_paren_expr(kind: &NestKind, elements: &Vec<TokenTree>
     true
 }
 
-// TODO(20240116): add fn judge_simple_nested_blk()
-
 pub(crate) fn process_link_access(elements: &Vec<TokenTree>, idx: usize) -> (usize, usize) {
     tracing::debug!("process_link_access >>");
     if idx >= elements.len() - 1 {
@@ -394,7 +411,7 @@ pub(crate) fn process_link_access(elements: &Vec<TokenTree>, idx: usize) -> (usi
     }
     let mut continue_dot_cnt = 0;
     let mut index = idx;
-    while index <= elements.len() - 2 {        
+    while index <= elements.len() - 2 {
         let t = elements.get(index).unwrap();
         if !t.simple_str().unwrap_or_default().contains('.') {
             break;
@@ -402,6 +419,10 @@ pub(crate) fn process_link_access(elements: &Vec<TokenTree>, idx: usize) -> (usi
         continue_dot_cnt += 1;
         index += 2;
     }
-    tracing::debug!("process_link_access << (continue_dot_cnt, index) = ({}, {})", continue_dot_cnt, index);
+    tracing::debug!(
+        "process_link_access << (continue_dot_cnt, index) = ({}, {})",
+        continue_dot_cnt,
+        index
+    );
     (continue_dot_cnt, index - 2)
 }

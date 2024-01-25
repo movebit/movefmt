@@ -1,18 +1,14 @@
+use move_command_line_common::files::FileHash;
 use movefmt::{
     core::token_tree::{CommentExtrator, CommentExtratorErr, TokenTree},
-    tools::utils::*,
-    tools::syntax::parse_file_string, 
     tools::movefmt_diff,
+    tools::syntax::parse_file_string,
+    tools::utils::*,
 };
-use tracing_subscriber::EnvFilter;
 use std::collections::BTreeSet;
-use move_command_line_common::files::FileHash;
+use tracing_subscriber::EnvFilter;
 
-use move_compiler::{
-    parser::lexer::Lexer,
-    shared::CompilationEnv,
-    Flags,
-};
+use move_compiler::{parser::lexer::Lexer, shared::CompilationEnv, Flags};
 use std::path::Path;
 
 fn scan_dir(dir: &str) -> usize {
@@ -22,12 +18,13 @@ fn scan_dir(dir: &str) -> usize {
             Ok(x) => x,
             Err(_) => {
                 return num;
-            },
+            }
         };
-        if x.file_type().is_file() 
-        && x.file_name().to_str().unwrap().ends_with(".move")  
-        && !x.file_name().to_str().unwrap().contains(".fmt")
-        && !x.file_name().to_str().unwrap().contains(".out") {
+        if x.file_type().is_file()
+            && x.file_name().to_str().unwrap().ends_with(".move")
+            && !x.file_name().to_str().unwrap().contains(".fmt")
+            && !x.file_name().to_str().unwrap().contains(".out")
+        {
             let p = x.clone().into_path();
             test_on_file(p.as_path());
             num += 1;
@@ -39,10 +36,7 @@ fn scan_dir(dir: &str) -> usize {
             let mut actual_filename = p.to_str().unwrap()[0..index].to_string();
             actual_filename.push_str(".fmt.out");
 
-            movefmt_diff::assert_output(
-                Path::new(&actual_filename),
-                Path::new(&expected_filename)
-            );
+            movefmt_diff::assert_output(Path::new(&actual_filename), Path::new(&expected_filename));
         }
     }
     num
@@ -56,9 +50,7 @@ fn test_single_file() {
         .with_env_filter(EnvFilter::from_env("MOVEFMT_LOG"))
         .init();
 
-    test_on_file(&Path::new(
-        "./tests/complex/input4.move",
-    ));
+    test_on_file(&Path::new("./tests/complex/input4.move"));
 }
 
 fn test_on_file(p: impl AsRef<Path>) {
@@ -93,8 +85,8 @@ fn test_content(content_origin: &str, p: impl AsRef<Path>) {
         Err(err) => {
             unreachable!(
                 "should be able to parse after format:err{:?},after format:\n\n################\n{}\n###############",
-                err,  
-                content_format 
+                err,
+                content_format
             );
         }
     };
@@ -244,7 +236,6 @@ fn extract_tokens(content: &str) -> Result<Vec<ExtractToken>, Vec<String>> {
     Ok(ret)
 }
 
-
 #[test]
 fn test_success_dir() {
     std::env::set_var("MOVEFMT_LOG", "movefmt=DEBUG");
@@ -285,7 +276,7 @@ fn regression_test_main() {
             Err(_) => {
                 eprintln!("formated {} files", num);
                 return;
-            },
+            }
         };
         if !ten_dir.file_type().is_dir() {
             eprintln!("formated {} files", num);

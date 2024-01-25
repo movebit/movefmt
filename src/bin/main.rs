@@ -1,19 +1,22 @@
+// Copyright (c) The BitsLab.MoveBit Contributors
+// SPDX-License-Identifier: Apache-2.0
+
 use anyhow::{format_err, Result};
+use commentfmt::{load_config, CliOptions, Config, EmitMode, Verbosity};
+use getopts::{Matches, Options};
 use io::Error as IoError;
-use thiserror::Error;
-use tracing_subscriber::EnvFilter;
+use movefmt::{
+    core::fmt::format_entry,
+    tools::movefmt_diff::{make_diff, print_mismatches_default_message, DIFF_CONTEXT_SIZE},
+    tools::utils::*,
+};
+use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::io::{self, Read, Write};
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use getopts::{Matches, Options};
-use movefmt::{
-    core::fmt::format_entry,
-    tools::movefmt_diff::{DIFF_CONTEXT_SIZE, make_diff, print_mismatches_default_message},
-    tools::utils::*
-};
-use commentfmt::{load_config, Config, CliOptions, Verbosity, EmitMode};
+use thiserror::Error;
+use tracing_subscriber::EnvFilter;
 
 fn main() {
     tracing_subscriber::fmt()
@@ -41,9 +44,7 @@ fn main() {
 /// movefmt operations.
 enum Operation {
     /// Format files and their child modules.
-    Format {
-        files: Vec<PathBuf>,
-    },
+    Format { files: Vec<PathBuf> },
     /// Print the help message.
     Help(HelpOp),
     /// Print version information
@@ -159,9 +160,7 @@ fn execute(opts: &Options) -> Result<i32> {
             Ok(0)
         }
         Operation::Stdin { input } => format_string(input, options),
-        Operation::Format {
-            files,
-        } => format(files, &options),
+        Operation::Format { files } => format(files, &options),
     }
 }
 
@@ -173,14 +172,16 @@ fn format_string(input: String, options: GetOptsOptions) -> Result<i32> {
     Ok(0)
 }
 
-fn format(
-    files: Vec<PathBuf>,
-    options: &GetOptsOptions,
-) -> Result<i32> {
+fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
     eprintln!("options = {:?}", options);
     let (config, config_path) = load_config(None, Some(options.clone()))?;
     let mut use_config = config.clone();
-    tracing::info!("config.[verbose, indent] = [{:?}, {:?}], {:?}", config.verbose(), config.indent_size(), options);
+    tracing::info!(
+        "config.[verbose, indent] = [{:?}, {:?}], {:?}",
+        config.verbose(),
+        config.indent_size(),
+        options
+    );
 
     if config.verbose() == Verbosity::Verbose {
         if let Some(path) = config_path.as_ref() {
@@ -219,25 +220,28 @@ fn format(
                 );
             }
         }
-        
+
         let content_origin = std::fs::read_to_string(file.as_path()).unwrap();
         match format_entry(content_origin.clone(), use_config.clone()) {
             Ok(formatted_text) => {
                 let emit_mode = if let Some(op_emit) = options.emit_mode {
                     op_emit
-                } else { use_config.emit_mode() };
+                } else {
+                    use_config.emit_mode()
+                };
                 match emit_mode {
                     EmitMode::NewFiles => {
                         std::fs::write(mk_result_filepath(&file.to_path_buf()), formatted_text)?
-                    },
+                    }
                     EmitMode::Files => {
-                        std::fs::write(&file.to_path_buf(), formatted_text)?;
-                    },
+                        std::fs::write(&file, formatted_text)?;
+                    }
                     EmitMode::Stdout => {
                         println!("{}", formatted_text);
                     }
                     EmitMode::Diff => {
-                        let compare = make_diff(&formatted_text, &content_origin, DIFF_CONTEXT_SIZE);
+                        let compare =
+                            make_diff(&formatted_text, &content_origin, DIFF_CONTEXT_SIZE);
                         if !compare.is_empty() {
                             let mut failures = HashMap::new();
                             failures.insert(file.to_owned(), compare);
@@ -309,9 +313,7 @@ fn determine_operation(matches: &Matches) -> Result<Operation, OperationError> {
         return Ok(Operation::Stdin { input: buffer });
     }
 
-    Ok(Operation::Format {
-        files
-    })
+    Ok(Operation::Format { files })
 }
 
 /// Parsed command line options.
@@ -326,10 +328,10 @@ struct GetOptsOptions {
 
 impl GetOptsOptions {
     pub fn from_matches(matches: &Matches) -> Result<GetOptsOptions> {
-        let mut options = GetOptsOptions {  
-            verbose: matches.opt_present("verbose"),  
-            quiet: matches.opt_present("quiet"),  
-            ..Default::default()  
+        let mut options = GetOptsOptions {
+            verbose: matches.opt_present("verbose"),
+            quiet: matches.opt_present("quiet"),
+            ..Default::default()
         };
         if options.verbose && options.quiet {
             return Err(format_err!("Can't use both `--verbose` and `--quiet`"));

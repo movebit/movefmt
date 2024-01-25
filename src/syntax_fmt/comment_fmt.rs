@@ -1,5 +1,8 @@
+// Copyright (c) The BitsLab.MoveBit Contributors
+// SPDX-License-Identifier: Apache-2.0
+
 use crate::core::token_tree::{Comment, CommentKind};
-use commentfmt::{shape::*, comment::*, Config};
+use commentfmt::{comment::*, shape::*, Config};
 
 impl Comment {
     /// format comment
@@ -23,9 +26,9 @@ impl Comment {
 
     fn format_doc_comment_with_multi_star(
         &self,
-        block_indent: usize, 
+        block_indent: usize,
         alignment: usize,
-        config: &Config
+        config: &Config,
     ) -> String {
         let mut result = self.content.to_string();
         let block_style = false;
@@ -47,9 +50,9 @@ impl Comment {
     pub fn format_comment(
         &self,
         kind: CommentKind,
-        block_indent: usize, 
+        block_indent: usize,
         alignment: usize,
-        config: &Config
+        config: &Config,
     ) -> String {
         if CommentKind::DocComment == kind {
             self.content.clone()
@@ -59,64 +62,6 @@ impl Comment {
     }
 }
 
-// fn add_space_for_comments(input: &str) -> String {
-//     let mut output = String::new();
-//     for line in input.lines() {
-//         let trimmed = line.trim();
-//         let start_position = line.find(trimmed).unwrap_or(0);  
-//         output.push_str(&line[0..start_position]);
-//         if trimmed.starts_with("///") && trimmed.chars().nth(3).map_or(true, |c| c != ' ') {
-//             output.push_str(&format!("/// {}", &trimmed[3..]));
-//         }
-//         else if trimmed.starts_with("//!") && trimmed.chars().nth(3).map_or(true, |c| c != ' ') {
-//             output.push_str(&format!("//! {}", &trimmed[3..]));
-//         }
-//         else if trimmed.starts_with("//*") && trimmed.chars().nth(3).map_or(true, |c| c != ' ') {
-//             output.push_str(&format!("//* {}", &trimmed[3..]));
-//         }
-//         else if trimmed.starts_with("//") && trimmed.chars().nth(2).map_or(
-//             true, |c| c != ' ' && c != '/' && c != '#') {
-//             output.push_str(&format!("// {}", &trimmed[2..]));
-//         }
-//         else if trimmed.starts_with("/*") && trimmed.ends_with("*/") {  
-//             // process single block comment
-//             let trimmed_cmt = &trimmed[2..trimmed.len() - 2].trim();
-//             output.push_str(&format!("/* {} */", &trimmed_cmt));  
-//         } else if trimmed.starts_with('*') {  
-//             // process each line of multi-line block comment
-//             if trimmed == "*/" {
-//                 output.push_str("*/");
-//             }
-//             else if trimmed.ends_with("*/") {
-//                 if trimmed.chars().nth(1).map_or(true, |c| c != ' ')  {
-//                     output.push_str(&format!("* {}\n{}*/", &trimmed[1..trimmed.len() - 2], &line[0..start_position]));
-//                 } else {
-//                     output.push_str(&format!("*{}\n{}*/", &trimmed[1..trimmed.len() - 2], &line[0..start_position]));  
-//                 }
-//             } 
-//             else {
-//                 if trimmed.chars().nth(1).map_or(true, |c| c != ' ') {
-//                     output.push_str(&format!("* {}", &trimmed[1..]));
-//                 } else {
-//                     output.push_str(&format!("*{}", &trimmed[1..]));
-//                 }
-//                 output.push('\n');
-//             }
-//         } else {
-//             output.push_str(trimmed);
-//             let end_pos = start_position + trimmed.len();
-//             // tracing::debug!("output = {}", output);
-//             // tracing::debug!("line.len = {}, start_position = {}, end_pos = {}", line.len(), start_position, end_pos);
-//             output.push_str(&line[end_pos..]);
-//             if !trimmed.starts_with("//") {
-//                 output.push('\n');
-//             }
-//         }
-//     }
-//     // tracing::debug!("input = {:?}, output = {:?}", input, output);
-//     output
-// }      
-
 #[test]
 fn test_rewrite_comment_1() {
     // let orig = "/* This is a multi-line\n * comment */\n\n// This is a single-line comment";
@@ -124,7 +69,7 @@ fn test_rewrite_comment_1() {
     // let orig = "
     // //      this is a comment
     // ";
-    
+
     let block_style = true;
     // let style = CommentStyle::SingleBullet;
     let indent = Indent::new(4, 0);
@@ -138,28 +83,4 @@ fn test_rewrite_comment_1() {
     if let Some(comment) = rewrite_comment(orig, block_style, shape, config) {
         println!("{}", comment);
     }
-}
-
-#[test]    
-fn test_cmt_add_space() {  
-    let examples = vec![  
-        "//comment_content",  
-        "///comment_content",  
-        "//!comment_content",  
-        "//*comment_content",  
-        "/*!comment_content*/",  
-        "/**comment_content*/",  
-        r#"    
-        /*    
-        *comment_content1   
-        *comment_content2*/    
-        "#,
-        "/**  \n         * This function returns a tuple containing two boolean values.  \n         */"
-    ];  
-    
-    for (idx, example) in examples.into_iter().enumerate() {
-        // let style = comment_style(example, false);        
-        let output = add_space_for_comments(example);    
-        println!("示例{}:\n输入:\n{}\n输出:\n{}\n", idx + 1, example, output);    
-    }    
 }

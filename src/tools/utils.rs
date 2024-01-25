@@ -1,14 +1,13 @@
-// Copyright (c) The Move Contributors
+// Copyright (c) The BitsLab.MoveBit Contributors
 // SPDX-License-Identifier: Apache-2.0
-#![allow(dead_code)]
 
 use lsp_types::{Location, Position};
 use move_command_line_common::files::FileHash;
 use move_ir_types::location::*;
 
 use std::collections::HashMap;
-use std::{path::*, vec};
 use std::time::{Duration, Instant};
+use std::{path::*, vec};
 
 /// Double way mapping between FileHash and FilePath.
 #[derive(Debug, Default)]
@@ -24,12 +23,6 @@ impl PathBufHashMap {
         }
         self.path_2_hash.insert(path.clone(), hash);
         self.hash_2_path.insert(hash, path);
-    }
-    pub(crate) fn get_hash(&self, path: &PathBuf) -> Option<&'_ FileHash> {
-        self.path_2_hash.get(path)
-    }
-    pub(crate) fn get_path(&self, hash: &FileHash) -> Option<&'_ PathBuf> {
-        self.hash_2_path.get(hash)
     }
 }
 /// A thin wrapper on `FileLineMapping`
@@ -218,22 +211,14 @@ impl std::fmt::Display for FileRange {
         )
     }
 }
-impl FileRange {
-    pub(crate) fn unknown() -> Self {
-        Self {
-            path: PathBuf::from("<unknown>"),
-            line_start: 0,
-            col_start: 0,
-            col_end: 0,
-            line_end: 0,
-        }
-    }
-}
 
 /// Path concat from
 pub fn path_concat(p1: &Path, p2: &Path) -> PathBuf {
     let p2: Vec<_> = p2.components().collect();
-    let is_abs = matches!(p2.get(0).unwrap(), Component::RootDir | Component::Prefix(_));
+    let is_abs = matches!(
+        p2.get(0).unwrap(),
+        Component::RootDir | Component::Prefix(_)
+    );
     let mut p1: Vec<_> = p1.components().collect();
     normal_path_components(if is_abs {
         &p2
@@ -277,11 +262,6 @@ pub fn normal_path_components(x: &Vec<Component<'_>>) -> PathBuf {
         ret.push(".")
     }
     ret
-}
-
-pub(crate) fn normal_path(p: &Path) -> PathBuf {
-    let x: Vec<_> = p.components().collect();
-    normal_path_components(&x)
 }
 
 use lsp_types::Range;
@@ -381,11 +361,7 @@ pub fn mk_result_filepath(x: &Path) -> PathBuf {
     let index = b.as_str().rfind('.').unwrap();
     x.pop();
     let mut ret = x.clone();
-    ret.push(format!(
-        "{}{}",
-        &b.as_str()[0..index],
-        ".fmt.out"
-    ));
+    ret.push(format!("{}{}", &b.as_str()[0..index], ".fmt.out"));
     ret
 }
 

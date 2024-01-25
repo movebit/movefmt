@@ -1,12 +1,15 @@
+// Copyright (c) The BitsLab.MoveBit Contributors
+// SPDX-License-Identifier: Apache-2.0
+
+use crate::tools::syntax::parse_file_string;
+use crate::tools::utils::FileLineMappingOneFile;
 use move_command_line_common::files::FileHash;
-use move_ir_types::location::*;
-use move_compiler::shared::CompilationEnv;
-use move_compiler::Flags;
 use move_compiler::parser::ast::Definition;
 use move_compiler::parser::ast::*;
+use move_compiler::shared::CompilationEnv;
+use move_compiler::Flags;
+use move_ir_types::location::*;
 use std::collections::BTreeSet;
-use crate::tools::utils::FileLineMappingOneFile;
-use crate::tools::syntax::parse_file_string;
 
 #[derive(Debug, Default)]
 pub struct BigBlockExtractor {
@@ -22,7 +25,7 @@ impl BigBlockExtractor {
         };
 
         big_block_extractor.line_mapping.update(&fmt_buffer);
-        let attrs: BTreeSet<String> = BTreeSet::new();    
+        let attrs: BTreeSet<String> = BTreeSet::new();
         let mut env = CompilationEnv::new(Flags::testing(), attrs);
         let (defs, _) = parse_file_string(&mut env, FileHash::empty(), &fmt_buffer).unwrap();
 
@@ -47,32 +50,6 @@ impl BigBlockExtractor {
 
     fn collect_spec(&mut self, spec_block: &SpecBlock) {
         self.blk_loc_vec.push(spec_block.loc);
-
-        // match &spec_block.value.target.value {
-        //     SpecBlockTarget_::Member(_, Some(_)) => {
-        //         self.blk_loc_vec.push(spec_block.value.target.loc);
-        //     },
-        //     _ => {}
-        // }
-
-        // for m in spec_block.value.members.iter() {
-        //     match &m.value {
-        //         SpecBlockMember_::Function {
-        //             uninterpreted: _,
-        //             name: _,
-        //             signature: _,
-        //             body,
-        //         } => {
-        //             match &body.value {
-        //                 FunctionBody_::Defined(..) => {
-        //                     self.blk_loc_vec.push(m.loc);
-        //                 },
-        //                 FunctionBody_::Native => {}
-        //             }
-        //         }
-        //         _ => {}
-        //     }
-        // }
     }
 
     fn collect_module(&mut self, d: &ModuleDefinition) {
@@ -81,7 +58,7 @@ impl BigBlockExtractor {
                 ModuleMember::Struct(x) => self.collect_struct(x),
                 ModuleMember::Function(x) => self.collect_function(x),
                 ModuleMember::Spec(s) => self.collect_spec(s),
-                _ => {},
+                _ => {}
             }
         }
     }
@@ -106,7 +83,7 @@ impl BigBlockExtractor {
     }
 }
 
-fn get_nth_line(s: &str, n: usize) -> Option<&str> {  
+fn get_nth_line(s: &str, n: usize) -> Option<&str> {
     s.lines().nth(n)
 }
 
@@ -121,34 +98,46 @@ pub fn add_blank_row_in_two_blocks(fmt_buffer: String) -> String {
             break;
         }
         let next_blk_idx = pre_blk_idx + 1;
-        let blk1_end_line = big_block_extractor.line_mapping.translate(
-            big_block_extractor.blk_loc_vec[pre_blk_idx].end(), 
-            big_block_extractor.blk_loc_vec[pre_blk_idx].end()
-        ).unwrap().start.line;
-        
-        let blk2_start_line = big_block_extractor.line_mapping.translate(
-            big_block_extractor.blk_loc_vec[next_blk_idx].start(), 
-            big_block_extractor.blk_loc_vec[next_blk_idx].start()
-        ).unwrap().start.line;
+        let blk1_end_line = big_block_extractor
+            .line_mapping
+            .translate(
+                big_block_extractor.blk_loc_vec[pre_blk_idx].end(),
+                big_block_extractor.blk_loc_vec[pre_blk_idx].end(),
+            )
+            .unwrap()
+            .start
+            .line;
+
+        let blk2_start_line = big_block_extractor
+            .line_mapping
+            .translate(
+                big_block_extractor.blk_loc_vec[next_blk_idx].start(),
+                big_block_extractor.blk_loc_vec[next_blk_idx].start(),
+            )
+            .unwrap()
+            .start
+            .line;
 
         let is_need_blank_row = {
             if blk1_end_line + 1 == blk2_start_line {
                 true
             } else {
-                let the_row_after_blk1_end = get_nth_line(buf.as_str(), (blk1_end_line + 1) as usize).unwrap_or_default();
+                let the_row_after_blk1_end =
+                    get_nth_line(buf.as_str(), (blk1_end_line + 1) as usize).unwrap_or_default();
                 let trimed_prefix = the_row_after_blk1_end.trim_start().split(' ');
                 if trimed_prefix.count() > 1 || the_row_after_blk1_end.trim_start().len() >= 2 {
                     // there are code or comment located in line(blk1_end_line + 1)
                     // tracing::debug!("trimed_prefix = {:?}", trimed_prefix);
                     // tracing::debug!("blk1_end_line = {:?}, blk2_start_line = {:?}", blk1_end_line, blk2_start_line);
-                    true 
+                    true
                 } else {
                     false
                 }
             }
         };
         if is_need_blank_row {
-            let mut insert_pos = big_block_extractor.blk_loc_vec[pre_blk_idx].end() as usize + insert_char_nums;
+            let mut insert_pos =
+                big_block_extractor.blk_loc_vec[pre_blk_idx].end() as usize + insert_char_nums;
             while result.chars().nth(insert_pos).unwrap_or_default() != '\n' {
                 insert_pos += 1;
             }
@@ -165,7 +154,8 @@ pub fn fmt_big_block(fmt_buffer: String) -> String {
 
 #[test]
 fn test_add_blank_row_in_two_blocks_1() {
-    let result = add_blank_row_in_two_blocks("
+    let result = add_blank_row_in_two_blocks(
+        "
     module std::ascii {
         struct Char {
             byte: u8,
@@ -176,7 +166,8 @@ fn test_add_blank_row_in_two_blocks_1() {
         }
     }    
     "
-    .to_string());
+        .to_string(),
+    );
 
     tracing::debug!("result = {}", result);
 }
@@ -184,7 +175,7 @@ fn test_add_blank_row_in_two_blocks_1() {
 #[test]
 fn test_add_blank_row_in_two_blocks_2() {
     let result = add_blank_row_in_two_blocks(
-"
+        "
 module Test {
     struct SomeOtherStruct1 has drop {
         some_other_field1: u64,
@@ -220,7 +211,9 @@ module Test {
         some_other_field2.some_other_field1
     }
 }
-".to_string());
+"
+        .to_string(),
+    );
 
     tracing::debug!("result = {}", result);
 }
@@ -228,7 +221,7 @@ module Test {
 #[test]
 fn test_add_blank_row_in_two_blocks_3() {
     let result = add_blank_row_in_two_blocks(
-"
+        "
 module test_module1 {
 
     struct TestStruct1 {
@@ -253,7 +246,9 @@ module test_module4 {
         field: vector<T>, // This is a comment after complex field
     }
 }
-".to_string());
+"
+        .to_string(),
+    );
 
     tracing::debug!("result = {}", result);
 }
@@ -261,7 +256,7 @@ module test_module4 {
 #[test]
 fn test_add_blank_row_in_two_blocks_4() {
     let result = add_blank_row_in_two_blocks(
-"
+        "
 spec std::string {
     spec internal_check_utf8(v: &vector<u8>): bool {
         pragma opaque;
@@ -275,7 +270,9 @@ spec std::string {
     }
 }
     
-".to_string());
+"
+        .to_string(),
+    );
 
     tracing::debug!("result = {}", result);
 }
@@ -283,7 +280,7 @@ spec std::string {
 #[test]
 fn test_add_blank_row_in_two_blocks_5() {
     let result = add_blank_row_in_two_blocks(
-"
+        "
 address 0x1 {
     module M {
         #[test]
@@ -294,7 +291,9 @@ address 0x1 {
         fun test_destroy_fails() {}
     }
 }
-    ".to_string());
+    "
+        .to_string(),
+    );
 
     tracing::debug!("result = {}", result);
 }

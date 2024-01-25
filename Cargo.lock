@@ -1537,6 +1537,7 @@ dependencies = [
  "pprof",
  "regex",
  "serde",
+ "serde_json",
  "term",
  "thiserror",
  "tracing",

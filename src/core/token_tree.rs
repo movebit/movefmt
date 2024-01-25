@@ -1,3 +1,6 @@
+// Copyright (c) The BitsLab.MoveBit Contributors
+// SPDX-License-Identifier: Apache-2.0
+
 use core::panic;
 use std::cmp::Ordering;
 use std::collections::HashSet;
@@ -128,15 +131,15 @@ pub enum Note {
     ModuleAddress,
 }
 
-impl Default for TokenTree {  
-    fn default() -> Self {  
-        TokenTree::SimpleToken {  
-            content: "".to_string(),  
-            pos: 0,  
+impl Default for TokenTree {
+    fn default() -> Self {
+        TokenTree::SimpleToken {
+            content: "".to_string(),
+            pos: 0,
             tok: Tok::EOF,
-            note: None,  
-        }  
-    }  
+            note: None,
+        }
+    }
 }
 
 impl TokenTree {
@@ -273,7 +276,10 @@ impl<'a> Parser<'a> {
                     }
                 }
 
-                if let Some((start, end)) = self.type_lambda_pair[self.type_lambda_pair_index..].iter().next() {
+                if let Some((start, end)) = self.type_lambda_pair[self.type_lambda_pair_index..]
+                    .iter()
+                    .next()
+                {
                     if &pos >= start && &pos <= end {
                         return Some(t);
                     } else {
@@ -690,7 +696,6 @@ pub(crate) fn analyze_token_tree_length(token_tree: &[TokenTree], max: usize) ->
     ret
 }
 
-
 // ===================================================================================================
 #[derive(Default, Debug)]
 pub struct CommentExtrator {
@@ -703,7 +708,6 @@ pub struct Comment {
     pub content: String,
 }
 
-/// TODO more. doc comment etc.
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum CommentKind {
     /// "//"
@@ -854,7 +858,10 @@ impl CommentExtrator {
                 ExtratorCommentState::Quote => {
                     // handle \" or handle \\
                     if *c == BLACK_SLASH
-                        && content.get(index + 1).map(|x| *x == QUOTE || *x == BLACK_SLASH).unwrap_or(false)
+                        && content
+                            .get(index + 1)
+                            .map(|x| *x == QUOTE || *x == BLACK_SLASH)
+                            .unwrap_or(false)
                     {
                         index += 2;
                         continue;
@@ -877,8 +884,8 @@ impl CommentExtrator {
 
 #[cfg(test)]
 mod comment_test {
-    use move_command_line_common::files::FileHash;
     use crate::tools::syntax::parse_file_string;
+    use move_command_line_common::files::FileHash;
     use move_compiler::{shared::CompilationEnv, Flags};
     use std::collections::BTreeSet;
 
