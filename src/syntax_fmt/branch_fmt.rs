@@ -111,8 +111,6 @@ impl BranchExtractor {
                 if let Some(el) = eles_opt {
                     self.com_if_else.else_loc_vec.push(el.loc);
                     self.collect_expr(el.as_ref());
-                } else {
-                    self.com_if_else.else_loc_vec.push(then_.loc);
                 }
             }
         }

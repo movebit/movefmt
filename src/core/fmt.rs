@@ -919,6 +919,10 @@ impl Format {
     }
     fn dec_depth(&self) {
         let old = self.depth.get();
+        if old == 0 {
+            eprintln!("old depth is zero, return");
+            return;
+        }
         self.depth.set(old - 1);
     }
     fn push_str(&self, s: impl AsRef<str>) {
