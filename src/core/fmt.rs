@@ -419,7 +419,7 @@ impl Format {
     fn add_new_line_after_nested_begin(
         &self,
         kind: &NestKind,
-        elements: &Vec<TokenTree>,
+        elements: &[TokenTree],
         b_new_line_mode: bool,
     ) {
         if !b_new_line_mode {
@@ -432,7 +432,7 @@ impl Format {
         }
 
         if !elements.is_empty() {
-            let next_token = elements.get(0).unwrap();
+            let next_token = elements.first().unwrap();
             let mut next_token_start_pos: u32 = 0;
             self.analyzer_token_tree_start_pos_(&mut next_token_start_pos, next_token);
             if self.translate_line(next_token_start_pos) > self.translate_line(kind.start_pos) {
