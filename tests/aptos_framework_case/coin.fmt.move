@@ -203,7 +203,7 @@ module aptos_framework::coin {
             assume aggregator::spec_get_limit(coin.value) == MAX_U64;
         };
         let amount = aggregator::read(&coin.value);
-        assert !(
+        assert!(
             amount <= MAX_U64,
             error::out_of_range(EAGGREGATABLE_COIN_VALUE_TOO_LARGE)
         );
@@ -262,7 +262,7 @@ module aptos_framework::coin {
     /// Returns the balance of `owner` for provided `CoinType`.
     public fun balance<CoinType>(owner: address): u64
         acquires CoinStore {
-        assert !(
+        assert!(
             is_account_registered<CoinType>(owner),
             error::not_found(ECOIN_STORE_NOT_PUBLISHED),
         );
@@ -342,7 +342,7 @@ module aptos_framework::coin {
             update supply<CoinType> = supply<CoinType> - coin.value;
         };
         let Coin {value: amount} = coin;
-        assert !(
+        assert!(
             amount > 0,
             error::invalid_argument(EZERO_COIN_AMOUNT)
         );
@@ -381,13 +381,13 @@ module aptos_framework::coin {
         coin: Coin<CoinType>
     )
         acquires CoinStore {
-        assert !(
+        assert!(
             is_account_registered<CoinType>(account_addr),
             error::not_found(ECOIN_STORE_NOT_PUBLISHED),
         );
 
         let coin_store = borrow_global_mut<CoinStore<CoinType>>(account_addr);
-        assert !(
+        assert!(
             !coin_store.frozen,
             error::permission_denied(EFROZEN),
         );
@@ -412,7 +412,7 @@ module aptos_framework::coin {
         coin: Coin<CoinType>
     )
         acquires CoinStore {
-        assert !(
+        assert!(
             is_account_registered<CoinType>(account_addr),
             error::not_found(ECOIN_STORE_NOT_PUBLISHED),
         );
@@ -430,7 +430,7 @@ module aptos_framework::coin {
             update supply<CoinType> = supply<CoinType> - zero_coin.value;
         };
         let Coin { value } = zero_coin;
-        assert !(
+        assert!(
             value == 0,
             error::invalid_argument(EDESTRUCTION_OF_NONZERO_TOKEN)
         )
@@ -441,7 +441,7 @@ module aptos_framework::coin {
         coin: &mut Coin<CoinType>,
         amount: u64
     ): Coin<CoinType>{
-        assert !(
+        assert!(
             coin.value >= amount,
             error::invalid_argument(EINSUFFICIENT_BALANCE)
         );
@@ -497,13 +497,13 @@ module aptos_framework::coin {
         let account_addr = signer::address_of(account);
 
         // Only coin creators can upgrade total supply.
-        assert !(
+        assert!(
             coin_address<CoinType>() == account_addr,
             error::invalid_argument(ECOIN_INFO_ADDRESS_MISMATCH),
         );
 
         // Can only succeed once on-chain governance agreed on the upgrade.
-        assert !(
+        assert!(
             borrow_global_mut<SupplyConfig>(@aptos_framework).allow_upgrades,
             error::permission_denied(ECOIN_SUPPLY_UPGRADE_NOT_SUPPORTED)
         );
@@ -580,21 +580,21 @@ module aptos_framework::coin {
     ) {
         let account_addr = signer::address_of(account);
 
-        assert !(
+        assert!(
             coin_address<CoinType>() == account_addr,
             error::invalid_argument(ECOIN_INFO_ADDRESS_MISMATCH),
         );
 
-        assert !(
+        assert!(
             !exists<CoinInfo<CoinType>>(account_addr),
             error::already_exists(ECOIN_INFO_ALREADY_PUBLISHED),
         );
 
-        assert !(
+        assert!(
             string::length(&name) <= MAX_COIN_NAME_LENGTH,
             error::invalid_argument(ECOIN_NAME_TOO_LONG)
         );
-        assert !(
+        assert!(
             string::length(&symbol) <= MAX_COIN_SYMBOL_LENGTH,
             error::invalid_argument(ECOIN_SYMBOL_TOO_LONG)
         );
@@ -710,13 +710,13 @@ module aptos_framework::coin {
     public fun withdraw<CoinType>(account: &signer, amount: u64,): Coin<CoinType>
         acquires CoinStore {
         let account_addr = signer::address_of(account);
-        assert !(
+        assert!(
             is_account_registered<CoinType>(account_addr),
             error::not_found(ECOIN_STORE_NOT_PUBLISHED),
         );
 
         let coin_store = borrow_global_mut<CoinStore<CoinType>>(account_addr);
-        assert !(
+        assert!(
             !coin_store.frozen,
             error::permission_denied(EFROZEN),
         );
@@ -844,36 +844,36 @@ module aptos_framework::coin {
         );
         register<FakeMoney>(&source);
         register<FakeMoney>(&destination);
-        assert !(
+        assert!(
             *option::borrow(&supply<FakeMoney>()) == 0,
             0
         );
 
-        assert !(name<FakeMoney>() == name, 1);
-        assert !(symbol<FakeMoney>() == symbol, 2);
-        assert !(decimals<FakeMoney>() == 18, 3);
+        assert!(name<FakeMoney>() == name, 1);
+        assert!(symbol<FakeMoney>() == symbol, 2);
+        assert!(decimals<FakeMoney>() == 18, 3);
 
         let coins_minted = mint<FakeMoney>(100, &mint_cap);
         deposit(source_addr, coins_minted);
         transfer<FakeMoney>(&source, destination_addr, 50);
 
-        assert !(
+        assert!(
             balance<FakeMoney>(source_addr) == 50,
             4
         );
-        assert !(
+        assert!(
             balance<FakeMoney>(destination_addr) == 50,
             5
         );
-        assert !(
+        assert!(
             *option::borrow(&supply<FakeMoney>()) == 100,
             6
         );
 
         let coin = withdraw<FakeMoney>(&source, 10);
-        assert !(value(&coin) == 10, 7);
+        assert!(value(&coin) == 10, 7);
         burn(coin, &burn_cap);
-        assert !(
+        assert!(
             *option::borrow(&supply<FakeMoney>()) == 90,
             8
         );
@@ -897,7 +897,7 @@ module aptos_framework::coin {
         );
 
         register<FakeMoney>(&destination);
-        assert !(
+        assert!(
             option::is_none(&supply<FakeMoney>()),
             0
         );
@@ -906,22 +906,22 @@ module aptos_framework::coin {
         deposit<FakeMoney>(source_addr, coins_minted);
         transfer<FakeMoney>(&source, destination_addr, 50);
 
-        assert !(
+        assert!(
             balance<FakeMoney>(source_addr) == 50,
             1
         );
-        assert !(
+        assert!(
             balance<FakeMoney>(destination_addr) == 50,
             2
         );
-        assert !(
+        assert!(
             option::is_none(&supply<FakeMoney>()),
             3
         );
 
         let coin = withdraw<FakeMoney>(&source, 10);
         burn(coin, &burn_cap);
-        assert !(
+        assert!(
             option::is_none(&supply<FakeMoney>()),
             4
         );
@@ -962,7 +962,7 @@ module aptos_framework::coin {
         let (burn_cap, freeze_cap, mint_cap) = initialize_and_register_fake_money(
             &source, 1, true
         );
-        assert !(
+        assert!(
             *option::borrow(&supply<FakeMoney>()) == 0,
             0
         );
@@ -988,21 +988,21 @@ module aptos_framework::coin {
 
         let coins_minted = mint<FakeMoney>(100, &mint_cap);
         deposit(source_addr, coins_minted);
-        assert !(
+        assert!(
             balance<FakeMoney>(source_addr) == 100,
             0
         );
-        assert !(
+        assert!(
             *option::borrow(&supply<FakeMoney>()) == 100,
             1
         );
 
         burn_from<FakeMoney>(source_addr, 10, &burn_cap);
-        assert !(
+        assert!(
             balance<FakeMoney>(source_addr) == 90,
             2
         );
-        assert !(
+        assert!(
             *option::borrow(&supply<FakeMoney>()) == 90,
             3
         );
@@ -1042,13 +1042,13 @@ module aptos_framework::coin {
         let coins_minted = mint<FakeMoney>(100, &mint_cap);
 
         let extracted = extract(&mut coins_minted, 25);
-        assert !(value(&coins_minted) == 75, 0);
-        assert !(value(&extracted) == 25, 1);
+        assert!(value(&coins_minted) == 75, 0);
+        assert!(value(&extracted) == 25, 1);
 
         deposit(source_addr, coins_minted);
         deposit(source_addr, extracted);
 
-        assert !(
+        assert!(
             balance<FakeMoney>(source_addr) == 100,
             2
         );
@@ -1061,13 +1061,13 @@ module aptos_framework::coin {
 
     #[test(source = @0x1)]
     public fun test_is_coin_initialized(source: signer) {
-        assert !(
+        assert!(
             !is_coin_initialized<FakeMoney>(),
             0
         );
 
         let (burn_cap, freeze_cap, mint_cap) = initialize_fake_money(&source, 1, true);
-        assert !(is_coin_initialized<FakeMoney>(), 1);
+        assert!(is_coin_initialized<FakeMoney>(), 1);
 
         move_to(
             &source,
@@ -1080,7 +1080,7 @@ module aptos_framework::coin {
         acquires CoinStore {
         let account_addr = signer::address_of(&account);
         // An non registered account is has a frozen coin store by default
-        assert !(
+        assert!(
             is_coin_store_frozen<FakeMoney>(account_addr),
             1
         );
@@ -1090,21 +1090,21 @@ module aptos_framework::coin {
             &account, 18, true
         );
 
-        assert !(
+        assert!(
             !is_coin_store_frozen<FakeMoney>(account_addr),
             1
         );
 
         // freeze account
         freeze_coin_store(account_addr, &freeze_cap);
-        assert !(
+        assert!(
             is_coin_store_frozen<FakeMoney>(account_addr),
             1
         );
 
         // unfreeze account
         unfreeze_coin_store(account_addr, &freeze_cap);
-        assert !(
+        assert!(
             !is_coin_store_frozen<FakeMoney>(account_addr),
             1
         );
@@ -1118,7 +1118,7 @@ module aptos_framework::coin {
     #[test]
     fun test_zero() {
         let zero = zero<FakeMoney>();
-        assert !(value(&zero) == 0, 1);
+        assert!(value(&zero) == 0, 1);
         destroy_zero(zero);
     }
 
@@ -1257,7 +1257,7 @@ module aptos_framework::coin {
         let supply = option::borrow_mut(maybe_supply);
 
         // Supply should be parallelizable.
-        assert !(
+        assert!(
             optional_aggregator::is_parallelizable(supply),
             0
         );
@@ -1265,7 +1265,7 @@ module aptos_framework::coin {
         optional_aggregator::add(supply, 100);
         optional_aggregator::sub(supply, 50);
         optional_aggregator::add(supply, 950);
-        assert !(
+        assert!(
             optional_aggregator::read(supply) == 1000,
             0
         );
@@ -1302,7 +1302,7 @@ module aptos_framework::coin {
         let supply = option::borrow_mut(maybe_supply);
 
         // Supply should be non-parallelizable.
-        assert !(
+        assert!(
             !optional_aggregator::is_parallelizable(supply),
             0
         );
@@ -1310,7 +1310,7 @@ module aptos_framework::coin {
         optional_aggregator::add(supply, 100);
         optional_aggregator::sub(supply, 50);
         optional_aggregator::add(supply, 950);
-        assert !(
+        assert!(
             optional_aggregator::read(supply) == 1000,
             0
         );
@@ -1330,7 +1330,7 @@ module aptos_framework::coin {
             coin_address<FakeMoney>()
         ).supply;
         let supply = option::borrow_mut(maybe_supply);
-        assert !(
+        assert!(
             !optional_aggregator::is_parallelizable(supply),
             0
         );
@@ -1345,11 +1345,11 @@ module aptos_framework::coin {
             coin_address<FakeMoney>()
         ).supply;
         let supply = option::borrow_mut(maybe_supply);
-        assert !(
+        assert!(
             optional_aggregator::is_parallelizable(supply),
             0
         );
-        assert !(
+        assert!(
             optional_aggregator::read(supply) == 100,
             0
         );
@@ -1372,12 +1372,12 @@ module aptos_framework::coin {
         );
 
         // Registering twice should not fail.
-        assert !(
+        assert!(
             is_account_registered<FakeMoney>(@0x1),
             0
         );
         register<FakeMoney>(framework);
-        assert !(
+        assert!(
             is_account_registered<FakeMoney>(@0x1),
             1
         );
@@ -1399,11 +1399,11 @@ module aptos_framework::coin {
 
         let coins_minted = mint<FakeMoney>(100, &mint_cap);
         deposit(framework_addr, coins_minted);
-        assert !(
+        assert!(
             balance<FakeMoney>(framework_addr) == 100,
             0
         );
-        assert !(
+        assert!(
             *option::borrow(&supply<FakeMoney>()) == 100,
             0
         );
@@ -1417,18 +1417,18 @@ module aptos_framework::coin {
 
         // Check that aggregatable coin has the right amount.
         let collected_coin = drain_aggregatable_coin(&mut aggregatable_coin);
-        assert !(
+        assert!(
             is_aggregatable_coin_zero(&aggregatable_coin),
             0
         );
-        assert !(value(&collected_coin) == 10, 0);
+        assert!(value(&collected_coin) == 10, 0);
 
         // Supply of coins should be unchanged, but the balance on the account should decrease.
-        assert !(
+        assert!(
             balance<FakeMoney>(framework_addr) == 90,
             0
         );
-        assert !(
+        assert!(
             *option::borrow(&supply<FakeMoney>()) == 100,
             0
         );
