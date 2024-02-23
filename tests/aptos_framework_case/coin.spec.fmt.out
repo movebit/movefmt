@@ -461,8 +461,8 @@ spec aptos_framework::coin {
             aggregator_factory::AggregatorFactory
         >(@aptos_framework);
         /// [managed_coin::high-level-req-2]
-        ensures exists<CoinInfo<CoinType>>(account_addr) && coin_info.name == name && coin_info.symbol == symbol
-            && coin_info.decimals == decimals;
+        ensures exists<CoinInfo<CoinType>>(account_addr) && coin_info.name == name && coin_info.
+            symbol == symbol && coin_info.decimals == decimals;
         ensures if (monitor_supply) {
             value == 0 && limit == MAX_U128 && (
                 parallelizable == optional_aggregator::is_parallelizable(supply)
@@ -523,11 +523,12 @@ spec aptos_framework::coin {
         aborts_if coin_store_to.frozen;
         aborts_if coin_store_from.coin.value < amount;
 
-        ensures account_addr_from != to ==> coin_store_post_from.coin.value == coin_store_from.coin.value
-            - amount;
-        ensures account_addr_from != to ==> coin_store_post_to.coin.value == coin_store_to.coin.value
-            + amount;
-        ensures account_addr_from == to ==> coin_store_post_from.coin.value == coin_store_from.coin.value;
+        ensures account_addr_from != to ==> coin_store_post_from.coin.value == coin_store_from.
+            coin.value - amount;
+        ensures account_addr_from != to ==> coin_store_post_to.coin.value == coin_store_to.
+            coin.value + amount;
+        ensures account_addr_from == to ==> coin_store_post_from.coin.value == coin_store_from.
+            coin.value;
     }
 
     /// Account is not frozen and sufficient balance.
