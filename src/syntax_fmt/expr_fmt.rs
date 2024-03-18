@@ -383,7 +383,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
             }
 
             if let Some(content) = current.simple_str() {
-                if content == "aborts_if" || content == "ensures" {
+                if content == "aborts_if" || content == "ensures" || content == "include" {
                     result = true;
                 }
                 if content == "assert" && next_tok == Tok::Exclaim {

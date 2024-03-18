@@ -183,7 +183,7 @@ spec aptos_framework::coin {
         amount: u64;
         let addr = type_info::type_of<CoinType>().account_address;
         let maybe_supply = global<CoinInfo<CoinType>>(addr).supply;
-        include(option::is_some(maybe_supply)) ==> optional_aggregator::SubAbortsIf {
+        include (option::is_some(maybe_supply)) ==> optional_aggregator::SubAbortsIf {
             optional_aggregator: option::borrow(maybe_supply),
             value: amount
         };
@@ -194,7 +194,7 @@ spec aptos_framework::coin {
         amount: u64;
         let addr = type_info::type_of<CoinType>().account_address;
         let maybe_supply = global<CoinInfo<CoinType>>(addr).supply;
-        include(option::is_some(maybe_supply)) ==> optional_aggregator::AddAbortsIf {
+        include (option::is_some(maybe_supply)) ==> optional_aggregator::AddAbortsIf {
             optional_aggregator: option::borrow(maybe_supply),
             value: amount
         };
