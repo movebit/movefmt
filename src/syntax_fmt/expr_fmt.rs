@@ -183,10 +183,18 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
             .unwrap_or_default(),
     };
 
+    let next_note = match next {
+        None => Note::Unkownwn,
+        Some(next_) => next_.get_note().unwrap_or_default(),
+    };
+
     let is_to_execpt = is_to_or_except(&Some(current)) || is_to_or_except(&next);
 
     if let Tok::Greater = get_end_tok(current) {
         if let TokType::Alphabet = TokType::from(next.map(get_start_tok).unwrap()) {
+            return true
+        }
+        if let Tok::LBrace = next.map(get_start_tok).unwrap() {
             return true
         }
     }
