@@ -506,13 +506,13 @@ impl Format {
     fn format_each_token_in_nested_elements(
         &self,
         kind: &NestKind,
-        elements: &Vec<TokenTree>,
+        elements: &[TokenTree],
         delimiter: Option<Delimiter>,
         has_colon: bool,
         b_new_line_mode: bool,
     ) {
         let nested_token = TokenTree::Nested {
-            elements: elements.clone(),
+            elements: elements.to_owned(),
             kind: *kind,
             note: None,
         };
