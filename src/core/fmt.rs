@@ -179,6 +179,7 @@ impl Format {
             index += 1;
         }
         self.add_comments(u32::MAX, "end_of_move_file".to_string());
+        self.process_last_empty_line();
         self.ret.into_inner()
     }
 
@@ -1244,6 +1245,22 @@ impl Format {
             .collect::<Vec<_>>()
             .join("\n");
         *self.ret.borrow_mut() = result;
+    }
+
+    fn process_last_empty_line(&mut self) {
+        let ret_copy = self.ret.clone().into_inner();
+        let mut lines = ret_copy.lines().collect::<Vec<&str>>();
+        let last_line = lines.last().unwrap_or(&"");
+
+        if last_line.is_empty() {
+            while lines.len() > 1 && lines[lines.len() - 2].is_empty() {
+                lines.pop();
+            }
+        } else {
+            lines.push("");
+        }
+
+        *self.ret.borrow_mut() = lines.join("\n");
     }
 }
 
