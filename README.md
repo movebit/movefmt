@@ -6,7 +6,7 @@ MoveBit is a security audit company for the Move ecosystem, with a vision to mak
 The MoveBit team consists of security leaders in academia and enterprise world, with 10 years of security experience, and is the first blockchain security company to leverage formal verification in the Move ecosystem.
 
 ## Background
-A formatting tool, also known as a pretty-printer, prints the parser‘s AST of the corresponding language into a beautifully formatted string.
+A formatting tool, also known as a pretty-printer, prints the parser's AST of the corresponding language into a beautifully formatted string.
 
 
 Currently, the community has been discussing the need for a formatting tool for the move language, but due to the fact that implementing a formatting tool is not an easy task, there has not yet been a mature and user-friendly formatting tool for the move language.

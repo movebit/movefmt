@@ -362,6 +362,14 @@ impl Format {
             .map(|x| x == Note::StructDefinition)
             .unwrap_or_default();
         let fun_body = note.map(|x| x == Note::FunBody).unwrap_or_default();
+        
+        // 20240328 optimize
+        // if it's branch with block, and block had more than one token, need new line
+        if kind.kind == NestKind_::Brace && elements.len() > 1 &&
+            (self.syntax_extractor.branch_extractor.com_if_else.then_loc_vec.iter().any(|&x| x.start() == kind.start_pos)
+            || self.syntax_extractor.branch_extractor.com_if_else.else_loc_vec.iter().any(|&x| x.start() == kind.start_pos)) {
+            return (true, None);
+        }
 
         let max_len_when_no_add_line: usize = self.global_cfg.max_width() / 3;
         let nested_token_len = analyze_token_tree_length(elements, self.global_cfg.max_width());

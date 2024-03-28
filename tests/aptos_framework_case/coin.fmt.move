@@ -279,7 +279,9 @@ module aptos_framework::coin {
     /// Returns `true` is account_addr has frozen the CoinStore or if it's not registered at all
     public fun is_coin_store_frozen<CoinType>(account_addr: address): bool
         acquires CoinStore {
-        if (!is_account_registered<CoinType>(account_addr)) {return true};
+        if (!is_account_registered<CoinType>(account_addr)) {
+            return true
+        };
 
         let coin_store = borrow_global<CoinStore<CoinType>>(account_addr);
         coin_store.frozen
@@ -324,7 +326,9 @@ module aptos_framework::coin {
             let supply = option::borrow(maybe_supply);
             let value = optional_aggregator::read(supply);
             option::some(value)
-        } else {option::none()}
+        } else {
+            option::none()
+        }
     }
 
     //
@@ -645,7 +649,9 @@ module aptos_framework::coin {
         _cap: &MintCapability<CoinType>,
     ): Coin<CoinType>
         acquires CoinInfo {
-        if (amount == 0) {return Coin<CoinType> {value: 0}};
+        if (amount == 0) {
+            return Coin<CoinType> {value: 0}
+        };
 
         let maybe_supply = &mut borrow_global_mut<CoinInfo<CoinType>>(
             coin_address<CoinType>()
