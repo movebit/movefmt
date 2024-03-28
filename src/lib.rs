@@ -1,5 +1,7 @@
 // Copyright (c) The Diem Core Contributors
 // Copyright (c) The Move Contributors
+// Copyright © Aptos Foundation
+// Copyright (c) The BitsLab.MoveBit Contributors
 // SPDX-License-Identifier: Apache-2.0
 
 // #[macro_use]
