@@ -1,5 +1,3 @@
 target
-tests/formatter/*/*.out
-tests/aptos_framework_case/*.out
-tests/complex/*.out
-tests/complex/*/*.out
+tests/*/*.out
+tests/*/*/*.out

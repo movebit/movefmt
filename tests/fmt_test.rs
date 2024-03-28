@@ -266,6 +266,7 @@ fn test_dir() {
         .init();
     eprintln!("formated {} files", scan_dir("./tests/complex"));
     eprintln!("formated {} files", scan_dir("./tests/aptos_framework_case"));
+    eprintln!("formated {} files", scan_dir("./tests/issues"));
 }
 
 #[test]

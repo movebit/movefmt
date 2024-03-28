@@ -709,6 +709,10 @@ impl Format {
                 self.new_line(None);
             }
 
+            // add blank row between module
+            // this step must before add_comments. because there maybe some comments before new module
+            self.maybe_meet_new_module_in_same_file(*tok, next_token, *pos);
+
             // add comment(xxx) before current simple_token
             self.add_comments(*pos, content.clone());
             /*
@@ -753,26 +757,6 @@ impl Format {
                     self.dec_depth();
                     nested_branch_depth -= 1;
                 }
-            }
-
-            // add blank row between module
-            if Tok::Module == *tok {
-                // tracing::debug!("SimpleToken[{:?}], cur_module_name = {:?}", content,  self.format_context.borrow_mut().cur_module_name);
-                if !self.format_context.borrow_mut().cur_module_name.is_empty()
-                    && (self.translate_line(*pos) - self.cur_line.get()) >= 1
-                {
-                    // tracing::debug!("SimpleToken[{:?}], add blank row between module", content);
-                    self.new_line(None);
-                }
-                self.format_context
-                    .borrow_mut()
-                    .set_env(FormatEnv::FormatModule);
-                self.format_context.borrow_mut().cur_module_name = next_token
-                    .unwrap()
-                    .simple_str()
-                    .unwrap_or_default()
-                    .to_string();
-                // Note: You can get the token tree of the entire format_context.env here
             }
 
             if content == "if" {
@@ -1133,6 +1117,32 @@ impl Format {
             return;
         }
         self.process_same_line_comment(add_line_comment, false);
+    }
+
+    fn maybe_meet_new_module_in_same_file(
+        &self,
+        tok: Tok,
+        next_token: Option<&TokenTree>,
+        pos: u32,
+    ) {
+        if Tok::Module == tok {
+            // tracing::debug!("SimpleToken[{:?}], cur_module_name = {:?}", content,  self.format_context.borrow_mut().cur_module_name);
+            if !self.format_context.borrow_mut().cur_module_name.is_empty()
+                && (self.translate_line(pos) - self.cur_line.get()) >= 1
+            {
+                // tracing::debug!("SimpleToken[{:?}], add blank row between module", content);
+                self.new_line(None);
+            }
+            self.format_context
+                .borrow_mut()
+                .set_env(FormatEnv::FormatModule);
+            self.format_context.borrow_mut().cur_module_name = next_token
+                .unwrap()
+                .simple_str()
+                .unwrap_or_default()
+                .to_string();
+            // Note: You can get the token tree of the entire format_context.env here
+        }
     }
 }
 
