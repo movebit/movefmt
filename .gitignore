@@ -1,3 +1,4 @@
 target
 tests/*/*.out
 tests/*/*/*.out
+.vscode
