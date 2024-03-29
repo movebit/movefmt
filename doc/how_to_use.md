@@ -91,3 +91,17 @@ verbose = "Normal"
 eg:
 
 `movefmt --config max_width="90",indent_size="4" -v --emit="stdout" /path/to/your/file_name.move`
+
+
+### 6.example
+Format two move files, separated by spaces.
+```bash
+edy@edydeMBP-4 movefmt % export MOVEFMT_LOG=movefmt=WARN
+edy@edydeMBP-4 movefmt % movefmt -v tests/issues/issue2/input1.move tests/issues/issue3/input1.move
+options = GetOptsOptions { quiet: false, verbose: true, config_path: None, emit_mode: None, inline_config: {} }
+Using movefmt local config file /Users/edy/workspace/movebit/movefmt/movefmt.toml for /Users/edy/workspace/movebit/movefmt/tests/issues/issue2/input1.move
+2024-03-29T07:45:26.569253Z ERROR movefmt: file '"/Users/edy/workspace/movebit/movefmt/tests/issues/issue2/input1.move"' skipped because of parse not ok
+Using movefmt local config file /Users/edy/workspace/movebit/movefmt/movefmt.toml for /Users/edy/workspace/movebit/movefmt/tests/issues/issue3/input1.move
+Spent 0.000 secs in the parsing phase, and 0.001 secs in the formatting phase
+edy@edydeMBP-4 movefmt % 
+```

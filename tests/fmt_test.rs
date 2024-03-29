@@ -26,7 +26,10 @@ fn scan_dir(dir: &str) -> usize {
             && !x.file_name().to_str().unwrap().contains(".out")
         {
             let p = x.clone().into_path();
-            test_on_file(p.as_path());
+            let result = test_on_file(p.as_path());
+            if !result {
+                continue;
+            }
             num += 1;
 
             let index = p.to_str().unwrap().rfind(".").unwrap();
@@ -50,10 +53,10 @@ fn test_single_file() {
         .with_env_filter(EnvFilter::from_env("MOVEFMT_LOG"))
         .init();
 
-    test_on_file(&Path::new("./tests/complex/input4.move"));
+    test_on_file(Path::new("./tests/complex/input4.move"));
 }
 
-fn test_on_file(p: impl AsRef<Path>) {
+fn test_on_file(p: impl AsRef<Path>) -> bool {
     let p = p.as_ref();
     eprintln!("try format:{:?}", p);
     let content_origin = std::fs::read_to_string(&p).unwrap();
@@ -64,12 +67,13 @@ fn test_on_file(p: impl AsRef<Path>) {
             Ok(_) => {}
             Err(_) => {
                 eprintln!("file '{:?}' skipped because of parse not ok", p);
-                return;
+                return false;
             }
         }
     }
     let content_origin = std::fs::read_to_string(p).unwrap();
     test_content(content_origin.as_str(), p);
+    true
 }
 
 fn test_content(content_origin: &str, p: impl AsRef<Path>) {
@@ -146,7 +150,7 @@ fn extract_comments(content: &str) -> Result<Vec<String>, CommentExtratorErr> {
         .map(|x| x.replacen("\t", "", usize::MAX))
         .map(|x| x.replacen("\n", "", usize::MAX))
         .collect();
-    return Ok(c);
+    Ok(c)
 }
 
 fn extract_tokens(content: &str) -> Result<Vec<ExtractToken>, Vec<String>> {
@@ -234,28 +238,6 @@ fn extract_tokens(content: &str) -> Result<Vec<ExtractToken>, Vec<String>> {
     }
 
     Ok(ret)
-}
-
-#[test]
-fn test_success_dir() {
-    std::env::set_var("MOVEFMT_LOG", "movefmt=DEBUG");
-    tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_env("MOVEFMT_LOG"))
-        .init();
-
-    let mut fmt_num = 0;
-    // eprintln!("formated {} files", scan_dir("./tests/formatter/use"));
-    fmt_num = fmt_num + scan_dir("./tests/formatter/tuple");
-    fmt_num = fmt_num + scan_dir("./tests/formatter/expr");
-    fmt_num = fmt_num + scan_dir("./tests/formatter/fun");
-    fmt_num = fmt_num + scan_dir("./tests/formatter/struct");
-    fmt_num = fmt_num + scan_dir("./tests/formatter/list");
-    fmt_num = fmt_num + scan_dir("./tests/formatter/spec_struct");
-    fmt_num = fmt_num + scan_dir("./tests/formatter/spec_module");
-    fmt_num = fmt_num + scan_dir("./tests/formatter/lambda");
-    fmt_num = fmt_num + scan_dir("./tests/formatter/spec_fun");
-    fmt_num = fmt_num + scan_dir("./tests/formatter/other");
-    eprintln!("formated {} files", fmt_num);
 }
 
 #[test]

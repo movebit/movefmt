@@ -241,7 +241,8 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
                 }
             }
             Err(_) => {
-                tracing::info!("file '{:?}' skipped because of parse not ok", file);
+                // https://github.com/movebit/movefmt/issues/2
+                tracing::error!("file '{:?}' skipped because of parse not ok", file);
             }
         }
     }

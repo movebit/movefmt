@@ -46,6 +46,17 @@ $ export PATH=~/.cargo/bin:$PATH
 
 ## Usage
 If you wish to use this tool independently.
+```
+# set env variable to see the log
+export MOVEFMT_LOG=movefmt=DEBUG
+
+# get help msg
+movefmt -h
+
+# format source file with printing verbose msg
+movefmt -v /path/to/your/file_name.move
+```
+More usage you can see at:
 > https://github.com/movebit/movefmt/blob/develop/doc/how_to_use.md
 
 Alternatively, you can easily use the vscode plugin **aptos-move-analyzer** by installing it. We have integrated **movefmt** into it, which allows you to format the current move file with just one right-click. The VScode plugin **aptos-move-analyzer** is installed on the plugin market page with detailed guidance.

@@ -184,6 +184,7 @@ pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &str) -> Str
         }
     }
     // 20240329 updated
+    // https://github.com/movebit/movefmt/issues/3
     if specifier_str_set.len() == 1 {
         return specifier.to_string();
     }

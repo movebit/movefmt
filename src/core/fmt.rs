@@ -724,6 +724,7 @@ impl Format {
 
             // add blank row between module
             // this step must before add_comments. because there maybe some comments before new module
+            // https://github.com/movebit/movefmt/issues/1
             self.maybe_meet_new_module_in_same_file(*tok, next_token, *pos);
 
             // add comment(xxx) before current simple_token
@@ -1290,6 +1291,12 @@ impl Format {
 pub fn format_entry(content: impl AsRef<str>, config: Config) -> Result<String, Diagnostics> {
     let mut timer = Timer::start();
     let content = content.as_ref();
+
+    {
+        // https://github.com/movebit/movefmt/issues/2    
+        let mut env = CompilationEnv::new(Flags::testing(), BTreeSet::new());
+        let _ = parse_file_string(&mut env, FileHash::empty(), content)?;
+    } 
 
     let mut full_fmt = Format::new(
         config.clone(),

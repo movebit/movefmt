@@ -910,7 +910,7 @@ mod comment_test {
         let attrs: BTreeSet<String> = BTreeSet::new();
         let mut env = CompilationEnv::new(Flags::testing(), attrs);
         let (defs, _) = parse_file_string(&mut env, filehash, content).unwrap();
-        let lexer = Lexer::new(&content, filehash);
+        let lexer = Lexer::new(content, filehash);
         let parse = Parser::new(lexer, &defs);
         let token_tree = parse.parse_tokens();
         let s = serde_json::to_string(&token_tree).unwrap();
