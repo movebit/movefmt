@@ -1,8 +1,10 @@
 // Copyright (c) The Diem Core Contributors
 // Copyright (c) The Move Contributors
+// Copyright © Aptos Foundation
+// Copyright (c) The BitsLab.MoveBit Contributors
 // SPDX-License-Identifier: Apache-2.0
 
-#[macro_use]
+// #[macro_use]
 extern crate lazy_static;
 
 #[macro_export]
@@ -32,14 +34,6 @@ macro_rules! impl_convert_loc {
 }
 extern crate move_ir_types;
 
-#[macro_use]
-pub mod context;
-pub mod fmt;
-#[cfg(test)]
-mod fmt_test;
-pub mod item;
-pub mod lsp_fmt;
-pub mod syntax;
-pub mod token_tree;
-pub mod types;
-pub mod utils;
+pub mod core;
+pub mod syntax_fmt;
+pub mod tools;

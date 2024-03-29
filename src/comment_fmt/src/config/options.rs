@@ -13,18 +13,6 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use crate::config::Config;
 
 #[config_type]
-pub enum NewlineStyle {
-    /// Auto-detect based on the raw source input.
-    Auto,
-    /// Force CRLF (`\r\n`).
-    Windows,
-    /// Force CR (`\n`).
-    Unix,
-    /// `\r\n` in Windows, `\n` on other platforms.
-    Native,
-}
-
-#[config_type]
 /// Where to put the opening brace of items (`fn`, `impl`, etc.).
 pub enum BraceStyle {
     /// Put the opening brace on the next line.
@@ -39,7 +27,7 @@ pub enum BraceStyle {
 #[config_type]
 /// Where to put the opening brace of conditional expressions (`if`, `match`, etc.).
 pub enum ControlBraceStyle {
-    /// K&R style, Rust community default
+    /// K&R style
     AlwaysSameLine,
     /// Stroustrup style
     ClosingNextLine,
@@ -120,7 +108,7 @@ pub enum ImportGranularity {
     One,
 }
 
-/// Controls how rustfmt should handle case in hexadecimal literals.
+/// Controls how movefmt should handle case in hexadecimal literals.
 #[config_type]
 pub enum HexLiteralCase {
     /// Leave the literal as-is
@@ -138,61 +126,24 @@ pub enum ReportTactic {
     Never,
 }
 
-/// What Rustfmt should emit. Mostly corresponds to the `--emit` command line
+/// What movefmt should emit. Mostly corresponds to the `--emit` command line
 /// option.
 #[config_type]
 pub enum EmitMode {
     /// Emits to files.
     Files,
+    /// Emits to new files, eg: xxx.fmt.move.
+    NewFiles,
     /// Writes the output to stdout.
     Stdout,
-    /// Displays how much of the input file was processed
-    Coverage,
-    /// Unfancy stdout
-    Checkstyle,
-    /// Writes the resulting diffs in a JSON format. Returns an empty array
-    /// `[]` if there were no diffs.
-    Json,
-    /// Output the changed lines (for internal value only)
-    ModifiedLines,
-    /// Checks if a diff can be generated. If so, rustfmt outputs a diff and
+    /// Checks if a diff can be generated. If so, movefmt outputs a diff and
     /// quits with exit code 1.
     /// This option is designed to be run in CI where a non-zero exit signifies
     /// non-standard code formatting. Used for `--check`.
     Diff,
 }
 
-/// Client-preference for coloured output.
-#[config_type]
-pub enum Color {
-    /// Always use color, whether it is a piped or terminal output
-    Always,
-    /// Never use color
-    Never,
-    /// Automatically use color, if supported by terminal
-    Auto,
-}
-
-#[config_type]
-/// rustfmt format style version.
-pub enum Version {
-    /// 1.x.y. When specified, rustfmt will format in the same style as 1.0.0.
-    One,
-    /// 2.x.y. When specified, rustfmt will format in the the latest style.
-    Two,
-}
-
-impl Color {
-    /// Whether we should use a coloured terminal.
-    pub fn use_colored_tty(self) -> bool {
-        match self {
-            Color::Always | Color::Auto => true,
-            Color::Never => false,
-        }
-    }
-}
-
-/// How chatty should Rustfmt be?
+/// How chatty should movefmt be?
 #[config_type]
 pub enum Verbosity {
     /// Emit more.
@@ -203,111 +154,19 @@ pub enum Verbosity {
     Quiet,
 }
 
-#[derive(Deserialize, Serialize, Clone, Debug, PartialEq)]
-pub struct WidthHeuristics {
-    // Maximum width of the args of a function call before falling back
-    // to vertical formatting.
-    pub fn_call_width: usize,
-    // Maximum width of the args of a function-like attributes before falling
-    // back to vertical formatting.
-    pub attr_fn_like_width: usize,
-    // Maximum width in the body of a struct lit before falling back to
-    // vertical formatting.
-    pub struct_lit_width: usize,
-    // Maximum width in the body of a struct variant before falling back
-    // to vertical formatting.
-    pub struct_variant_width: usize,
-    // Maximum width of an array literal before falling back to vertical
-    // formatting.
-    pub array_width: usize,
-    // Maximum length of a chain to fit on a single line.
-    pub chain_width: usize,
-    // Maximum line length for single line if-else expressions. A value
-    // of zero means always break if-else expressions.
-    pub single_line_if_else_max_width: usize,
-    // Maximum line length for single line let-else statements. A value of zero means
-    // always format the divergent `else` block over multiple lines.
-    pub single_line_let_else_max_width: usize,
-}
-
-impl fmt::Display for WidthHeuristics {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{self:?}")
-    }
-}
-
-impl WidthHeuristics {
-    // Using this WidthHeuristics means we ignore heuristics.
-    pub fn null() -> WidthHeuristics {
-        WidthHeuristics {
-            fn_call_width: usize::max_value(),
-            attr_fn_like_width: usize::max_value(),
-            struct_lit_width: 0,
-            struct_variant_width: 0,
-            array_width: usize::max_value(),
-            chain_width: usize::max_value(),
-            single_line_if_else_max_width: 0,
-            single_line_let_else_max_width: 0,
-        }
-    }
-
-    pub fn set(max_width: usize) -> WidthHeuristics {
-        WidthHeuristics {
-            fn_call_width: max_width,
-            attr_fn_like_width: max_width,
-            struct_lit_width: max_width,
-            struct_variant_width: max_width,
-            array_width: max_width,
-            chain_width: max_width,
-            single_line_if_else_max_width: max_width,
-            single_line_let_else_max_width: max_width,
-        }
-    }
-
-    // scale the default WidthHeuristics according to max_width
-    pub fn scaled(max_width: usize) -> WidthHeuristics {
-        const DEFAULT_MAX_WIDTH: usize = 100;
-        let max_width_ratio = if max_width > DEFAULT_MAX_WIDTH {
-            let ratio = max_width as f32 / DEFAULT_MAX_WIDTH as f32;
-            // round to the closest 0.1
-            (ratio * 10.0).round() / 10.0
-        } else {
-            1.0
-        };
-        WidthHeuristics {
-            fn_call_width: (60.0 * max_width_ratio).round() as usize,
-            attr_fn_like_width: (70.0 * max_width_ratio).round() as usize,
-            struct_lit_width: (18.0 * max_width_ratio).round() as usize,
-            struct_variant_width: (35.0 * max_width_ratio).round() as usize,
-            array_width: (60.0 * max_width_ratio).round() as usize,
-            chain_width: (60.0 * max_width_ratio).round() as usize,
-            single_line_if_else_max_width: (50.0 * max_width_ratio).round() as usize,
-            single_line_let_else_max_width: (50.0 * max_width_ratio).round() as usize,
-        }
-    }
-}
-
-impl ::std::str::FromStr for WidthHeuristics {
-    type Err = &'static str;
-
-    fn from_str(_: &str) -> Result<Self, Self::Err> {
-        Err("WidthHeuristics is not parsable")
-    }
-}
-
 impl Default for EmitMode {
     fn default() -> EmitMode {
         EmitMode::Files
     }
 }
 
-/// A set of directories, files and modules that rustfmt should ignore.
+/// A set of directories, files and modules that movefmt should ignore.
 #[derive(Default, Clone, Debug, PartialEq)]
 pub struct IgnoreList {
-    /// A set of path specified in rustfmt.toml.
+    /// A set of path specified in movefmt.toml.
     path_set: HashSet<PathBuf>,
-    /// A path to rustfmt.toml.
-    rustfmt_toml_path: PathBuf,
+    /// A path to movefmt.toml.
+    movefmt_toml_path: PathBuf,
 }
 
 impl fmt::Display for IgnoreList {
@@ -364,7 +223,7 @@ impl<'de> Deserialize<'de> for IgnoreList {
         }
         Ok(IgnoreList {
             path_set: deserializer.deserialize_seq(HashSetVisitor)?,
-            rustfmt_toml_path: PathBuf::new(),
+            movefmt_toml_path: PathBuf::new(),
         })
     }
 }
@@ -380,11 +239,11 @@ impl<'a> IntoIterator for &'a IgnoreList {
 
 impl IgnoreList {
     pub fn add_prefix(&mut self, dir: &Path) {
-        self.rustfmt_toml_path = dir.to_path_buf();
+        self.movefmt_toml_path = dir.to_path_buf();
     }
 
-    pub fn rustfmt_toml_path(&self) -> &Path {
-        &self.rustfmt_toml_path
+    pub fn movefmt_toml_path(&self) -> &Path {
+        &self.movefmt_toml_path
     }
 }
 
@@ -396,7 +255,7 @@ impl FromStr for IgnoreList {
     }
 }
 
-/// Maps client-supplied options to Rustfmt's internals, mostly overriding
+/// Maps client-supplied options to movefmt's internals, mostly overriding
 /// values in a config with values from the command line.
 pub trait CliOptions {
     fn apply_to(self, config: &mut Config);
@@ -430,7 +289,7 @@ impl Default for Edition {
     }
 }
 
-/// Controls how rustfmt should handle leading pipes on match arms.
+/// Controls how movefmt should handle leading pipes on match arms.
 #[config_type]
 pub enum MatchArmLeadingPipe {
     /// Place leading pipes on all match arms

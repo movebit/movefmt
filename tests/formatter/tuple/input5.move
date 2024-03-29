@@ -1,8 +1,7 @@
 address 0x42 {  
     module example {  
         /**  
-         * This function doesn't return anything. It's just for demonstration purposes.  
-         */  
+         * This function doesn't return anything. It's just for demonstration purposes. */  
         fun returns_unit() {/*comment*/}  
           
         /**  

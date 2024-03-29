@@ -2,7 +2,7 @@
 ## Test Case Path:
 https://github.com/movebit/movefmt/tests/formatter
 
-## Rules:
+## Rules through Test-Driven Development:
 1.Ensure appropriate width of 90 characters, reasonable indentation of 2 spaces, and elegant layout.
 2.Provide minimal configuration, such as choice of indentation with 2 or 4 spaces.
 3.Internally enforce a maximum width of 90 characters.
@@ -19,6 +19,7 @@ https://github.com/movebit/movefmt/tests/formatter
     let y: u64 = 100;  // comment(2 space before '//', 1 space after '//')
     /* 1 space after '/*', 1 space before '*/' */
 ```
+
 
 ## Comment Types:
 * Block Comment -> /**/

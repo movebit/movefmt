@@ -1,5 +1,4 @@
-use crate::config::file_lines::FileLines;
-use crate::config::options::{IgnoreList, WidthHeuristics};
+use crate::config::options::IgnoreList;
 
 /// Trait for types that can be used in `Config`.
 pub trait ConfigType: Sized {
@@ -40,18 +39,6 @@ impl ConfigType for String {
     }
 }
 
-impl ConfigType for FileLines {
-    fn doc_hint() -> String {
-        String::from("<json>")
-    }
-}
-
-impl ConfigType for WidthHeuristics {
-    fn doc_hint() -> String {
-        String::new()
-    }
-}
-
 impl ConfigType for IgnoreList {
     fn doc_hint() -> String {
         String::from("[<string>,..]")
@@ -69,7 +56,6 @@ macro_rules! create_config {
     ($($i:ident: $ty:ty, $def:expr, $stb:expr, $( $dstring:expr ),+ );+ $(;)*) => (
         #[cfg(test)]
         use std::collections::HashSet;
-        use std::io::Write;
 
         use serde::{Deserialize, Serialize};
 
@@ -86,7 +72,7 @@ macro_rules! create_config {
         }
 
         // Just like the Config struct but with each property wrapped
-        // as Option<T>. This is used to parse a rustfmt.toml that doesn't
+        // as Option<T>. This is used to parse a movefmt.toml that doesn't
         // specify all properties of `Config`.
         // We first parse into `PartialConfig`, then create a default `Config`
         // and overwrite the properties with corresponding values from `PartialConfig`.
@@ -110,18 +96,6 @@ macro_rules! create_config {
             pub fn $i(&mut self, value: $ty) {
                 (self.0).$i.2 = value;
                 match stringify!($i) {
-                    "max_width"
-                    | "use_small_heuristics"
-                    | "fn_call_width"
-                    | "single_line_if_else_max_width"
-                    | "single_line_let_else_max_width"
-                    | "attr_fn_like_width"
-                    | "struct_lit_width"
-                    | "struct_variant_width"
-                    | "array_width"
-                    | "chain_width" => self.0.set_heuristics(),
-                    "merge_imports" => self.0.set_merge_imports(),
-                    "fn_args_layout" => self.0.set_fn_args_layout(),
                     &_ => (),
                 }
             }
@@ -161,7 +135,7 @@ macro_rules! create_config {
                 ConfigWasSet(self)
             }
 
-            fn fill_from_parsed_config(mut self, parsed: PartialConfig, dir: &Path) -> Config {
+            fn fill_from_parsed_config(mut self, parsed: PartialConfig) -> Config {
             $(
                 if let Some(option_value) = parsed.$i {
                     let option_stable = self.$i.3;
@@ -173,10 +147,6 @@ macro_rules! create_config {
                     }
                 }
             )+
-                self.set_heuristics();
-                self.set_ignore(dir);
-                self.set_merge_imports();
-                self.set_fn_args_layout();
                 self
             }
 
@@ -245,10 +215,6 @@ macro_rules! create_config {
 
                             // Users are currently allowed to set unstable
                             // options/variants via the `--config` options override.
-                            //
-                            // There is ongoing discussion about how to move forward here:
-                            // https://github.com/rust-lang/rustfmt/pull/5379
-                            //
                             // For now, do not validate whether the option or value is stable,
                             // just always set it.
                             self.$i.1 = true;
@@ -259,198 +225,7 @@ macro_rules! create_config {
                 }
 
                 match key {
-                    "max_width"
-                    | "use_small_heuristics"
-                    | "fn_call_width"
-                    | "single_line_if_else_max_width"
-                    | "single_line_let_else_max_width"
-                    | "attr_fn_like_width"
-                    | "struct_lit_width"
-                    | "struct_variant_width"
-                    | "array_width"
-                    | "chain_width" => self.set_heuristics(),
-                    "merge_imports" => self.set_merge_imports(),
-                    "fn_args_layout" => self.set_fn_args_layout(),
                     &_ => (),
-                }
-            }
-
-            #[allow(unreachable_pub)]
-            pub fn is_hidden_option(name: &str) -> bool {
-                const HIDE_OPTIONS: [&str; 6] = [
-                    "verbose",
-                    "verbose_diff",
-                    "file_lines",
-                    "width_heuristics",
-                    "merge_imports",
-                    "fn_args_layout"
-                ];
-                HIDE_OPTIONS.contains(&name)
-            }
-
-            #[allow(unreachable_pub)]
-            pub fn print_docs(out: &mut dyn Write, include_unstable: bool) {
-                use std::cmp;
-                let max = 0;
-                $( let max = cmp::max(max, stringify!($i).len()+1); )+
-                let space_str = " ".repeat(max);
-                writeln!(out, "Configuration Options:").unwrap();
-                $(
-                    if $stb || include_unstable {
-                        let name_raw = stringify!($i);
-
-                        if !Config::is_hidden_option(name_raw) {
-                            let mut name_out = String::with_capacity(max);
-                            for _ in name_raw.len()..max-1 {
-                                name_out.push(' ')
-                            }
-                            name_out.push_str(name_raw);
-                            name_out.push(' ');
-                            let mut default_str = format!("{}", $def);
-                            if default_str.is_empty() {
-                                default_str = String::from("\"\"");
-                            }
-                            writeln!(out,
-                                    "{}{} Default: {}{}",
-                                    name_out,
-                                    <$ty>::doc_hint(),
-                                    default_str,
-                                    if !$stb { " (unstable)" } else { "" }).unwrap();
-                            $(
-                                writeln!(out, "{}{}", space_str, $dstring).unwrap();
-                            )+
-                            writeln!(out).unwrap();
-                        }
-                    }
-                )+
-            }
-
-            fn set_width_heuristics(&mut self, heuristics: WidthHeuristics) {
-                let max_width = self.max_width.2;
-                let get_width_value = |
-                    was_set: bool,
-                    override_value: usize,
-                    heuristic_value: usize,
-                    config_key: &str,
-                | -> usize {
-                    if !was_set {
-                        return heuristic_value;
-                    }
-                    if override_value > max_width {
-                        eprintln!(
-                            "`{0}` cannot have a value that exceeds `max_width`. \
-                            `{0}` will be set to the same value as `max_width`",
-                            config_key,
-                        );
-                        return max_width;
-                    }
-                    override_value
-                };
-
-                let fn_call_width = get_width_value(
-                    self.was_set().fn_call_width(),
-                    self.fn_call_width.2,
-                    heuristics.fn_call_width,
-                    "fn_call_width",
-                );
-                self.fn_call_width.2 = fn_call_width;
-
-                let attr_fn_like_width = get_width_value(
-                    self.was_set().attr_fn_like_width(),
-                    self.attr_fn_like_width.2,
-                    heuristics.attr_fn_like_width,
-                    "attr_fn_like_width",
-                );
-                self.attr_fn_like_width.2 = attr_fn_like_width;
-
-                let struct_lit_width = get_width_value(
-                    self.was_set().struct_lit_width(),
-                    self.struct_lit_width.2,
-                    heuristics.struct_lit_width,
-                    "struct_lit_width",
-                );
-                self.struct_lit_width.2 = struct_lit_width;
-
-                let struct_variant_width = get_width_value(
-                    self.was_set().struct_variant_width(),
-                    self.struct_variant_width.2,
-                    heuristics.struct_variant_width,
-                    "struct_variant_width",
-                );
-                self.struct_variant_width.2 = struct_variant_width;
-
-                let array_width = get_width_value(
-                    self.was_set().array_width(),
-                    self.array_width.2,
-                    heuristics.array_width,
-                    "array_width",
-                );
-                self.array_width.2 = array_width;
-
-                let chain_width = get_width_value(
-                    self.was_set().chain_width(),
-                    self.chain_width.2,
-                    heuristics.chain_width,
-                    "chain_width",
-                );
-                self.chain_width.2 = chain_width;
-
-                let single_line_if_else_max_width = get_width_value(
-                    self.was_set().single_line_if_else_max_width(),
-                    self.single_line_if_else_max_width.2,
-                    heuristics.single_line_if_else_max_width,
-                    "single_line_if_else_max_width",
-                );
-                self.single_line_if_else_max_width.2 = single_line_if_else_max_width;
-
-                let single_line_let_else_max_width = get_width_value(
-                    self.was_set().single_line_let_else_max_width(),
-                    self.single_line_let_else_max_width.2,
-                    heuristics.single_line_let_else_max_width,
-                    "single_line_let_else_max_width",
-                );
-                self.single_line_let_else_max_width.2 = single_line_let_else_max_width;
-            }
-
-            fn set_heuristics(&mut self) {
-                let max_width = self.max_width.2;
-                match self.use_small_heuristics.2 {
-                    Heuristics::Default =>
-                        self.set_width_heuristics(WidthHeuristics::scaled(max_width)),
-                    Heuristics::Max => self.set_width_heuristics(WidthHeuristics::set(max_width)),
-                    Heuristics::Off => self.set_width_heuristics(WidthHeuristics::null()),
-                };
-            }
-
-            fn set_ignore(&mut self, dir: &Path) {
-                self.ignore.2.add_prefix(dir);
-            }
-
-            fn set_merge_imports(&mut self) {
-                if self.was_set().merge_imports() {
-                    eprintln!(
-                        "Warning: the `merge_imports` option is deprecated. \
-                        Use `imports_granularity=\"Crate\"` instead"
-                    );
-                    if !self.was_set().imports_granularity() {
-                        self.imports_granularity.2 = if self.merge_imports() {
-                            ImportGranularity::Crate
-                        } else {
-                            ImportGranularity::Preserve
-                        };
-                    }
-                }
-            }
-
-            fn set_fn_args_layout(&mut self) {
-                if self.was_set().fn_args_layout() {
-                    eprintln!(
-                        "Warning: the `fn_args_layout` option is deprecated. \
-                        Use `fn_params_layout`. instead"
-                    );
-                    if !self.was_set().fn_params_layout() {
-                        self.fn_params_layout.2 = self.fn_args_layout();
-                    }
                 }
             }
 
@@ -492,7 +267,7 @@ where
     match (nightly, option_stable, variant_stable) {
         // Stable with an unstable option
         (false, false, _) => {
-            eprintln!(
+            tracing::info!(
                 "Warning: can't set `{option_name} = {option_value:?}`, unstable features are only \
                        available in nightly channel."
             );
@@ -500,7 +275,7 @@ where
         }
         // Stable with a stable option, but an unstable variant
         (false, true, false) => {
-            eprintln!(
+            tracing::info!(
                 "Warning: can't set `{option_name} = {option_value:?}`, unstable variants are only \
                        available in nightly channel."
             );

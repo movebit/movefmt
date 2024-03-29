@@ -1,32 +1,7 @@
 use std::borrow::Cow;
-use std::cmp::min;
 use std::ops::{Add, Sub};
 
 use crate::Config;
-
-// width:代码的最大宽度(不包括缩进).
-// indent:代码的缩进.
-// offset:代码的偏移量,即在当前语句的第一行上已经输出的文本的长度.
-// Shape结构体提供了一系列方法来创建和操作不同形状的代码.
-// 例如,legacy方法用于创建一个遗留(legacy)形状,其中width是最后一行的最大字符数,
-// indent是第一行的缩进.注意,实际上,有时候我们可能会对不是最后一行的行使用width进行限制.
-
-// indented方法用于创建一个缩进形状,其中indent是缩进,config是配置对象.这个方法会根据配置对象的最大宽度减去缩进的宽度来确定宽度.
-// with_max_width方法用于根据配置对象的最大宽度调整当前形状的宽度.
-// visual_indent方法用于创建一个可视化缩进的形状,其中extra_width是额外的宽度.这个方法会根据额外的宽度调整缩进和偏移量.
-// block_indent方法用于创建一个块缩进的形状,其中extra_width是额外的宽度.如果当前形状的缩进对齐为0,
-// 则会创建一个新的缩进;否则,将调整缩进和偏移量.
-// block_left方法用于创建一个左对齐的块形状,其中width是左对齐的宽度.它返回一个新的形状,宽度减去左对齐的宽度.
-// add_offset方法用于在当前形状的偏移量上增加额外的宽度.
-// block方法用于创建一个块形状,它只包含缩进.
-// sub_width方法用于减小当前形状的宽度,其中width是要减去的宽度.
-// offset_left方法用于在当前形状的偏移量上增加额外的宽度,并减小宽度.
-// used_width方法用于计算当前形状已使用的宽度,包括缩进和偏移量.
-// rhs_overhead方法用于计算右侧表达式的额外宽度,其中config是配置对象.
-// comment方法用于创建一个注释形状,其中宽度是最大宽度和注释宽度的差值.
-// to_string_with_newline方法用于将当前形状转换为带有换行符的字符串,其中config是配置对象.
-// infinite_width方法用于创建一个拥有无限宽度的形状.
-// 这些方法允许对代码的形状进行各种操作和调整,以便在代码重写和格式化过程中使用.
 
 #[derive(Copy, Clone, Debug)]
 pub struct Indent {
@@ -250,14 +225,6 @@ impl Shape {
 
     pub fn used_width(&self) -> usize {
         self.indent.block_indent + self.offset
-    }
-
-    pub fn comment(&self, config: &Config) -> Shape {
-        let width = min(
-            self.width,
-            config.comment_width().saturating_sub(self.indent.width()),
-        );
-        Shape { width, ..*self }
     }
 
     pub fn to_string_with_newline(&self, config: &Config) -> Cow<'static, str> {

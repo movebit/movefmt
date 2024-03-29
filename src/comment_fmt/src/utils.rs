@@ -1,6 +1,6 @@
 use unicode_width::UnicodeWidthStr;
 use crate::comment::{filter_normal_code, FullCodeCharKind, LineClasses};
-use crate::config::{Config, Version};
+use crate::config::Config;
 use crate::shape::{Indent, Shape};
 
 #[inline]
@@ -74,33 +74,6 @@ pub fn filtered_str_fits(snippet: &str, max_width: usize, shape: Shape) -> bool 
 }
 
 /// Indent each line according to the specified `indent`.
-/// e.g.
-///
-/// ```rust,compile_fail
-/// foo!{
-/// x,
-/// y,
-/// foo(
-///     a,
-///     b,
-///     c,
-/// ),
-/// }
-/// ```
-///
-/// will become
-///
-/// ```rust,compile_fail
-/// foo!{
-///     x,
-///     y,
-///     foo(
-///         a,
-///         b,
-///         c,
-///     ),
-/// }
-/// ```
 pub fn trim_left_preserve_layout(
     orig: &str,
     indent: Indent,
@@ -122,8 +95,7 @@ pub fn trim_left_preserve_layout(
 
             // just InString{Commented} in order to allow the start of a string to be indented
             let new_veto_trim_value = (kind == FullCodeCharKind::InString
-                || (config.version() == Version::Two
-                    && kind == FullCodeCharKind::InStringCommented))
+                || kind == FullCodeCharKind::InStringCommented)
                 && !line.ends_with('\\');
             let line = if veto_trim || new_veto_trim_value {
                 veto_trim = new_veto_trim_value;
@@ -137,11 +109,7 @@ pub fn trim_left_preserve_layout(
             // Because there is a veto against trimming and indenting lines within a string,
             // such lines should not be taken into account when computing the minimum.
             match kind {
-                FullCodeCharKind::InStringCommented | FullCodeCharKind::EndStringCommented
-                    if config.version() == Version::Two =>
-                {
-                    None
-                }
+                FullCodeCharKind::InStringCommented | FullCodeCharKind::EndStringCommented => None,
                 FullCodeCharKind::InString | FullCodeCharKind::EndString => None,
                 _ => prefix_space_width,
             }

@@ -1,74 +1,62 @@
-use movefmt::{
-    fmt::FormatConfig,
-    token_tree::{CommentExtrator, CommentExtratorErr, TokenTree},
-    utils::FileLineMapping,
-    syntax::parse_file_string,
-};
-
-use std::collections::BTreeSet;
 use move_command_line_common::files::FileHash;
-
-use move_compiler::{
-    parser::lexer::Lexer,
-    shared::CompilationEnv,
-    Flags,
+use movefmt::{
+    core::token_tree::{CommentExtrator, CommentExtratorErr, TokenTree},
+    tools::movefmt_diff,
+    tools::syntax::parse_file_string,
+    tools::utils::*,
 };
+use std::collections::BTreeSet;
+use tracing_subscriber::EnvFilter;
 
-use std::path::{Path, PathBuf};
+use move_compiler::{parser::lexer::Lexer, shared::CompilationEnv, Flags};
+use std::path::Path;
 
-fn mk_result_filepath(x: &PathBuf) -> PathBuf {
-    let mut x = x.clone();
-    let b = x
-        .components()
-        .last()
-        .map(|x| x.as_os_str().to_str())
-        .flatten()
-        .unwrap()
-        .to_string();
-    let index = b.as_str().rfind(".").unwrap();
-    x.pop();
-    let mut ret = x.clone();
-    ret.push(format!(
-        "{}{}",
-        b.as_str()[0..index].to_string(),
-        ".move.fmt.out"
-    ));
-    ret
-}
-
-#[test]
-fn scan_dir() {
+fn scan_dir(dir: &str) -> usize {
     let mut num: usize = 0;
-    for x in walkdir::WalkDir::new("/data/lzw/rust_projects/movefmt/tests/formatter/list") {
+    for x in walkdir::WalkDir::new(dir) {
         let x = match x {
             Ok(x) => x,
-            Err(_) => todo!(),
+            Err(_) => {
+                return num;
+            }
         };
-        if x.file_type().is_file() && x.file_name().to_str().unwrap().ends_with(".move") {
-            let p = x.into_path();
-            test_on_file(p.as_path());
+        if x.file_type().is_file()
+            && x.file_name().to_str().unwrap().ends_with(".move")
+            && !x.file_name().to_str().unwrap().contains(".fmt")
+            && !x.file_name().to_str().unwrap().contains(".out")
+        {
+            let p = x.clone().into_path();
+            let result = test_on_file(p.as_path());
+            if !result {
+                continue;
+            }
             num += 1;
+
+            let index = p.to_str().unwrap().rfind(".").unwrap();
+            let mut expected_filename = p.to_str().unwrap()[0..index].to_string();
+            expected_filename.push_str(".fmt.move");
+
+            let mut actual_filename = p.to_str().unwrap()[0..index].to_string();
+            actual_filename.push_str(".fmt.out");
+
+            movefmt_diff::assert_output(Path::new(&actual_filename), Path::new(&expected_filename));
         }
     }
-    eprintln!("formated {} files", num);
+    num
 }
 
 #[test]
-fn xxx() {
-    test_on_file(&Path::new(
-        "/data/lzw/rust_projects/movefmt/tests/formatter/list/input1.move",
-    ));
+fn test_single_file() {
+    eprintln!("================== test_single_file ===================");
+    std::env::set_var("MOVEFMT_LOG", "movefmt=DEBUG");
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_env("MOVEFMT_LOG"))
+        .init();
+
+    test_on_file(Path::new("./tests/complex/input4.move"));
 }
 
-#[test]
-fn xxx_chen() {
-    test_on_file(&Path::new(
-        //"C:/I-Git/aptos-core/aptos-move/framework/aptos-framework/sources/stake.spec.move",
-        //"C:/I-Git/sui/sui/sui_programmability/examples/basics/sources/lock.move",
-        "C:/I-Git/sui/sui/sui_programmability/examples\\defi\\sources\\pool.move",
-    ));
-}
-fn test_on_file(p: impl AsRef<Path>) {
+fn test_on_file(p: impl AsRef<Path>) -> bool {
     let p = p.as_ref();
     eprintln!("try format:{:?}", p);
     let content_origin = std::fs::read_to_string(&p).unwrap();
@@ -79,12 +67,13 @@ fn test_on_file(p: impl AsRef<Path>) {
             Ok(_) => {}
             Err(_) => {
                 eprintln!("file '{:?}' skipped because of parse not ok", p);
-                return;
+                return false;
             }
         }
     }
     let content_origin = std::fs::read_to_string(p).unwrap();
     test_content(content_origin.as_str(), p);
+    true
 }
 
 fn test_content(content_origin: &str, p: impl AsRef<Path>) {
@@ -93,14 +82,15 @@ fn test_content(content_origin: &str, p: impl AsRef<Path>) {
         extract_tokens(content_origin).expect("test file should be about to lexer,err:{:?}");
 
     let content_format =
-        movefmt::fmt::format(content_origin, FormatConfig { indent_size: 2 }).unwrap();
+        movefmt::core::fmt::format_entry(content_origin, commentfmt::Config::default()).unwrap();
+
     let tokens_format = match extract_tokens(content_format.as_str()) {
         Ok(x) => x,
         Err(err) => {
             unreachable!(
                 "should be able to parse after format:err{:?},after format:\n\n################\n{}\n###############",
-                err,  
-                content_format 
+                err,
+                content_format
             );
         }
     };
@@ -141,7 +131,6 @@ fn test_content(content_origin: &str, p: impl AsRef<Path>) {
 
     let result_file_path = mk_result_filepath(&p.to_path_buf());
     let _ = std::fs::write(result_file_path.clone(), content_format);
-    // eprintln!("{:?} format ok. \n{}\n", p, content_format);
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -161,7 +150,7 @@ fn extract_comments(content: &str) -> Result<Vec<String>, CommentExtratorErr> {
         .map(|x| x.replacen("\t", "", usize::MAX))
         .map(|x| x.replacen("\n", "", usize::MAX))
         .collect();
-    return Ok(c);
+    Ok(c)
 }
 
 fn extract_tokens(content: &str) -> Result<Vec<ExtractToken>, Vec<String>> {
@@ -190,7 +179,7 @@ fn extract_tokens(content: &str) -> Result<Vec<ExtractToken>, Vec<String>> {
     };
     let lexer = Lexer::new(&content, filehash);
     let mut ret = Vec::new();
-    let parse = movefmt::token_tree::Parser::new(lexer, &defs);
+    let parse = movefmt::core::token_tree::Parser::new(lexer, &defs);
     let token_tree = parse.parse_tokens();
     let mut line_mapping = FileLineMapping::default();
     line_mapping.update(p.to_path_buf(), &content);
@@ -252,31 +241,33 @@ fn extract_tokens(content: &str) -> Result<Vec<ExtractToken>, Vec<String>> {
 }
 
 #[test]
-fn test_str() {
-    test_content(
-        r#"
-        module 0x1::xxx { 
-            public fun escaped_backslash_before_quote(): vector<u8> {
-                b"\\"
-            }
-        }
-        
-            "#,
-        &Path::new("."),
-    );
+fn test_dir() {
+    std::env::set_var("MOVEFMT_LOG", "movefmt=WARN");
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_env("MOVEFMT_LOG"))
+        .init();
+    eprintln!("formated {} files", scan_dir("./tests/complex"));
+    eprintln!("formated {} files", scan_dir("./tests/aptos_framework_case"));
+    eprintln!("formated {} files", scan_dir("./tests/issues"));
 }
 
 #[test]
-fn test_str_chen() {
-    test_content(
-        r#"
-
-        module 0x1::xxx {
-            fun xxx() { 
-                1
+fn regression_test_main() {
+    let mut num: usize = 0;
+    for ten_dir in walkdir::WalkDir::new("./tests/formatter") {
+        let ten_dir = match ten_dir {
+            Ok(ten_dir) => ten_dir,
+            Err(_) => {
+                eprintln!("formated {} files", num);
+                return;
             }
+        };
+        if !ten_dir.file_type().is_dir() {
+            eprintln!("formated {} files", num);
+            return;
         }
-    "#,
-        &Path::new("."),
-    );
+        eprintln!("cur_dir = {:?}", ten_dir.file_name().to_str());
+        num = num + scan_dir(ten_dir.path().to_str().unwrap());
+    }
+    eprintln!("formated {} files", num);
 }

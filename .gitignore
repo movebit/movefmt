@@ -1,2 +1,4 @@
 target
-tests/formatter/*/*.out
+tests/*/*.out
+tests/*/*/*.out
+.vscode

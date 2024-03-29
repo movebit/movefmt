@@ -1,14 +1,10 @@
-#![feature(rustc_private)]
 extern crate tracing;
 
 use std::io;
 use std::path::PathBuf;
 use thiserror::Error;
 
-pub use crate::config::{
-    load_config, CliOptions, Color, Config, Edition, EmitMode, FileLines, FileName, NewlineStyle,
-    Range, Verbosity,
-};
+pub use crate::config::{load_config, CliOptions, Config, Edition, EmitMode, Verbosity};
 
 #[macro_use]
 pub mod utils;
@@ -30,10 +26,7 @@ pub enum ErrorKind {
     /// Line ends in whitespace.
     #[error("left behind trailing whitespace")]
     TrailingWhitespace,
-    /// Used deprecated skip attribute.
-    #[error("`rustfmt_skip` is deprecated; use `rustfmt::skip`")]
-    DeprecatedAttr,
-    /// Used a rustfmt:: attribute other than skip or skip::macros.
+    /// Used a movefmt:: attribute other than skip or skip::macros.
     #[error("invalid attribute")]
     BadAttr,
     /// An io error during reading or writing.
@@ -43,7 +36,7 @@ pub enum ErrorKind {
     /// Parse error occurred when parsing the input.
     #[error("parse error")]
     ParseError,
-    /// The user mandated a version and the current version of Rustfmt does not
+    /// The user mandated a version and the current version of movefmt does not
     /// satisfy that requirement.
     #[error("version mismatch")]
     VersionMismatch,
