@@ -71,8 +71,7 @@ module oracle::oracle {
         oracle: &signer,
         feed: address,
         adapter: u8
-    )
-        acquires OracleStore {
+    ) acquires OracleStore {
         assert!(
             address_of(oracle) == @oracle,
             error::unauthenticated(E_BAD_SIGNER)
@@ -103,21 +102,18 @@ module oracle::oracle {
         );
     }
 
-    public fun lookup(coin_type: TypeInfo): (address, u8)
-        acquires OracleStore {
+    public fun lookup(coin_type: TypeInfo): (address, u8) acquires OracleStore {
         let oracle_store = borrow_global<OracleStore>(@oracle);
         let oracle = table::borrow(&oracle_store.oracles, coin_type);
         (oracle.feed, oracle.adapter)
     }
 
-    public fun get_price<CoinType>(): u64
-        acquires OracleStore {
+    public fun get_price<CoinType>(): u64 acquires OracleStore {
         let coin_type = type_of<CoinType>();
         get_price_by_type(coin_type)
     }
 
-    public fun get_price_by_type(coin_type: TypeInfo): u64
-        acquires OracleStore {
+    public fun get_price_by_type(coin_type: TypeInfo): u64 acquires OracleStore {
         let (feed, adapter) = lookup(coin_type);
 
         if (adapter == ADAPTER_SWITCHBOARD) switchboard_get_price(feed)

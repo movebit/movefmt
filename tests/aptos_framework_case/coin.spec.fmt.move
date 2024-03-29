@@ -496,8 +496,7 @@ spec aptos_framework::coin {
         aborts_if !exists<CoinStore<CoinType>>(account_addr) && !exists<account::Account>(
             account_addr
         );
-        aborts_if !exists<CoinStore<CoinType>>(account_addr) && !type_info::spec_is_struct<CoinType>(
-        );
+        aborts_if !exists<CoinStore<CoinType>>(account_addr) && !type_info::spec_is_struct<CoinType>();
         ensures exists<CoinStore<CoinType>>(account_addr);
     }
 

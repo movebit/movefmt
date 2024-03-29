@@ -21,10 +21,12 @@ module M {
 
     #[test]
     #[expected_failure(vector_error, minor_status = 1, location = Self)]
-    fun borrow_out_of_range() {}
+    fun borrow_out_of_range() {
+    }
 
     #[test]
     #[expected_failure(abort_code = 26113, location = extensions::table)]
-    fun test_destroy_fails() {}
+    fun test_destroy_fails() {
+    }
 }
 }

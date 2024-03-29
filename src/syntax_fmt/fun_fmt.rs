@@ -69,7 +69,12 @@ impl FunExtractor {
                     .start
                     .line;
                 self.loc_vec.push(d.loc);
-                self.ret_ty_loc_vec.push(d.signature.return_type.loc);
+
+                if let Type_::Unit = d.signature.return_type.value {
+                    self.ret_ty_loc_vec.push(Loc::new(FileHash::empty(), 0, 0));
+                } else {
+                    self.ret_ty_loc_vec.push(d.signature.return_type.loc);
+                }
                 self.body_loc_vec.push(d.body.loc);
                 self.loc_line_vec.push((start_line, end_line));
                 self.belong_module_for_fn.push(self.cur_module_id);
@@ -150,7 +155,10 @@ impl FunExtractor {
 }
 
 pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &str) -> String {
-    // tracing::debug!("fun_specifier_str = {:?}", specifier);
+    use std::collections::HashSet;
+    let mut specifier_str_set: HashSet<String> = HashSet::new();
+
+    tracing::debug!("fun_specifier_str = {}", specifier);
 
     let mut fun_specifiers_code = vec![];
     let mut lexer = Lexer::new(specifier, FileHash::empty());
@@ -168,6 +176,16 @@ pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &str) -> Str
     let mut fun_specifiers = vec![];
     for token in specifier.split_whitespace() {
         fun_specifiers.push(token);
+        if matches!(
+            token,
+            "acquires" | "reads" | "writes" | "pure" | "!acquires" | "!reads" | "!writes"
+        ) {
+            specifier_str_set.insert(token.to_string());
+        }
+    }
+    // 20240329 updated
+    if specifier_str_set.len() == 1 {
+        return specifier.to_string();
     }
 
     let mut fun_specifier_fmted_str = "".to_string();

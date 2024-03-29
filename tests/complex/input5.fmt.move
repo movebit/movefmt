@@ -563,8 +563,7 @@ module econia::incentives {
         integrator_address: address,
         market_id: u64,
         new_tier: u8
-    ): u64
-        acquires IncentiveParameters, IntegratorFeeStores {
+    ): u64 acquires IncentiveParameters, IntegratorFeeStores {
         // Immutably borrow integrator fee stores map for given quote
         // coin type.
         let integrator_fee_stores_map_ref = &borrow_global<
@@ -602,8 +601,7 @@ module econia::incentives {
     /// # Testing
     ///
     /// * `test_init_update_get_incentives()`
-    public fun get_custodian_registration_fee(): u64
-        acquires IncentiveParameters {
+    public fun get_custodian_registration_fee(): u64 acquires IncentiveParameters {
         borrow_global<IncentiveParameters>(@econia).custodian_registration_fee
     }
 
@@ -614,8 +612,7 @@ module econia::incentives {
     ///
     /// * `test_get_fee_share_divisor_invalid_tier()`
     /// * `test_init_update_get_incentives()`
-    public fun get_fee_share_divisor(tier: u8): u64
-        acquires IncentiveParameters {
+    public fun get_fee_share_divisor(tier: u8): u64 acquires IncentiveParameters {
         // Borrow immutable reference to integrator fee store tiers
         // vector.
         let integrator_fee_store_tiers_ref = &borrow_global<IncentiveParameters>(@econia).
@@ -646,8 +643,7 @@ module econia::incentives {
     fun get_integrator_withdrawal_fee_view<QuoteCoinType>(
         integrator_address: address,
         market_id: u64,
-    ): u64
-        acquires IncentiveParameters, IntegratorFeeStores {
+    ): u64 acquires IncentiveParameters, IntegratorFeeStores {
         // Borrow mutable reference to integrator fee stores map for
         // quote coin type.
         let integrator_fee_stores_map_ref = &borrow_global<
@@ -669,8 +665,7 @@ module econia::incentives {
     /// # Testing
     ///
     /// * `test_init_update_get_incentives()`
-    public fun get_market_registration_fee(): u64
-        acquires IncentiveParameters {
+    public fun get_market_registration_fee(): u64 acquires IncentiveParameters {
         borrow_global<IncentiveParameters>(@econia).market_registration_fee
     }
 
@@ -680,8 +675,7 @@ module econia::incentives {
     /// # Testing
     ///
     /// * `test_init_update_get_incentives()`
-    public fun get_n_fee_store_tiers(): u64
-        acquires IncentiveParameters {
+    public fun get_n_fee_store_tiers(): u64 acquires IncentiveParameters {
         // Borrow immutable reference to integrator fee store tiers
         // vector.
         let integrator_fee_store_tiers_ref = &borrow_global<IncentiveParameters>(@econia).
@@ -696,8 +690,7 @@ module econia::incentives {
     /// # Testing
     ///
     /// * `test_init_update_get_incentives()`
-    public fun get_taker_fee_divisor(): u64
-        acquires IncentiveParameters {
+    public fun get_taker_fee_divisor(): u64 acquires IncentiveParameters {
         borrow_global<IncentiveParameters>(@econia).taker_fee_divisor
     }
 
@@ -708,8 +701,7 @@ module econia::incentives {
     ///
     /// * `test_get_tier_activation_fee_invalid_tier()`
     /// * `test_init_update_get_incentives()`
-    public fun get_tier_activation_fee(tier: u8): u64
-        acquires IncentiveParameters {
+    public fun get_tier_activation_fee(tier: u8): u64 acquires IncentiveParameters {
         // Borrow immutable reference to integrator fee store tiers
         // vector.
         let integrator_fee_store_tiers_ref = &borrow_global<IncentiveParameters>(@econia).
@@ -736,8 +728,7 @@ module econia::incentives {
     ///
     /// * `test_get_tier_withdrawal_fee_invalid_tier()`
     /// * `test_init_update_get_incentives()`
-    public fun get_tier_withdrawal_fee(tier: u8): u64
-        acquires IncentiveParameters {
+    public fun get_tier_withdrawal_fee(tier: u8): u64 acquires IncentiveParameters {
         // Borrow immutable reference to integrator fee store tiers
         // vector.
         let integrator_fee_store_tiers_ref = &borrow_global<IncentiveParameters>(@econia).
@@ -762,8 +753,7 @@ module econia::incentives {
     /// # Testing
     ///
     /// * `test_init_update_get_incentives()`
-    public fun get_underwriter_registration_fee(): u64
-        acquires IncentiveParameters {
+    public fun get_underwriter_registration_fee(): u64 acquires IncentiveParameters {
         borrow_global<IncentiveParameters>(@econia).underwriter_registration_fee
     }
 
@@ -773,8 +763,7 @@ module econia::incentives {
     /// # Testing
     ///
     /// * `test_init_update_get_incentives()`
-    public fun is_utility_coin_type<T>(): bool
-        acquires IncentiveParameters {
+    public fun is_utility_coin_type<T>(): bool acquires IncentiveParameters {
         // Return if provided type info is that of the utility coin.
         type_info::type_of<T>() == borrow_global<IncentiveParameters>(@econia).utility_coin_type_info
     }
@@ -795,8 +784,7 @@ module econia::incentives {
         integrator: &signer,
         market_id: u64,
         new_tier: u8,
-    ): u64
-        acquires IncentiveParameters, IntegratorFeeStores {
+    ): u64 acquires IncentiveParameters, IntegratorFeeStores {
         get_cost_to_upgrade_integrator_fee_store_view<QuoteCoinType, UtilityCoinType>(
             address_of(integrator),
             market_id,
@@ -808,8 +796,7 @@ module econia::incentives {
     /// `get_integrator_withdrawal_fee_view()`, requiring integrator
     /// signature to prevent runtime transaction collisions.
     public fun get_integrator_withdrawal_fee<QuoteCoinType>(integrator: &signer, market_id: u64,)
-        : u64
-        acquires IncentiveParameters, IntegratorFeeStores {
+        : u64 acquires IncentiveParameters, IntegratorFeeStores {
         get_integrator_withdrawal_fee_view<QuoteCoinType>(address_of(integrator), market_id)
     }
 
@@ -831,8 +818,7 @@ module econia::incentives {
         market_id: u64,
         new_tier: u8,
         utility_coins: coin::Coin<UtilityCoinType>
-    )
-        acquires IncentiveParameters, IntegratorFeeStores, UtilityCoinStore {
+    ) acquires IncentiveParameters, IntegratorFeeStores, UtilityCoinStore {
         // Get cost to upgrade to new tier.
         let cost = get_cost_to_upgrade_integrator_fee_store<QuoteCoinType, UtilityCoinType>(
             integrator, market_id, new_tier
@@ -865,8 +851,7 @@ module econia::incentives {
     /// # Testing
     ///
     /// * `test_verify_utility_coin_type()`
-    public fun verify_utility_coin_type<T>()
-        acquires IncentiveParameters {
+    public fun verify_utility_coin_type<T>() acquires IncentiveParameters {
         assert!(
             is_utility_coin_type<T>(),
             E_INVALID_UTILITY_COIN_TYPE
@@ -887,8 +872,7 @@ module econia::incentives {
         econia: &signer,
         market_id: u64,
         amount: u64
-    ): coin::Coin<QuoteCoinType>
-        acquires EconiaFeeStore {
+    ): coin::Coin<QuoteCoinType> acquires EconiaFeeStore {
         withdraw_econia_fees_internal<QuoteCoinType>(econia, market_id, false, amount)
     }
 
@@ -903,8 +887,7 @@ module econia::incentives {
     /// * `test_register_assess_withdraw()`
     /// * `test_withdraw_econia_fees_all_not_econia()`
     public fun withdraw_econia_fees_all<QuoteCoinType>(econia: &signer, market_id: u64,)
-        : coin::Coin<QuoteCoinType>
-        acquires EconiaFeeStore {
+        : coin::Coin<QuoteCoinType> acquires EconiaFeeStore {
         withdraw_econia_fees_internal<QuoteCoinType>(econia, market_id, true, 0)
     }
 
@@ -931,8 +914,7 @@ module econia::incentives {
         integrator: &signer,
         market_id: u64,
         utility_coins: coin::Coin<UtilityCoinType>
-    ): coin::Coin<QuoteCoinType>
-        acquires IncentiveParameters, IntegratorFeeStores, UtilityCoinStore {
+    ): coin::Coin<QuoteCoinType> acquires IncentiveParameters, IntegratorFeeStores, UtilityCoinStore {
         // Borrow mutable reference to integrator fee stores map for
         // quote coin type.
         let integrator_fee_stores_map_ref_mut = &mut borrow_global_mut<
@@ -965,8 +947,7 @@ module econia::incentives {
     /// * `test_register_assess_withdraw()`
     /// * `test_withdraw_utility_coins_not_econia()`
     public fun withdraw_utility_coins<UtilityCoinType>(econia: &signer, amount: u64)
-        : coin::Coin<UtilityCoinType>
-        acquires UtilityCoinStore {
+        : coin::Coin<UtilityCoinType> acquires UtilityCoinStore {
         withdraw_utility_coins_internal<UtilityCoinType>(econia, false, amount)
     }
 
@@ -981,8 +962,7 @@ module econia::incentives {
     /// * `test_register_assess_withdraw()`
     /// * `test_withdraw_utility_coins_all_not_econia()`
     public fun withdraw_utility_coins_all<UtilityCoinType>(econia: &signer)
-        : coin::Coin<UtilityCoinType>
-        acquires UtilityCoinStore {
+        : coin::Coin<UtilityCoinType> acquires UtilityCoinStore {
         withdraw_utility_coins_internal<UtilityCoinType>(econia, true, 0)
     }
 
@@ -1006,8 +986,7 @@ module econia::incentives {
         custodian_registration_fee: u64,
         taker_fee_divisor: u64,
         integrator_fee_store_tiers: vector<vector<u64>>
-    )
-        acquires IncentiveParameters {
+    ) acquires IncentiveParameters {
         set_incentive_parameters<UtilityCoinType>(
             econia,
             market_registration_fee,
@@ -1031,8 +1010,7 @@ module econia::incentives {
         integrator: &signer,
         market_id: u64,
         new_tier: u8,
-    )
-        acquires IncentiveParameters, IntegratorFeeStores, UtilityCoinStore {
+    ) acquires IncentiveParameters, IntegratorFeeStores, UtilityCoinStore {
         // Get cost to upgrade to new tier.
         let cost = get_cost_to_upgrade_integrator_fee_store<QuoteCoinType, UtilityCoinType>(
             integrator, market_id, new_tier
@@ -1054,8 +1032,7 @@ module econia::incentives {
     /// * `test_withdraw_to_coin_store_econia()`
     public entry fun withdraw_econia_fees_all_to_coin_store<QuoteCoinType>(
         econia: &signer, market_id: u64,
-    )
-        acquires EconiaFeeStore {
+    ) acquires EconiaFeeStore {
         withdraw_econia_fees_to_coin_store_internal<QuoteCoinType>(econia, market_id, true,
                 0);
     }
@@ -1070,8 +1047,7 @@ module econia::incentives {
         econia: &signer,
         market_id: u64,
         amount: u64
-    )
-        acquires EconiaFeeStore {
+    ) acquires EconiaFeeStore {
         withdraw_econia_fees_to_coin_store_internal<QuoteCoinType>(
             econia, market_id, false, amount
         );
@@ -1098,8 +1074,7 @@ module econia::incentives {
     /// * `test_register_assess_withdraw()`
     public entry fun withdraw_integrator_fees_via_coinstores<QuoteCoinType, UtilityCoinType>(
         integrator: &signer, market_id: u64
-    )
-        acquires IncentiveParameters, IntegratorFeeStores, UtilityCoinStore {
+    ) acquires IncentiveParameters, IntegratorFeeStores, UtilityCoinStore {
         // Get fee to withdraw from integrator fee coin store.
         let withdrawal_fee = get_integrator_withdrawal_fee<QuoteCoinType>(
             integrator, market_id
@@ -1125,8 +1100,7 @@ module econia::incentives {
     /// # Testing
     ///
     /// * `test_withdraw_to_coin_store_econia()`
-    public entry fun withdraw_utility_coins_all_to_coin_store<UtilityCoinType>(econia: &signer,)
-        acquires UtilityCoinStore {
+    public entry fun withdraw_utility_coins_all_to_coin_store<UtilityCoinType>(econia: &signer,) acquires UtilityCoinStore {
         withdraw_utility_coins_to_coin_store_internal<UtilityCoinType>(econia, true, 0
         );
     }
@@ -1139,8 +1113,7 @@ module econia::incentives {
     /// * `test_withdraw_to_coin_store_econia()`
     public entry fun withdraw_utility_coins_to_coin_store<UtilityCoinType>(
         econia: &signer, amount: u64
-    )
-        acquires UtilityCoinStore {
+    ) acquires UtilityCoinStore {
         withdraw_utility_coins_to_coin_store_internal<UtilityCoinType>(econia, false, amount);
     }
 
@@ -1202,8 +1175,7 @@ module econia::incentives {
         taker_fee_divisor: u64,
         quote_fill: u64,
         quote_coins: coin::Coin<QuoteCoinType>,
-    ): (coin::Coin<QuoteCoinType>, u64)
-        acquires EconiaFeeStore, IncentiveParameters, IntegratorFeeStores {
+    ): (coin::Coin<QuoteCoinType>, u64) acquires EconiaFeeStore, IncentiveParameters, IntegratorFeeStores {
         // Declare tracker for amount of fees collected by integrator.
         let integrator_fee_share = 0;
         // Calculate total taker fee.
@@ -1415,8 +1387,7 @@ module econia::incentives {
     /// * `test_deposit_registration_fees_mixed()`
     public(friend) fun deposit_custodian_registration_utility_coins<UtilityCoinType>(
         coins: coin::Coin<UtilityCoinType>
-    )
-        acquires IncentiveParameters, UtilityCoinStore {
+    ) acquires IncentiveParameters, UtilityCoinStore {
         deposit_utility_coins_verified<UtilityCoinType>(
             coins,
             get_custodian_registration_fee()
@@ -1431,8 +1402,7 @@ module econia::incentives {
     /// * `test_deposit_registration_fees_mixed()`
     public(friend) fun deposit_market_registration_utility_coins<UtilityCoinType>(
         coins: coin::Coin<UtilityCoinType>
-    )
-        acquires IncentiveParameters, UtilityCoinStore {
+    ) acquires IncentiveParameters, UtilityCoinStore {
         deposit_utility_coins_verified<UtilityCoinType>(
             coins,
             get_market_registration_fee()
@@ -1447,8 +1417,7 @@ module econia::incentives {
     /// * `test_deposit_registration_fees_mixed()`
     public(friend) fun deposit_underwriter_registration_utility_coins<UtilityCoinType>(
         coins: coin::Coin<UtilityCoinType>
-    )
-        acquires IncentiveParameters, UtilityCoinStore {
+    ) acquires IncentiveParameters, UtilityCoinStore {
         deposit_utility_coins_verified<UtilityCoinType>(
             coins,
             get_underwriter_registration_fee()
@@ -1461,8 +1430,7 @@ module econia::incentives {
     /// Testing
     ///
     /// * `test_register_assess_withdraw()`
-    public(friend) fun register_econia_fee_store_entry<QuoteCoinType>(market_id: u64)
-        acquires EconiaFeeStore, {
+    public(friend) fun register_econia_fee_store_entry<QuoteCoinType>(market_id: u64) acquires EconiaFeeStore, {
         // Get fee account signer.
         let fee_account = resource_account::get_signer();
         // Get fee account address.
@@ -1513,8 +1481,7 @@ module econia::incentives {
         market_id: u64,
         tier: u8,
         utility_coins: coin::Coin<UtilityCoinType>
-    )
-        acquires IncentiveParameters, IntegratorFeeStores, UtilityCoinStore {
+    ) acquires IncentiveParameters, IntegratorFeeStores, UtilityCoinStore {
         // Get tier activation fee for given tier.
         let tier_activation_fee = get_tier_activation_fee(tier);
         // Deposit utility coins, verifying sufficient amount provided.
@@ -1571,8 +1538,7 @@ module econia::incentives {
     /// # Testing
     ///
     /// * `test_deposit_withdraw_utility_coins()`
-    fun deposit_utility_coins<UtilityCoinType>(coins: coin::Coin<UtilityCoinType>)
-        acquires UtilityCoinStore {
+    fun deposit_utility_coins<UtilityCoinType>(coins: coin::Coin<UtilityCoinType>) acquires UtilityCoinStore {
         // Get fee account address.
         let fee_account_address = resource_account::get_address();
         // Borrow mutable reference to coins in utility coin store.
@@ -1604,8 +1570,7 @@ module econia::incentives {
     fun deposit_utility_coins_verified<UtilityCoinType>(
         coins: coin::Coin<UtilityCoinType>,
         min_amount: u64
-    )
-        acquires IncentiveParameters, UtilityCoinStore {
+    ) acquires IncentiveParameters, UtilityCoinStore {
         // Verify utility coin type.
         verify_utility_coin_type<UtilityCoinType>();
         // Assert sufficient utility coins provided.
@@ -1624,8 +1589,7 @@ module econia::incentives {
     /// # Testing
     ///
     /// * `test_init_update_get_incentives()`
-    fun init_module(econia: &signer)
-        acquires IncentiveParameters {
+    fun init_module(econia: &signer) acquires IncentiveParameters {
         // Vectorize fee store tier parameters.
         let integrator_fee_store_tiers = vector[
             vector[
@@ -1796,8 +1760,7 @@ module econia::incentives {
         taker_fee_divisor: u64,
         integrator_fee_store_tiers_ref: &vector<vector<u64>>,
         updating: bool
-    )
-        acquires IncentiveParameters {
+    ) acquires IncentiveParameters {
         // Range check inputs.
         set_incentive_parameters_range_check_inputs(
             econia,
@@ -2105,8 +2068,7 @@ module econia::incentives {
         market_id: u64,
         all: bool,
         amount: u64
-    ): coin::Coin<QuoteCoinType>
-        acquires EconiaFeeStore {
+    ): coin::Coin<QuoteCoinType> acquires EconiaFeeStore {
         // Assert account is Econia.
         assert!(
             address_of(account) == @econia,
@@ -2142,8 +2104,7 @@ module econia::incentives {
         market_id: u64,
         all: bool,
         amount: u64
-    )
-        acquires EconiaFeeStore {
+    ) acquires EconiaFeeStore {
         // Withdraw coins from fee store, verifying Econia signer.
         let coins = withdraw_econia_fees_internal<QuoteCoinType>(
             econia, market_id, all, amount
@@ -2167,8 +2128,7 @@ module econia::incentives {
         account: &signer,
         all: bool,
         amount: u64
-    ): coin::Coin<UtilityCoinType>
-        acquires UtilityCoinStore {
+    ): coin::Coin<UtilityCoinType> acquires UtilityCoinStore {
         // Assert account is Econia.
         assert!(
             address_of(account) == @econia,
@@ -2195,8 +2155,7 @@ module econia::incentives {
     /// * `test_withdraw_to_coin_store_econia()`
     fun withdraw_utility_coins_to_coin_store_internal<UtilityCoinType>(
         econia: &signer, all: bool, amount: u64
-    )
-        acquires UtilityCoinStore {
+    ) acquires UtilityCoinStore {
         // Withdraw coins from fee store, verifying Econia signer.
         let coins = withdraw_utility_coins_internal<UtilityCoinType>(econia, all, amount);
         // If Econia does not have coin store for coin type:
@@ -2225,8 +2184,7 @@ module econia::incentives {
     ///
     /// * Restricted to test-only to prevent excessive public queries
     ///   and thus transaction collisions.
-    public fun get_econia_fee_store_balance_test<QuoteCoinType>(market_id: u64): u64
-        acquires EconiaFeeStore {
+    public fun get_econia_fee_store_balance_test<QuoteCoinType>(market_id: u64): u64 acquires EconiaFeeStore {
         coin::value(
             tablist::borrow(
                 &borrow_global<EconiaFeeStore<QuoteCoinType>>(
@@ -2247,8 +2205,7 @@ module econia::incentives {
     ///   and thus transaction collisions.
     public fun get_integrator_fee_store_balance_test<QuoteCoinType>(
         integrator: address, market_id: u64
-    ): u64
-        acquires IntegratorFeeStores {
+    ): u64 acquires IntegratorFeeStores {
         coin::value(
             &tablist::borrow(
                 &borrow_global<
@@ -2268,8 +2225,7 @@ module econia::incentives {
     /// * Restricted to test-only to prevent excessive public queries
     ///   and thus transaction collisions.
     public fun get_integrator_fee_store_tier_test<QuoteCoinType>(integrator: address, market_id: u64)
-        : u8
-        acquires IntegratorFeeStores {
+        : u8 acquires IntegratorFeeStores {
         tablist::borrow(
             &borrow_global<
                 IntegratorFeeStores<QuoteCoinType>
@@ -2292,8 +2248,7 @@ module econia::incentives {
     ///
     /// * Restricted to test-only to prevent excessive public queries
     ///   and thus transaction collisions.
-    public fun get_utility_coin_store_balance_test(): u64
-        acquires UtilityCoinStore {
+    public fun get_utility_coin_store_balance_test(): u64 acquires UtilityCoinStore {
         coin::value(
             &borrow_global<UtilityCoinStore<UC>>(resource_account::get_address()).coins
         )
@@ -2301,8 +2256,7 @@ module econia::incentives {
 
     #[test_only]
     /// Initialize incentives with `UC` utility coin type.
-    public fun init_test()
-        acquires IncentiveParameters {
+    public fun init_test() acquires IncentiveParameters {
         assets::init_coin_types_test(); // Initialize coin types.
         // Get signer for Econia account.
         let econia = account::create_signer_with_capability(
@@ -2343,8 +2297,7 @@ module econia::incentives {
     /// * Restricted to test-only to prevent excessive public queries
     ///   and thus transaction collisions.
     public fun has_integrator_fee_store_test<QuoteCoinType>(integrator: address, market_id: u64)
-        : bool
-        acquires IntegratorFeeStores {
+        : bool acquires IntegratorFeeStores {
         // Return false if integrator does not have integrator fee
         // stores map for given quote coin type.
         if (!exists<
@@ -2458,8 +2411,7 @@ module econia::incentives {
 
     #[test]
     /// Verify deposits for mixed registration fees.
-    fun test_deposit_registration_fees_mixed()
-        acquires IncentiveParameters, UtilityCoinStore {
+    fun test_deposit_registration_fees_mixed() acquires IncentiveParameters, UtilityCoinStore {
         init_test(); // Initialize incentives.
         // Get registration fees.
         let market_registration_fee = get_market_registration_fee();
@@ -2486,8 +2438,7 @@ module econia::incentives {
     #[test]
     #[expected_failure(abort_code = E_NOT_ENOUGH_UTILITY_COINS)]
     /// Verify failure for not enough utility coins.
-    fun test_deposit_utility_coins_verified_not_enough()
-        acquires IncentiveParameters, UtilityCoinStore {
+    fun test_deposit_utility_coins_verified_not_enough() acquires IncentiveParameters, UtilityCoinStore {
         init_test(); // Init incentives.
         // Attempt invalid invocation.
         deposit_utility_coins_verified(coin::zero<UC>(), 1);
@@ -2495,8 +2446,7 @@ module econia::incentives {
 
     #[test(econia = @econia)]
     /// Verify deposit and withdrawal of utility coins.
-    fun test_deposit_withdraw_utility_coins(econia: &signer)
-        acquires IncentiveParameters, UtilityCoinStore {
+    fun test_deposit_withdraw_utility_coins(econia: &signer) acquires IncentiveParameters, UtilityCoinStore {
         init_test(); // Initialize incentives.
         // Deposit utility coins.
         deposit_utility_coins(assets::mint_test<UC>(100));
@@ -2513,8 +2463,7 @@ module econia::incentives {
     #[test(integrator = @user)]
     #[expected_failure(abort_code = E_TIER_COST_NOT_INCREASE)]
     /// Verify expected failure for not an increase in tier cost.
-    fun test_get_cost_to_upgrade_integrator_fee_store_not_increase(integrator: &signer)
-        acquires IncentiveParameters, IntegratorFeeStores, UtilityCoinStore {
+    fun test_get_cost_to_upgrade_integrator_fee_store_not_increase(integrator: &signer) acquires IncentiveParameters, IntegratorFeeStores, UtilityCoinStore {
         init_test(); // Init incentives.
         // Declare market ID, tier numbers.
         let (market_id, tier_0, tier_1) = (0, 0, 1);
@@ -2545,8 +2494,7 @@ module econia::incentives {
     #[test(integrator = @user)]
     #[expected_failure(abort_code = E_NOT_AN_UPGRADE)]
     /// Verify expected failure for not an upgrade.
-    fun test_get_cost_to_upgrade_integrator_fee_store_not_upgrade(integrator: &signer)
-        acquires IncentiveParameters, IntegratorFeeStores, UtilityCoinStore {
+    fun test_get_cost_to_upgrade_integrator_fee_store_not_upgrade(integrator: &signer) acquires IncentiveParameters, IntegratorFeeStores, UtilityCoinStore {
         init_test(); // Init incentives.
         let (market_id, tier) = (0, 0); // Declare market ID, tier.
         // Register to given tier.
@@ -2563,8 +2511,7 @@ module econia::incentives {
     #[test]
     #[expected_failure(abort_code = E_INVALID_TIER)]
     /// Verify failure for invalid tier number.
-    fun test_get_fee_share_divisor_invalid_tier()
-        acquires IncentiveParameters {
+    fun test_get_fee_share_divisor_invalid_tier() acquires IncentiveParameters {
         init_test(); // Init for testing.
         // Get maximum 0-indexed tier number.
         let max_tier_number = (get_n_fee_store_tiers() as u8) - 1;
@@ -2574,8 +2521,7 @@ module econia::incentives {
 
     #[test]
     #[expected_failure(abort_code = E_INVALID_TIER)]
-    fun test_get_tier_activation_fee_invalid_tier()
-        acquires IncentiveParameters {
+    fun test_get_tier_activation_fee_invalid_tier() acquires IncentiveParameters {
         init_test(); // Init for testing.
         // Get maximum 0-indexed tier number.
         let max_tier_number = (get_n_fee_store_tiers() as u8) - 1;
@@ -2585,8 +2531,7 @@ module econia::incentives {
 
     #[test]
     #[expected_failure(abort_code = E_INVALID_TIER)]
-    fun test_get_tier_withdrawal_fee_invalid_tier()
-        acquires IncentiveParameters {
+    fun test_get_tier_withdrawal_fee_invalid_tier() acquires IncentiveParameters {
         init_test(); // Init for testing.
         // Get maximum 0-indexed tier number.
         let max_tier_number = (get_n_fee_store_tiers() as u8) - 1;
@@ -2596,8 +2541,7 @@ module econia::incentives {
 
     #[test(econia = @econia)]
     /// Verify initializing, updating, and getting incentive parameters.
-    fun test_init_update_get_incentives(econia: &signer)
-        acquires IncentiveParameters {
+    fun test_init_update_get_incentives(econia: &signer) acquires IncentiveParameters {
         assets::init_coin_types_test(); // Init coin types.
         resource_account::init_test(); // Init fee account.
         init_module(econia); // Initialize incentives.
@@ -2930,8 +2874,7 @@ module econia::incentives {
     #[test(econia = @econia, integrator = @user)]
     /// Verify registration of assorted coin stores, fee assessment, and
     /// withdrawal scenarios.
-    fun test_register_assess_withdraw(econia: &signer, integrator: &signer)
-        acquires EconiaFeeStore, IncentiveParameters, IntegratorFeeStores, UtilityCoinStore {
+    fun test_register_assess_withdraw(econia: &signer, integrator: &signer) acquires EconiaFeeStore, IncentiveParameters, IntegratorFeeStores, UtilityCoinStore {
         init_test(); // Init incentives.
         // Declare market IDs.
         let (
@@ -3435,8 +3378,7 @@ module econia::incentives {
     #[expected_failure(abort_code = E_FEWER_TIERS)]
     /// Verify failure for attempting to update incentive parameters
     /// with fewer integrator fee store tiers than before.
-    fun test_update_incentives_fewer_tiers(econia: &signer)
-        acquires IncentiveParameters {
+    fun test_update_incentives_fewer_tiers(econia: &signer) acquires IncentiveParameters {
         assets::init_coin_types_test(); // Init coin types.
         resource_account::init_test(); // Init fee account.
         init_module(econia); // Initialize incentives.
@@ -3458,8 +3400,7 @@ module econia::incentives {
 
     #[test(integrator = @user)]
     /// Verify upgrade and fee assessment.
-    fun test_upgrade_integrator_fee_store_via_coinstore(integrator: &signer)
-        acquires IncentiveParameters, IntegratorFeeStores, UtilityCoinStore {
+    fun test_upgrade_integrator_fee_store_via_coinstore(integrator: &signer) acquires IncentiveParameters, IntegratorFeeStores, UtilityCoinStore {
         init_test(); // Init incentives.
         // Declare market ID, tier.
         let (market_id, tier_start, tier_upgrade) = (0, 0, 1);
@@ -3509,8 +3450,7 @@ module econia::incentives {
     #[test]
     #[expected_failure(abort_code = E_INVALID_UTILITY_COIN_TYPE)]
     /// Verify failure for wrong type.
-    fun test_verify_utility_coin_type()
-        acquires IncentiveParameters {
+    fun test_verify_utility_coin_type() acquires IncentiveParameters {
         init_test(); // Initialize incentives for testing.
         verify_utility_coin_type<QC>(); // Attempt invalid invocation.
     }
@@ -3518,8 +3458,7 @@ module econia::incentives {
     #[test(account = @user)]
     #[expected_failure(abort_code = E_NOT_ECONIA)]
     /// Verify failure for account is not Econia.
-    fun test_withdraw_econia_fees_all_not_econia(account: &signer)
-        acquires EconiaFeeStore {
+    fun test_withdraw_econia_fees_all_not_econia(account: &signer) acquires EconiaFeeStore {
         // Attempt invalid invocation.
         let fees = withdraw_econia_fees_all<UC>(account, 0);
         assets::burn(fees); // Burn fees.
@@ -3528,8 +3467,7 @@ module econia::incentives {
     #[test(account = @user)]
     #[expected_failure(abort_code = E_NOT_ECONIA)]
     /// Verify failure for account is not Econia.
-    fun test_withdraw_econia_fees_not_econia(account: &signer)
-        acquires EconiaFeeStore {
+    fun test_withdraw_econia_fees_not_econia(account: &signer) acquires EconiaFeeStore {
         // Attempt invalid invocation.
         let fees = withdraw_econia_fees<UC>(account, 0, 0);
         assets::burn(fees); // Burn fees.
@@ -3538,8 +3476,7 @@ module econia::incentives {
     #[test]
     /// Verify state updates for withdrawing to a standard coin store,
     /// from Econia's fee and utility coin stores.
-    fun test_withdraw_to_coin_store_econia()
-        acquires EconiaFeeStore, IncentiveParameters, UtilityCoinStore {
+    fun test_withdraw_to_coin_store_econia() acquires EconiaFeeStore, IncentiveParameters, UtilityCoinStore {
         init_test(); // Init incentives.
         // Declare coin amounts, mock market ID.
         let utility_coin_amount = 123;
@@ -3594,8 +3531,7 @@ module econia::incentives {
     #[test(account = @user)]
     #[expected_failure(abort_code = E_NOT_ECONIA)]
     /// Verify failure for account is not Econia.
-    fun test_withdraw_utility_coins_all_not_econia(account: &signer): coin::Coin<UC>
-        acquires UtilityCoinStore {
+    fun test_withdraw_utility_coins_all_not_econia(account: &signer): coin::Coin<UC> acquires UtilityCoinStore {
         // Attempt invalid invocation.
         withdraw_utility_coins_all<UC>(account)
     }
@@ -3603,8 +3539,7 @@ module econia::incentives {
     #[test(account = @user)]
     #[expected_failure(abort_code = E_NOT_ECONIA)]
     /// Verify failure for account is not Econia.
-    fun test_withdraw_utility_coins_not_econia(account: &signer): coin::Coin<UC>
-        acquires UtilityCoinStore {
+    fun test_withdraw_utility_coins_not_econia(account: &signer): coin::Coin<UC> acquires UtilityCoinStore {
         // Attempt invalid invocation.
         withdraw_utility_coins<UC>(account, 1234)
     }

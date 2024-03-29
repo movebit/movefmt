@@ -377,13 +377,17 @@ impl Format {
         if fun_body {
             self.process_fn_header_before_before_fn_nested();
         }
+
+        // 20240329 updated
+        // fun body brace always change new line;
+        // if ParentTheses is empty, not change new line;
         let mut new_line_mode = {
             delimiter
                 .map(|x| x == Delimiter::Semicolon)
                 .unwrap_or_default()
                 || (stct_def && !elements.is_empty())
-                || (fun_body && !elements.is_empty())
-                || self.get_cur_line_len() + nested_token_len > self.global_cfg.max_width()
+                || fun_body
+                || (self.get_cur_line_len() + nested_token_len > self.global_cfg.max_width() && !elements.is_empty())
         };
         if new_line_mode && kind.kind != NestKind_::Type {
             return (true, None);

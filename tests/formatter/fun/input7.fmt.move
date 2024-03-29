@@ -13,8 +13,7 @@ module Storage {
         Box<u64> { value }
     }
 
-    public fun value<T: copy>(box: &Box<T>): T
-        acquires SomeStruct {
+    public fun value<T: copy>(box: &Box<T>): T acquires SomeStruct {
         *&box.value
     }
 }

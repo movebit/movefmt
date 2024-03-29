@@ -5,8 +5,7 @@ module econia::incentives {
     * @param econia - The signer reference
     * @acquires IncentiveParameters - The incentive parameters to be acquired
     */
-    fun init_module(econia: &signer)
-        acquires IncentiveParameters {
+    fun init_module(econia: &signer) acquires IncentiveParameters {
         /**
         * Define a 2D vector 'integrator_fee_store_tiers' to store the fee store tiers.
         * Each inner vector represents a tier and contains the following parameters:

@@ -27,8 +27,7 @@ module Test {
         some_field: SomeOtherStruct6,
     }
 
-    fun acq(addr: address): u64
-        acquires SomeStruct {
+    fun acq(addr: address): u64 acquires SomeStruct {
         let val = borrow_global<SomeStruct>(addr);
 
         val.some_field

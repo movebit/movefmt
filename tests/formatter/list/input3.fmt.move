@@ -2,8 +2,7 @@ module econia::incentives {
 
     // Constants <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     // Module initialization function
-    fun init_module(econia: &signer)
-        acquires IncentiveParameters {
+    fun init_module(econia: &signer) acquires IncentiveParameters {
         // Define a vector of fee store tiers as a 2D vector
         let integrator_fee_store_tiers = vector[
             vector[
