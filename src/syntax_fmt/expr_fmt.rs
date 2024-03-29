@@ -186,13 +186,13 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
 
     if Tok::Greater == curr_end_tok {
         if let TokType::Alphabet = TokType::from(next_start_tok) {
-            return true
+            return true;
         }
         if Tok::LBrace == next_start_tok {
-            return true
+            return true;
         }
     }
-    
+
     let mut is_next_tok_nested = false;
     let mut next_tok_nested_eles_len = 0;
     let mut next_tok_nested_kind = NestKind_::Brace;
@@ -217,10 +217,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
         }
     }
 
-    match (
-        TokType::from(curr_start_tok),
-        TokType::from(next_start_tok),
-    ) {
+    match (TokType::from(curr_start_tok), TokType::from(next_start_tok)) {
         (TokType::Alphabet, TokType::Alphabet) => true,
         (TokType::MathSign, _) => true,
         (TokType::Sign, TokType::Alphabet) => Tok::Exclaim != curr_end_tok,
@@ -231,10 +228,17 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                 result = true;
             }
 
-            if Tok::Comma == curr_start_tok && 
-                (Tok::AtSign == next_start_tok || Tok::Amp == next_start_tok || Tok::AmpMut == next_start_tok) {
+            if Tok::Comma == curr_start_tok
+                && (Tok::AtSign == next_start_tok
+                    || Tok::Amp == next_start_tok
+                    || Tok::AmpMut == next_start_tok)
+            {
                 result = true;
-                tracing::debug!("after Comma, result = {}, next_start_tok = {:?}", result, next_start_tok);
+                tracing::debug!(
+                    "after Comma, result = {}, next_start_tok = {:?}",
+                    result,
+                    next_start_tok
+                );
             }
             result
         }
@@ -247,10 +251,10 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
         (_, TokType::Less) => is_bin_next,
         (TokType::Alphabet, TokType::MathSign) => {
             if next_tok_simple_content.contains('>') {
-                return is_bin_next
+                return is_bin_next;
             }
             true
-        },
+        }
         (_, TokType::MathSign) => true,
         (TokType::Less, TokType::Alphabet) => is_bin_current,
         (TokType::Less, _) => false,
@@ -312,7 +316,9 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
             if is_next_tok_nested && Tok::LBrace == next_start_tok {
                 result = true;
             }
-            if !is_next_tok_nested && (Tok::Slash == next_start_tok || Tok::LBrace == next_start_tok) {
+            if !is_next_tok_nested
+                && (Tok::Slash == next_start_tok || Tok::LBrace == next_start_tok)
+            {
                 result = true;
             }
 

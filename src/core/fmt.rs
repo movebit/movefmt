@@ -362,12 +362,26 @@ impl Format {
             .map(|x| x == Note::StructDefinition)
             .unwrap_or_default();
         let fun_body = note.map(|x| x == Note::FunBody).unwrap_or_default();
-        
+
         // 20240328 optimize
         // if it's branch with block, and block had more than one token, need new line
-        if kind.kind == NestKind_::Brace && elements.len() > 1 &&
-            (self.syntax_extractor.branch_extractor.com_if_else.then_loc_vec.iter().any(|&x| x.start() == kind.start_pos)
-            || self.syntax_extractor.branch_extractor.com_if_else.else_loc_vec.iter().any(|&x| x.start() == kind.start_pos)) {
+        if kind.kind == NestKind_::Brace
+            && elements.len() > 1
+            && (self
+                .syntax_extractor
+                .branch_extractor
+                .com_if_else
+                .then_loc_vec
+                .iter()
+                .any(|&x| x.start() == kind.start_pos)
+                || self
+                    .syntax_extractor
+                    .branch_extractor
+                    .com_if_else
+                    .else_loc_vec
+                    .iter()
+                    .any(|&x| x.start() == kind.start_pos))
+        {
             return (true, None);
         }
 
@@ -387,7 +401,8 @@ impl Format {
                 .unwrap_or_default()
                 || (stct_def && !elements.is_empty())
                 || fun_body
-                || (self.get_cur_line_len() + nested_token_len > self.global_cfg.max_width() && !elements.is_empty())
+                || (self.get_cur_line_len() + nested_token_len > self.global_cfg.max_width()
+                    && !elements.is_empty())
         };
         if new_line_mode && kind.kind != NestKind_::Type {
             return (true, None);
@@ -714,11 +729,14 @@ impl Format {
             }
 
             // process `else if`
-            if *tok == Tok::Else && next_token.is_some() && 
-                (next_token.unwrap().simple_str().unwrap_or_default() == "if" || 
-                self.syntax_extractor
-                    .branch_extractor
-                    .is_nested_within_an_outer_else(*pos)) {
+            if *tok == Tok::Else
+                && next_token.is_some()
+                && (next_token.unwrap().simple_str().unwrap_or_default() == "if"
+                    || self
+                        .syntax_extractor
+                        .branch_extractor
+                        .is_nested_within_an_outer_else(*pos))
+            {
                 self.new_line(None);
             }
 
@@ -788,11 +806,10 @@ impl Format {
                     content
                 );
 
-                if matches!(*tok,
-                    | Tok::Equal
-                    | Tok::EqualEqual
+                if matches!(*tok, |Tok::Equal| Tok::EqualEqual
                     | Tok::EqualEqualGreater
-                    | Tok::LessEqualEqualGreater) {
+                    | Tok::LessEqualEqualGreater)
+                {
                     self.push_str(content.as_str());
                     split_line_after_content = true;
                 }
@@ -859,11 +876,11 @@ impl Format {
             if (self.translate_line(c.start_offset) - self.cur_line.get()) > 1 {
                 tracing::debug!("the pos of this comment > current line");
                 // 20240318: process case as follows
-                // 
+                //
                 /*
                 #[test(econia = @econia, integrator = @user)]
 
-                // comment 
+                // comment
                 fun func() {}
                 */
                 if self.format_context.borrow().cur_tok != Tok::NumSign {
@@ -1293,10 +1310,10 @@ pub fn format_entry(content: impl AsRef<str>, config: Config) -> Result<String, 
     let content = content.as_ref();
 
     {
-        // https://github.com/movebit/movefmt/issues/2    
+        // https://github.com/movebit/movefmt/issues/2
         let mut env = CompilationEnv::new(Flags::testing(), BTreeSet::new());
         let _ = parse_file_string(&mut env, FileHash::empty(), content)?;
-    } 
+    }
 
     let mut full_fmt = Format::new(
         config.clone(),
