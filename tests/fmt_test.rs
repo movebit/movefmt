@@ -171,18 +171,18 @@ fn extract_tokens(content: &str) -> Result<Vec<ExtractToken>, Vec<String>> {
                     "{}:{} {}",
                     loc.line_start + 1,
                     loc.col_start + 1,
-                    format!("{}\n{}", msg, m)
+                    format_args!("{}\n{}", msg, m)
                 ));
             }
             return Err(ret);
         }
     };
-    let lexer = Lexer::new(&content, filehash);
+    let lexer = Lexer::new(content, filehash);
     let mut ret = Vec::new();
     let parse = movefmt::core::token_tree::Parser::new(lexer, &defs);
     let token_tree = parse.parse_tokens();
     let mut line_mapping = FileLineMapping::default();
-    line_mapping.update(p.to_path_buf(), &content);
+    line_mapping.update(p.to_path_buf(), content);
     fn collect_token_tree(ret: &mut Vec<ExtractToken>, m: &FileLineMapping, t: &TokenTree) {
         match t {
             TokenTree::SimpleToken {
@@ -247,7 +247,10 @@ fn test_dir() {
         .with_env_filter(EnvFilter::from_env("MOVEFMT_LOG"))
         .init();
     eprintln!("formated {} files", scan_dir("./tests/complex"));
-    eprintln!("formated {} files", scan_dir("./tests/aptos_framework_case"));
+    eprintln!(
+        "formated {} files",
+        scan_dir("./tests/aptos_framework_case")
+    );
     eprintln!("formated {} files", scan_dir("./tests/issues"));
 }
 
@@ -267,7 +270,7 @@ fn regression_test_main() {
             return;
         }
         eprintln!("cur_dir = {:?}", ten_dir.file_name().to_str());
-        num = num + scan_dir(ten_dir.path().to_str().unwrap());
+        num += scan_dir(ten_dir.path().to_str().unwrap());
     }
     eprintln!("formated {} files", num);
 }
