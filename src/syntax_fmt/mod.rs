@@ -4,3 +4,4 @@ pub mod comment_fmt;
 pub mod expr_fmt;
 pub mod fun_fmt;
 pub mod spec_fmt;
+pub mod use_fmt;
