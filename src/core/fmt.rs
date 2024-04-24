@@ -873,8 +873,9 @@ impl Format {
                 break;
             }
 
-            if (self.translate_line(c.start_offset) - self.cur_line.get()) > 1 {
-                tracing::debug!("the pos of this comment > current line");
+            let this_cmt_start_line = self.translate_line(c.start_offset);
+            if (this_cmt_start_line - self.cur_line.get()) > 1 {
+                tracing::debug!("the pos[{:?}] of this comment > current line[{:?}]", c.start_offset, self.cur_line.get());
                 // 20240318: process case as follows
                 //
                 /*
@@ -888,7 +889,7 @@ impl Format {
                 }
             }
 
-            if (self.translate_line(c.start_offset) - self.cur_line.get()) == 1 {
+            if (this_cmt_start_line - self.cur_line.get()) == 1 {
                 // if located after nestedToken start, maybe already chanedLine
                 let ret_copy = self.ret.clone().into_inner();
                 *self.ret.borrow_mut() = ret_copy.trim_end().to_string();
@@ -896,7 +897,7 @@ impl Format {
             }
 
             // tracing::debug!("-- add_comments: line(c.start_offset) - cur_line = {:?}",
-            //     self.translate_line(c.start_offset) - self.cur_line.get());
+            //     this_cmt_start_line - self.cur_line.get());
             // tracing::debug!("c.content.as_str() = {:?}\n", c.content.as_str());
             if self.no_space_or_new_line_for_comment() {
                 self.push_str(" ");
@@ -927,7 +928,7 @@ impl Format {
                 }
                 _ => {
                     let end = c.start_offset + (c.content.len() as u32);
-                    let line_start = self.translate_line(c.start_offset);
+                    let line_start = this_cmt_start_line;
                     let line_end = self.translate_line(end);
 
                     if !content.contains(')')
@@ -1007,7 +1008,7 @@ impl Format {
     }
 
     fn translate_line(&self, pos: u32) -> u32 {
-        self.line_mapping.translate(pos, pos).unwrap().start.line
+        self.line_mapping.translate(pos, pos).unwrap_or_default().start.line
     }
 
     /// analyzer a `Nested` token tree.

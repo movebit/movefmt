@@ -777,7 +777,6 @@ impl CommentExtrator {
                     content: String::from_utf8(comment.clone()).unwrap(),
                 });
                 comment.clear();
-
                 if state == ExtratorCommentState::InlineComment {
                     if depth == 0 {
                         state = ExtratorCommentState::Init;
@@ -829,6 +828,9 @@ impl CommentExtrator {
                     } else if depth == 0 {
                         state = ExtratorCommentState::Init;
                     } else {
+                        // fix bug in 20240424: there are '/' in block comment
+                        comment.push(SLASH);
+                        comment.push(*c);
                         state = ExtratorCommentState::BlockComment;
                     }
                 }
@@ -845,7 +847,14 @@ impl CommentExtrator {
                     if *c == SLASH {
                         comment.push(STAR);
                         comment.push(SLASH);
-                        make_comment!();
+                        // optimize code in 20240424: support nested block comment like:
+                        // /* layer1 /* layer2 */ */
+                        if depth <= 1 {
+                            make_comment!();
+                        } else {
+                            depth -= 1;
+                            state = ExtratorCommentState::BlockComment;
+                        }
                     } else if *c == STAR {
                         comment.push(STAR);
                     } else {
