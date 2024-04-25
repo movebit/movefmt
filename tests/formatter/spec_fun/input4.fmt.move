@@ -18,8 +18,7 @@ spec aptos_std::big_vector {
     }
 
     spec singletonlllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll<T: store>(
-        element: T, bucket_size: u64
-    ): BigVector<T> {
+        element: T, bucket_size: u64): BigVector<T> {
         ensures length(result) == 1;
         ensures result.bucket_size == bucket_size;
     }

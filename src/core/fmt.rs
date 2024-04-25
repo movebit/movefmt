@@ -395,6 +395,9 @@ impl Format {
         // 20240329 updated
         // fun body brace always change new line;
         // if ParentTheses is empty, not change new line;
+        // 20240425 updated
+        // The value of new_line_mode here is not associated with Paren, only with Brace.
+        // Because Paren may come from fn_para or call or expression statements...
         let mut new_line_mode = {
             delimiter
                 .map(|x| x == Delimiter::Semicolon)
@@ -402,7 +405,7 @@ impl Format {
                 || (stct_def && !elements.is_empty())
                 || fun_body
                 || (self.get_cur_line_len() + nested_token_len > self.global_cfg.max_width()
-                    && !elements.is_empty())
+                    && !elements.is_empty()) && kind.kind == NestKind_::Brace
         };
         if new_line_mode && kind.kind != NestKind_::Type {
             return (true, None);
@@ -423,10 +426,16 @@ impl Format {
             NestKind_::ParentTheses => {
                 if self.format_context.borrow().cur_tok == Tok::If {
                     new_line_mode = false;
-                } else {
-                    new_line_mode =
+                } else if self.syntax_extractor.fun_extractor.is_parameter_paren_in_fun_header(kind) {
+                    new_line_mode = self.get_cur_line_len() + nested_token_len > self.global_cfg.max_width()
+                        && !elements.is_empty();
+                    let opt_component_break_mode =
                         !expr_fmt::judge_simple_paren_expr(kind, elements, self.global_cfg.clone());
-                    return (new_line_mode, Some(new_line_mode));
+                    return (new_line_mode, Some(opt_component_break_mode));
+                } else {
+                    let opt_component_break_mode =
+                        !expr_fmt::judge_simple_paren_expr(kind, elements, self.global_cfg.clone());
+                    return (new_line_mode, Some(opt_component_break_mode));
                 }
             }
             NestKind_::Bracket => {
@@ -592,7 +601,7 @@ impl Format {
         } = token
         {
             let (delimiter, has_colon) = Self::analyze_token_tree_delimiter(elements);
-            let (b_new_line_mode, opt_mode) =
+            let (b_new_line_mode, opt_component_break_mode) =
                 self.get_new_line_mode_begin_nested(kind, elements, note, delimiter);
             let b_add_indent = !note.map(|x| x == Note::ModuleAddress).unwrap_or_default();
             let nested_token_head = self.format_context.borrow().cur_tok;
@@ -611,9 +620,12 @@ impl Format {
                 Tok::Star != nested_token_head &&
                 Tok::Slash != nested_token_head &&
                 Tok::Percent != nested_token_head &&
-                kind.kind == NestKind_::Brace;;
+                kind.kind == NestKind_::Brace;
             let b_not_use_brace = Tok::ColonColon != nested_token_head && kind.kind == NestKind_::Brace;
-            let b_add_space_around_brace = b_not_arithmetic_op_brace && b_not_use_brace && !b_new_line_mode && !elements.is_empty();
+            let b_add_space_around_brace = b_not_arithmetic_op_brace &&
+                b_not_use_brace &&
+                !b_new_line_mode &&
+                !elements.is_empty();
 
             if b_new_line_mode {
                 tracing::debug!(
@@ -644,10 +656,10 @@ impl Format {
 
             // step4 -- format elements
             let need_change_line_for_each_item_in_paren = if NestKind_::ParentTheses == kind.kind {
-                if opt_mode.is_none() {
+                if opt_component_break_mode.is_none() {
                     !expr_fmt::judge_simple_paren_expr(kind, elements, self.global_cfg.clone())
                 } else {
-                    opt_mode.unwrap_or_default()
+                    opt_component_break_mode.unwrap_or_default()
                 }
             } else {
                 b_new_line_mode
@@ -1239,6 +1251,10 @@ impl Format {
         let mut lexer = Lexer::new(&last_ret, FileHash::empty());
         lexer.advance().unwrap();
         while lexer.peek() != Tok::EOF {
+            if lexer.peek() == Tok::Identifier {
+                // because must have a space around identifier, so plus one.
+                tokens_len += 1;
+            }
             tokens_len += lexer.content().len();
             if !special_key {
                 special_key = matches!(

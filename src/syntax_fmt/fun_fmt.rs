@@ -11,7 +11,7 @@ use move_command_line_common::files::FileHash;
 use move_compiler::parser::ast::Definition;
 use move_compiler::parser::ast::*;
 use move_compiler::parser::lexer::{Lexer, Tok};
-use move_compiler::shared::CompilationEnv;
+use move_compiler::shared::{CompilationEnv, Identifier};
 use move_compiler::Flags;
 use move_ir_types::location::*;
 use std::collections::BTreeSet;
@@ -19,6 +19,7 @@ use std::collections::BTreeSet;
 #[derive(Debug, Default)]
 pub struct FunExtractor {
     pub loc_vec: Vec<Loc>,
+    pub para_span_vec: Vec<Loc>,
     pub ret_ty_loc_vec: Vec<Loc>,
     pub body_loc_vec: Vec<Loc>,
     pub loc_line_vec: Vec<(u32, u32)>,
@@ -31,6 +32,7 @@ impl FunExtractor {
     pub fn new(fmt_buffer: String) -> Self {
         let mut this_fun_extractor = Self {
             loc_vec: vec![],
+            para_span_vec: vec![],
             ret_ty_loc_vec: vec![],
             body_loc_vec: vec![],
             loc_line_vec: vec![],
@@ -69,6 +71,14 @@ impl FunExtractor {
                     .start
                     .line;
                 self.loc_vec.push(d.loc);
+
+                if d.signature.parameters.is_empty() {
+                    self.para_span_vec.push(Loc::new(FileHash::empty(), 0, 0));
+                } else {
+                    let first_para_loc = d.signature.parameters.first().unwrap().0.loc();
+                    let last_para_loc = d.signature.parameters.last().unwrap().0.loc();
+                    self.para_span_vec.push(Loc::new(first_para_loc.file_hash(), first_para_loc.start(), last_para_loc.end()));
+                }
 
                 if let Type_::Unit = d.signature.return_type.value {
                     self.ret_ty_loc_vec.push(Loc::new(FileHash::empty(), 0, 0));
@@ -150,6 +160,17 @@ impl FunExtractor {
             }
         }
 
+        false
+    }
+    pub(crate) fn is_parameter_paren_in_fun_header(&self, kind: &NestKind) -> bool {
+        if kind.kind != NestKind_::ParentTheses {
+            return false;
+        }
+        for para_span in &self.para_span_vec {
+            if kind.start_pos <= para_span.start() && para_span.end() <= kind.end_pos {
+                return true;
+            }
+        }
         false
     }
 }
