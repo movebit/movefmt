@@ -218,7 +218,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
     }
 
     match (TokType::from(curr_start_tok), TokType::from(next_start_tok)) {
-        (TokType::Alphabet, TokType::Alphabet) => true,
+        (TokType::Alphabet, TokType::Alphabet | TokType::String | TokType::Number) => true,
         (TokType::MathSign, _) => true,
         (TokType::Sign, TokType::Alphabet) => Tok::Exclaim != curr_end_tok,
         (TokType::Sign, TokType::Number) => true,
@@ -242,12 +242,9 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
             }
             result
         }
-        (TokType::Alphabet, TokType::String) => true,
         (TokType::Number, TokType::Alphabet) => true,
         (_, TokType::AmpMut) => true,
         (TokType::Colon, _) => true,
-        (TokType::Alphabet, TokType::Number) => true,
-
         (_, TokType::Less) => is_bin_next,
         (TokType::Alphabet, TokType::MathSign) => {
             if next_tok_simple_content.contains('>') {
@@ -256,9 +253,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
             true
         }
         (_, TokType::MathSign) => true,
-        (TokType::Less, TokType::Alphabet) => is_bin_current,
-        (TokType::Less, _) => false,
-
+        (TokType::Less, _) => is_bin_current,
         (_, TokType::Amp) => is_bin_next,
         (_, TokType::Star) => {
             let result = if is_bin_next || is_apply_next {
@@ -337,7 +332,11 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
             }
 
             if let Some(content) = current.simple_str() {
-                if content == "aborts_if" || content == "ensures" || content == "include" {
+                if content == "aborts_if" 
+                || content == "ensures" 
+                || content == "include"
+                || content == "pragma"
+                || content == "invariant" {
                     result = true;
                 }
                 if content == "assert" && next_start_tok == Tok::Exclaim {

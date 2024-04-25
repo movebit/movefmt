@@ -2399,7 +2399,7 @@ module econia::incentives {
         ) / ((taker_fee_divisor - 1) as u128);
         // Assert expected return below max possible u64.
         assert!(
-            max_quote_match_expected <(HI_64 as u128),
+            max_quote_match_expected < (HI_64 as u128),
             0
         );
         // Assert expected return.
