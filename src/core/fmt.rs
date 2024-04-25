@@ -452,11 +452,6 @@ impl Format {
         b_new_line_mode: bool,
     ) {
         if !b_new_line_mode {
-            if let NestKind_::Brace = kind.kind {
-                if elements.len() == 1 {
-                    self.push_str(" ");
-                }
-            }
             return;
         }
 
@@ -499,13 +494,6 @@ impl Format {
         let token = elements.get(internal_token_idx).unwrap();
         let next_t = elements.get(internal_token_idx + 1);
 
-        if !new_line && token.simple_str().is_some() {
-            if let NestKind_::Brace = kind.kind {
-                if elements.len() == 1 {
-                    self.push_str(" ");
-                }
-            }
-        }
         self.format_token_trees_internal(token, next_t, pound_sign_new_line || new_line);
         if pound_sign_new_line {
             tracing::debug!("in loop<TokenTree::Nested> pound_sign_new_line = true");
@@ -524,10 +512,6 @@ impl Format {
                 None => true,
             };
             self.process_same_line_comment(token.end_pos(), process_tail_comment_of_line);
-        } else if let NestKind_::Brace = kind.kind {
-            if elements.len() == 1 {
-                self.push_str(" ");
-            }
         }
     }
 
@@ -613,6 +597,24 @@ impl Format {
             let b_add_indent = !note.map(|x| x == Note::ModuleAddress).unwrap_or_default();
             let nested_token_head = self.format_context.borrow().cur_tok;
 
+            // optimize in 20240425
+            // there are 2 cases which not add space
+            // eg1: When braces are used for arithmetic operations
+            // let intermediate3: u64 = (a * {c + d}) - (b / {e - 2});
+            // shouldn't formated like `let intermediate3: u64 = (a * { c + d }) - (b / { e - 2 });`
+            // eg2: When the braces are used for use
+            // use A::B::{C, D}
+            // shouldn't formated like `use A::B::{ C, D }`
+            let b_not_arithmetic_op_brace =
+                Tok::Plus != nested_token_head &&
+                Tok::Minus != nested_token_head &&
+                Tok::Star != nested_token_head &&
+                Tok::Slash != nested_token_head &&
+                Tok::Percent != nested_token_head &&
+                kind.kind == NestKind_::Brace;;
+            let b_not_use_brace = Tok::ColonColon != nested_token_head && kind.kind == NestKind_::Brace;
+            let b_add_space_around_brace = b_not_arithmetic_op_brace && b_not_use_brace && !b_new_line_mode && !elements.is_empty();
+
             if b_new_line_mode {
                 tracing::debug!(
                     "nested_token_head = [{:?}], add a new line",
@@ -636,6 +638,8 @@ impl Format {
             // step3
             if b_new_line_mode {
                 self.add_new_line_after_nested_begin(kind, elements, b_new_line_mode);
+            } else if b_add_space_around_brace {
+                self.push_str(" ");
             }
 
             // step4 -- format elements
@@ -684,20 +688,14 @@ impl Format {
                 if nested_token_head != Tok::If {
                     self.new_line(Some(kind.end_pos));
                 }
+            } else if b_add_space_around_brace {
+                self.push_str(" ");
             }
 
             // step8 -- format end_token
             self.format_token_trees_internal(&kind.end_token_tree(), None, false);
-            if let TokenTree::SimpleToken {
-                content: _,
-                pos: _t_pos,
-                tok: _t_tok,
-                note: _,
-            } = kind.end_token_tree()
-            {
-                if expr_fmt::need_space(token, next_token) {
-                    self.push_str(" ");
-                }
+            if expr_fmt::need_space(token, next_token) {
+                self.push_str(" ");
             }
         }
     }

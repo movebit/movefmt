@@ -1441,7 +1441,7 @@ module econia::incentives {
             // Move to the Econia fee account an empty one.
             move_to<EconiaFeeStore<QuoteCoinType>>(
                 &fee_account,
-                EconiaFeeStore {map: tablist::new()}
+                EconiaFeeStore { map: tablist::new() }
             );
         // Borrow mutable reference to Econia fee store map for
         // given quote coin type.
@@ -1499,7 +1499,7 @@ module econia::incentives {
                 IntegratorFeeStores<QuoteCoinType>
             >(
                 integrator,
-                IntegratorFeeStores {map: tablist::new()}
+                IntegratorFeeStores { map: tablist::new() }
             );
         // Declare integrator fee store for given tier, with no coins.
         let integrator_fee_store = IntegratorFeeStore {
@@ -1674,7 +1674,7 @@ module econia::incentives {
             // Move to the fee account an initialized one.
             move_to<UtilityCoinStore<CoinType>>(
                 fee_account,
-                UtilityCoinStore {coins: coin::zero<CoinType>()}
+                UtilityCoinStore { coins: coin::zero<CoinType>() }
             );
     }
 
@@ -2173,7 +2173,7 @@ module econia::incentives {
     #[test_only]
     /// Return `BUY`, for testing synchronization with `market.move`.
     public fun get_BUY_test(): bool {
-         BUY
+        BUY
     }
 
     #[test_only]
@@ -2237,7 +2237,7 @@ module econia::incentives {
     #[test_only]
     /// Return `SELL`, for testing synchronization with `market.move`.
     public fun get_SELL_test(): bool {
-         SELL
+        SELL
     }
 
     #[test_only]

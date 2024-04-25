@@ -229,7 +229,7 @@ spec aptos_framework::coin {
 
         ensures if (option::spec_is_some(maybe_supply)) {
             result == option::spec_some(value)
-        } else {option::spec_is_none(result)};
+        } else { option::spec_is_none(result) };
     }
 
     spec burn<CoinType>(
@@ -240,7 +240,7 @@ spec aptos_framework::coin {
         modifies global<CoinInfo<CoinType>>(addr);
         include AbortsIfNotExistCoinInfo<CoinType>;
         aborts_if coin.value == 0;
-        include CoinSubAbortsIf<CoinType> {amount: coin.value};
+        include CoinSubAbortsIf<CoinType> { amount: coin.value };
         ensures supply<CoinType> == old(supply<CoinType>) - coin.value;
     }
 
@@ -273,7 +273,7 @@ spec aptos_framework::coin {
 
         ensures post_coin_store.coin.value == coin_store.coin.value - amount;
         /// [managed_coin::high-level-req-5]
-        ensures if (option::spec_is_some(maybe_supply)) {post_value == value - amount} else {
+        ensures if (option::spec_is_some(maybe_supply)) { post_value == value - amount } else {
             option::spec_is_none(post_maybe_supply)
         };
         ensures supply<CoinType> == old(supply<CoinType>) - amount;
@@ -539,7 +539,7 @@ spec aptos_framework::coin {
         let balance = coin_store.coin.value;
         let post coin_post = global<CoinStore<CoinType>>(account_addr).coin.value;
         ensures coin_post == balance - amount;
-        ensures result == Coin<CoinType> {value: amount};
+        ensures result == Coin<CoinType> { value: amount };
     }
 
     spec schema WithdrawAbortsIf<CoinType> {
@@ -556,7 +556,7 @@ spec aptos_framework::coin {
     }
 
     spec initialize_aggregatable_coin<CoinType>(aptos_framework: &signer): AggregatableCoin<CoinType> {
-        include system_addresses::AbortsIfNotAptosFramework {account: aptos_framework};
+        include system_addresses::AbortsIfNotAptosFramework { account: aptos_framework };
         include aggregator_factory::CreateAggregatorInternalAbortsIf;
     }
 

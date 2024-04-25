@@ -12,7 +12,7 @@ module M {
         system_addresses::assert_aptos_framework(aptos_framework);
         move_to(
             aptos_framework,
-            OriginatingAddress {address_map: table::new(),}
+            OriginatingAddress { address_map: table::new(), }
         );
     }
 

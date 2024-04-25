@@ -1,9 +1,9 @@
 module oracle::oracle {
     use std::error;
-    use std::signer::{ address_of };
+    use std::signer::{address_of};
     use aptos_std::table::{Self, Table};
     use aptos_std::type_info::{TypeInfo, type_of};
-    use aptos_framework::account::{ new_event_handle };
+    use aptos_framework::account::{new_event_handle};
     use aptos_framework::event::{emit_event, EventHandle};
 
     use switchboard::aggregator::{Self as switchboard_aggregator};
@@ -40,7 +40,7 @@ module oracle::oracle {
     // const ADAPTER_PYTH: u8 = 2;
 
     public fun switchboard_adapter(): u8 {
-         ADAPTER_SWITCHBOARD
+        ADAPTER_SWITCHBOARD
     }
 
     // Functions
@@ -92,13 +92,13 @@ module oracle::oracle {
             table::add(
                 &mut oracle_store.oracles,
                 coin_type,
-                Oracle {feed, adapter}
+                Oracle { feed, adapter }
             );
         };
 
         emit_event(
             &mut oracle_store.update_oracle_events,
-            UpdateOracleEvent {feed, adapter, coin_type,}
+            UpdateOracleEvent { feed, adapter, coin_type, }
         );
     }
 
