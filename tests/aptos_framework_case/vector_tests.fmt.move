@@ -11,39 +11,21 @@ module std::vector_tests {
 
     #[test]
     fun test_singleton_contains() {
-        assert!(
-            *V::borrow(&V::singleton(0), 0) == 0,
-            0
-        );
-        assert!(
-            *V::borrow(&V::singleton(true), 0) == true,
-            0
-        );
-        assert!(
-            *V::borrow(&V::singleton(@0x1), 0) == @0x1,
-            0
-        );
+        assert!(*V::borrow(&V::singleton(0), 0) == 0, 0);
+        assert!(*V::borrow(&V::singleton(true), 0) == true, 0);
+        assert!(*V::borrow(&V::singleton(@0x1), 0) == @0x1, 0);
     }
 
     #[test]
     fun test_singleton_len() {
         assert!(V::length(&V::singleton(0)) == 1, 0);
-        assert!(
-            V::length(&V::singleton(true)) == 1,
-            0
-        );
-        assert!(
-            V::length(&V::singleton(@0x1)) == 1,
-            0
-        );
+        assert!(V::length(&V::singleton(true)) == 1, 0);
+        assert!(V::length(&V::singleton(@0x1)) == 1, 0);
     }
 
     #[test]
     fun test_empty_is_empty() {
-        assert!(
-            V::is_empty(&V::empty<u64>()),
-            0
-        );
+        assert!(V::is_empty(&V::empty<u64>()), 0);
     }
 
     #[test]
@@ -291,10 +273,7 @@ module std::vector_tests {
     fun remove_value_singleton_vector() {
         let v = V::empty();
         V::push_back(&mut v, 0);
-        assert!(
-            V::borrow(&V::remove_value(&mut v, &0), 0) == &0,
-            0
-        );
+        assert!(V::borrow(&V::remove_value(&mut v, &0), 0) == &0, 0);
         assert!(V::length(&v) == 0, 0);
     }
 
@@ -306,10 +285,7 @@ module std::vector_tests {
         V::push_back(&mut v, 2);
         V::push_back(&mut v, 3);
 
-        assert!(
-            V::borrow(&V::remove_value(&mut v, &2), 0) == &2,
-            0
-        );
+        assert!(V::borrow(&V::remove_value(&mut v, &2), 0) == &2, 0);
         assert!(V::length(&v) == 3, 0);
         assert!(*V::borrow(&v, 0) == 0, 0);
         assert!(*V::borrow(&v, 1) == 1, 0);
@@ -324,10 +300,7 @@ module std::vector_tests {
         V::push_back(&mut v, 2);
         V::push_back(&mut v, 3);
 
-        assert!(
-            V::borrow(&V::remove_value(&mut v, &3), 0) == &3,
-            0
-        );
+        assert!(V::borrow(&V::remove_value(&mut v, &3), 0) == &3, 0);
         assert!(V::length(&v) == 3, 0);
         assert!(*V::borrow(&v, 0) == 0, 0);
         assert!(*V::borrow(&v, 1) == 1, 0);
@@ -337,10 +310,7 @@ module std::vector_tests {
     #[test]
     fun remove_value_empty_vector() {
         let v = V::empty<u64>();
-        assert!(
-            V::length(&V::remove_value(&mut v, &1)) == 0,
-            0
-        );
+        assert!(V::length(&V::remove_value(&mut v, &1)) == 0, 0);
         assert!(V::length(&v) == 0, 1);
     }
 
@@ -348,10 +318,7 @@ module std::vector_tests {
     fun remove_value_nonexistent() {
         let v = V::empty<u64>();
         V::push_back(&mut v, 0);
-        assert!(
-            V::length(&V::remove_value(&mut v, &1)) == 0,
-            0
-        );
+        assert!(V::length(&V::remove_value(&mut v, &1)) == 0, 0);
         assert!(V::length(&v) == 1, 1);
     }
 
@@ -553,7 +520,7 @@ module std::vector_tests {
     #[test]
     fun find_empty_not_has() {
         let v = V::empty<u64>();
-        let (has, index) = V::find(&v,|_x| true);
+        let (has, index) = V::find(&v, |_x| true);
         assert!(!has, 0);
         assert!(index == 0, 1);
     }
@@ -563,7 +530,7 @@ module std::vector_tests {
         let v = V::empty();
         V::push_back(&mut v, 1);
         V::push_back(&mut v, 2);
-        let (has, index) = V::find(&v,|x|*x == 3);
+        let (has, index) = V::find(&v, |x|*x == 3);
         assert!(!has, 0);
         assert!(index == 0, 1);
     }
@@ -574,7 +541,7 @@ module std::vector_tests {
         V::push_back(&mut v, 1);
         V::push_back(&mut v, 2);
         V::push_back(&mut v, 3);
-        let (has, index) = V::find(&v,|x|*x == 2);
+        let (has, index) = V::find(&v, |x|*x == 2);
         assert!(has, 0);
         assert!(index == 1, 1);
     }
@@ -586,7 +553,7 @@ module std::vector_tests {
         V::push_back(&mut v, 2);
         V::push_back(&mut v, 2);
         V::push_back(&mut v, 3);
-        let (has, index) = V::find(&v,|x|*x == 2);
+        let (has, index) = V::find(&v, |x|*x == 2);
         assert!(has, 0);
         assert!(index == 1, 1);
     }
@@ -649,16 +616,15 @@ module std::vector_tests {
         test_natives_with_type<vector<u8>>(V::empty(), V::empty());
 
         test_natives_with_type<Droppable>(Droppable {}, Droppable {});
-        (NotDroppable {}, NotDroppable {}) = test_natives_with_type<NotDroppable>(
-            NotDroppable {}, NotDroppable {}
-        );
+        (NotDroppable {}, NotDroppable {}) = test_natives_with_type<NotDroppable>(NotDroppable {},
+            NotDroppable {});
     }
 
     #[test]
     fun test_for_each() {
         let v = vector[1, 2, 3];
         let s = 0;
-        V::for_each(v,|e| {
+        V::for_each(v, |e| {
                 s = s + e;
             });
         assert!(s == 6, 0)
@@ -669,7 +635,7 @@ module std::vector_tests {
         let v1 = vector[1, 2, 3];
         let v2 = vector[10, 20, 30];
         let s = 0;
-        V::zip(v1, v2,|e1, e2| s = s + e1 * e2);
+        V::zip(v1, v2, |e1, e2| s = s + e1 * e2);
         assert!(s == 140, 0);
     }
 
@@ -680,7 +646,7 @@ module std::vector_tests {
         let v1 = vector[1];
         let v2 = vector[10, 20];
         let s = 0;
-        V::zip(v1, v2,|e1, e2| s = s + e1 * e2);
+        V::zip(v1, v2, |e1, e2| s = s + e1 * e2);
     }
 
     #[test]
@@ -688,7 +654,7 @@ module std::vector_tests {
         let v = vector[1, 2, 3];
         let i_s = 0;
         let s = 0;
-        V::enumerate_ref(&v,|i, e| {
+        V::enumerate_ref(&v, |i, e| {
                 i_s = i_s + i;
                 s = s + *e;
             });
@@ -700,7 +666,7 @@ module std::vector_tests {
     fun test_for_each_ref() {
         let v = vector[1, 2, 3];
         let s = 0;
-        V::for_each_ref(&v,|e| s = s + *e);
+        V::for_each_ref(&v, |e| s = s + *e);
         assert!(s == 6, 0)
     }
 
@@ -708,7 +674,7 @@ module std::vector_tests {
     fun test_for_each_mut() {
         let v = vector[1, 2, 3];
         let s = 2;
-        V::for_each_mut(&mut v,|e| {
+        V::for_each_mut(&mut v, |e| {
                 *e = s;
                 s = s + 1
             });
@@ -720,7 +686,7 @@ module std::vector_tests {
         let v1 = vector[1, 2, 3];
         let v2 = vector[10, 20, 30];
         let s = 0;
-        V::zip_ref(&v1, &v2,|e1, e2| s = s + *e1 **e2);
+        V::zip_ref(&v1, &v2, |e1, e2| s = s + *e1 **e2);
         assert!(s == 140, 0);
     }
 
@@ -731,23 +697,19 @@ module std::vector_tests {
         let v1 = vector[1];
         let v2 = vector[10, 20];
         let s = 0;
-        V::zip_ref(&v1, &v2,|e1, e2| s = s + *e1 **e2);
+        V::zip_ref(&v1, &v2, |e1, e2| s = s + *e1 **e2);
     }
 
     #[test]
     fun test_zip_mut() {
         let v1 = vector[1, 2, 3];
         let v2 = vector[10, 20, 30];
-        V::zip_mut(
-            &mut v1,
-            &mut v2,
-            |e1, e2| {
+        V::zip_mut(&mut v1, &mut v2, |e1, e2| {
                 let e1: &mut u64 = e1;
                 let e2: &mut u64 = e2;
                 *e1 = *e1 + 1;
                 *e2 = *e2 + 10;
-            }
-        );
+            });
         assert!(v1 == vector[2, 3, 4], 0);
         assert!(v2 == vector[20, 30, 40], 0);
     }
@@ -756,7 +718,7 @@ module std::vector_tests {
     fun test_zip_map() {
         let v1 = vector[1, 2, 3];
         let v2 = vector[10, 20, 30];
-        let result = V::zip_map(v1, v2,|e1, e2| e1 + e2);
+        let result = V::zip_map(v1, v2, |e1, e2| e1 + e2);
         assert!(result == vector[11, 22, 33], 0);
     }
 
@@ -764,7 +726,7 @@ module std::vector_tests {
     fun test_zip_map_ref() {
         let v1 = vector[1, 2, 3];
         let v2 = vector[10, 20, 30];
-        let result = V::zip_map_ref(&v1, &v2,|e1, e2|*e1 + *e2);
+        let result = V::zip_map_ref(&v1, &v2, |e1, e2|*e1 + *e2);
         assert!(result == vector[11, 22, 33], 0);
     }
 
@@ -775,7 +737,7 @@ module std::vector_tests {
         let v1 = vector[1];
         let v2 = vector[10, 20];
         let s = 0;
-        V::zip_mut(&mut v1, &mut v2,|e1, e2| s = s + *e1 **e2);
+        V::zip_mut(&mut v1, &mut v2, |e1, e2| s = s + *e1 **e2);
     }
 
     #[test]
@@ -784,7 +746,7 @@ module std::vector_tests {
     fun test_zip_map_mismatching_lengths_should_fail() {
         let v1 = vector[1];
         let v2 = vector[10, 20];
-        V::zip_map(v1, v2,|e1, e2| e1 * e2);
+        V::zip_map(v1, v2, |e1, e2| e1 * e2);
     }
 
     #[test]
@@ -793,7 +755,7 @@ module std::vector_tests {
     fun test_zip_map_ref_mismatching_lengths_should_fail() {
         let v1 = vector[1];
         let v2 = vector[10, 20];
-        V::zip_map_ref(&v1, &v2,|e1, e2|*e1 **e2);
+        V::zip_map_ref(&v1, &v2, |e1, e2|*e1 **e2);
     }
 
     #[test]
@@ -801,7 +763,7 @@ module std::vector_tests {
         let v = vector[1, 2, 3];
         let i_s = 0;
         let s = 2;
-        V::enumerate_mut(&mut v,|i, e| {
+        V::enumerate_mut(&mut v, |i, e| {
                 i_s = i_s + i;
                 *e = s;
                 s = s + 1
@@ -813,7 +775,7 @@ module std::vector_tests {
     #[test]
     fun test_fold() {
         let v = vector[1, 2, 3];
-        let s = V::fold(v, 0,|r, e| r + e);
+        let s = V::fold(v, 0, |r, e| r + e);
         assert!(s == 6, 0)
     }
 
@@ -823,13 +785,13 @@ module std::vector_tests {
         {
             let v = vector[3, 2, 1];
             // ((100 - 3) - 2) - 1 = 94
-            let s = V::fold(v, 100,|l, r| l - r);
+            let s = V::fold(v, 100, |l, r| l - r);
             assert!(s == 94, 0)
         };
         {
             let v = vector[3, 2, 1];
             // 3 - (2 - (1 - 0)) = 2
-            let s = V::foldr(v, 0,|l, r| l - r);
+            let s = V::foldr(v, 0, |l, r| l - r);
             assert!(s == 2, 1)
         }
     }
@@ -837,35 +799,35 @@ module std::vector_tests {
     #[test]
     fun test_map() {
         let v = vector[1, 2, 3];
-        let s = V::map(v,|x| x + 1);
+        let s = V::map(v, |x| x + 1);
         assert!(s == vector[2, 3, 4], 0)
     }
 
     #[test]
     fun test_map_ref() {
         let v = vector[1, 2, 3];
-        let s = V::map_ref(&v,|x|*x + 1);
+        let s = V::map_ref(&v, |x|*x + 1);
         assert!(s == vector[2, 3, 4], 0)
     }
 
     #[test]
     fun test_filter() {
         let v = vector[1, 2, 3];
-        let s = V::filter(v,|x|*x % 2 == 0);
+        let s = V::filter(v, |x|*x % 2 == 0);
         assert!(s == vector[2], 0)
     }
 
     #[test]
     fun test_any() {
         let v = vector[1, 2, 3];
-        let r = V::any(&v,|x|*x > 2);
+        let r = V::any(&v, |x|*x > 2);
         assert!(r, 0)
     }
 
     #[test]
     fun test_all() {
         let v = vector[1, 2, 3];
-        let r = V::all(&v,|x|*x >= 1);
+        let r = V::all(&v, |x|*x >= 1);
         assert!(r, 0)
     }
 
@@ -873,99 +835,42 @@ module std::vector_tests {
     fun test_rotate() {
         let v = vector[1, 2, 3, 4, 5];
         assert!(vector::rotate(&mut v, 2) == 3, 0);
-        assert!(
-            &v == &vector[3, 4, 5, 1, 2],
-            1
-        );
+        assert!(&v == &vector[3, 4, 5, 1, 2], 1);
 
-        assert!(
-            vector::rotate_slice(&mut v, 1, 2, 5) == 4,
-            2
-        );
-        assert!(
-            &v == &vector[3, 5, 1, 2, 4],
-            3
-        );
+        assert!(vector::rotate_slice(&mut v, 1, 2, 5) == 4, 2);
+        assert!(&v == &vector[3, 5, 1, 2, 4], 3);
 
-        assert!(
-            vector::rotate_slice(&mut v, 0, 0, 5) == 5,
-            2
-        );
-        assert!(
-            &v == &vector[3, 5, 1, 2, 4],
-            3
-        );
-        assert!(
-            vector::rotate_slice(&mut v, 0, 5, 5) == 0,
-            2
-        );
-        assert!(
-            &v == &vector[3, 5, 1, 2, 4],
-            3
-        );
+        assert!(vector::rotate_slice(&mut v, 0, 0, 5) == 5, 2);
+        assert!(&v == &vector[3, 5, 1, 2, 4], 3);
+        assert!(vector::rotate_slice(&mut v, 0, 5, 5) == 0, 2);
+        assert!(&v == &vector[3, 5, 1, 2, 4], 3);
     }
 
     #[test]
     fun test_partition() {
         let v = vector[1, 2, 3, 4, 5];
-        assert!(
-            vector::partition(&mut v,|n|*n % 2 == 0) == 2,
-            0
-        );
-        assert!(
-            &v == &vector[2, 4, 3, 1, 5],
-            1
-        );
+        assert!(vector::partition(&mut v, |n|*n % 2 == 0) == 2, 0);
+        assert!(&v == &vector[2, 4, 3, 1, 5], 1);
 
-        assert!(
-            vector::partition(&mut v,|_n| false) == 0,
-            0
-        );
-        assert!(
-            &v == &vector[2, 4, 3, 1, 5],
-            1
-        );
+        assert!(vector::partition(&mut v, |_n| false) == 0, 0);
+        assert!(&v == &vector[2, 4, 3, 1, 5], 1);
 
-        assert!(
-            vector::partition(&mut v,|_n| true) == 5,
-            0
-        );
-        assert!(
-            &v == &vector[2, 4, 3, 1, 5],
-            1
-        );
+        assert!(vector::partition(&mut v, |_n| true) == 5, 0);
+        assert!(&v == &vector[2, 4, 3, 1, 5], 1);
     }
 
     #[test]
     fun test_stable_partition() {
         let v: vector<u64> = vector[1, 2, 3, 4, 5];
 
-        assert!(
-            vector::stable_partition(&mut v,|n|*n % 2 == 0) == 2,
-            0
-        );
-        assert!(
-            &v == &vector[2, 4, 1, 3, 5],
-            1
-        );
+        assert!(vector::stable_partition(&mut v, |n|*n % 2 == 0) == 2, 0);
+        assert!(&v == &vector[2, 4, 1, 3, 5], 1);
 
-        assert!(
-            vector::partition(&mut v,|_n| false) == 0,
-            0
-        );
-        assert!(
-            &v == &vector[2, 4, 1, 3, 5],
-            1
-        );
+        assert!(vector::partition(&mut v, |_n| false) == 0, 0);
+        assert!(&v == &vector[2, 4, 1, 3, 5], 1);
 
-        assert!(
-            vector::partition(&mut v,|_n| true) == 5,
-            0
-        );
-        assert!(
-            &v == &vector[2, 4, 1, 3, 5],
-            1
-        );
+        assert!(vector::partition(&mut v, |_n| true) == 5, 0);
+        assert!(&v == &vector[2, 4, 1, 3, 5], 1);
     }
 
     #[test]
@@ -973,16 +878,10 @@ module std::vector_tests {
         let v: vector<u64> = vector[1, 2, 3, 4, 5];
 
         vector::insert(&mut v, 2, 6);
-        assert!(
-            &v == &vector[1, 2, 6, 3, 4, 5],
-            1
-        );
+        assert!(&v == &vector[1, 2, 6, 3, 4, 5], 1);
 
         vector::insert(&mut v, 6, 7);
-        assert!(
-            &v == &vector[1, 2, 6, 3, 4, 5, 7],
-            1
-        );
+        assert!(&v == &vector[1, 2, 6, 3, 4, 5, 7], 1);
     }
 
     #[test]
@@ -996,19 +895,13 @@ module std::vector_tests {
     #[test]
     fun test_range() {
         let result = vector::range(5, 10);
-        assert!(
-            result == vector[5, 6, 7, 8, 9],
-            1
-        );
+        assert!(result == vector[5, 6, 7, 8, 9], 1);
     }
 
     #[test]
     fun test_range_with_step() {
         let result = vector::range_with_step(0, 10, 2);
-        assert!(
-            result == vector[0, 2, 4, 6, 8],
-            1
-        );
+        assert!(result == vector[0, 2, 4, 6, 8], 1);
 
         let empty_result = vector::range_with_step(10, 10, 2);
         assert!(empty_result == vector[], 1);
@@ -1063,11 +956,8 @@ module std::vector_tests {
     #[test]
     fun test_destroy() {
         let v = vector[MoveOnly {}];
-        vector::destroy(
-            v,
-            |m| {
+        vector::destroy(v, |m| {
                 let MoveOnly {} = m;
-            }
-        )
+            })
     }
 }

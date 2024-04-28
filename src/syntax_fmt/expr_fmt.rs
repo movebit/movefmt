@@ -125,7 +125,7 @@ fn is_to_or_except(token: &Option<&TokenTree>) -> bool {
     }
 }
 
-fn get_nested_and_comma_num(elements: &Vec<TokenTree>) -> (usize, usize) {
+pub(crate) fn get_nested_and_comma_num(elements: &[TokenTree]) -> (usize, usize) {
     let mut result = (0, 0);
     for ele in elements {
         if let TokenTree::Nested {
@@ -311,9 +311,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
             if is_next_tok_nested && Tok::LBrace == next_start_tok {
                 result = true;
             }
-            if !is_next_tok_nested
-                && (Tok::Slash == next_start_tok || Tok::LBrace == next_start_tok)
-            {
+            if !is_next_tok_nested && Tok::Slash == next_start_tok {
                 result = true;
             }
 
@@ -348,6 +346,9 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                 result = true;
             }
 
+            if Tok::Pipe == next_start_tok && next_start_tok != Tok::LParen {
+                result = true;
+            }
             // tracing::debug!("result = {}, next_start_tok = {:?}", result, next_start_tok);
             result
         }
@@ -355,6 +356,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
     }
 }
 
+/*
 pub(crate) fn judge_simple_paren_expr(
     kind: &NestKind,
     elements: &Vec<TokenTree>,
@@ -370,18 +372,19 @@ pub(crate) fn judge_simple_paren_expr(
             elements[0].simple_str(),
             paren_num
         );
-        if paren_num.0 > 2 || paren_num.1 > 4 {
+        if (paren_num.0 > 4 || paren_num.1 > 4) && analyze_token_tree_length(elements, config.max_width() / 2) >= 32 {
             return false;
         }
-        if paren_num.0 >= 1 && paren_num.1 >= 4 {
-            return false;
-        }
-        if analyze_token_tree_length(elements, config.max_width() / 2) >= config.max_width() - 55 {
-            return false;
-        }
+        // if paren_num.0 >= 1 && paren_num.1 >= 4 {
+        //     return false;
+        // }
+        // if analyze_token_tree_length(elements, config.max_width() / 2) >= config.max_width() - 55 {
+        //     return false;
+        // }
     }
     true
 }
+ */
 
 pub(crate) fn process_link_access(elements: &[TokenTree], idx: usize) -> (usize, usize) {
     tracing::debug!("process_link_access >>");

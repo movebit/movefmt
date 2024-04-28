@@ -1,0 +1,164 @@
+diff --git a/src/core/fmt.rs b/src/core/fmt.rs
+index 4f8b3cd..85d81d1 100644
+--- a/src/core/fmt.rs
++++ b/src/core/fmt.rs
+@@ -488,6 +488,72 @@ impl Format {
+         (new_line_mode, None)
+     }
+ 
++    fn top_half_after_kind_start(
++        &self,
++        kind: &NestKind,
++        elements: &[TokenTree],
++        b_new_line_mode: bool,
++        b_add_indent: bool,
++        b_add_space_around_brace: bool,
++    ) {
++        // step1 -- format start_token
++        self.format_token_trees_internal(&kind.start_token_tree(), None, b_new_line_mode);
++
++        // step2 -- paired effect with step6
++        if b_add_indent {
++            self.inc_depth();
++        }
++
++        // step3
++        if b_new_line_mode {
++            self.add_new_line_after_nested_begin(kind, elements, b_new_line_mode);
++        } else if b_add_space_around_brace {
++            self.push_str(" ");
++        }
++    }
++
++    fn bottom_half_before_kind_end(
++        &self,
++        kind: &NestKind,
++        b_new_line_mode: bool,
++        b_add_indent: bool,
++        b_add_space_around_brace: bool,
++        nested_token_head: Tok
++    ) {
++        // step5 -- add_comments which before kind.end_pos
++        self.add_comments(
++            kind.end_pos,
++            kind.end_token_tree()
++                .simple_str()
++                .unwrap_or_default()
++                .to_string(),
++        );
++        let ret_copy = self.ret.clone().into_inner();
++        // may be already add_a_new_line in step5 by add_comments(doc_comment in tail of line)
++        *self.ret.borrow_mut() = ret_copy.trim_end().to_string();
++        if ret_copy.ends_with(' ') {
++            self.push_str(" ");
++        }
++        let had_rm_added_new_line =
++            self.ret.clone().into_inner().lines().count() < ret_copy.lines().count();
++
++        // step6 -- paired effect with step2
++        if b_add_indent {
++            self.dec_depth();
++        }
++
++        // step7
++        if b_new_line_mode || had_rm_added_new_line {
++            tracing::debug!("end_of_nested_block, b_new_line_mode = true");
++            if nested_token_head != Tok::If && kind.kind != NestKind_::Bracket && kind.kind != NestKind_::Type {
++                // 20240426 -- for [] and <> not to add new line
++                self.new_line(Some(kind.end_pos));
++            }
++        } else if b_add_space_around_brace {
++            self.push_str(" ");
++        }
++    }
++
+     fn add_new_line_after_nested_begin(
+         &self,
+         kind: &NestKind,
+@@ -644,6 +710,10 @@ impl Format {
+                 self.get_new_line_mode_begin_nested(kind, elements, note, delimiter);
+             let b_add_indent = !note.map(|x| x == Note::ModuleAddress).unwrap_or_default();
+             let nested_token_head = self.format_context.borrow().cur_tok;
++            if Tok::NumSign == nested_token_head {
++                self.push_str(fun_fmt::process_fun_annotation(*kind, elements.to_vec()));
++                return;
++            }
+ 
+             // optimize in 20240425
+             // there are 2 cases which not add space
+@@ -667,31 +737,11 @@ impl Format {
+                 !elements.is_empty();
+ 
+             if b_new_line_mode {
+-                tracing::debug!(
+-                    "nested_token_head = [{:?}], add a new line",
+-                    nested_token_head
+-                );
+-            }
+-
+-            if Tok::NumSign == nested_token_head {
+-                self.push_str(fun_fmt::process_fun_annotation(*kind, elements.to_vec()));
+-                return;
++                tracing::debug!("nested_token_head = [{:?}], add a new line", nested_token_head);
+             }
+ 
+-            // step1 -- format start_token
+-            self.format_token_trees_internal(&kind.start_token_tree(), None, b_new_line_mode);
+-
+-            // step2 -- paired effect with step6
+-            if b_add_indent {
+-                self.inc_depth();
+-            }
+-
+-            // step3
+-            if b_new_line_mode {
+-                self.add_new_line_after_nested_begin(kind, elements, b_new_line_mode);
+-            } else if b_add_space_around_brace {
+-                self.push_str(" ");
+-            }
++            // step1-step3
++            self.top_half_after_kind_start(kind, elements, b_new_line_mode, b_add_indent, b_add_space_around_brace);
+ 
+             // step4 -- format element
+             self.format_each_token_in_nested_elements(
+@@ -702,38 +752,8 @@ impl Format {
+                 opt_component_break_mode.unwrap_or(b_new_line_mode),
+             );
+ 
+-            // step5 -- add_comments which before kind.end_pos
+-            self.add_comments(
+-                kind.end_pos,
+-                kind.end_token_tree()
+-                    .simple_str()
+-                    .unwrap_or_default()
+-                    .to_string(),
+-            );
+-            let ret_copy = self.ret.clone().into_inner();
+-            // may be already add_a_new_line in step5 by add_comments(doc_comment in tail of line)
+-            *self.ret.borrow_mut() = ret_copy.trim_end().to_string();
+-            if ret_copy.ends_with(' ') {
+-                self.push_str(" ");
+-            }
+-            let had_rm_added_new_line =
+-                self.ret.clone().into_inner().lines().count() < ret_copy.lines().count();
+-
+-            // step6 -- paired effect with step2
+-            if b_add_indent {
+-                self.dec_depth();
+-            }
+-
+-            // step7
+-            if b_new_line_mode || had_rm_added_new_line {
+-                tracing::debug!("end_of_nested_block, b_new_line_mode = true");
+-                if nested_token_head != Tok::If && kind.kind != NestKind_::Bracket && kind.kind != NestKind_::Type {
+-                    // 20240426 -- for [] and <> not to add new line
+-                    self.new_line(Some(kind.end_pos));
+-                }
+-            } else if b_add_space_around_brace {
+-                self.push_str(" ");
+-            }
++            // step5-step7
++            self.bottom_half_before_kind_end(kind, b_new_line_mode, b_add_indent, b_add_space_around_brace, nested_token_head);
+ 
+             // step8 -- format end_token
+             self.format_token_trees_internal(&kind.end_token_tree(), None, false);

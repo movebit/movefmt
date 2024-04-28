@@ -2,12 +2,10 @@
 // Copyright (c) The BitsLab.MoveBit Contributors
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::core::token_tree::{
-    analyze_token_tree_length, Comment, CommentExtrator, CommentKind, Delimiter, NestKind,
-    NestKind_, Note, TokenTree,
-};
+use crate::core::token_tree::*;
 use crate::syntax_fmt::branch_fmt::{self, BranchExtractor, BranchKind};
 use crate::syntax_fmt::fun_fmt::FunExtractor;
+use crate::syntax_fmt::call_fmt::CallExtractor;
 use crate::syntax_fmt::{big_block_fmt, expr_fmt, fun_fmt, spec_fmt};
 use crate::tools::syntax::{self, parse_file_string};
 use crate::tools::utils::{FileLineMappingOneFile, Timer};
@@ -61,6 +59,7 @@ impl FormatContext {
 pub struct SyntaxExtractor {
     pub branch_extractor: BranchExtractor,
     pub fun_extractor: FunExtractor,
+    pub call_extractor: CallExtractor,
 }
 
 pub struct Format {
@@ -91,6 +90,7 @@ impl Format {
         let syntax_extractor = SyntaxExtractor {
             branch_extractor: BranchExtractor::new(content.to_string(), BranchKind::ComIfElse),
             fun_extractor: FunExtractor::new(content.to_string()),
+            call_extractor: CallExtractor::new(content.to_string()),
         };
         Self {
             comments_index: Default::default(),
@@ -254,10 +254,32 @@ impl Format {
         {
             return true;
         }
+
+        // added in 20240426: special case for current is long nested type
+        if match current {
+            TokenTree::SimpleToken {
+                content: _,
+                pos: _,
+                tok: _,
+                note: _,
+            } => false,
+            TokenTree::Nested {
+                elements,
+                kind,
+                note: _,
+            } => {
+                (kind.kind == NestKind_::Brace || kind.kind == NestKind_::ParentTheses) && 
+                elements.len() > 4 && b_judge_next_token && 
+                analyze_token_tree_length(elements, 64) > 32
+            },
+        } && (kind == NestKind_::Brace || kind == NestKind_::ParentTheses)
+        {
+            return true;
+        }
         false
     }
 
-    fn need_new_line_for_each_token_in_nested(
+    fn need_new_line_for_each_token_finished_in_nested(
         kind: &NestKind,
         elements: &[TokenTree],
         delimiter: Option<Delimiter>,
@@ -354,7 +376,7 @@ impl Format {
     fn get_new_line_mode_begin_nested(
         &self,
         kind: &NestKind,
-        elements: &Vec<TokenTree>,
+        elements: &[TokenTree],
         note: &Option<Note>,
         delimiter: Option<Delimiter>,
     ) -> (bool, Option<bool>) {
@@ -385,7 +407,7 @@ impl Format {
             return (true, None);
         }
 
-        let max_len_when_no_add_line: usize = self.global_cfg.max_width() / 3;
+        let max_len_when_no_add_line = self.global_cfg.max_width() as f32 * 0.75;
         let nested_token_len = analyze_token_tree_length(elements, self.global_cfg.max_width());
 
         if fun_body {
@@ -404,13 +426,17 @@ impl Format {
                 .unwrap_or_default()
                 || (stct_def && !elements.is_empty())
                 || fun_body
-                || (self.get_cur_line_len() + nested_token_len > self.global_cfg.max_width()
-                    && !elements.is_empty()) && kind.kind == NestKind_::Brace
+                || self.get_cur_line_len() + nested_token_len > self.global_cfg.max_width() && nested_token_len > 8
+                    && kind.kind == NestKind_::Brace
         };
         if new_line_mode && kind.kind != NestKind_::Type {
             return (true, None);
         }
 
+        let mut first_ele_len = 0;
+        if !elements.is_empty() {
+            first_ele_len = analyze_token_tree_length(&[elements[0].clone()], self.global_cfg.max_width());
+        }
         match kind.kind {
             NestKind_::Type => {
                 // added in 20240112: if type in fun header, not change new line
@@ -421,37 +447,117 @@ impl Format {
                 {
                     return (false, None);
                 }
-                new_line_mode = nested_token_len > max_len_when_no_add_line;
+                new_line_mode = self.get_cur_line_len() + first_ele_len > self.global_cfg.max_width()
+                    && first_ele_len > 8;
             }
             NestKind_::ParentTheses => {
+                let nested_and_comma_pair = expr_fmt::get_nested_and_comma_num(elements);
+                let mut opt_component_break_mode = nested_token_len >= self.global_cfg.max_width();
                 if self.format_context.borrow().cur_tok == Tok::If {
                     new_line_mode = false;
                 } else if self.syntax_extractor.fun_extractor.is_parameter_paren_in_fun_header(kind) {
-                    new_line_mode = self.get_cur_line_len() + nested_token_len > self.global_cfg.max_width()
-                        && !elements.is_empty();
-                    let opt_component_break_mode =
-                        !expr_fmt::judge_simple_paren_expr(kind, elements, self.global_cfg.clone());
-                    return (new_line_mode, Some(opt_component_break_mode));
+                    new_line_mode = self.get_cur_line_len() + nested_token_len > self.global_cfg.max_width();
+                    if (nested_and_comma_pair.0 >= 4 || nested_and_comma_pair.1 >= 4) &&
+                        nested_token_len as f32 > max_len_when_no_add_line {
+                        opt_component_break_mode = true;
+                    }
+                } else if self.get_cur_line_len() > self.global_cfg.max_width() && !elements.is_empty() {
+                    new_line_mode = true;
                 } else {
-                    let opt_component_break_mode =
-                        !expr_fmt::judge_simple_paren_expr(kind, elements, self.global_cfg.clone());
-                    return (new_line_mode, Some(opt_component_break_mode));
+                    let is_plus_first_ele_over_width = 
+                        self.get_cur_line_len() + first_ele_len > self.global_cfg.max_width()
+                        && first_ele_len > 8;
+                    let is_nested_len_too_large = nested_token_len as f32 > 2.0 * max_len_when_no_add_line;
+                    new_line_mode = is_plus_first_ele_over_width || is_nested_len_too_large;
                 }
+                return (new_line_mode, Some(opt_component_break_mode));
             }
             NestKind_::Bracket => {
-                new_line_mode = nested_token_len > max_len_when_no_add_line;
+                new_line_mode = nested_token_len as f32 > max_len_when_no_add_line;
             }
             NestKind_::Lambda => {
-                if delimiter.is_none() && nested_token_len <= max_len_when_no_add_line {
+                if delimiter.is_none() && nested_token_len as f32 <= max_len_when_no_add_line {
                     new_line_mode = false;
                 }
             }
             NestKind_::Brace => {
-                new_line_mode = self.last_line().contains("module")
-                    || nested_token_len > max_len_when_no_add_line;
+                new_line_mode = has_special_key_for_break_line_in_code_buf(self.last_line())
+                    || nested_token_len as f32 > max_len_when_no_add_line;
             }
         }
         (new_line_mode, None)
+    }
+
+    fn top_half_after_kind_start(
+        &self,
+        kind: &NestKind,
+        elements: &[TokenTree],
+        b_new_line_mode: bool,
+        b_add_indent: bool,
+        b_add_space_around_brace: bool,
+    ) {
+        // step1 -- format start_token
+        self.format_token_trees_internal(&kind.start_token_tree(), None, b_new_line_mode);
+
+        // step2 -- paired effect with step6
+        if b_add_indent {
+            self.inc_depth();
+        }
+
+        // step3
+        if b_new_line_mode {
+            self.add_new_line_after_nested_begin(kind, elements, b_new_line_mode);
+        } else if b_add_space_around_brace {
+            self.push_str(" ");
+        }
+    }
+
+    fn bottom_half_before_kind_end(
+        &self,
+        kind: &NestKind,
+        b_new_line_mode: bool,
+        b_add_indent: bool,
+        b_add_space_around_brace: bool,
+        nested_token_head: Tok
+    ) {
+        // step5 -- add_comments which before kind.end_pos
+        self.add_comments(
+            kind.end_pos,
+            kind.end_token_tree()
+                .simple_str()
+                .unwrap_or_default()
+                .to_string(),
+        );
+        let ret_copy = self.ret.clone().into_inner();
+        // may be already add_a_new_line in step5 by add_comments(doc_comment in tail of line)
+        *self.ret.borrow_mut() = ret_copy.trim_end().to_string();
+        let had_rm_added_new_line =
+            self.ret.clone().into_inner().lines().count() < ret_copy.lines().count();
+
+        // step6 -- paired effect with step2
+        if b_add_indent {
+            self.dec_depth();
+        }
+
+        // step7
+        if b_new_line_mode || had_rm_added_new_line {
+            tracing::debug!("end_of_nested_block, had_rm_added_new_line = {}, last_ret = {}", had_rm_added_new_line, self.last_line());
+            let mut b_break_line_before_kind_end = true;
+            if kind.kind == NestKind_::ParentTheses && self.syntax_extractor.call_extractor.paren_in_call(kind) {
+                // 20240428 -- for call_fn(), don't add new line
+                b_break_line_before_kind_end = false;
+            }
+            if nested_token_head == Tok::If || kind.kind == NestKind_::Bracket || kind.kind == NestKind_::Type {
+                // 20240426 -- for [] and <>  don't add new line
+                b_break_line_before_kind_end = false;
+            }
+
+            if b_break_line_before_kind_end {
+                self.new_line(Some(kind.end_pos));
+            }
+        } else if b_add_space_around_brace {
+            self.push_str(" ");
+        }
     }
 
     fn add_new_line_after_nested_begin(
@@ -494,7 +600,7 @@ impl Format {
     ) {
         let TokenTree::Nested {
             elements,
-            kind,
+            kind: _,
             note: _,
         } = nested_token
         else {
@@ -545,7 +651,7 @@ impl Format {
                 .map(|x| (x + 1) == internal_token_idx)
                 .unwrap_or_default();
 
-            let new_line = Self::need_new_line_for_each_token_in_nested(
+            let mut new_line = Self::need_new_line_for_each_token_finished_in_nested(
                 kind,
                 elements,
                 delimiter,
@@ -553,6 +659,11 @@ impl Format {
                 internal_token_idx,
                 b_new_line_mode,
             );
+
+            if kind.kind == NestKind_::ParentTheses {
+                new_line = new_line || self.syntax_extractor.call_extractor.should_call_component_split(
+                    self.global_cfg.clone(), kind, elements, internal_token_idx, self.get_cur_line_len());
+            }
 
             if elements.get(internal_token_idx).unwrap().is_pound() {
                 pound_sign = Some(internal_token_idx)
@@ -605,6 +716,10 @@ impl Format {
                 self.get_new_line_mode_begin_nested(kind, elements, note, delimiter);
             let b_add_indent = !note.map(|x| x == Note::ModuleAddress).unwrap_or_default();
             let nested_token_head = self.format_context.borrow().cur_tok;
+            if Tok::NumSign == nested_token_head {
+                self.push_str(fun_fmt::process_fun_annotation(*kind, elements.to_vec()));
+                return;
+            }
 
             // optimize in 20240425
             // there are 2 cases which not add space
@@ -628,81 +743,23 @@ impl Format {
                 !elements.is_empty();
 
             if b_new_line_mode {
-                tracing::debug!(
-                    "nested_token_head = [{:?}], add a new line",
-                    nested_token_head
-                );
+                tracing::debug!("nested_token_head = [{:?}], add a new line", nested_token_head);
             }
 
-            if Tok::NumSign == nested_token_head {
-                self.push_str(fun_fmt::process_fun_annotation(*kind, elements.to_vec()));
-                return;
-            }
+            // step1-step3
+            self.top_half_after_kind_start(kind, elements, b_new_line_mode, b_add_indent, b_add_space_around_brace);
 
-            // step1 -- format start_token
-            self.format_token_trees_internal(&kind.start_token_tree(), None, b_new_line_mode);
-
-            // step2 -- paired effect with step6
-            if b_add_indent {
-                self.inc_depth();
-            }
-
-            // step3
-            if b_new_line_mode {
-                self.add_new_line_after_nested_begin(kind, elements, b_new_line_mode);
-            } else if b_add_space_around_brace {
-                self.push_str(" ");
-            }
-
-            // step4 -- format elements
-            let need_change_line_for_each_item_in_paren = if NestKind_::ParentTheses == kind.kind {
-                if opt_component_break_mode.is_none() {
-                    !expr_fmt::judge_simple_paren_expr(kind, elements, self.global_cfg.clone())
-                } else {
-                    opt_component_break_mode.unwrap_or_default()
-                }
-            } else {
-                b_new_line_mode
-            };
+            // step4 -- format element
             self.format_each_token_in_nested_elements(
                 kind,
                 elements,
                 delimiter,
                 has_colon,
-                need_change_line_for_each_item_in_paren,
+                opt_component_break_mode.unwrap_or(b_new_line_mode),
             );
 
-            // step5 -- add_comments which before kind.end_pos
-            self.add_comments(
-                kind.end_pos,
-                kind.end_token_tree()
-                    .simple_str()
-                    .unwrap_or_default()
-                    .to_string(),
-            );
-            let ret_copy = self.ret.clone().into_inner();
-            // may be already add_a_new_line in step5 by add_comments(doc_comment in tail of line)
-            *self.ret.borrow_mut() = ret_copy.trim_end().to_string();
-            if ret_copy.ends_with(' ') {
-                self.push_str(" ");
-            }
-            let had_rm_added_new_line =
-                self.ret.clone().into_inner().lines().count() < ret_copy.lines().count();
-
-            // step6 -- paired effect with step2
-            if b_add_indent {
-                self.dec_depth();
-            }
-
-            // step7
-            if b_new_line_mode || had_rm_added_new_line {
-                tracing::debug!("end_of_nested_block, b_new_line_mode = true");
-                if nested_token_head != Tok::If {
-                    self.new_line(Some(kind.end_pos));
-                }
-            } else if b_add_space_around_brace {
-                self.push_str(" ");
-            }
+            // step5-step7
+            self.bottom_half_before_kind_end(kind, b_new_line_mode, b_add_indent, b_add_space_around_brace, nested_token_head);
 
             // step8 -- format end_token
             self.format_token_trees_internal(&kind.end_token_tree(), None, false);
@@ -809,7 +866,7 @@ impl Format {
             self.format_context.borrow_mut().cur_tok = *tok;
 
             let mut split_line_after_content = false;
-            if self.judge_change_new_line_when_over_limits(*tok, *note, next_token) {
+            if self.judge_change_new_line_when_over_limits(content.clone(), *tok, *note, next_token) {
                 tracing::debug!("last_line = {:?}", self.last_line());
                 tracing::debug!(
                     "SimpleToken{:?} too long, add a new line because of split line",
@@ -834,17 +891,6 @@ impl Format {
 
             self.cur_line.set(self.translate_line(*pos));
             if new_line_after {
-                return;
-            }
-            if self.judge_change_new_line_when_over_limits(*tok, *note, next_token) {
-                tracing::debug!("last_line = {:?}", self.last_line());
-                tracing::debug!(
-                    "SimpleToken{:?}, add a new line because of split line",
-                    content
-                );
-                self.inc_depth();
-                self.new_line(None);
-                self.dec_depth();
                 return;
             }
             if expr_fmt::need_space(token, next_token) {
@@ -1245,49 +1291,22 @@ impl Format {
     }
 
     fn get_cur_line_len(&self) -> usize {
-        let last_ret = self.last_line();
-        let mut tokens_len = 0;
-        let mut special_key = false;
-        let mut lexer = Lexer::new(&last_ret, FileHash::empty());
-        lexer.advance().unwrap();
-        while lexer.peek() != Tok::EOF {
-            if lexer.peek() == Tok::Identifier {
-                // because must have a space around identifier, so plus one.
-                tokens_len += 1;
-            }
-            tokens_len += lexer.content().len();
-            if !special_key {
-                special_key = matches!(
-                    lexer.peek(),
-                    Tok::If
-                        | Tok::LBrace
-                        | Tok::Module
-                        | Tok::Script
-                        | Tok::Struct
-                        | Tok::Fun
-                        | Tok::Public
-                        | Tok::Inline
-                        | Tok::Colon
-                        | Tok::Spec
-                );
-            }
-            lexer.advance().unwrap();
-        }
-
-        if special_key {
-            tokens_len
-        } else {
-            last_ret.len()
-        }
+        get_code_buf_len(self.last_line())
     }
 
     fn judge_change_new_line_when_over_limits(
         &self,
+        tok_str: String,
         tok: Tok,
         note: Option<Note>,
         next: Option<&TokenTree>,
     ) -> bool {
-        self.get_cur_line_len() + tok.to_string().len() > self.global_cfg.max_width()
+        if self.get_cur_line_len() + tok_str.len() > self.global_cfg.max_width() {
+            tracing::trace!("self.get_cur_line_len() = {}, tok_str.len() = {}", self.get_cur_line_len(), tok_str.len());
+            tracing::trace!("self.last_line = {}, tok_str = {}", self.last_line(), tok_str);
+        }
+
+        self.get_cur_line_len() + tok_str.len() > self.global_cfg.max_width()
             && Self::tok_suitable_for_new_line(tok, note, next)
     }
 

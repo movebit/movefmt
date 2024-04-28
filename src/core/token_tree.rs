@@ -5,7 +5,7 @@
 use core::panic;
 use std::cmp::Ordering;
 use std::collections::HashSet;
-
+use move_command_line_common::files::FileHash;
 use move_compiler::parser::ast::Definition;
 use move_compiler::parser::ast::*;
 use move_compiler::parser::lexer::{Lexer, Tok};
@@ -705,6 +705,54 @@ pub(crate) fn analyze_token_tree_length(token_tree: &[TokenTree], max: usize) ->
     ret
 }
 
+pub(crate) fn get_code_buf_len(code_buffer: String) -> usize {
+    let mut tokens_len = 0;
+    let mut special_key = false;
+    let mut lexer = Lexer::new(&code_buffer, FileHash::empty());
+    lexer.advance().unwrap();
+    while lexer.peek() != Tok::EOF {
+        tokens_len += lexer.content().len();
+        if !special_key {
+            special_key = matches!(
+                lexer.peek(),
+                Tok::If
+                    | Tok::LBrace
+                    | Tok::Module
+                    | Tok::Script
+                    | Tok::Struct
+                    | Tok::Fun
+                    | Tok::Public
+                    | Tok::Inline
+                    | Tok::Colon
+                    | Tok::Spec
+            );
+        }
+        lexer.advance().unwrap();
+    }
+
+    if special_key {
+        tokens_len
+    } else {
+        code_buffer.len()
+    }
+}
+
+pub(crate) fn has_special_key_for_break_line_in_code_buf(code_buffer: String) -> bool {
+    let mut lexer = Lexer::new(&code_buffer, FileHash::empty());
+    lexer.advance().unwrap();
+    while lexer.peek() != Tok::EOF {
+        if matches!(
+            lexer.peek(),
+            Tok::Module
+                | Tok::Script
+        ) {
+            return true; 
+        }
+        lexer.advance().unwrap();
+    }
+    false
+}
+
 // ===================================================================================================
 #[derive(Default, Debug)]
 pub struct CommentExtrator {
@@ -903,7 +951,6 @@ impl CommentExtrator {
 #[cfg(test)]
 mod comment_test {
     use crate::tools::syntax::parse_file_string;
-    use move_command_line_common::files::FileHash;
     use move_compiler::{shared::CompilationEnv, Flags};
     use std::collections::BTreeSet;
 

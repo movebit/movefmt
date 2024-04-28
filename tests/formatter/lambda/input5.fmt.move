@@ -31,9 +31,6 @@ module 0x42::LambdaTest2 {
         // Apply the lambda function g to the result of applying another lambda function to c, multiply the result by 3, and add 4 to the result
         LambdaTest1::inline_apply1(g,
             LambdaTest1::inline_mul(c,
-                LambdaTest1::inline_apply(|x| {
-                        LambdaTest1::inline_apply(|y| y, x)
-                    },
-                    3))) + 4
+                LambdaTest1::inline_apply(|x| { LambdaTest1::inline_apply(|y| y, x) }, 3))) + 4
     }
 }

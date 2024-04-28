@@ -14,24 +14,11 @@ module econia::incentives {
         *  - Withdrawal fee
         */
         let integrator_fee_store_tiers = vector[
-            vector[
-                FEE_SHARE_DIVISOR_0,
-                TIER_ACTIVATION_FEE_0,
-                WITHDRAWAL_FEE_0
-            ],
+            vector[FEE_SHARE_DIVISOR_0, TIER_ACTIVATION_FEE_0, WITHDRAWAL_FEE_0],
 
-            vector[
-                FEE_SHARE_DIVISOR_1,
-                TIER_ACTIVATION_FEE_1,
-                WITHDRAWAL_FEE_1
-            ],
+            vector[FEE_SHARE_DIVISOR_1, TIER_ACTIVATION_FEE_1, WITHDRAWAL_FEE_1],
             // ...
-            vector[
-                FEE_SHARE_DIVISOR_N,
-                TIER_ACTIVATION_FEE_N,
-                WITHDRAWAL_FEE_N
-            ]
-        ];
+            vector[FEE_SHARE_DIVISOR_N, TIER_ACTIVATION_FEE_N, WITHDRAWAL_FEE_N]];
     }
 
 }

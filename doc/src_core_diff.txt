@@ -1,0 +1,240 @@
+diff --git a/src/core/fmt.rs b/src/core/fmt.rs
+index a2d420a..cb060b0 100644
+--- a/src/core/fmt.rs
++++ b/src/core/fmt.rs
+@@ -2,12 +2,10 @@
+ // Copyright (c) The BitsLab.MoveBit Contributors
+ // SPDX-License-Identifier: Apache-2.0
+ 
+-use crate::core::token_tree::{
+-    analyze_token_tree_length, Comment, CommentExtrator, CommentKind, Delimiter, NestKind,
+-    NestKind_, Note, TokenTree,
+-};
++use crate::core::token_tree::*;
+ use crate::syntax_fmt::branch_fmt::{self, BranchExtractor, BranchKind};
+ use crate::syntax_fmt::fun_fmt::FunExtractor;
++use crate::syntax_fmt::call_fmt::CallExtractor;
+ use crate::syntax_fmt::{big_block_fmt, expr_fmt, fun_fmt, spec_fmt};
+ use crate::tools::syntax::{self, parse_file_string};
+ use crate::tools::utils::{FileLineMappingOneFile, Timer};
+@@ -61,6 +59,7 @@ impl FormatContext {
+ pub struct SyntaxExtractor {
+     pub branch_extractor: BranchExtractor,
+     pub fun_extractor: FunExtractor,
++    pub call_extractor: CallExtractor,
+ }
+ 
+ pub struct Format {
+@@ -91,6 +90,7 @@ impl Format {
+         let syntax_extractor = SyntaxExtractor {
+             branch_extractor: BranchExtractor::new(content.to_string(), BranchKind::ComIfElse),
+             fun_extractor: FunExtractor::new(content.to_string()),
++            call_extractor: CallExtractor::new(content.to_string()),
+         };
+         Self {
+             comments_index: Default::default(),
+@@ -254,10 +254,32 @@ impl Format {
+         {
+             return true;
+         }
++
++        // added in 20240426: special case for current is long nested type
++        if match current {
++            TokenTree::SimpleToken {
++                content: _,
++                pos: _,
++                tok: _,
++                note: _,
++            } => false,
++            TokenTree::Nested {
++                elements,
++                kind,
++                note: _,
++            } => {
++                (kind.kind == NestKind_::Brace || kind.kind == NestKind_::ParentTheses) && 
++                elements.len() > 4 && b_judge_next_token && 
++                analyze_token_tree_length(elements, 64) > 32
++            },
++        } && (kind == NestKind_::Brace || kind == NestKind_::ParentTheses)
++        {
++            return true;
++        }
+         false
+     }
+ 
+-    fn need_new_line_for_each_token_in_nested(
++    fn need_new_line_for_each_token_finished_in_nested(
+         kind: &NestKind,
+         elements: &[TokenTree],
+         delimiter: Option<Delimiter>,
+@@ -354,7 +376,7 @@ impl Format {
+     fn get_new_line_mode_begin_nested(
+         &self,
+         kind: &NestKind,
+-        elements: &Vec<TokenTree>,
++        elements: &[TokenTree],
+         note: &Option<Note>,
+         delimiter: Option<Delimiter>,
+     ) -> (bool, Option<bool>) {
+@@ -385,7 +407,7 @@ impl Format {
+             return (true, None);
+         }
+ 
+-        let max_len_when_no_add_line: usize = self.global_cfg.max_width() / 3;
++        let max_len_when_no_add_line = self.global_cfg.max_width() as f32 * 0.75;
+         let nested_token_len = analyze_token_tree_length(elements, self.global_cfg.max_width());
+ 
+         if fun_body {
+@@ -404,13 +426,17 @@ impl Format {
+                 .unwrap_or_default()
+                 || (stct_def && !elements.is_empty())
+                 || fun_body
+-                || (self.get_cur_line_len() + nested_token_len > self.global_cfg.max_width()
+-                    && !elements.is_empty()) && kind.kind == NestKind_::Brace
++                || self.get_cur_line_len() + nested_token_len > self.global_cfg.max_width() && nested_token_len > 8
++                    && kind.kind == NestKind_::Brace
+         };
+         if new_line_mode && kind.kind != NestKind_::Type {
+             return (true, None);
+         }
+ 
++        let mut first_ele_len = 0;
++        if !elements.is_empty() {
++            first_ele_len = analyze_token_tree_length(&[elements[0].clone()], self.global_cfg.max_width());
++        }
+         match kind.kind {
+             NestKind_::Type => {
+                 // added in 20240112: if type in fun header, not change new line
+@@ -421,34 +447,37 @@ impl Format {
+                 {
+                     return (false, None);
+                 }
+-                new_line_mode = nested_token_len > max_len_when_no_add_line;
++                new_line_mode = self.get_cur_line_len() + first_ele_len > self.global_cfg.max_width()
++                    && first_ele_len > 8;
+             }
+             NestKind_::ParentTheses => {
++                let opt_component_break_mode = nested_token_len > self.global_cfg.max_width();
+                 if self.format_context.borrow().cur_tok == Tok::If {
+                     new_line_mode = false;
+                 } else if self.syntax_extractor.fun_extractor.is_parameter_paren_in_fun_header(kind) {
+-                    new_line_mode = self.get_cur_line_len() + nested_token_len > self.global_cfg.max_width()
+-                        && !elements.is_empty();
+-                    let opt_component_break_mode =
+-                        !expr_fmt::judge_simple_paren_expr(kind, elements, self.global_cfg.clone());
+-                    return (new_line_mode, Some(opt_component_break_mode));
++                    new_line_mode = self.get_cur_line_len() + nested_token_len > self.global_cfg.max_width();
++                } else if self.get_cur_line_len() > self.global_cfg.max_width() && !elements.is_empty() {
++                    new_line_mode = true;
+                 } else {
+-                    let opt_component_break_mode =
+-                        !expr_fmt::judge_simple_paren_expr(kind, elements, self.global_cfg.clone());
+-                    return (new_line_mode, Some(opt_component_break_mode));
++                    let is_plus_first_ele_over_width = 
++                        self.get_cur_line_len() + first_ele_len > self.global_cfg.max_width()
++                        && first_ele_len > 8;
++                    let is_nested_len_too_large = nested_token_len as f32 > 2.0 * max_len_when_no_add_line;
++                    new_line_mode = is_plus_first_ele_over_width || is_nested_len_too_large;
+                 }
++                return (new_line_mode, Some(opt_component_break_mode));
+             }
+             NestKind_::Bracket => {
+-                new_line_mode = nested_token_len > max_len_when_no_add_line;
++                new_line_mode = nested_token_len as f32 > max_len_when_no_add_line;
+             }
+             NestKind_::Lambda => {
+-                if delimiter.is_none() && nested_token_len <= max_len_when_no_add_line {
++                if delimiter.is_none() && nested_token_len as f32 <= max_len_when_no_add_line {
+                     new_line_mode = false;
+                 }
+             }
+             NestKind_::Brace => {
+-                new_line_mode = self.last_line().contains("module")
+-                    || nested_token_len > max_len_when_no_add_line;
++                new_line_mode = has_special_key_for_break_line_in_code_buf(self.last_line())
++                    || nested_token_len as f32 > max_len_when_no_add_line;
+             }
+         }
+         (new_line_mode, None)
+@@ -494,7 +523,7 @@ impl Format {
+     ) {
+         let TokenTree::Nested {
+             elements,
+-            kind,
++            kind: _,
+             note: _,
+         } = nested_token
+         else {
+@@ -545,7 +574,7 @@ impl Format {
+                 .map(|x| (x + 1) == internal_token_idx)
+                 .unwrap_or_default();
+ 
+-            let new_line = Self::need_new_line_for_each_token_in_nested(
++            let mut new_line = Self::need_new_line_for_each_token_finished_in_nested(
+                 kind,
+                 elements,
+                 delimiter,
+@@ -554,6 +583,11 @@ impl Format {
+                 b_new_line_mode,
+             );
+ 
++            if kind.kind == NestKind_::ParentTheses {
++                new_line = new_line || self.syntax_extractor.call_extractor.should_call_component_split(
++                    self.global_cfg.clone(), kind, elements, internal_token_idx, self.get_cur_line_len());
++            }
++
+             if elements.get(internal_token_idx).unwrap().is_pound() {
+                 pound_sign = Some(internal_token_idx)
+             }
+@@ -697,7 +731,8 @@ impl Format {
+             // step7
+             if b_new_line_mode || had_rm_added_new_line {
+                 tracing::debug!("end_of_nested_block, b_new_line_mode = true");
+-                if nested_token_head != Tok::If {
++                if nested_token_head != Tok::If && kind.kind != NestKind_::Bracket && kind.kind != NestKind_::Type {
++                    // 20240426 -- for [] and <> not to add new line
+                     self.new_line(Some(kind.end_pos));
+                 }
+             } else if b_add_space_around_brace {
+@@ -1245,40 +1280,7 @@ impl Format {
+     }
+ 
+     fn get_cur_line_len(&self) -> usize {
+-        let last_ret = self.last_line();
+-        let mut tokens_len = 0;
+-        let mut special_key = false;
+-        let mut lexer = Lexer::new(&last_ret, FileHash::empty());
+-        lexer.advance().unwrap();
+-        while lexer.peek() != Tok::EOF {
+-            if lexer.peek() == Tok::Identifier {
+-                // because must have a space around identifier, so plus one.
+-                tokens_len += 1;
+-            }
+-            tokens_len += lexer.content().len();
+-            if !special_key {
+-                special_key = matches!(
+-                    lexer.peek(),
+-                    Tok::If
+-                        | Tok::LBrace
+-                        | Tok::Module
+-                        | Tok::Script
+-                        | Tok::Struct
+-                        | Tok::Fun
+-                        | Tok::Public
+-                        | Tok::Inline
+-                        | Tok::Colon
+-                        | Tok::Spec
+-                );
+-            }
+-            lexer.advance().unwrap();
+-        }
+-
+-        if special_key {
+-            tokens_len
+-        } else {
+-            last_ret.len()
+-        }
++        get_code_buf_len(self.last_line())
+     }
+ 
+     fn judge_change_new_line_when_over_limits(
