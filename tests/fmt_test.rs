@@ -252,6 +252,7 @@ fn test_dir() {
         scan_dir("./tests/aptos_framework_case")
     );
     eprintln!("formated {} files", scan_dir("./tests/issues"));
+    eprintln!("formated {} files", scan_dir("./tests/comment"));
 }
 
 #[test]
