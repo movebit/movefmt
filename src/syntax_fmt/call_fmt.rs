@@ -2,26 +2,13 @@
 // Copyright (c) The BitsLab.MoveBit Contributors
 // SPDX-License-Identifier: Apache-2.0
 
-// use core::panic;
-// use std::cmp::Ordering;
-// use std::collections::HashSet;
-
 use move_compiler::parser::ast::Definition;
 use move_compiler::parser::ast::*;
-use tracing::debug;
-// use move_compiler::parser::lexer::{Lexer, Tok};
-// use move_compiler::shared::Identifier;
-
-use crate::core::token_tree::{NestKind, NestKind_, Delimiter, TokenTree, get_code_buf_len, analyze_token_tree_length};
-// use crate::syntax_fmt::expr_fmt;
+use crate::core::token_tree::{NestKind, TokenTree, get_code_buf_len, analyze_token_tree_length};
 use crate::tools::syntax::parse_file_string;
 use crate::tools::utils::FileLineMappingOneFile;
 use commentfmt::Config;
 use move_command_line_common::files::FileHash;
-// use move_compiler::parser::ast::Definition;
-// use move_compiler::parser::ast::*;
-// use move_compiler::parser::lexer::{Lexer, Tok};
-// use move_compiler::shared::{CompilationEnv, Identifier};
 use move_compiler::shared::CompilationEnv;
 use move_compiler::Flags;
 use move_ir_types::location::*;
@@ -202,33 +189,7 @@ impl CallExtractor {
     }
 }
 
-// fn get_nth_line(s: &str, n: usize) -> Option<&str> {
-//     s.lines().nth(n)
-// }
-
-// fn get_space_cnt_before_line_str(s: &str) -> usize {
-//     let mut result = 0;
-//     let trimed_header_prefix = s.trim_start();
-//     if !trimed_header_prefix.is_empty() {
-//         if let Some(indent) = s.find(trimed_header_prefix) {
-//             result = indent;
-//         }
-//     }
-//     result
-// }
-
 impl CallExtractor {
-    pub(crate) fn process_call(&self) {
-        for call_loc in &self.call_paren_loc_vec {
-            let call_str = &self.source[call_loc.start() as usize..call_loc.end() as usize];
-            tracing::debug!("call_str = {}", call_str);
-        }
-        for pack_in_call_loc in &self.pack_in_call_loc_vec {
-            let pack_in_call_str = &self.source[pack_in_call_loc.start() as usize..pack_in_call_loc.end() as usize];
-            tracing::debug!("pack_in_call_str = {}", pack_in_call_str);
-        }
-    }
-
     // fn_call(comp1, comp2, nested_call_maybe_too_long(...), comp4);
     // >>
     // fn_call(comp1, comp2,
@@ -343,39 +304,3 @@ fn get_tok_start_pos(t: &TokenTree) -> u32 {
         } => kind.start_pos,
     }
 }
-
-pub(crate) fn should_call_component_split(
-    fmt_buffer: String,
-    config: Config,
-    kind: &NestKind,
-    elements: &[TokenTree],
-    index: usize,
-    cur_ret_last_len: usize) -> bool {
-    let call_extractor = CallExtractor::new(fmt_buffer.clone());
-
-    let current = elements.get(index).unwrap();
-    let next_t = elements.get(index + 1);
-    if current.simple_str() == Some(",") && next_t.is_some() {
-        let component_lenth = analyze_token_tree_length(&[next_t.unwrap().clone()], 10);
-        if cur_ret_last_len + component_lenth > config.max_width() && component_lenth > 4 {
-            return true;
-        }
-
-        let next_t_start_pos = get_tok_start_pos(next_t.unwrap());
-
-        for call_loc in call_extractor.call_paren_loc_vec.iter() {
-            if kind.start_pos <= call_loc.start() && call_loc.end() <= kind.end_pos {
-                if call_extractor.should_split_pack_component(next_t_start_pos, config.clone(), cur_ret_last_len) {
-                    tracing::debug!("should split pack: next_t = {:?}", next_t.unwrap().simple_str());
-                    return true;
-                }
-                if call_extractor.should_split_call_component(next_t_start_pos, config.clone(), cur_ret_last_len) {
-                    tracing::debug!("should split call: next_t = {:?}", next_t.unwrap().simple_str());
-                    return true;
-                }
-            }
-        }
-    }
-    false
-}
-

@@ -2,8 +2,7 @@
 // Copyright (c) The BitsLab.MoveBit Contributors
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::core::token_tree::{analyze_token_tree_length, NestKind, NestKind_, Note, TokenTree};
-use commentfmt::Config;
+use crate::core::token_tree::{NestKind_, Note, TokenTree};
 use move_compiler::parser::lexer::Tok;
 
 pub enum TokType {
@@ -340,6 +339,11 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                 }
                 if content == "assert" && next_start_tok == Tok::Exclaim {
                     result = false;
+                }
+
+                // added in 20240430: support for loop
+                if content == "for" && next_start_tok == Tok::LParen {
+                    result = true;
                 }
             }
 

@@ -31,15 +31,15 @@ getopts = "0.2"
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 commentfmt = { version = "1.6.0", path = "src/comment_fmt" }
-move-command-line-common = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "989b7434e47f99f39269956fee23200c32331a98", package = "move-command-line-common" }
-move-compiler = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "989b7434e47f99f39269956fee23200c32331a98", package = "move-compiler" }
-move-ir-types = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "989b7434e47f99f39269956fee23200c32331a98", package = "move-ir-types" }
-move-package = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "989b7434e47f99f39269956fee23200c32331a98", package = "move-package" }
-move-symbol-pool = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "989b7434e47f99f39269956fee23200c32331a98", package = "move-symbol-pool" }
-move-core-types = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "989b7434e47f99f39269956fee23200c32331a98", package = "move-core-types" }
 
 [target.'cfg(not(target_os= "windows"))'.dependencies]
 pprof = { version = "0.11.0" , features = ["flamegraph" , "protobuf"]}
+move-command-line-common = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "c807593fe58b7517e25b1444919dfc8d72cdd497", package = "move-command-line-common" }
+move-compiler = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "c807593fe58b7517e25b1444919dfc8d72cdd497", package = "move-compiler" }
+move-ir-types = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "c807593fe58b7517e25b1444919dfc8d72cdd497", package = "move-ir-types" }
+move-package = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "c807593fe58b7517e25b1444919dfc8d72cdd497", package = "move-package" }
+move-symbol-pool = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "c807593fe58b7517e25b1444919dfc8d72cdd497", package = "move-symbol-pool" }
+move-core-types = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "c807593fe58b7517e25b1444919dfc8d72cdd497", package = "move-core-types" }
 
 [profile.release]
 debug = true

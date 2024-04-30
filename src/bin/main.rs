@@ -260,7 +260,9 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
             }
         }
     }
-    tracing::error!("{:?} file skipped because of parse not ok", skips_cnt);
+    if skips_cnt > 0 {
+        tracing::error!("{:?} file skipped because of parse not ok", skips_cnt);
+    }
     Ok(0)
 }
 
