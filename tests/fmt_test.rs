@@ -253,6 +253,7 @@ fn test_dir() {
     );
     eprintln!("formated {} files", scan_dir("./tests/issues"));
     eprintln!("formated {} files", scan_dir("./tests/comment"));
+    eprintln!("formated {} files", scan_dir("./tests/break_line"));
 }
 
 #[test]

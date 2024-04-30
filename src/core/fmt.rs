@@ -20,6 +20,8 @@ use std::cell::RefCell;
 use std::collections::BTreeSet;
 use std::result::Result::*;
 
+const BREAK_LINE_FOR_LOGIC_OP_NUM: u32 = 2;
+
 pub enum FormatEnv {
     FormatModule,
     FormatUse,
@@ -327,6 +329,7 @@ impl Format {
             }
         }
 
+        let mut next_token = Tok::EOF;
         if let Some((next_tok, next_content)) = next_t.map(|x| match x {
             TokenTree::SimpleToken {
                 content,
@@ -343,6 +346,24 @@ impl Format {
             // ablility not change new line
             if syntax::token_to_ability(next_tok, &next_content).is_some() {
                 new_line = false;
+            }
+            next_token = next_tok;
+        }
+
+        // added in 20240430: check expression with (&&, ||, ...)
+        if kind.kind == NestKind_::ParentTheses {
+            let elements_str = serde_json::to_string(&elements).unwrap_or_default();
+            let and_op_num = elements_str.matches("&&").count() as u32;
+            let or_op_num = elements_str.matches("||").count() as u32;
+            let mut b_need_check_logic_op = false;
+            if and_op_num > BREAK_LINE_FOR_LOGIC_OP_NUM
+            || or_op_num > BREAK_LINE_FOR_LOGIC_OP_NUM
+            || and_op_num + or_op_num > BREAK_LINE_FOR_LOGIC_OP_NUM {
+                b_need_check_logic_op = true;
+            }
+
+            if b_need_check_logic_op && (next_token == Tok::PipePipe || next_token == Tok::AmpAmp) {
+                new_line = true;
             }
         }
         new_line
