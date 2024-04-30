@@ -727,7 +727,9 @@ pub(crate) fn get_code_buf_len(code_buffer: String) -> usize {
                     | Tok::Spec
             );
         }
-        lexer.advance().unwrap();
+        if lexer.advance().is_err() {
+            break;
+        }
     }
 
     if special_key {
@@ -748,7 +750,9 @@ pub(crate) fn has_special_key_for_break_line_in_code_buf(code_buffer: String) ->
         ) {
             return true; 
         }
-        lexer.advance().unwrap();
+        if lexer.advance().is_err() {
+            break;
+        }
     }
     false
 }

@@ -268,6 +268,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                 || Tok::Identifier == curr_start_tok
                 || Tok::RParen == curr_end_tok
                 || Tok::Comma == curr_end_tok
+                || Tok::Slash == curr_end_tok
         }
 
         (TokType::Star, _) => {

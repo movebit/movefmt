@@ -201,8 +201,9 @@ module aptos_framework::account {
             error::already_exists(EACCOUNT_ALREADY_EXISTS));
 
         // NOTE: @core_resources gets created via a `create_account` call, so we do not include it below.
-        assert!(new_address != @vm_reserved && new_address != @aptos_framework && new_address
-            != @aptos_token,
+        assert!(new_address != @vm_reserved
+            && new_address != @aptos_framework
+            && new_address != @aptos_token,
             error::invalid_argument(ECANNOT_RESERVED_ADDRESS));
 
         create_account_unchecked(new_address)

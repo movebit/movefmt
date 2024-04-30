@@ -10,6 +10,7 @@ use crate::syntax_fmt::{big_block_fmt, expr_fmt, fun_fmt, spec_fmt};
 use crate::tools::syntax::{self, parse_file_string};
 use crate::tools::utils::{FileLineMappingOneFile, Timer};
 use commentfmt::{Config, Verbosity};
+use commentfmt::comment::contains_comment;
 use move_command_line_common::files::FileHash;
 use move_compiler::diagnostics::Diagnostics;
 use move_compiler::parser::lexer::{Lexer, Tok};
@@ -362,6 +363,15 @@ impl Format {
                 b_need_check_logic_op = true;
             }
 
+            let elements_len = analyze_token_tree_length(elements, 100);
+            let elements_limit = 75;
+            if (and_op_num == BREAK_LINE_FOR_LOGIC_OP_NUM
+            || or_op_num == BREAK_LINE_FOR_LOGIC_OP_NUM
+            || and_op_num + or_op_num == BREAK_LINE_FOR_LOGIC_OP_NUM)
+            && elements_len > elements_limit {
+                b_need_check_logic_op = true;
+            }
+
             if b_need_check_logic_op && (next_token == Tok::PipePipe || next_token == Tok::AmpAmp) {
                 new_line = true;
             }
@@ -573,6 +583,9 @@ impl Format {
                 b_break_line_before_kind_end = false;
             }
 
+            if contains_comment(&self.last_line()) && self.last_line().contains("//") {
+                b_break_line_before_kind_end = true;
+            }
             if b_break_line_before_kind_end {
                 self.new_line(Some(kind.end_pos));
             }

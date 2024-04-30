@@ -13,7 +13,6 @@ use move_compiler::parser::lexer::{Lexer, Tok};
 use move_compiler::shared::{CompilationEnv, Identifier};
 use move_compiler::Flags;
 use move_ir_types::location::*;
-use tracing::trace;
 use std::collections::BTreeSet;
 use std::vec;
 

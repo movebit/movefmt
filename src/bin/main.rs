@@ -166,6 +166,7 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
     eprintln!("options = {:?}", options);
     let (config, config_path) = load_config(None, Some(options.clone()))?;
     let mut use_config = config.clone();
+    let mut skips_cnt = 0;
     tracing::info!(
         "config.[verbose, indent] = [{:?}, {:?}], {:?}",
         config.verbose(),
@@ -212,6 +213,9 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
         }
 
         let content_origin = std::fs::read_to_string(file.as_path()).unwrap();
+        if use_config.verbose() == Verbosity::Verbose {
+            println!("Formatting {}", file.display());
+        }
         match format_entry(content_origin.clone(), use_config.clone()) {
             Ok(formatted_text) => {
                 let emit_mode = if let Some(op_emit) = options.emit_mode {
@@ -240,12 +244,23 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
                     }
                 }
             }
-            Err(_) => {
-                // https://github.com/movebit/movefmt/issues/2
-                tracing::error!("file '{:?}' skipped because of parse not ok", file);
+            Err(diags) => {
+                skips_cnt += 1;
+                let mut files_source_text: move_compiler::diagnostics::FilesSourceText = HashMap::new();
+                files_source_text.insert(
+                    move_command_line_common::files::FileHash::empty(),
+                    (file.display().to_string().into(), content_origin.clone()),
+                );
+                let diags_buf = move_compiler::diagnostics::report_diagnostics_to_color_buffer(&files_source_text, diags);
+                if std::io::stdout().write_all(&diags_buf).is_err() {
+                    // Cannot output compiler diagnostics;
+                    // https://github.com/movebit/movefmt/issues/2
+                    tracing::error!("file '{:?}' skipped because of parse not ok", file);
+                }
             }
         }
     }
+    tracing::error!("{:?} file skipped because of parse not ok", skips_cnt);
     Ok(0)
 }
 
@@ -288,7 +303,7 @@ fn determine_operation(matches: &Matches) -> Result<Operation, OperationError> {
         return Ok(Operation::Version);
     }
 
-    let files: Vec<_> = free_matches
+    let mut files: Vec<_> = free_matches
         .map(|s| {
             let p = PathBuf::from(s);
             // we will do comparison later, so here tries to canonicalize first
@@ -298,8 +313,29 @@ fn determine_operation(matches: &Matches) -> Result<Operation, OperationError> {
         .collect();
 
     if files.is_empty() {
-        eprintln!("no file argument is supplied \n-------------------------------------\n");
-        return Ok(Operation::Help(HelpOp::None));
+        eprintln!("no file argument is supplied, movefmt runs on current directory by default, \nformatting all .move files within it......");
+        eprintln!("\n----------------------------------------------------------------------------\n");
+        if let Ok(current_dir) = std::env::current_dir() {
+            println!("Current directory: {:?}", current_dir.display());
+            for x in walkdir::WalkDir::new(current_dir) {
+                let x = match x {
+                    Ok(x) => x,
+                    Err(_) => {
+                        break;
+                    }
+                };
+                if x.file_type().is_file()
+                    && x.file_name().to_str().unwrap().ends_with(".move")
+                    && !x.file_name().to_str().unwrap().contains(".fmt")
+                    && !x.file_name().to_str().unwrap().contains(".out")
+                {
+                    files.push(x.clone().into_path());
+                }
+            }
+        } else {
+            eprintln!("Failed to get the current directory.");
+            return Ok(Operation::Help(HelpOp::None));
+        }
     }
 
     Ok(Operation::Format { files })
