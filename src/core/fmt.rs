@@ -880,9 +880,17 @@ impl Format {
                     self.push_str(content.as_str());
                     split_line_after_content = true;
                 }
-                self.inc_depth();
-                self.new_line(None);
-                self.dec_depth();
+
+                let leading_space_cnt = self.last_line().len() - self.last_line().clone().trim_start_matches(char::is_whitespace).len();
+                let cur_indent_cnt = self.depth.get() * self.local_cfg.indent_size;
+                if leading_space_cnt + self.local_cfg.indent_size == cur_indent_cnt {
+                    tracing::debug!("cur_indent_cnt: {}", cur_indent_cnt);
+                    self.new_line(None);
+                } else {
+                    self.inc_depth();
+                    self.new_line(None);
+                    self.dec_depth();
+                }
             }
 
             if !split_line_after_content {

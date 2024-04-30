@@ -651,7 +651,7 @@ module aptos_framework::coin {
     #[test_only]
     public entry fun create_fake_money(source: &signer, destination: &signer, amount: u64) acquires CoinInfo, CoinStore {
         let (burn_cap, freeze_cap, mint_cap) = initialize_and_register_fake_money(source,
-                18, true);
+            18, true);
 
         register<FakeMoney>(destination);
         let coins_minted = mint<FakeMoney>(amount, &mint_cap);
@@ -671,7 +671,7 @@ module aptos_framework::coin {
 
         aggregator_factory::initialize_aggregator_factory_for_test(&source);
         let (burn_cap, freeze_cap, mint_cap) = initialize<FakeMoney>(&source, name, symbol,
-                18, true);
+            18, true);
         register<FakeMoney>(&source);
         register<FakeMoney>(&destination);
         assert!(*option::borrow(&supply<FakeMoney>()) == 0, 0);
@@ -704,7 +704,7 @@ module aptos_framework::coin {
         account::create_account_for_test(destination_addr);
 
         let (burn_cap, freeze_cap, mint_cap) = initialize_and_register_fake_money(&source,
-                1, false);
+            1, false);
 
         register<FakeMoney>(&destination);
         assert!(option::is_none(&supply<FakeMoney>()), 0);
@@ -743,7 +743,7 @@ module aptos_framework::coin {
         account::create_account_for_test(destination_addr);
 
         let (burn_cap, freeze_cap, mint_cap) = initialize_and_register_fake_money(&source,
-                1, true);
+            1, true);
         assert!(*option::borrow(&supply<FakeMoney>()) == 0, 0);
 
         let coins_minted = mint<FakeMoney>(100, &mint_cap);
@@ -758,7 +758,7 @@ module aptos_framework::coin {
         let source_addr = signer::address_of(&source);
         account::create_account_for_test(source_addr);
         let (burn_cap, freeze_cap, mint_cap) = initialize_and_register_fake_money(&source,
-                1, true);
+            1, true);
 
         let coins_minted = mint<FakeMoney>(100, &mint_cap);
         deposit(source_addr, coins_minted);
@@ -777,7 +777,7 @@ module aptos_framework::coin {
     public fun test_destroy_non_zero(source: signer,) acquires CoinInfo {
         account::create_account_for_test(signer::address_of(&source));
         let (burn_cap, freeze_cap, mint_cap) = initialize_and_register_fake_money(&source,
-                1, true);
+            1, true);
         let coins_minted = mint<FakeMoney>(100, &mint_cap);
         destroy_zero(coins_minted);
 
@@ -789,7 +789,7 @@ module aptos_framework::coin {
         let source_addr = signer::address_of(&source);
         account::create_account_for_test(source_addr);
         let (burn_cap, freeze_cap, mint_cap) = initialize_and_register_fake_money(&source,
-                1, true);
+            1, true);
 
         let coins_minted = mint<FakeMoney>(100, &mint_cap);
 
@@ -823,7 +823,7 @@ module aptos_framework::coin {
 
         account::create_account_for_test(account_addr);
         let (burn_cap, freeze_cap, mint_cap) = initialize_and_register_fake_money(&account,
-                18, true);
+            18, true);
 
         assert!(!is_coin_store_frozen<FakeMoney>(account_addr), 1);
 
@@ -850,7 +850,7 @@ module aptos_framework::coin {
         let account_addr = signer::address_of(&account);
         account::create_account_for_test(account_addr);
         let (burn_cap, freeze_cap, mint_cap) = initialize_and_register_fake_money(&account,
-                18, true);
+            18, true);
 
         let coins_minted = mint<FakeMoney>(100, &mint_cap);
         deposit(account_addr, coins_minted);
@@ -867,7 +867,7 @@ module aptos_framework::coin {
         let account_addr = signer::address_of(&account);
         account::create_account_for_test(account_addr);
         let (burn_cap, freeze_cap, mint_cap) = initialize_and_register_fake_money(&account,
-                18, true);
+            18, true);
 
         freeze_coin_store(account_addr, &freeze_cap);
         let coin = withdraw<FakeMoney>(&account, 10);
@@ -882,7 +882,7 @@ module aptos_framework::coin {
         let account_addr = signer::address_of(&account);
         account::create_account_for_test(account_addr);
         let (burn_cap, freeze_cap, mint_cap) = initialize_and_register_fake_money(&account,
-                18, true);
+            18, true);
 
         let coins_minted = mint<FakeMoney>(100, &mint_cap);
         freeze_coin_store(account_addr, &freeze_cap);
@@ -896,7 +896,7 @@ module aptos_framework::coin {
         let account_addr = signer::address_of(&account);
         account::create_account_for_test(account_addr);
         let (burn_cap, freeze_cap, mint_cap) = initialize_and_register_fake_money(&account,
-                18, true);
+            18, true);
 
         let coins_minted = mint<FakeMoney>(100, &mint_cap);
         freeze_coin_store(account_addr, &freeze_cap);
@@ -1025,7 +1025,7 @@ module aptos_framework::coin {
         let framework_addr = signer::address_of(framework);
         account::create_account_for_test(framework_addr);
         let (burn_cap, freeze_cap, mint_cap) = initialize_and_register_fake_money(framework,
-                1, true);
+            1, true);
 
         // Registering twice should not fail.
         assert!(is_account_registered<FakeMoney>(@0x1), 0);
@@ -1040,7 +1040,7 @@ module aptos_framework::coin {
         let framework_addr = signer::address_of(&framework);
         account::create_account_for_test(framework_addr);
         let (burn_cap, freeze_cap, mint_cap) = initialize_and_register_fake_money(&framework,
-                1, true);
+            1, true);
 
         let coins_minted = mint<FakeMoney>(100, &mint_cap);
         deposit(framework_addr, coins_minted);

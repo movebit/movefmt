@@ -968,7 +968,7 @@ module econia::incentives {
         econia: &signer, market_id: u64,
     ) acquires EconiaFeeStore {
         withdraw_econia_fees_to_coin_store_internal<QuoteCoinType>(econia, market_id, true,
-                0);
+            0);
     }
 
     /// Wrapped call to `withdraw_econia_fees_to_coin_store_internal()`,
@@ -1127,12 +1127,12 @@ module econia::incentives {
                 );
                 // Get fee share divisor for given tier.
                 let fee_share_divisor = get_fee_share_divisor(integrator_fee_store_ref_mut
-                        .tier);
+                    .tier);
                 // Calculate resultant integrator fee share.
                 integrator_fee_share = quote_fill / fee_share_divisor;
                 // Verify merge will not overflow integrator fee store.
                 range_check_coin_merge(integrator_fee_share, &integrator_fee_store_ref_mut
-                        .coins, E_INTEGRATOR_FEE_STORE_OVERFLOW);
+                    .coins, E_INTEGRATOR_FEE_STORE_OVERFLOW);
                 // Extract resultant amount from supplied quote coins.
                 let integrator_fees = coin::extract(&mut quote_coins, integrator_fee_share);
                 // Merge the fees into the corresponding fee store.
@@ -2118,7 +2118,7 @@ module econia::incentives {
             ));
         // Assert total amount.
         assert!(get_utility_coin_store_balance_test() == MARKET_REGISTRATION_FEE + UNDERWRITER_REGISTRATION_FEE
-                + CUSTODIAN_REGISTRATION_FEE,
+            + CUSTODIAN_REGISTRATION_FEE,
             0);
     }
 
@@ -2415,7 +2415,7 @@ module econia::incentives {
         coin::destroy_zero(quote_coins);
         assert!(get_econia_fee_store_balance_test<QC>(market_id_0) == econia_fees_0, 0); // Assert Econia fee share.
         assert!(get_integrator_fee_store_balance_test<QC>(@user, market_id_0) == integrator_fees_0,
-                0); // Assert integrator fee share.
+            0); // Assert integrator fee share.
         // Mint enough quote coins to cover taker fees for fill 1.
         quote_coins = assets::mint_test(econia_fees_1);
         // Assess fees on fill 1.
@@ -2753,7 +2753,7 @@ module econia::incentives {
         assert!(get_utility_coin_store_balance_test() == fee_upgrade, 0);
         // Assert upgrade tier.
         assert!(get_integrator_fee_store_tier_test<QC>(@user, market_id) == tier_upgrade,
-                0);
+            0);
     }
 
     #[test]
