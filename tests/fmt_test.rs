@@ -179,7 +179,7 @@ fn extract_tokens(content: &str) -> Result<Vec<ExtractToken>, Vec<String>> {
     };
     let lexer = Lexer::new(content, filehash);
     let mut ret = Vec::new();
-    let parse = movefmt::core::token_tree::Parser::new(lexer, &defs);
+    let parse = movefmt::core::token_tree::Parser::new(lexer, &defs, content.to_string());
     let token_tree = parse.parse_tokens();
     let mut line_mapping = FileLineMapping::default();
     line_mapping.update(p.to_path_buf(), content);

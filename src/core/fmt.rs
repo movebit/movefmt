@@ -118,7 +118,7 @@ impl Format {
         let mut env = CompilationEnv::new(Flags::testing(), BTreeSet::new());
         let (defs, _) = parse_file_string(&mut env, FileHash::empty(), content)?;
         let lexer = Lexer::new(content, FileHash::empty());
-        let parse = crate::core::token_tree::Parser::new(lexer, &defs);
+        let parse = crate::core::token_tree::Parser::new(lexer, &defs, content.to_string());
         self.token_tree = parse.parse_tokens();
         self.syntax_extractor.branch_extractor.preprocess(defs);
         Ok("parse ok".to_string())

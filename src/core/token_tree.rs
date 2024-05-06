@@ -217,10 +217,11 @@ pub struct Parser<'a> {
     fun_body: HashSet<u32>, // start pos.
     apple_name: HashSet<u32>,
     address_module: Vec<(u32, u32)>,
+    source: String,
 }
 
 impl<'a> Parser<'a> {
-    pub fn new(lexer: Lexer<'a>, defs: &'a Vec<Definition>) -> Self {
+    pub fn new(lexer: Lexer<'a>, defs: &'a Vec<Definition>, source: String) -> Self {
         let mut x = Self {
             lexer,
             defs,
@@ -231,6 +232,7 @@ impl<'a> Parser<'a> {
             fun_body: Default::default(),
             apple_name: Default::default(),
             address_module: vec![],
+            source,
         };
         x.collect_various_information();
         x
@@ -462,21 +464,38 @@ impl<'a> Parser<'a> {
                 Exp_::Copy(_) => {}
                 Exp_::Name(name, tys) => {
                     if tys.is_some() {
-                        p.type_lambda_pair.push((name.loc.end(), e.loc.end()));
+                        if name.loc.end() > e.loc.end() {
+                            tracing::debug!("name loc end > exp loc end: {:?}", e);
+                        } else {
+                            p.type_lambda_pair.push((name.loc.end(), e.loc.end()));
+                        }
                     }
                 }
                 Exp_::Call(name, _, _tys, es) => {
-                    p.type_lambda_pair.push((name.loc.end(), es.loc.start()));
+                    if name.loc.end() > es.loc.start() {
+                        tracing::debug!("name loc end > exp loc end: {:?}", e);
+                        tracing::debug!("code spniet: {:?}", &p.source[es.loc.start() as usize..name.loc.end() as usize]);
+                    } else {
+                        p.type_lambda_pair.push((name.loc.end(), es.loc.start()));
+                    }
                     es.value.iter().for_each(|e| collect_expr(p, e));
                 }
                 Exp_::Pack(name, _tys, es) => {
-                    if let Some(e) = es.get(0) {
-                        p.type_lambda_pair.push((name.loc.end(), e.0.loc().start()));
+                    if let Some(e) = es.first() {
+                        if name.loc.end() > e.0.loc().start() {
+                            tracing::debug!("name loc end > exp loc end: {:?}", e);
+                        } else {
+                            p.type_lambda_pair.push((name.loc.end(), e.0.loc().start()));
+                        }
                     }
                     es.iter().for_each(|e| collect_expr(p, &e.1));
                 }
                 Exp_::Vector(name_loc, _tys, es) => {
-                    p.type_lambda_pair.push((name_loc.end(), es.loc.start()));
+                    if name_loc.end() > es.loc.start() {
+                        tracing::debug!("name loc end > exp loc end: {:?}", e);
+                    } else {
+                        p.type_lambda_pair.push((name_loc.end(), es.loc.start()));
+                    }
                     es.value.iter().for_each(|e| collect_expr(p, e));
                 }
                 Exp_::IfElse(c, then_, eles_) => {
@@ -971,7 +990,7 @@ mod comment_test {
         let mut env = CompilationEnv::new(Flags::testing(), attrs);
         let (defs, _) = parse_file_string(&mut env, filehash, content).unwrap();
         let lexer = Lexer::new(content, filehash);
-        let parse = Parser::new(lexer, &defs);
+        let parse = Parser::new(lexer, &defs, content.to_string());
         let token_tree = parse.parse_tokens();
         let s = serde_json::to_string(&token_tree).unwrap();
         // check this using some online json tool.
