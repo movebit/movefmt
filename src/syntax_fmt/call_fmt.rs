@@ -19,6 +19,8 @@ pub struct CallExtractor {
     pub call_loc_vec: Vec<Loc>,
     pub call_paren_loc_vec: Vec<Loc>,
     pub pack_in_call_loc_vec: Vec<Loc>,
+    pub receiver_style_call_exp_vec: Vec<Exp>,
+    pub link_call_exp_vec: Vec<Exp>,
     pub source: String,
     pub line_mapping: FileLineMappingOneFile,
 }
@@ -29,6 +31,8 @@ impl CallExtractor {
             call_loc_vec: vec![],
             call_paren_loc_vec: vec![],
             pack_in_call_loc_vec: vec![],
+            receiver_style_call_exp_vec: vec![],
+            link_call_exp_vec: vec![],
             source: fmt_buffer.clone(),
             line_mapping: FileLineMappingOneFile::default(),
         };
@@ -67,10 +71,18 @@ impl CallExtractor {
 
     fn collect_expr(&mut self,  e: &Exp) {
         match &e.value {
-            Exp_::Call(_, _, _tys, es) => {
-                self.call_loc_vec.push(e.loc);
-                self.call_paren_loc_vec.push(es.loc);
-                es.value.iter().for_each(|e| self.collect_expr(e));
+            Exp_::Call(name, _, _tys, es) => {
+                if name.loc.end() > es.loc.start() {
+                    // tracing::debug!("name loc end > exp loc end: {:?}", e);
+                    // self.receiver_style_call_exp_vec.push(e.clone());
+                    if judge_link_call_exp(e).0 {
+                        self.link_call_exp_vec.push(e.clone());
+                    }
+                } else {
+                    self.call_loc_vec.push(e.loc);
+                    self.call_paren_loc_vec.push(es.loc);
+                    es.value.iter().for_each(|e| self.collect_expr(e));
+                }
             }
             Exp_::Pack(_, _tys, es) => {
                 self.pack_in_call_loc_vec.push(e.loc);
@@ -287,6 +299,34 @@ impl CallExtractor {
         }
         false
     }
+
+    pub(crate) fn is_in_link_call(&self, elements: &[TokenTree], idx: usize) -> (bool, usize) {
+        if idx >= elements.len() - 1 {
+            return (false, 0);
+        }
+
+        let mut last_call_name_loc_vec = vec![];
+        for link_call_loc in self.link_call_exp_vec.iter() {
+            if let Exp_::Call(name, CallKind::Receiver, _tys, es) = &link_call_loc.value {
+                last_call_name_loc_vec.push(name.loc);
+            }
+        }
+
+        let mut index = idx;
+        while index <= elements.len() - 2 {
+            let t = elements.get(index).unwrap();
+            if t.simple_str().unwrap_or_default().contains('.') {
+                for last_call_name_loc in last_call_name_loc_vec.iter() {
+                    if t.end_pos() == last_call_name_loc.start() {
+                        return (true, index);
+                    }
+                }
+            }
+            index += 1;
+        }
+
+        (false, 0)
+    }
 }
 
 fn get_tok_start_pos(t: &TokenTree) -> u32 {
@@ -303,4 +343,62 @@ fn get_tok_start_pos(t: &TokenTree) -> u32 {
             note: _,
         } => kind.start_pos,
     }
+}
+
+fn judge_link_call_exp(exp: &Exp) -> (bool, u32)  {
+    let mut current_continue_call_cnt = 0;
+    if let Exp_::Call(name, CallKind::Receiver, _tys, es) = &exp.value {
+        current_continue_call_cnt += 1;
+        es.value.iter().for_each(|e| {
+            current_continue_call_cnt += judge_link_call_exp(e).1;
+        });
+    }
+    (current_continue_call_cnt > 3, current_continue_call_cnt)
+}
+
+fn judge_fn_link_call(fmt_buffer: String) {
+    let call_extractor = CallExtractor::new(fmt_buffer.clone());
+    for call_exp in call_extractor.link_call_exp_vec.iter() {
+        eprintln!("call_exp = \n{:?}\n\n", &call_extractor.source[call_exp.loc.start() as usize..call_exp.loc.end() as usize]);
+
+        if let Exp_::Call(name, CallKind::Receiver, _tys, es) = &call_exp.value {
+            eprintln!("name = \n{:?}", &call_extractor.source[name.loc.start() as usize..name.loc.end() as usize]);
+            eprintln!("es = \n{:?}", &call_extractor.source[es.loc.start() as usize..es.loc.end() as usize]);
+            es.value.iter().for_each(|e| {
+                eprintln!("single e = \n{:?}", &call_extractor.source[e.loc.start() as usize..e.loc.end() as usize]);
+            });
+        }
+    }
+}
+
+#[test]
+fn test_judge_fn_link_call() {
+    judge_fn_link_call(
+        "
+        module 0x42::m {
+
+            struct S has drop { x: u64 }
+        
+            fun plus_one(self: &S): S {
+                self.x = self.x + 1;
+                S { x: self.x }
+            }
+ 
+            fun plus_with(self: &S, append: u64): S {
+                self.x = self.x + append;
+                S { x: self.x }
+            }
+
+            fun sum(self: &S, other: &S, append: u64): u64 { self.x + other.x + append }
+               
+            fun test_link_call(s: S) {
+                let p1m = &mut s;
+                let p2m = p1m.plus_one().plus_one().plus_one().plus_one().plus_one().plus_one().plus_one().plus_one().plus_one().plus_one().plus_one().plus_one();
+                let p3m = p1m.plus_one().sum(p2m, 666);
+                let p4m = p1m.plus_one().plus_with(333).sum(p2m, 666);
+                let p5m = p1m.plus_one().plus_with(222).plus_with(333).sum(p2m, 666);
+            }
+        }
+"
+        .to_string());
 }

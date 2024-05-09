@@ -704,12 +704,28 @@ impl Format {
             }
 
             if Tok::Period == self.format_context.borrow().cur_tok {
-                let (continue_dot_cnt, index) =
+                let in_link_access =
                     expr_fmt::process_link_access(elements, internal_token_idx + 1);
-                if continue_dot_cnt > 3 && index > internal_token_idx {
+                let mut last_dot_idx = in_link_access.1;
+                let mut need_process_link = in_link_access.0 > 3 && last_dot_idx > internal_token_idx;
+                if !need_process_link {
+                    let in_link_call = self.syntax_extractor.call_extractor.is_in_link_call(elements, internal_token_idx + 1);
+                    last_dot_idx = in_link_call.1;
+                    if in_link_call.0 && last_dot_idx > internal_token_idx{
+                        tracing::trace!("in_link_call, in_link_call = {:?}, last_line = {}", in_link_call, self.last_line());
+                        need_process_link = true;
+                    }
+                }
+
+                if need_process_link {
+                    tracing::debug!("before process_link, last_line = {}", self.last_line());
                     self.inc_depth();
-                    let mut is_dot_new_line = true;
-                    while internal_token_idx <= index + 1 {
+                    let mut is_dot_new_line;
+                    while internal_token_idx <= last_dot_idx + 1 {
+                        is_dot_new_line = match elements.get(internal_token_idx + 1) {
+                            None => false,
+                            Some(next_t) => next_t.simple_str().unwrap_or_default().contains('.'),
+                        };
                         self.format_single_token(
                             &nested_token,
                             internal_token_idx,
@@ -718,7 +734,6 @@ impl Format {
                             &mut pound_sign,
                         );
                         internal_token_idx += 1;
-                        is_dot_new_line = !is_dot_new_line;
                     }
                     // tracing::debug!("after processed link access, ret = {}", self.ret.clone().into_inner());
                     // tracing::debug!("after processed link access, internal_token_idx = {}, len = {}", internal_token_idx, len);
@@ -1232,8 +1247,7 @@ impl Format {
             tracing::debug!("success new line, return <<<<<<<<<<<<<<<<< \n");
             return;
         }
-        self.push_str("\n");
-        self.indent();
+        self.new_line(None);
     }
 
     fn new_line(&self, add_line_comment_option: Option<u32>) {
