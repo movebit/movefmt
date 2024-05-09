@@ -761,13 +761,21 @@ pub(crate) fn get_code_buf_len(code_buffer: String) -> usize {
 pub(crate) fn has_special_key_for_break_line_in_code_buf(code_buffer: String) -> bool {
     let mut lexer = Lexer::new(&code_buffer, FileHash::empty());
     lexer.advance().unwrap();
+    const FOR_IDENT: &str = "for";
     while lexer.peek() != Tok::EOF {
         if matches!(
             lexer.peek(),
             Tok::Module
                 | Tok::Script
+                | Tok::Loop
         ) {
-            return true; 
+            return true;
+        }
+        if lexer.peek() == Tok::Identifier && matches!(lexer.lookahead_nth(0), Ok(Tok::LParen)) {
+            let lexer_str = &code_buffer[lexer.start_loc()..];
+            if lexer_str.starts_with(FOR_IDENT) {
+                return true;
+            }
         }
         if lexer.advance().is_err() {
             break;

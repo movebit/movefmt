@@ -307,7 +307,7 @@ impl CallExtractor {
 
         let mut last_call_name_loc_vec = vec![];
         for link_call_loc in self.link_call_exp_vec.iter() {
-            if let Exp_::Call(name, CallKind::Receiver, _tys, es) = &link_call_loc.value {
+            if let Exp_::Call(name, CallKind::Receiver, _tys, _) = &link_call_loc.value {
                 last_call_name_loc_vec.push(name.loc);
             }
         }
@@ -347,7 +347,7 @@ fn get_tok_start_pos(t: &TokenTree) -> u32 {
 
 fn judge_link_call_exp(exp: &Exp) -> (bool, u32)  {
     let mut current_continue_call_cnt = 0;
-    if let Exp_::Call(name, CallKind::Receiver, _tys, es) = &exp.value {
+    if let Exp_::Call(_, CallKind::Receiver, _tys, es) = &exp.value {
         current_continue_call_cnt += 1;
         es.value.iter().for_each(|e| {
             current_continue_call_cnt += judge_link_call_exp(e).1;

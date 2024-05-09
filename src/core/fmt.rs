@@ -457,8 +457,8 @@ impl Format {
                 .unwrap_or_default()
                 || (stct_def && !elements.is_empty())
                 || fun_body
-                || self.get_cur_line_len() + nested_token_len > self.global_cfg.max_width() && nested_token_len > 8
-                    && kind.kind == NestKind_::Brace
+                || (self.get_cur_line_len() + nested_token_len > self.global_cfg.max_width() && nested_token_len > 8
+                    && kind.kind == NestKind_::Brace)
         };
         if new_line_mode && kind.kind != NestKind_::Type {
             return (true, None);
@@ -512,7 +512,8 @@ impl Format {
                 }
             }
             NestKind_::Brace => {
-                new_line_mode = has_special_key_for_break_line_in_code_buf(self.last_line())
+                new_line_mode = (has_special_key_for_break_line_in_code_buf(self.last_line())
+                    && self.format_context.borrow().content[kind.start_pos as usize..kind.end_pos as usize].len() > 4)
                     || nested_token_len as f32 > max_len_when_no_add_line;
             }
         }
