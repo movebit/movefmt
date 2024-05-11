@@ -742,7 +742,6 @@ pub(crate) fn get_code_buf_len(code_buffer: String) -> usize {
                     | Tok::Fun
                     | Tok::Public
                     | Tok::Inline
-                    | Tok::Colon
                     | Tok::Spec
             );
         }

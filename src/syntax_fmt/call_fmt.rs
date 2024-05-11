@@ -356,6 +356,7 @@ fn judge_link_call_exp(exp: &Exp) -> (bool, u32)  {
     (current_continue_call_cnt > 3, current_continue_call_cnt)
 }
 
+#[allow(dead_code)]
 fn judge_fn_link_call(fmt_buffer: String) {
     let call_extractor = CallExtractor::new(fmt_buffer.clone());
     for call_exp in call_extractor.link_call_exp_vec.iter() {

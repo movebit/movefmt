@@ -228,16 +228,17 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
             }
 
             if Tok::Comma == curr_start_tok
-                && (Tok::AtSign == next_start_tok
-                    || Tok::Amp == next_start_tok
-                    || Tok::AmpMut == next_start_tok)
-            {
+                && matches!(next_start_tok, Tok::AtSign | Tok::Amp | Tok::AmpMut) {
                 result = true;
                 tracing::debug!(
                     "after Comma, result = {}, next_start_tok = {:?}",
                     result,
                     next_start_tok
                 );
+            }
+            // eg: (exp) & ...
+            if Tok::RParen == curr_end_tok && Tok::Amp == next_start_tok {
+                result = true;
             }
             result
         }
@@ -254,6 +255,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
         (_, TokType::MathSign) => true,
         (TokType::Less, _) => is_bin_current,
         (_, TokType::Amp) => is_bin_next,
+        (TokType::Amp, _) => is_bin_current,
         (_, TokType::Star) => {
             let result = if is_bin_next || is_apply_next {
                 is_to_execpt
@@ -261,13 +263,8 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                 false
             };
             result
-                || Tok::NumValue == curr_start_tok
-                || Tok::NumTypedValue == curr_start_tok
-                || Tok::Acquires == curr_start_tok
-                || Tok::Identifier == curr_start_tok
-                || Tok::RParen == curr_end_tok
-                || Tok::Comma == curr_end_tok
-                || Tok::Slash == curr_end_tok
+                || matches!(curr_start_tok, Tok::NumValue | Tok::NumTypedValue | Tok::Acquires | Tok::Identifier)
+                || matches!(curr_end_tok, Tok::RParen | Tok::Comma | Tok::Slash)
         }
 
         (TokType::Star, _) => {
@@ -286,10 +283,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                     result = true;
                 }
                 if !is_next_tok_nested {
-                    if Tok::NumValue == next_start_tok
-                        || Tok::NumTypedValue == next_start_tok
-                        || Tok::LParen == next_start_tok
-                    {
+                    if matches!(next_start_tok, Tok::NumValue | Tok::NumTypedValue | Tok::LParen) {
                         result = true;
                     }
                     if Tok::Identifier == next_start_tok {
@@ -315,26 +309,18 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                 result = true;
             }
 
-            if Tok::Let == curr_start_tok
-                || Tok::Slash == curr_start_tok
-                || Tok::If == curr_start_tok
-                || Tok::Else == curr_start_tok
-                || Tok::While == curr_start_tok
-            {
+            if matches!(curr_start_tok, Tok::Let | Tok::Slash | Tok::If | Tok::Else | Tok::While) {
                 result = true;
             }
-
             if next_start_tok == Tok::Exclaim {
                 result = matches!(TokType::from(curr_start_tok), TokType::Alphabet)
                     || Tok::RParen == curr_end_tok;
             }
 
             if let Some(content) = current.simple_str() {
-                if content == "aborts_if" 
-                || content == "ensures" 
-                || content == "include"
-                || content == "pragma"
-                || content == "invariant" {
+
+                if matches!(content,
+                    "aborts_if" | "ensures" | "include" | "pragma" | "invariant") {
                     result = true;
                 }
                 if content == "assert" && next_start_tok == Tok::Exclaim {
@@ -342,7 +328,8 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                 }
 
                 // added in 20240430: support for loop
-                if content == "for" && next_start_tok == Tok::LParen {
+                // optimize in 20240510: and in(special identifier)
+                if matches!(content, "for" | "in") && next_start_tok == Tok::LParen {
                     result = true;
                 }
             }
