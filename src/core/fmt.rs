@@ -51,7 +51,7 @@ impl FormatContext {
             content,
             env,
             cur_module_name: "".to_string(),
-            cur_tok: Tok::Module,
+            cur_tok: Tok::EOF,
         }
     }
 
@@ -292,7 +292,12 @@ impl Format {
                 .let_extractor
                 .is_long_bin_op(current.clone())
         {
-            return true;
+            let next_token_start_pos = self.get_token_tree_start_pos(next.unwrap());
+            if self.translate_line(next_token_start_pos)
+                <= self.translate_line(current.end_pos()) + 1
+            {
+                return true;
+            }
         }
         false
     }
@@ -320,7 +325,12 @@ impl Format {
                 .let_extractor
                 .is_long_bin_op(current.clone())
         {
-            return true;
+            let next_token_start_pos = self.get_token_tree_start_pos(next.unwrap());
+            if self.translate_line(next_token_start_pos)
+                <= self.translate_line(current.end_pos()) + 1
+            {
+                return true;
+            }
         }
         false
     }
@@ -686,8 +696,7 @@ impl Format {
 
         if !elements.is_empty() {
             let next_token = elements.first().unwrap();
-            let mut next_token_start_pos: u32 = 0;
-            self.analyzer_token_tree_start_pos_(&mut next_token_start_pos, next_token);
+            let next_token_start_pos = self.get_token_tree_start_pos(next_token);
             if self.translate_line(next_token_start_pos) > self.translate_line(kind.start_pos) {
                 // let source = self.format_context.content.clone();
                 // let start_pos: usize = next_token_start_pos as usize;
@@ -696,6 +705,7 @@ impl Format {
                 //     next_str);
                 // process line tail comment
                 self.process_same_line_comment(kind.start_pos, true);
+                self.new_line(None);
             } else {
                 self.new_line(Some(kind.start_pos));
             }
@@ -734,13 +744,13 @@ impl Format {
         if new_line {
             let process_tail_comment_of_line = match next_t {
                 Some(next_token) => {
-                    let mut next_token_start_pos: u32 = 0;
-                    self.analyzer_token_tree_start_pos_(&mut next_token_start_pos, next_token);
+                    let next_token_start_pos = self.get_token_tree_start_pos(next_token);
                     self.translate_line(next_token_start_pos) > self.translate_line(token.end_pos())
                 }
                 None => true,
             };
             self.process_same_line_comment(token.end_pos(), process_tail_comment_of_line);
+            self.new_line(None);
         }
     }
 
@@ -989,7 +999,12 @@ impl Format {
             line6: simple_token
             """
             */
-            if (self.translate_line(*pos) - self.cur_line.get()) > 1 {
+            if (self.translate_line(*pos) - self.cur_line.get()) > 1
+                && expr_fmt::need_break_cur_line_when_trim_blank_lines(
+                    &self.format_context.borrow().cur_tok,
+                    tok,
+                )
+            {
                 // There are multiple blank lines between the cur_line and the current code simple_token
                 tracing::debug!(
                     "self.translate_line(*pos) = {}, self.cur_line.get() = {}",
@@ -1308,18 +1323,14 @@ impl Format {
         (d, has_colon)
     }
 
-    fn analyzer_token_tree_start_pos_(&self, ret: &mut u32, token_tree: &TokenTree) {
+    fn get_token_tree_start_pos(&self, token_tree: &TokenTree) -> u32 {
         match token_tree {
             TokenTree::SimpleToken {
                 content: _, pos, ..
-            } => {
-                *ret = *pos;
-            }
+            } => *pos,
             TokenTree::Nested {
                 elements: _, kind, ..
-            } => {
-                *ret = kind.start_pos;
-            }
+            } => kind.start_pos,
         }
     }
 
@@ -1328,8 +1339,6 @@ impl Format {
         add_line_comment_pos: u32,
         process_tail_comment_of_line: bool,
     ) {
-        let cur_line = self.cur_line.get();
-        let mut call_new_line = false;
         for c in &self.comments[self.comments_index.get()..] {
             if !process_tail_comment_of_line && c.start_offset > add_line_comment_pos {
                 break;
@@ -1369,32 +1378,21 @@ impl Format {
             }
 
             self.push_str(fmted_cmt_str);
-            match kind {
-                CommentKind::BlockComment => {
-                    let end = c.start_offset + (c.content.len() as u32);
-                    let line_start = self.translate_line(c.start_offset);
-                    let line_end = self.translate_line(end);
-                    if line_start != line_end {
-                        tracing::debug!("in new_line, add CommentKind::BlockComment");
-                        self.new_line(None);
-                        call_new_line = true;
-                    }
-                }
-                _ => {
-                    // tracing::debug!("-- process_same_line_comment, add CommentKind::_({})", c.content);
-                    self.new_line(None);
-                    call_new_line = true;
-                }
-            }
             self.comments_index.set(self.comments_index.get() + 1);
             self.cur_line
                 .set(self.translate_line(c.start_offset + (c.content.len() as u32) - 1));
+
+            if let CommentKind::BlockComment = kind {
+                let end = c.start_offset + (c.content.len() as u32);
+                let line_start = self.translate_line(c.start_offset);
+                let line_end = self.translate_line(end);
+                if line_start != line_end {
+                    tracing::debug!("in new_line, add CommentKind::BlockComment");
+                    self.new_line(None);
+                    return;
+                }
+            }
         }
-        if cur_line != self.cur_line.get() || call_new_line {
-            tracing::debug!("success new line, return <<<<<<<<<<<<<<<<< \n");
-            return;
-        }
-        self.new_line(None);
     }
 
     fn new_line(&self, add_line_comment_option: Option<u32>) {
@@ -1402,12 +1400,11 @@ impl Format {
             Some(add_line_comment) => (add_line_comment, true),
             _ => (0, false),
         };
-        if !b_add_comment {
-            self.push_str("\n");
-            self.indent();
-            return;
+        if b_add_comment {
+            self.process_same_line_comment(add_line_comment, false);
         }
-        self.process_same_line_comment(add_line_comment, false);
+        self.push_str("\n");
+        self.indent();
     }
 
     fn maybe_meet_new_module_in_same_file(

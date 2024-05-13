@@ -411,3 +411,51 @@ pub(crate) fn process_link_access(elements: &[TokenTree], idx: usize) -> (usize,
     );
     (continue_dot_cnt, index - 2)
 }
+
+pub(crate) fn need_break_cur_line_when_trim_blank_lines(current: &Tok, next: &Tok) -> bool {
+    !matches!(
+        (current, next),
+        (
+            Tok::Script
+                | Tok::Module
+                | Tok::Struct
+                | Tok::Fun
+                | Tok::Spec
+                | Tok::Const
+                | Tok::Friend
+                | Tok::If
+                | Tok::Inline
+                | Tok::Public
+                | Tok::Use
+                | Tok::While
+                | Tok::Native
+                | Tok::NumSign
+                | Tok::Exclaim
+                | Tok::ExclaimEqual
+                | Tok::Percent
+                | Tok::Star
+                | Tok::Plus
+                | Tok::Minus
+                | Tok::Period
+                | Tok::PeriodPeriod
+                | Tok::Slash
+                | Tok::Colon
+                | Tok::ColonColon
+                | Tok::Less
+                | Tok::LessEqual
+                | Tok::LessLess
+                | Tok::Equal
+                | Tok::Greater
+                | Tok::GreaterEqual
+                | Tok::GreaterGreater
+                | Tok::Acquires
+                | Tok::As
+                | Tok::Invariant
+                | Tok::EqualEqual,
+            _
+        ) | (
+            Tok::AtSign | Tok::Amp,
+            Tok::NumValue | Tok::Identifier | Tok::LParen
+        )
+    )
+}
