@@ -69,23 +69,24 @@ spec aptos_framework::coin {
     }
 
     spec fun spec_fun_supply_tracked<CoinType>(val: u64, supply: Option<OptionalAggregator>): bool {
-        option::spec_is_some(supply) ==> val == optional_aggregator::optional_aggregator_value(
-            option::spec_borrow(supply)
-        )
+        option::spec_is_some(supply) ==>
+            val == optional_aggregator::optional_aggregator_value(option::spec_borrow(supply))
     }
 
     spec schema TotalSupplyTracked<CoinType> {
         ensures old(spec_fun_supply_tracked<CoinType>(supply<CoinType> + aggregate_supply<CoinType>,
                 global<CoinInfo<CoinType>>(type_info::type_of<CoinType>().account_address)
-                    .supply)) ==> spec_fun_supply_tracked<CoinType>(supply<CoinType> + aggregate_supply<CoinType>,
-            global<CoinInfo<CoinType>>(type_info::type_of<CoinType>().account_address).supply);
+                    .supply)) ==>
+            spec_fun_supply_tracked<CoinType>(supply<CoinType> + aggregate_supply<CoinType>,
+                global<CoinInfo<CoinType>>(type_info::type_of<CoinType>().account_address)
+                    .supply);
     }
 
     spec fun spec_fun_supply_no_change<CoinType>(old_supply: Option<OptionalAggregator>, supply: Option<
             OptionalAggregator>): bool {
-        option::spec_is_some(old_supply) ==> optional_aggregator::optional_aggregator_value(
-            option::spec_borrow(old_supply)
-        ) == optional_aggregator::optional_aggregator_value(option::spec_borrow(supply))
+        option::spec_is_some(old_supply) ==>
+            optional_aggregator::optional_aggregator_value(option::spec_borrow(old_supply)) ==
+                 optional_aggregator::optional_aggregator_value(option::spec_borrow(supply))
     }
 
     spec schema TotalSupplyNoChange<CoinType> {
@@ -162,10 +163,11 @@ spec aptos_framework::coin {
         amount: u64;
         let addr = type_info::type_of<CoinType>().account_address;
         let maybe_supply = global<CoinInfo<CoinType>>(addr).supply;
-        include (option::is_some(maybe_supply)) ==> optional_aggregator::SubAbortsIf {
-            optional_aggregator: option::borrow(maybe_supply),
-            value: amount
-        };
+        include (option::is_some(maybe_supply)) ==>
+            optional_aggregator::SubAbortsIf {
+                optional_aggregator: option::borrow(maybe_supply),
+                value: amount
+            };
     }
 
     spec schema CoinAddAbortsIf<CoinType> {
@@ -173,10 +175,11 @@ spec aptos_framework::coin {
         amount: u64;
         let addr = type_info::type_of<CoinType>().account_address;
         let maybe_supply = global<CoinInfo<CoinType>>(addr).supply;
-        include (option::is_some(maybe_supply)) ==> optional_aggregator::AddAbortsIf {
-            optional_aggregator: option::borrow(maybe_supply),
-            value: amount
-        };
+        include (option::is_some(maybe_supply)) ==>
+            optional_aggregator::AddAbortsIf {
+                optional_aggregator: option::borrow(maybe_supply),
+                value: amount
+            };
     }
 
     spec schema AbortsIfNotExistCoinInfo<CoinType> {
@@ -335,8 +338,8 @@ spec aptos_framework::coin {
         );
 
         aborts_if supply_no_parallel && !exists<aggregator_factory::AggregatorFactory>(@aptos_framework);
-        ensures supply_no_parallel ==> optional_aggregator::is_parallelizable(post_supply)
-            && post_value == value;
+        ensures supply_no_parallel ==>
+            optional_aggregator::is_parallelizable(post_supply) && post_value == value;
     }
 
     spec initialize {
@@ -448,12 +451,12 @@ spec aptos_framework::coin {
         aborts_if coin_store_to.frozen;
         aborts_if coin_store_from.coin.value < amount;
 
-        ensures account_addr_from != to ==> coin_store_post_from.coin.value == coin_store_from
-            .coin.value - amount;
-        ensures account_addr_from != to ==> coin_store_post_to.coin.value == coin_store_to
-            .coin.value + amount;
-        ensures account_addr_from == to ==> coin_store_post_from.coin.value == coin_store_from
-            .coin.value;
+        ensures account_addr_from != to ==>
+            coin_store_post_from.coin.value == coin_store_from.coin.value - amount;
+        ensures account_addr_from != to ==>
+            coin_store_post_to.coin.value == coin_store_to.coin.value + amount;
+        ensures account_addr_from == to ==>
+            coin_store_post_from.coin.value == coin_store_from.coin.value;
     }
 
     /// Account is not frozen and sufficient balance.

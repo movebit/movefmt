@@ -243,11 +243,13 @@ module std::bit_vector {
 
     spec shift_left_for_verification_only {
         aborts_if false;
-        ensures amount >= bitvector.length ==> (forall k in 0..bitvector.length: !bitvector
-            .bit_field[k]);
-        ensures amount < bitvector.length ==> (forall i in bitvector.length - amount..bitvector
-            .length: !bitvector.bit_field[i]);
-        ensures amount < bitvector.length ==> (forall i in 0..bitvector.length - amount: bitvector
-            .bit_field[i] == old(bitvector).bit_field[i + amount]);
+        ensures amount >= bitvector.length ==>
+            (forall k in 0..bitvector.length: !bitvector.bit_field[k]);
+        ensures amount < bitvector.length ==>
+            (forall i in bitvector.length - amount..bitvector.length: !bitvector.bit_field[i]);
+        ensures amount < bitvector.length ==>
+            (forall i in 0..bitvector.length - amount: bitvector.bit_field[i] == old(
+                    bitvector
+                ).bit_field[i + amount]);
     }
 }

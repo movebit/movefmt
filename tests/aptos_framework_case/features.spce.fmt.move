@@ -18,9 +18,8 @@ spec std::features {
     spec apply_diff(features: &mut vector<u8>, enable: vector<u64>, disable: vector<u64>) {
         aborts_if [abstract] false; // TODO(#12011)
         ensures [abstract] forall i in disable: !spec_contains(features, i);
-        ensures [abstract] forall i in enable: !vector::spec_contains(disable, i) ==> spec_contains(
-            features, i
-        );
+        ensures [abstract] forall i in enable: !vector::spec_contains(disable, i) ==>
+            spec_contains(features, i);
         pragma opaque;
     }
 
@@ -98,6 +97,7 @@ spec std::features {
         aborts_if exists<PendingFeatures>(@std) && !exists<Features>(@std);
         let features_pending = global<PendingFeatures>(@std).features;
         let post features_std = global<Features>(@std).features;
-        ensures exists<PendingFeatures>(@std) ==> features_std == features_pending;
+        ensures exists<PendingFeatures>(@std) ==>
+            features_std == features_pending;
     }
 }
