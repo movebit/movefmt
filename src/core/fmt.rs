@@ -285,6 +285,7 @@ impl Format {
     fn need_new_line_for_each_token_finished_in_nested(
         kind: &NestKind,
         elements: &[TokenTree],
+        note: &Option<Note>,
         delimiter: Option<Delimiter>,
         has_colon: bool,
         index: usize,
@@ -294,6 +295,9 @@ impl Format {
         let next_t = elements.get(index + 1);
         let d = delimiter.map(|x| x.to_static_str());
         let t_str = t.simple_str();
+        let stct_def_or_fn_body = note
+            .map(|x| x == Note::StructDefinition || x == Note::FunBody)
+            .unwrap_or_default();
 
         let mut new_line = if new_line_mode {
             Self::need_new_line(kind.kind, delimiter, has_colon, t, next_t)
@@ -330,6 +334,8 @@ impl Format {
             }
         }
 
+        // ablility not change new line
+        // optimize in 20240510: maybe like variable name or struct field name are ability, like "key"
         let mut next_token = Tok::EOF;
         if let Some((next_tok, next_content)) = next_t.map(|x| match x {
             TokenTree::SimpleToken {
@@ -344,8 +350,7 @@ impl Format {
                 note: _,
             } => (kind.kind.start_tok(), kind.kind.start_tok().to_string()),
         }) {
-            // ablility not change new line
-            if syntax::token_to_ability(next_tok, &next_content).is_some() {
+            if !stct_def_or_fn_body && syntax::token_to_ability(next_tok, &next_content).is_some() {
                 new_line = false;
             }
             next_token = next_tok;
@@ -461,6 +466,9 @@ impl Format {
                     && kind.kind == NestKind_::Brace)
         };
         if new_line_mode && kind.kind != NestKind_::Type {
+            if stct_def {
+                return (true, Some(true));
+            }
             return (true, None);
         }
 
@@ -669,6 +677,7 @@ impl Format {
         &self,
         kind: &NestKind,
         elements: &[TokenTree],
+        note: &Option<Note>,
         delimiter: Option<Delimiter>,
         has_colon: bool,
         b_new_line_mode: bool,
@@ -689,6 +698,7 @@ impl Format {
             let mut new_line = Self::need_new_line_for_each_token_finished_in_nested(
                 kind,
                 elements,
+                note,
                 delimiter,
                 has_colon,
                 internal_token_idx,
@@ -793,7 +803,8 @@ impl Format {
                 !elements.is_empty();
 
             if b_new_line_mode {
-                tracing::debug!("nested_token_head = [{:?}], add a new line", nested_token_head);
+                tracing::debug!("nested_token_head = [{:?}], add a new line; opt_component_break_mode = {:?}", 
+                    nested_token_head, opt_component_break_mode);
             }
 
             // step1-step3
@@ -803,6 +814,7 @@ impl Format {
             self.format_each_token_in_nested_elements(
                 kind,
                 elements,
+                note,
                 delimiter,
                 has_colon,
                 opt_component_break_mode.unwrap_or(b_new_line_mode),
