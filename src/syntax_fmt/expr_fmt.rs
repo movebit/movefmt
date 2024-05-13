@@ -228,16 +228,17 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
             }
 
             if Tok::Comma == curr_start_tok
-                && (Tok::AtSign == next_start_tok
-                    || Tok::Amp == next_start_tok
-                    || Tok::AmpMut == next_start_tok)
-            {
+                && matches!(next_start_tok, Tok::AtSign | Tok::Amp | Tok::AmpMut) {
                 result = true;
                 tracing::debug!(
                     "after Comma, result = {}, next_start_tok = {:?}",
                     result,
                     next_start_tok
                 );
+            }
+            // eg: (exp) & ...
+            if Tok::RParen == curr_end_tok && Tok::Amp == next_start_tok {
+                result = true;
             }
             result
         }
@@ -254,6 +255,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
         (_, TokType::MathSign) => true,
         (TokType::Less, _) => is_bin_current,
         (_, TokType::Amp) => is_bin_next,
+        (TokType::Amp, _) => is_bin_current,
         (_, TokType::Star) => {
             let result = if is_bin_next || is_apply_next {
                 is_to_execpt
