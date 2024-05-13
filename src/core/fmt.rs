@@ -492,7 +492,7 @@ impl Format {
             NestKind_::ParentTheses => {
                 let nested_and_comma_pair = expr_fmt::get_nested_and_comma_num(elements);
                 let mut opt_component_break_mode = nested_token_len >= self.global_cfg.max_width();
-                if self.format_context.borrow().cur_tok == Tok::If {
+                if matches!(self.format_context.borrow().cur_tok, Tok::If | Tok::While) {
                     new_line_mode = false;
                 } else if self.syntax_extractor.fun_extractor.is_parameter_paren_in_fun_header(kind) {
                     new_line_mode = self.get_cur_line_len() + nested_token_len > self.global_cfg.max_width();
