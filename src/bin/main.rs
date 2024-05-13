@@ -246,12 +246,16 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
             }
             Err(diags) => {
                 skips_cnt += 1;
-                let mut files_source_text: move_compiler::diagnostics::FilesSourceText = HashMap::new();
+                let mut files_source_text: move_compiler::diagnostics::FilesSourceText =
+                    HashMap::new();
                 files_source_text.insert(
                     move_command_line_common::files::FileHash::empty(),
                     (file.display().to_string().into(), content_origin.clone()),
                 );
-                let diags_buf = move_compiler::diagnostics::report_diagnostics_to_color_buffer(&files_source_text, diags);
+                let diags_buf = move_compiler::diagnostics::report_diagnostics_to_color_buffer(
+                    &files_source_text,
+                    diags,
+                );
                 if std::io::stdout().write_all(&diags_buf).is_err() {
                     // Cannot output compiler diagnostics;
                     // https://github.com/movebit/movefmt/issues/2
@@ -316,7 +320,9 @@ fn determine_operation(matches: &Matches) -> Result<Operation, OperationError> {
 
     if files.is_empty() {
         eprintln!("no file argument is supplied, movefmt runs on current directory by default, \nformatting all .move files within it......");
-        eprintln!("\n----------------------------------------------------------------------------\n");
+        eprintln!(
+            "\n----------------------------------------------------------------------------\n"
+        );
         if let Ok(current_dir) = std::env::current_dir() {
             println!("Current directory: {:?}", current_dir.display());
             for x in walkdir::WalkDir::new(current_dir) {

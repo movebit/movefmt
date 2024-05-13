@@ -2,13 +2,13 @@
 // Copyright (c) The BitsLab.MoveBit Contributors
 // SPDX-License-Identifier: Apache-2.0
 
-use move_compiler::parser::ast::Definition;
-use move_compiler::parser::ast::*;
-use crate::core::token_tree::{NestKind, TokenTree, get_code_buf_len, analyze_token_tree_length};
+use crate::core::token_tree::{analyze_token_tree_length, get_code_buf_len, NestKind, TokenTree};
 use crate::tools::syntax::parse_file_string;
 use crate::tools::utils::FileLineMappingOneFile;
 use commentfmt::Config;
 use move_command_line_common::files::FileHash;
+use move_compiler::parser::ast::Definition;
+use move_compiler::parser::ast::*;
 use move_compiler::shared::CompilationEnv;
 use move_compiler::Flags;
 use move_ir_types::location::*;
@@ -50,7 +50,7 @@ impl CallExtractor {
         this_call_extractor
     }
 
-    fn collect_seq_item(&mut self,  s: &SequenceItem) {
+    fn collect_seq_item(&mut self, s: &SequenceItem) {
         match &s.value {
             SequenceItem_::Seq(e) => self.collect_expr(e),
             SequenceItem_::Bind(_, _, e) => {
@@ -60,7 +60,7 @@ impl CallExtractor {
         }
     }
 
-    fn collect_seq(&mut self,  s: &Sequence) {
+    fn collect_seq(&mut self, s: &Sequence) {
         for s in s.1.iter() {
             self.collect_seq_item(s);
         }
@@ -69,7 +69,7 @@ impl CallExtractor {
         }
     }
 
-    fn collect_expr(&mut self,  e: &Exp) {
+    fn collect_expr(&mut self, e: &Exp) {
         match &e.value {
             Exp_::Call(name, _, _tys, es) => {
                 if name.loc.end() > es.loc.start() {
@@ -162,7 +162,7 @@ impl CallExtractor {
             }
             Exp_::Spec(_s) => {
                 // self.collect_spec(s)
-            },
+            }
             _ => {}
         }
     }
@@ -206,23 +206,37 @@ impl CallExtractor {
     // >>
     // fn_call(comp1, comp2,
     //     nested_call_maybe_too_long(...), comp4);
-    fn should_split_call_component(&self, next_t_start_pos: u32, config: Config, cur_ret_last_len: usize) -> bool {
+    fn should_split_call_component(
+        &self,
+        next_t_start_pos: u32,
+        config: Config,
+        cur_ret_last_len: usize,
+    ) -> bool {
         for call_in_call_loc in &self.call_loc_vec {
             if next_t_start_pos == call_in_call_loc.start() {
-                let start_line = self.line_mapping
+                let start_line = self
+                    .line_mapping
                     .translate(call_in_call_loc.start(), call_in_call_loc.start())
                     .unwrap()
                     .start
                     .line;
-                let end_line = self.line_mapping
+                let end_line = self
+                    .line_mapping
                     .translate(call_in_call_loc.end(), call_in_call_loc.end())
                     .unwrap()
                     .start
                     .line;
-                let call_component_str = &self.source[call_in_call_loc.start() as usize..call_in_call_loc.end() as usize];
+                let call_component_str = &self.source
+                    [call_in_call_loc.start() as usize..call_in_call_loc.end() as usize];
                 let component_lenth = get_code_buf_len(call_component_str.to_string());
-                if (cur_ret_last_len + component_lenth > config.max_width() && component_lenth > 8) || end_line - start_line > 2 {
-                    tracing::debug!("should_split_call_component -- cur_ret_last_len: {}, component_lenth: {}", cur_ret_last_len, component_lenth);
+                if (cur_ret_last_len + component_lenth > config.max_width() && component_lenth > 8)
+                    || end_line - start_line > 2
+                {
+                    tracing::debug!(
+                        "should_split_call_component -- cur_ret_last_len: {}, component_lenth: {}",
+                        cur_ret_last_len,
+                        component_lenth
+                    );
                     return true;
                 }
             }
@@ -234,23 +248,37 @@ impl CallExtractor {
     // >>
     // fn_call(comp1, comp2,
     //     pack {...}, comp4);
-    fn should_split_pack_component(&self, next_t_start_pos: u32, config: Config, cur_ret_last_len: usize) -> bool {
+    fn should_split_pack_component(
+        &self,
+        next_t_start_pos: u32,
+        config: Config,
+        cur_ret_last_len: usize,
+    ) -> bool {
         for pack_in_call_loc in &self.pack_in_call_loc_vec {
             if next_t_start_pos == pack_in_call_loc.start() {
-                let start_line = self.line_mapping
+                let start_line = self
+                    .line_mapping
                     .translate(pack_in_call_loc.start(), pack_in_call_loc.start())
                     .unwrap()
                     .start
                     .line;
-                let end_line = self.line_mapping
+                let end_line = self
+                    .line_mapping
                     .translate(pack_in_call_loc.end(), pack_in_call_loc.end())
                     .unwrap()
                     .start
                     .line;
-                let call_component_str = &self.source[pack_in_call_loc.start() as usize..pack_in_call_loc.end() as usize];
+                let call_component_str = &self.source
+                    [pack_in_call_loc.start() as usize..pack_in_call_loc.end() as usize];
                 let component_lenth = get_code_buf_len(call_component_str.to_string());
-                if (cur_ret_last_len + component_lenth > config.max_width() && component_lenth > 8) || end_line - start_line > 2 {
-                    tracing::debug!("should_split_pack_component -- cur_ret_last_len: {}, component_lenth: {}", cur_ret_last_len, component_lenth);
+                if (cur_ret_last_len + component_lenth > config.max_width() && component_lenth > 8)
+                    || end_line - start_line > 2
+                {
+                    tracing::debug!(
+                        "should_split_pack_component -- cur_ret_last_len: {}, component_lenth: {}",
+                        cur_ret_last_len,
+                        component_lenth
+                    );
                     return true;
                 }
             }
@@ -264,7 +292,8 @@ impl CallExtractor {
         kind: &NestKind,
         elements: &[TokenTree],
         index: usize,
-        cur_ret_last_len: usize) -> bool {
+        cur_ret_last_len: usize,
+    ) -> bool {
         let current = elements.get(index).unwrap();
         let next_t = elements.get(index + 1);
         if current.simple_str() == Some(",") && next_t.is_some() {
@@ -272,17 +301,31 @@ impl CallExtractor {
             if cur_ret_last_len + component_lenth > config.max_width() && component_lenth > 4 {
                 return true;
             }
-    
+
             let next_t_start_pos = get_tok_start_pos(next_t.unwrap());
-    
+
             for call_loc in self.call_paren_loc_vec.iter() {
                 if kind.start_pos <= call_loc.start() && call_loc.end() <= kind.end_pos {
-                    if self.should_split_pack_component(next_t_start_pos, config.clone(), cur_ret_last_len) {
-                        tracing::debug!("should split pack: next_t = {:?}", next_t.unwrap().simple_str());
+                    if self.should_split_pack_component(
+                        next_t_start_pos,
+                        config.clone(),
+                        cur_ret_last_len,
+                    ) {
+                        tracing::debug!(
+                            "should split pack: next_t = {:?}",
+                            next_t.unwrap().simple_str()
+                        );
                         return true;
                     }
-                    if self.should_split_call_component(next_t_start_pos, config.clone(), cur_ret_last_len) {
-                        tracing::debug!("should split call: next_t = {:?}", next_t.unwrap().simple_str());
+                    if self.should_split_call_component(
+                        next_t_start_pos,
+                        config.clone(),
+                        cur_ret_last_len,
+                    ) {
+                        tracing::debug!(
+                            "should split call: next_t = {:?}",
+                            next_t.unwrap().simple_str()
+                        );
                         return true;
                     }
                 }
@@ -291,10 +334,10 @@ impl CallExtractor {
         false
     }
 
-    pub(crate) fn paren_in_call(&self, kind: &NestKind,) -> bool {
+    pub(crate) fn paren_in_call(&self, kind: &NestKind) -> bool {
         for call_loc in self.call_paren_loc_vec.iter() {
             if kind.start_pos <= call_loc.start() && call_loc.end() <= kind.end_pos {
-                return  true;
+                return true;
             }
         }
         false
@@ -345,7 +388,7 @@ fn get_tok_start_pos(t: &TokenTree) -> u32 {
     }
 }
 
-fn judge_link_call_exp(exp: &Exp) -> (bool, u32)  {
+fn judge_link_call_exp(exp: &Exp) -> (bool, u32) {
     let mut current_continue_call_cnt = 0;
     if let Exp_::Call(_, CallKind::Receiver, _tys, es) = &exp.value {
         current_continue_call_cnt += 1;
@@ -360,13 +403,25 @@ fn judge_link_call_exp(exp: &Exp) -> (bool, u32)  {
 fn judge_fn_link_call(fmt_buffer: String) {
     let call_extractor = CallExtractor::new(fmt_buffer.clone());
     for call_exp in call_extractor.link_call_exp_vec.iter() {
-        eprintln!("call_exp = \n{:?}\n\n", &call_extractor.source[call_exp.loc.start() as usize..call_exp.loc.end() as usize]);
+        eprintln!(
+            "call_exp = \n{:?}\n\n",
+            &call_extractor.source[call_exp.loc.start() as usize..call_exp.loc.end() as usize]
+        );
 
         if let Exp_::Call(name, CallKind::Receiver, _tys, es) = &call_exp.value {
-            eprintln!("name = \n{:?}", &call_extractor.source[name.loc.start() as usize..name.loc.end() as usize]);
-            eprintln!("es = \n{:?}", &call_extractor.source[es.loc.start() as usize..es.loc.end() as usize]);
+            eprintln!(
+                "name = \n{:?}",
+                &call_extractor.source[name.loc.start() as usize..name.loc.end() as usize]
+            );
+            eprintln!(
+                "es = \n{:?}",
+                &call_extractor.source[es.loc.start() as usize..es.loc.end() as usize]
+            );
             es.value.iter().for_each(|e| {
-                eprintln!("single e = \n{:?}", &call_extractor.source[e.loc.start() as usize..e.loc.end() as usize]);
+                eprintln!(
+                    "single e = \n{:?}",
+                    &call_extractor.source[e.loc.start() as usize..e.loc.end() as usize]
+                );
             });
         }
     }

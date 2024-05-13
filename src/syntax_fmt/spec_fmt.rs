@@ -180,8 +180,8 @@ impl SpecExtractor {
                     self.spec_fn_loc_line_vec.push((start_line, end_line));
                 }
             }
-        
-            if let SpecBlockMember_::Pragma{properties} = &m.value {
+
+            if let SpecBlockMember_::Pragma { properties } = &m.value {
                 self.spec_pragma_properties_num_vec.push(properties.len());
                 self.spec_pragma_loc_vec.push(m.loc);
             }
@@ -404,22 +404,30 @@ pub fn process_pragma(fmt_buffer: String, config: Config) -> String {
     let spec_extractor = SpecExtractor::new(fmt_buffer.clone());
     let mut insert_char_nums = 0;
     for (idx, pragma_loc) in spec_extractor.spec_pragma_loc_vec.iter().enumerate() {
-        if spec_extractor.spec_pragma_properties_num_vec.len() > idx &&
-            spec_extractor.spec_pragma_properties_num_vec[idx] > 4 &&
-            !contains_comment(&buf[pragma_loc.start() as usize..pragma_loc.end() as usize])
+        if spec_extractor.spec_pragma_properties_num_vec.len() > idx
+            && spec_extractor.spec_pragma_properties_num_vec[idx] > 4
+            && !contains_comment(&buf[pragma_loc.start() as usize..pragma_loc.end() as usize])
         {
             let start_line = spec_extractor
-                    .line_mapping
-                    .translate(pragma_loc.start(), pragma_loc.start())
-                    .unwrap()
-                    .start
-                    .line;
+                .line_mapping
+                .translate(pragma_loc.start(), pragma_loc.start())
+                .unwrap()
+                .start
+                .line;
             let start_line_str = buf.lines().nth(start_line as usize).unwrap_or_default();
-            let leading_space_cnt = start_line_str.len() - start_line_str.trim_start_matches(char::is_whitespace).len();
+            let leading_space_cnt =
+                start_line_str.len() - start_line_str.trim_start_matches(char::is_whitespace).len();
             let mut insert_str = "\n".to_string();
-            insert_str.push_str(" ".to_string().repeat(config.indent_size() + leading_space_cnt).as_str());
+            insert_str.push_str(
+                " ".to_string()
+                    .repeat(config.indent_size() + leading_space_cnt)
+                    .as_str(),
+            );
 
-            let mut lexer = Lexer::new(&buf[pragma_loc.start() as usize..pragma_loc.end() as usize], FileHash::empty());
+            let mut lexer = Lexer::new(
+                &buf[pragma_loc.start() as usize..pragma_loc.end() as usize],
+                FileHash::empty(),
+            );
             let mut last_idx = pragma_loc.start() as usize;
             let mut tmp_str_vec = vec![];
             let mut insert_loc_vec = vec![];
@@ -427,8 +435,12 @@ pub fn process_pragma(fmt_buffer: String, config: Config) -> String {
             while lexer.peek() != Tok::EOF {
                 if lexer.peek() == Tok::Comma {
                     insert_loc_vec.push(pragma_loc.start() + lexer.start_loc() as u32);
-                    let tmp_str = buf[last_idx..pragma_loc.start() as usize + lexer.start_loc() + 1].
-                        replace('\n', "").split_whitespace().collect::<Vec<&str>>().join(" ");
+                    let tmp_str = buf
+                        [last_idx..pragma_loc.start() as usize + lexer.start_loc() + 1]
+                        .replace('\n', "")
+                        .split_whitespace()
+                        .collect::<Vec<&str>>()
+                        .join(" ");
                     if tmp_str_vec.is_empty() {
                         tmp_str_vec.push(tmp_str.clone());
                     } else {
@@ -448,7 +460,11 @@ pub fn process_pragma(fmt_buffer: String, config: Config) -> String {
             let tmp_str = &buf[last_idx..pragma_loc.end() as usize];
             pragma_str += tmp_str.trim_start();
             tracing::debug!("pragma_str = \n{}", pragma_str);
-            tracing::debug!("pragma_str.len = {}, pragma_loc.len = {}", pragma_str.len(), pragma_loc.end() - pragma_loc.start());
+            tracing::debug!(
+                "pragma_str.len = {}, pragma_loc.len = {}",
+                pragma_str.len(),
+                pragma_loc.end() - pragma_loc.start()
+            );
             let tmp_result_part1 = &result[0..pragma_loc.start() as usize + insert_char_nums];
             let tmp_result_part2 = &result[pragma_loc.end() as usize + insert_char_nums..];
             result = tmp_result_part1.to_string() + &pragma_str + tmp_result_part2;

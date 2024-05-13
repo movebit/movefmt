@@ -77,7 +77,11 @@ impl FunExtractor {
                 } else {
                     let first_para_loc = d.signature.parameters.first().unwrap().0.loc();
                     let last_para_loc = d.signature.parameters.last().unwrap().0.loc();
-                    self.para_span_vec.push(Loc::new(first_para_loc.file_hash(), first_para_loc.start(), last_para_loc.end()));
+                    self.para_span_vec.push(Loc::new(
+                        first_para_loc.file_hash(),
+                        first_para_loc.start(),
+                        last_para_loc.end(),
+                    ));
                 }
 
                 if let Type_::Unit = d.signature.return_type.value {

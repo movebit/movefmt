@@ -2,19 +2,16 @@
 // Copyright (c) The BitsLab.MoveBit Contributors
 // SPDX-License-Identifier: Apache-2.0
 
-use move_compiler::parser::ast::Definition;
-use move_compiler::parser::ast::*;
-use crate::core::token_tree::{NestKind, TokenTree, get_code_buf_len, analyze_token_tree_length};
+use crate::core::token_tree::TokenTree;
 use crate::tools::syntax::parse_file_string;
 use crate::tools::utils::FileLineMappingOneFile;
-use commentfmt::Config;
 use move_command_line_common::files::FileHash;
+use move_compiler::parser::ast::Definition;
+use move_compiler::parser::ast::*;
 use move_compiler::shared::CompilationEnv;
 use move_compiler::Flags;
-use move_ir_types::location::*;
-use std::borrow::BorrowMut;
-use std::collections::BTreeSet;
 use std::cell::RefCell;
+use std::collections::BTreeSet;
 
 #[derive(Debug, Default)]
 pub struct LetExtractor {
@@ -46,16 +43,19 @@ impl LetExtractor {
         }
 
         for bin_op_exp in this_let_extractor.bin_op_exp_vec.iter() {
-            let bin_op_exp_str = &this_let_extractor.source[bin_op_exp.loc.start() as usize..bin_op_exp.loc.end() as usize];
+            let bin_op_exp_str = &this_let_extractor.source
+                [bin_op_exp.loc.start() as usize..bin_op_exp.loc.end() as usize];
             if bin_op_exp_str.len() > 64 {
-                this_let_extractor.long_bin_op_exp_vec.push(bin_op_exp.clone());
+                this_let_extractor
+                    .long_bin_op_exp_vec
+                    .push(bin_op_exp.clone());
                 this_let_extractor.split_bin_op_vec.borrow_mut().push(false);
             }
         }
         this_let_extractor
     }
 
-    fn collect_seq_item(&mut self,  s: &SequenceItem) {
+    fn collect_seq_item(&mut self, s: &SequenceItem) {
         match &s.value {
             SequenceItem_::Seq(e) => self.collect_expr(e),
             SequenceItem_::Bind(_, _, e) => {
@@ -65,7 +65,7 @@ impl LetExtractor {
         }
     }
 
-    fn collect_seq(&mut self,  s: &Sequence) {
+    fn collect_seq(&mut self, s: &Sequence) {
         for s in s.1.iter() {
             self.collect_seq_item(s);
         }
@@ -73,7 +73,6 @@ impl LetExtractor {
             self.collect_expr(t);
         }
     }
-
 
     fn collect_spec(&mut self, spec_block: &SpecBlock) {
         match &spec_block.value.target.value {
@@ -96,12 +95,10 @@ impl LetExtractor {
                     name: _,
                     signature: _,
                     body,
-                } => {
-                    match &body.value {
-                        FunctionBody_::Defined(s) => self.collect_seq(s),
-                        FunctionBody_::Native => {}
-                    }
-                }
+                } => match &body.value {
+                    FunctionBody_::Defined(s) => self.collect_seq(s),
+                    FunctionBody_::Native => {}
+                },
                 SpecBlockMember_::Variable {
                     is_global: _,
                     name: _,
@@ -134,7 +131,7 @@ impl LetExtractor {
         }
     }
 
-    fn collect_expr(&mut self,  e: &Exp) {
+    fn collect_expr(&mut self, e: &Exp) {
         match &e.value {
             Exp_::Call(_, _, _, es) => {
                 es.value.iter().for_each(|e| self.collect_expr(e));
@@ -215,9 +212,7 @@ impl LetExtractor {
             Exp_::Annotate(e, _) => {
                 self.collect_expr(e.as_ref());
             }
-            Exp_::Spec(s) => {
-                self.collect_spec(s)
-            },
+            Exp_::Spec(s) => self.collect_spec(s),
             _ => {}
         }
     }
@@ -262,7 +257,6 @@ impl LetExtractor {
     }
 }
 
-
 impl LetExtractor {
     pub(crate) fn is_long_bin_op(&self, token: TokenTree) -> bool {
         for bin_op_exp in self.long_bin_op_exp_vec.iter() {
@@ -297,23 +291,33 @@ impl LetExtractor {
         }
         false
     }
-
 }
 
+#[allow(dead_code)]
 fn get_bin_op_exp(fmt_buffer: String) {
     let let_extractor = LetExtractor::new(fmt_buffer.clone());
     for bin_op_exp in let_extractor.bin_op_exp_vec.iter() {
         eprintln!("\n ******************************************************** >>");
-        let bin_op_exp_str = &let_extractor.source[bin_op_exp.loc.start() as usize..bin_op_exp.loc.end() as usize];
+        let bin_op_exp_str =
+            &let_extractor.source[bin_op_exp.loc.start() as usize..bin_op_exp.loc.end() as usize];
         if bin_op_exp_str.len() < 64 {
             continue;
         }
         eprintln!("bin_op_exp = \n{:?}\n", bin_op_exp_str);
 
         if let Exp_::BinopExp(l, m, r) = &bin_op_exp.value {
-            eprintln!("bin_op_exp LLL = {:?}", &let_extractor.source[l.loc.start() as usize..l.loc.end() as usize]);
-            eprintln!("bin_op_exp MMM= {:?}", &let_extractor.source[m.loc.start() as usize..m.loc.end() as usize]);
-            eprintln!("bin_op_exp RRR = {:?}", &let_extractor.source[r.loc.start() as usize..r.loc.end() as usize]);
+            eprintln!(
+                "bin_op_exp LLL = {:?}",
+                &let_extractor.source[l.loc.start() as usize..l.loc.end() as usize]
+            );
+            eprintln!(
+                "bin_op_exp MMM= {:?}",
+                &let_extractor.source[m.loc.start() as usize..m.loc.end() as usize]
+            );
+            eprintln!(
+                "bin_op_exp RRR = {:?}",
+                &let_extractor.source[r.loc.start() as usize..r.loc.end() as usize]
+            );
         }
 
         eprintln!(" ******************************************************** <<\n\n\n");
@@ -338,4 +342,3 @@ fn test_get_bin_op_exp() {
 "
         .to_string());
 }
-

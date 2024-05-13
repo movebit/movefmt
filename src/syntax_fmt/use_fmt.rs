@@ -134,12 +134,15 @@ pub fn optimize_brace_of_use(fmt_buffer: String, config: Config) -> String {
                             .start
                             .line;
                         let last_item_start_line = use_extractor
-                        .line_mapping
-                        .translate(sub_uses.last().unwrap().0.loc.start(), sub_uses.last().unwrap().0.loc.start())
-                        .unwrap()
-                        .start
-                        .line;
-                        
+                            .line_mapping
+                            .translate(
+                                sub_uses.last().unwrap().0.loc.start(),
+                                sub_uses.last().unwrap().0.loc.start(),
+                            )
+                            .unwrap()
+                            .start
+                            .line;
+
                         let insert_pos =
                             m.loc.end() as usize + lexer.start_loc() + insert_char_nums + 1;
                         if last_item_start_line > first_item_start_line
@@ -157,7 +160,11 @@ pub fn optimize_brace_of_use(fmt_buffer: String, config: Config) -> String {
                             let trimed_header_prefix = use_module_str.trim_start();
                             if !trimed_header_prefix.is_empty() {
                                 if let Some(indent) = use_module_str.find(trimed_header_prefix) {
-                                    insert_str.push_str(" ".to_string().repeat(indent + config.indent_size()).as_str());
+                                    insert_str.push_str(
+                                        " ".to_string()
+                                            .repeat(indent + config.indent_size())
+                                            .as_str(),
+                                    );
                                 }
                             }
 
@@ -169,7 +176,7 @@ pub fn optimize_brace_of_use(fmt_buffer: String, config: Config) -> String {
                     lexer.advance().unwrap();
                 }
             }
-        
+
             if let Some(item) = sub_uses.last() {
                 let item_str = &buf[item.0.loc.start() as usize..item.0.loc.end() as usize];
                 tracing::debug!("item_str = {}", item_str);

@@ -3,13 +3,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use core::panic;
-use std::cmp::Ordering;
-use std::collections::HashSet;
 use move_command_line_common::files::FileHash;
 use move_compiler::parser::ast::Definition;
 use move_compiler::parser::ast::*;
 use move_compiler::parser::lexer::{Lexer, Tok};
 use move_compiler::shared::Identifier;
+use std::cmp::Ordering;
+use std::collections::HashSet;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, serde::Serialize)]
 pub enum NestKind_ {
@@ -474,7 +474,10 @@ impl<'a> Parser<'a> {
                 Exp_::Call(name, _, _tys, es) => {
                     if name.loc.end() > es.loc.start() {
                         tracing::debug!("name loc end > exp loc end: {:?}", e);
-                        tracing::debug!("code spniet: {:?}", &p.source[es.loc.start() as usize..name.loc.end() as usize]);
+                        tracing::debug!(
+                            "code spniet: {:?}",
+                            &p.source[es.loc.start() as usize..name.loc.end() as usize]
+                        );
                     } else {
                         p.type_lambda_pair.push((name.loc.end(), es.loc.start()));
                     }
@@ -762,12 +765,7 @@ pub(crate) fn has_special_key_for_break_line_in_code_buf(code_buffer: String) ->
     lexer.advance().unwrap();
     const FOR_IDENT: &str = "for";
     while lexer.peek() != Tok::EOF {
-        if matches!(
-            lexer.peek(),
-            Tok::Module
-                | Tok::Script
-                | Tok::Loop
-        ) {
+        if matches!(lexer.peek(), Tok::Module | Tok::Script | Tok::Loop) {
             return true;
         }
         if lexer.peek() == Tok::Identifier && matches!(lexer.lookahead_nth(0), Ok(Tok::LParen)) {

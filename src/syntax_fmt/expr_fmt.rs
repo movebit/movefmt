@@ -228,7 +228,8 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
             }
 
             if Tok::Comma == curr_start_tok
-                && matches!(next_start_tok, Tok::AtSign | Tok::Amp | Tok::AmpMut) {
+                && matches!(next_start_tok, Tok::AtSign | Tok::Amp | Tok::AmpMut)
+            {
                 result = true;
                 tracing::debug!(
                     "after Comma, result = {}, next_start_tok = {:?}",
@@ -263,7 +264,10 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                 false
             };
             result
-                || matches!(curr_start_tok, Tok::NumValue | Tok::NumTypedValue | Tok::Acquires | Tok::Identifier)
+                || matches!(
+                    curr_start_tok,
+                    Tok::NumValue | Tok::NumTypedValue | Tok::Acquires | Tok::Identifier
+                )
                 || matches!(curr_end_tok, Tok::RParen | Tok::Comma | Tok::Slash)
         }
 
@@ -283,7 +287,10 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                     result = true;
                 }
                 if !is_next_tok_nested {
-                    if matches!(next_start_tok, Tok::NumValue | Tok::NumTypedValue | Tok::LParen) {
+                    if matches!(
+                        next_start_tok,
+                        Tok::NumValue | Tok::NumTypedValue | Tok::LParen
+                    ) {
                         result = true;
                     }
                     if Tok::Identifier == next_start_tok {
@@ -309,7 +316,10 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                 result = true;
             }
 
-            if matches!(curr_start_tok, Tok::Let | Tok::Slash | Tok::If | Tok::Else | Tok::While) {
+            if matches!(
+                curr_start_tok,
+                Tok::Let | Tok::Slash | Tok::If | Tok::Else | Tok::While
+            ) {
                 result = true;
             }
             if next_start_tok == Tok::Exclaim {
@@ -318,9 +328,10 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
             }
 
             if let Some(content) = current.simple_str() {
-
-                if matches!(content,
-                    "aborts_if" | "ensures" | "include" | "pragma" | "invariant") {
+                if matches!(
+                    content,
+                    "aborts_if" | "ensures" | "include" | "pragma" | "invariant"
+                ) {
                     result = true;
                 }
                 if content == "assert" && next_start_tok == Tok::Exclaim {
