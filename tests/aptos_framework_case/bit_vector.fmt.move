@@ -162,7 +162,8 @@ module std::bit_vector {
                     invariant index == start_index || index - 1 < vector::length(bitvector
                         .bit_field);
                     invariant forall j in start_index..index: is_index_set(bitvector, j);
-                    invariant forall j in start_index..index: j < vector::length(bitvector.bit_field);
+                    invariant forall j in start_index..index: j < vector::length(bitvector
+                        .bit_field);
                 };
                 index < bitvector.length
             }) {
@@ -192,7 +193,8 @@ module std::bit_vector {
                     spec {
                         invariant len == bitvector.length;
                         invariant forall k in 0..i: !bitvector.bit_field[k];
-                        invariant forall k in i..bitvector.length: bitvector.bit_field[k] == old(bitvector).bit_field[k];
+                        invariant forall k in i..bitvector.length: bitvector.bit_field[k] ==
+                             old(bitvector).bit_field[k];
                     };
                     i < len
                 }) {
@@ -207,9 +209,13 @@ module std::bit_vector {
                     spec {
                         invariant i >= amount;
                         invariant bitvector.length == old(bitvector).length;
-                        invariant forall j in amount..i: old(bitvector).bit_field[j] == bitvector.bit_field[j - amount];
-                        invariant forall j in (i - amount)..bitvector.length: old(bitvector).bit_field[j] == bitvector.bit_field[j];
-                        invariant forall k in 0..i - amount: bitvector.bit_field[k] == old(bitvector).bit_field[k + amount];
+                        invariant forall j in amount..i: old(bitvector).bit_field[j] == bitvector
+                            .bit_field[j - amount];
+                        invariant forall j in (i - amount)..bitvector.length: old(bitvector)
+                            .bit_field[j] == bitvector.bit_field[j];
+                        invariant forall k in 0..i - amount: bitvector.bit_field[k] == old(
+                            bitvector
+                        ).bit_field[k + amount];
                     };
                     i < bitvector.length
                 }) {
@@ -223,8 +229,8 @@ module std::bit_vector {
             while ({
                     spec {
                         invariant forall j in bitvector.length - amount..i: !bitvector.bit_field[j];
-                        invariant forall k in 0..bitvector.length - amount: bitvector.bit_field[k] == old(bitvector).bit_field[k
-                            + amount];
+                        invariant forall k in 0..bitvector.length - amount: bitvector.bit_field[k] ==
+                             old(bitvector).bit_field[k + amount];
                         invariant i >= bitvector.length - amount;
                     };
                     i < bitvector.length
@@ -237,10 +243,11 @@ module std::bit_vector {
 
     spec shift_left_for_verification_only {
         aborts_if false;
-        ensures amount >= bitvector.length ==> (forall k in 0..bitvector.length: !bitvector.bit_field[k]);
+        ensures amount >= bitvector.length ==> (forall k in 0..bitvector.length: !bitvector
+            .bit_field[k]);
         ensures amount < bitvector.length ==> (forall i in bitvector.length - amount..bitvector
             .length: !bitvector.bit_field[i]);
-        ensures amount < bitvector.length ==> (forall i in 0..bitvector.length - amount: bitvector.bit_field[i] ==
-             old(bitvector).bit_field[i + amount]);
+        ensures amount < bitvector.length ==> (forall i in 0..bitvector.length - amount: bitvector
+            .bit_field[i] == old(bitvector).bit_field[i + amount]);
     }
 }
