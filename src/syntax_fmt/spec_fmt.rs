@@ -316,7 +316,7 @@ pub fn process_spec_fn_header_too_long(fmt_buffer: String, config: Config) -> St
     let mut insert_char_nums = 0;
     let mut fun_idx = 0;
     for fun_loc in spec_extractor.spec_fn_loc_vec.iter() {
-        tracing::debug!("spec_fun_loc = {:?}", fun_loc);
+        // tracing::debug!("spec_fun_loc = {:?}", fun_loc);
         let ret_ty_loc = spec_extractor.spec_fn_ret_ty_loc_vec[fun_idx];
         if ret_ty_loc.start() < fun_loc.start() {
             // this fun return void

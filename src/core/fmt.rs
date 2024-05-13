@@ -187,18 +187,10 @@ impl Format {
         self.ret.into_inner()
     }
 
-    fn need_new_line(
-        kind: NestKind_,
-        delimiter: Option<Delimiter>,
-        _has_colon: bool,
-        current: &TokenTree,
+    fn check_next_token_canbe_break_in_nested(
         next: Option<&TokenTree>,
     ) -> bool {
-        if next.and_then(|x| x.simple_str()) == delimiter.map(|x| x.to_static_str()) {
-            return false;
-        }
-
-        let b_judge_next_token = if let Some((next_tok, next_content)) = next.map(|x| match x {
+        if let Some((next_tok, next_content)) = next.map(|x| match x {
             TokenTree::SimpleToken {
                 content,
                 pos: _,
@@ -231,13 +223,28 @@ impl Format {
                 | Tok::Continue
                 | Tok::Break
                 | Tok::NumSign
+                | Tok::Amp
                 | Tok::Abort => true,
                 Tok::Identifier => next_content.as_str() == "entry",
                 _ => false,
             }
         } else {
             true
-        };
+        }
+    }
+
+    fn check_new_line_mode_for_each_token_in_nested(
+        kind: NestKind_,
+        delimiter: Option<Delimiter>,
+        _has_colon: bool,
+        current: &TokenTree,
+        next: Option<&TokenTree>,
+    ) -> bool {
+        if next.and_then(|x| x.simple_str()) == delimiter.map(|x| x.to_static_str()) {
+            return false;
+        }
+
+        let b_judge_next_token = Self::check_next_token_canbe_break_in_nested(next);
 
         // special case for `}}`
         if match current {
@@ -282,6 +289,29 @@ impl Format {
         false
     }
 
+    fn get_new_line_mode_for_each_token_in_nested(
+        kind_outer: &NestKind,
+        current: &TokenTree,
+        next: Option<&TokenTree>,
+    ) -> bool {
+        let b_judge_next_token = next.is_some() && Self::check_next_token_canbe_break_in_nested(next);
+
+        // for current is long nested type
+        if let TokenTree::Nested {
+                elements,
+                kind,
+                note: _,
+            } = current {
+            if kind_outer.end_pos - current.end_pos() < 16 {
+                return false;
+            }
+            let is_long_nested_ele = matches!(kind.kind, NestKind_::Brace | NestKind_::ParentTheses)
+                && analyze_token_tree_length(elements, 64) > 32;
+            return is_long_nested_ele && b_judge_next_token;
+        }
+        false
+    }
+
     fn need_new_line_for_each_token_finished_in_nested(
         kind: &NestKind,
         elements: &[TokenTree],
@@ -300,10 +330,10 @@ impl Format {
             .unwrap_or_default();
 
         let mut new_line = if new_line_mode {
-            Self::need_new_line(kind.kind, delimiter, has_colon, t, next_t)
+            Self::check_new_line_mode_for_each_token_in_nested(kind.kind, delimiter, has_colon, t, next_t)
                 || (d == t_str && d.is_some())
         } else {
-            false
+            Self::get_new_line_mode_for_each_token_in_nested(kind, t, next_t)
         };
 
         // comma in fun resource access specifier not change new line
@@ -377,7 +407,7 @@ impl Format {
                 b_need_check_logic_op = true;
             }
 
-            if b_need_check_logic_op && (next_token == Tok::PipePipe || next_token == Tok::AmpAmp) {
+            if b_need_check_logic_op && matches!(next_token, Tok::PipePipe | Tok::AmpAmp) {
                 new_line = true;
             }
         }
@@ -685,7 +715,7 @@ impl Format {
         let nested_token = TokenTree::Nested {
             elements: elements.to_owned(),
             kind: *kind,
-            note: None,
+            note: *note,
         };
         let mut pound_sign = None;
         let len = elements.len();

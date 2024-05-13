@@ -263,13 +263,8 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                 false
             };
             result
-                || Tok::NumValue == curr_start_tok
-                || Tok::NumTypedValue == curr_start_tok
-                || Tok::Acquires == curr_start_tok
-                || Tok::Identifier == curr_start_tok
-                || Tok::RParen == curr_end_tok
-                || Tok::Comma == curr_end_tok
-                || Tok::Slash == curr_end_tok
+                || matches!(curr_start_tok, Tok::NumValue | Tok::NumTypedValue | Tok::Acquires | Tok::Identifier)
+                || matches!(curr_end_tok, Tok::RParen | Tok::Comma | Tok::Slash)
         }
 
         (TokType::Star, _) => {
@@ -288,10 +283,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                     result = true;
                 }
                 if !is_next_tok_nested {
-                    if Tok::NumValue == next_start_tok
-                        || Tok::NumTypedValue == next_start_tok
-                        || Tok::LParen == next_start_tok
-                    {
+                    if matches!(next_start_tok, Tok::NumValue | Tok::NumTypedValue | Tok::LParen) {
                         result = true;
                     }
                     if Tok::Identifier == next_start_tok {
@@ -317,15 +309,9 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                 result = true;
             }
 
-            if Tok::Let == curr_start_tok
-                || Tok::Slash == curr_start_tok
-                || Tok::If == curr_start_tok
-                || Tok::Else == curr_start_tok
-                || Tok::While == curr_start_tok
-            {
+            if matches!(curr_start_tok, Tok::Let | Tok::Slash | Tok::If | Tok::Else | Tok::While) {
                 result = true;
             }
-
             if next_start_tok == Tok::Exclaim {
                 result = matches!(TokType::from(curr_start_tok), TokType::Alphabet)
                     || Tok::RParen == curr_end_tok;
