@@ -208,7 +208,7 @@ module std::bit_vector {
                         invariant i >= amount;
                         invariant bitvector.length == old(bitvector).length;
                         invariant forall j in amount..i: old(bitvector).bit_field[j] == bitvector.bit_field[j - amount];
-                        invariant forall j in(i - amount)..bitvector.length: old(bitvector).bit_field[j] == bitvector.bit_field[j];
+                        invariant forall j in (i - amount)..bitvector.length: old(bitvector).bit_field[j] == bitvector.bit_field[j];
                         invariant forall k in 0..i - amount: bitvector.bit_field[k] == old(bitvector).bit_field[k + amount];
                     };
                     i < bitvector.length

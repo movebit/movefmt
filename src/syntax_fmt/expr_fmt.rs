@@ -330,11 +330,9 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
             }
 
             if let Some(content) = current.simple_str() {
-                if content == "aborts_if" 
-                || content == "ensures" 
-                || content == "include"
-                || content == "pragma"
-                || content == "invariant" {
+
+                if matches!(content,
+                    "aborts_if" | "ensures" | "include" | "pragma" | "invariant") {
                     result = true;
                 }
                 if content == "assert" && next_start_tok == Tok::Exclaim {
@@ -342,7 +340,8 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                 }
 
                 // added in 20240430: support for loop
-                if content == "for" && next_start_tok == Tok::LParen {
+                // optimize in 20240510: and in(special identifier)
+                if matches!(content, "for" | "in") && next_start_tok == Tok::LParen {
                     result = true;
                 }
             }
