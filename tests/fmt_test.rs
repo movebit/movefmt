@@ -247,16 +247,15 @@ fn test_dir() {
         .with_env_filter(EnvFilter::from_env("MOVEFMT_LOG"))
         .init();
 
-    eprintln!("formated {} files", scan_dir("./tests/complex"));
-    eprintln!("formated {} files", scan_dir("./tests/complex2"));
-    eprintln!(
-        "formated {} files",
-        scan_dir("./tests/aptos_framework_case")
-    );
-    eprintln!("formated {} files", scan_dir("./tests/issues"));
-    eprintln!("formated {} files", scan_dir("./tests/comment"));
-    eprintln!("formated {} files", scan_dir("./tests/break_line"));
-    eprintln!("formated {} files", scan_dir("./tests/new_syntax"));
+    let mut num: usize = 0;
+    num += scan_dir("./tests/complex");
+    num += scan_dir("./tests/complex2");
+    num += scan_dir("./tests/aptos_framework_case");
+    num += scan_dir("./tests/issues");
+    num += scan_dir("./tests/comment");
+    num += scan_dir("./tests/break_line");
+    num += scan_dir("./tests/new_syntax");
+    eprintln!("formated {} files", num);
 }
 
 #[test]
