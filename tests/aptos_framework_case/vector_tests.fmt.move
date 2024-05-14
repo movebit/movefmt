@@ -530,7 +530,7 @@ module std::vector_tests {
         let v = V::empty();
         V::push_back(&mut v, 1);
         V::push_back(&mut v, 2);
-        let (has, index) = V::find(&v, |x|*x == 3);
+        let (has, index) = V::find(&v, |x| *x == 3);
         assert!(!has, 0);
         assert!(index == 0, 1);
     }
@@ -541,7 +541,7 @@ module std::vector_tests {
         V::push_back(&mut v, 1);
         V::push_back(&mut v, 2);
         V::push_back(&mut v, 3);
-        let (has, index) = V::find(&v, |x|*x == 2);
+        let (has, index) = V::find(&v, |x| *x == 2);
         assert!(has, 0);
         assert!(index == 1, 1);
     }
@@ -553,7 +553,7 @@ module std::vector_tests {
         V::push_back(&mut v, 2);
         V::push_back(&mut v, 2);
         V::push_back(&mut v, 3);
-        let (has, index) = V::find(&v, |x|*x == 2);
+        let (has, index) = V::find(&v, |x| *x == 2);
         assert!(has, 0);
         assert!(index == 1, 1);
     }
@@ -726,7 +726,7 @@ module std::vector_tests {
     fun test_zip_map_ref() {
         let v1 = vector[1, 2, 3];
         let v2 = vector[10, 20, 30];
-        let result = V::zip_map_ref(&v1, &v2, |e1, e2|*e1 + *e2);
+        let result = V::zip_map_ref(&v1, &v2, |e1, e2| *e1 + *e2);
         assert!(result == vector[11, 22, 33], 0);
     }
 
@@ -755,7 +755,7 @@ module std::vector_tests {
     fun test_zip_map_ref_mismatching_lengths_should_fail() {
         let v1 = vector[1];
         let v2 = vector[10, 20];
-        V::zip_map_ref(&v1, &v2, |e1, e2|*e1 **e2);
+        V::zip_map_ref(&v1, &v2, |e1, e2| *e1 **e2);
     }
 
     #[test]
@@ -806,28 +806,28 @@ module std::vector_tests {
     #[test]
     fun test_map_ref() {
         let v = vector[1, 2, 3];
-        let s = V::map_ref(&v, |x|*x + 1);
+        let s = V::map_ref(&v, |x| *x + 1);
         assert!(s == vector[2, 3, 4], 0)
     }
 
     #[test]
     fun test_filter() {
         let v = vector[1, 2, 3];
-        let s = V::filter(v, |x|*x % 2 == 0);
+        let s = V::filter(v, |x| *x % 2 == 0);
         assert!(s == vector[2], 0)
     }
 
     #[test]
     fun test_any() {
         let v = vector[1, 2, 3];
-        let r = V::any(&v, |x|*x > 2);
+        let r = V::any(&v, |x| *x > 2);
         assert!(r, 0)
     }
 
     #[test]
     fun test_all() {
         let v = vector[1, 2, 3];
-        let r = V::all(&v, |x|*x >= 1);
+        let r = V::all(&v, |x| *x >= 1);
         assert!(r, 0)
     }
 
@@ -849,7 +849,7 @@ module std::vector_tests {
     #[test]
     fun test_partition() {
         let v = vector[1, 2, 3, 4, 5];
-        assert!(vector::partition(&mut v, |n|*n % 2 == 0) == 2, 0);
+        assert!(vector::partition(&mut v, |n| *n % 2 == 0) == 2, 0);
         assert!(&v == &vector[2, 4, 3, 1, 5], 1);
 
         assert!(vector::partition(&mut v, |_n| false) == 0, 0);
@@ -863,7 +863,7 @@ module std::vector_tests {
     fun test_stable_partition() {
         let v: vector<u64> = vector[1, 2, 3, 4, 5];
 
-        assert!(vector::stable_partition(&mut v, |n|*n % 2 == 0) == 2, 0);
+        assert!(vector::stable_partition(&mut v, |n| *n % 2 == 0) == 2, 0);
         assert!(&v == &vector[2, 4, 1, 3, 5], 1);
 
         assert!(vector::partition(&mut v, |_n| false) == 0, 0);

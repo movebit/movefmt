@@ -193,17 +193,15 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
     }
 
     let mut is_next_tok_nested = false;
-    let mut next_tok_nested_eles_len = 0;
     let mut next_tok_nested_kind = NestKind_::Brace;
     let mut next_tok_simple_content = "".to_string();
     match next_token_tree {
         TokenTree::Nested {
-            elements,
+            elements: _,
             kind,
             note: _,
         } => {
             is_next_tok_nested = true;
-            next_tok_nested_eles_len = elements.len();
             next_tok_nested_kind = kind.kind;
         }
         TokenTree::SimpleToken {
@@ -268,15 +266,15 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                     curr_start_tok,
                     Tok::NumValue | Tok::NumTypedValue | Tok::Acquires | Tok::Identifier
                 )
-                || matches!(curr_end_tok, Tok::RParen | Tok::Comma | Tok::Slash)
+                || matches!(
+                    curr_end_tok,
+                    Tok::RParen | Tok::Comma | Tok::Slash | Tok::Pipe | Tok::PipePipe
+                )
         }
 
         (TokType::Star, _) => {
-            if is_bin_next {
+            if is_bin_current || is_bin_next {
                 return true;
-            }
-            if is_next_tok_nested && Tok::LParen == next_start_tok {
-                return next_tok_nested_eles_len > 2;
             }
 
             if is_apply_current {
@@ -330,7 +328,18 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
             if let Some(content) = current.simple_str() {
                 if matches!(
                     content,
-                    "aborts_if" | "ensures" | "include" | "pragma" | "invariant"
+                    "aborts_if"
+                        | "ensures"
+                        | "include"
+                        | "pragma"
+                        | "invariant"
+                        | "succeeds_if"
+                        | "aborts_with"
+                        | "modifies"
+                        | "emits"
+                        | "requires"
+                        | "apply"
+                        | "global"
                 ) {
                     result = true;
                 }

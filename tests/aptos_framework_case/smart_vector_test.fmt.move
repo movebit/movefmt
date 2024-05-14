@@ -110,7 +110,7 @@ module aptos_std::smart_vector_test {
     #[test]
     fun smart_vector_map_ref_test() {
         let v = make_smart_vector(100);
-        let mapped_v = V::map_ref(&v, |x|*x * 2);
+        let mapped_v = V::map_ref(&v, |x| *x * 2);
         assert!(V::fold(v, 0, |s, x| { s + x }) == 5050, 0);
         assert!(V::fold(mapped_v, 0, |s, x| { s + x }) == 10100, 0);
     }
@@ -118,7 +118,7 @@ module aptos_std::smart_vector_test {
     #[test]
     fun smart_vector_filter_test() {
         let v = make_smart_vector(100);
-        let filtered_v = V::filter(v, |x|*x % 10 == 0);
+        let filtered_v = V::filter(v, |x| *x % 10 == 0);
         V::enumerate_ref(&filtered_v, |i, x| {
                 assert!((i + 1) * 10 == *x, 0);
             });
@@ -202,7 +202,7 @@ module aptos_std::smart_vector_test {
     fun smart_vector_test_zip_map_ref() {
         let v1 = make_smart_vector(100);
         let v2 = make_smart_vector(100);
-        let result = V::zip_map_ref(&v1, &v2, |e1, e2|*e1 / *e2);
+        let result = V::zip_map_ref(&v1, &v2, |e1, e2| *e1 / *e2);
         V::for_each(result, |v| assert!(v == 1, 0));
         V::destroy(v1);
         V::destroy(v2);
@@ -235,7 +235,7 @@ module aptos_std::smart_vector_test {
     fun smart_vector_test_zip_map_ref_mismatching_lengths_should_fail() {
         let v1 = make_smart_vector(100);
         let v2 = make_smart_vector(99);
-        V::destroy(V::zip_map_ref(&v1, &v2, |e1, e2|*e1 / *e2));
+        V::destroy(V::zip_map_ref(&v1, &v2, |e1, e2| *e1 / *e2));
         V::destroy(v1);
         V::destroy(v2);
     }

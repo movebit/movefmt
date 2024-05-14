@@ -546,8 +546,8 @@ impl Format {
                     .is_parameter_paren_in_fun_header(kind)
                 {
                     // Reserve 25% space for return ty and specifier
-                    new_line_mode =
-                        (self.get_cur_line_len() + nested_token_len) as f32 > max_len_when_no_add_line;
+                    new_line_mode = (self.get_cur_line_len() + nested_token_len) as f32
+                        > max_len_when_no_add_line;
                     if (nested_and_comma_pair.0 >= 4 || nested_and_comma_pair.1 >= 4)
                         && nested_token_len as f32 > max_len_when_no_add_line
                     {
@@ -564,10 +564,13 @@ impl Format {
                     let is_nested_len_too_large =
                         nested_token_len as f32 > 2.0 * max_len_when_no_add_line;
                     new_line_mode = is_plus_first_ele_over_width || is_nested_len_too_large;
-                    if !opt_component_break_mode && self.syntax_extractor.call_extractor.paren_in_call(kind) {
+                    if !opt_component_break_mode
+                        && self.syntax_extractor.call_extractor.paren_in_call(kind)
+                    {
                         let elements_str = serde_json::to_string(&elements).unwrap_or_default();
                         let para_num = elements_str.matches("\"content\":\",\"").count() as u32;
-                        opt_component_break_mode |= para_num >= 4 && nested_token_len as f32 > max_len_when_no_add_line;
+                        opt_component_break_mode |=
+                            para_num >= 4 && nested_token_len as f32 > max_len_when_no_add_line;
                     }
                 }
                 return (new_line_mode, Some(opt_component_break_mode));
