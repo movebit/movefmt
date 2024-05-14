@@ -1562,6 +1562,7 @@ impl Format {
             | Tok::LessEqualEqualGreater
             | Tok::GreaterEqual
             | Tok::GreaterGreater
+            | Tok::AtSign
             | Tok::NumValue
             | Tok::NumTypedValue => true,
             _ => false,
