@@ -253,7 +253,6 @@ module std::bit_vector {
             (forall i in bitvector.length - amount..bitvector.length: !bitvector.bit_field[i]);
         ensures amount < bitvector.length ==>
             (forall i in 0..bitvector.length - amount: bitvector.bit_field[i] == old(
-                    bitvector
-                ).bit_field[i + amount]);
+                    bitvector).bit_field[i + amount]);
     }
 }

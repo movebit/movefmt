@@ -399,7 +399,11 @@ impl CallExtractor {
 
     pub(crate) fn paren_in_call(&self, kind: &NestKind) -> bool {
         for call_loc in self.call_paren_loc_vec.iter() {
-            if kind.start_pos <= call_loc.start() && call_loc.end() <= kind.end_pos {
+            tracing::trace!(
+                "call_exp = \n{}\n\n",
+                &self.source[call_loc.start() as usize..call_loc.end() as usize]
+            );
+            if kind.start_pos == call_loc.start() {
                 return true;
             }
         }
@@ -463,6 +467,17 @@ fn judge_link_call_exp(exp: &Exp) -> (bool, u32) {
 }
 
 #[allow(dead_code)]
+fn get_call(fmt_buffer: String) {
+    let call_extractor = CallExtractor::new(fmt_buffer.clone());
+    for call_loc in call_extractor.call_paren_loc_vec.iter() {
+        eprintln!(
+            "call_exp = \n{}\n\n",
+            &call_extractor.source[call_loc.start() as usize..call_loc.end() as usize]
+        );
+    }
+}
+
+#[allow(dead_code)]
 fn judge_fn_link_call(fmt_buffer: String) {
     let call_extractor = CallExtractor::new(fmt_buffer.clone());
     for call_exp in call_extractor.link_call_exp_vec.iter() {
@@ -504,6 +519,9 @@ fn test_judge_fn_link_call() {
             }
  
             fun plus_with(self: &S, append: u64): S {
+                let token_data_collection = &mut borrow_global_mut<TokenDataCollection<TokenType>>(signer::address_of(
+                    account
+                )).tokens;
                 self.x = self.x + append;
                 S { x: self.x }
             }
@@ -516,6 +534,23 @@ fn test_judge_fn_link_call() {
                 let p3m = p1m.plus_one().sum(p2m, 666);
                 let p4m = p1m.plus_one().plus_with(333).sum(p2m, 666);
                 let p5m = p1m.plus_one().plus_with(222).plus_with(333).sum(p2m, 666);
+            }
+        }
+"
+        .to_string());
+}
+
+#[test]
+fn test_get_call() {
+    get_call(
+        "
+        module 0x42::m {
+            fun plus_with(self: &S, append: u64): S {
+                let token_data_collection = &mut borrow_global_mut<TokenDataCollection<TokenType>>(signer::address_of(
+                    account
+                )).tokens;
+                self.x = self.x + append;
+                S { x: self.x }
             }
         }
 "

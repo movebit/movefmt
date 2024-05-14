@@ -667,6 +667,10 @@ impl Format {
                 b_break_line_before_kind_end = true;
             }
             if b_break_line_before_kind_end {
+                tracing::trace!(
+                    "end_of_nested_block, new_line(), last_ret = {}",
+                    self.last_line()
+                );
                 self.new_line(Some(kind.end_pos));
             }
         } else if b_add_space_around_brace {
@@ -711,7 +715,7 @@ impl Format {
     ) {
         let TokenTree::Nested {
             elements,
-            kind: _,
+            kind,
             note: _,
         } = nested_token
         else {

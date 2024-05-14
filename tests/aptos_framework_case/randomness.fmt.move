@@ -387,44 +387,37 @@ module aptos_framework::randomness {
         assert!(0xfffffffffffffffffffffffffffffffffffffffffffffffe == safe_add_mod(
                 0xfffffffffffffffffffffffffffffffffffffffffffffffd,
                 0x000000000000000000000000000000000000000000000001,
-                0xffffffffffffffffffffffffffffffffffffffffffffffff
-            ),
+                0xffffffffffffffffffffffffffffffffffffffffffffffff),
             1);
         assert!(0xfffffffffffffffffffffffffffffffffffffffffffffffe == safe_add_mod(
                 0x000000000000000000000000000000000000000000000001,
                 0xfffffffffffffffffffffffffffffffffffffffffffffffd,
-                0xffffffffffffffffffffffffffffffffffffffffffffffff
-            ),
+                0xffffffffffffffffffffffffffffffffffffffffffffffff),
             1);
         assert!(0x000000000000000000000000000000000000000000000000 == safe_add_mod(
                 0xfffffffffffffffffffffffffffffffffffffffffffffffd,
                 0x000000000000000000000000000000000000000000000002,
-                0xffffffffffffffffffffffffffffffffffffffffffffffff
-            ),
+                0xffffffffffffffffffffffffffffffffffffffffffffffff),
             1);
         assert!(0x000000000000000000000000000000000000000000000000 == safe_add_mod(
                 0x000000000000000000000000000000000000000000000002,
                 0xfffffffffffffffffffffffffffffffffffffffffffffffd,
-                0xffffffffffffffffffffffffffffffffffffffffffffffff
-            ),
+                0xffffffffffffffffffffffffffffffffffffffffffffffff),
             1);
         assert!(0x000000000000000000000000000000000000000000000001 == safe_add_mod(
                 0xfffffffffffffffffffffffffffffffffffffffffffffffd,
                 0x000000000000000000000000000000000000000000000003,
-                0xffffffffffffffffffffffffffffffffffffffffffffffff
-            ),
+                0xffffffffffffffffffffffffffffffffffffffffffffffff),
             1);
         assert!(0x000000000000000000000000000000000000000000000001 == safe_add_mod(
                 0x000000000000000000000000000000000000000000000003,
                 0xfffffffffffffffffffffffffffffffffffffffffffffffd,
-                0xffffffffffffffffffffffffffffffffffffffffffffffff
-            ),
+                0xffffffffffffffffffffffffffffffffffffffffffffffff),
             1);
         assert!(0xfffffffffffffffffffffffffffffffffffffffffffffffd == safe_add_mod(
                 0xfffffffffffffffffffffffffffffffffffffffffffffffe,
                 0xfffffffffffffffffffffffffffffffffffffffffffffffe,
-                0xffffffffffffffffffffffffffffffffffffffffffffffff
-            ),
+                0xffffffffffffffffffffffffffffffffffffffffffffffff),
             1);
     }
 

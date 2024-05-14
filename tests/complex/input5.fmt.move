@@ -778,8 +778,7 @@ module econia::incentives {
     ) acquires IncentiveParameters, IntegratorFeeStores, UtilityCoinStore {
         // Get cost to upgrade to new tier.
         let cost = get_cost_to_upgrade_integrator_fee_store<QuoteCoinType, UtilityCoinType>(
-            integrator, market_id, new_tier
-        );
+            integrator, market_id, new_tier);
         // Deposit verified amount and type of utility coins.
         deposit_utility_coins_verified<UtilityCoinType>(utility_coins, cost);
         // Get integrator address.
@@ -791,8 +790,7 @@ module econia::incentives {
         // Borrow mutable reference to integrator fee store for given
         // market ID.
         let integrator_fee_store_ref_mut = tablist::borrow_mut(
-            integrator_fee_stores_map_ref_mut, market_id
-        );
+            integrator_fee_stores_map_ref_mut, market_id);
         // Set the new tier.
         integrator_fee_store_ref_mut.tier = new_tier;
     }
@@ -871,8 +869,7 @@ module econia::incentives {
         // Borrow mutable reference to integrator fee store for given
         // market ID.
         let integrator_fee_store_ref_mut = tablist::borrow_mut(
-            integrator_fee_stores_map_ref_mut, market_id
-        );
+            integrator_fee_stores_map_ref_mut, market_id);
         // Get fee to withdraw from fee store at given tier.
         let withdrawal_fee = get_tier_withdrawal_fee(integrator_fee_store_ref_mut.tier);
         // Deposit verified amount and type of utility coins.
@@ -955,8 +952,7 @@ module econia::incentives {
     ) acquires IncentiveParameters, IntegratorFeeStores, UtilityCoinStore {
         // Get cost to upgrade to new tier.
         let cost = get_cost_to_upgrade_integrator_fee_store<QuoteCoinType, UtilityCoinType>(
-            integrator, market_id, new_tier
-        );
+            integrator, market_id, new_tier);
         // Upgrade integrator fee store, paying cost from coin store.
         upgrade_integrator_fee_store<QuoteCoinType, UtilityCoinType>(integrator, market_id,
             new_tier, coin::withdraw(integrator, cost));
@@ -1123,14 +1119,12 @@ module econia::incentives {
             // Determine if the fee stores map contains an entry for the
             // given market ID.
             let contains_market_id_entry = tablist::contains(
-                integrator_fee_stores_map_ref_mut, market_id
-            );
+                integrator_fee_stores_map_ref_mut, market_id);
             // If fee stores map contains an entry for given market ID:
             if (contains_market_id_entry) {
                 // Borrow mutable reference to corresponding fee store.
                 let integrator_fee_store_ref_mut = tablist::borrow_mut(
-                    integrator_fee_stores_map_ref_mut, market_id
-                );
+                    integrator_fee_stores_map_ref_mut, market_id);
                 // Get fee share divisor for given tier.
                 let fee_share_divisor = get_fee_share_divisor(integrator_fee_store_ref_mut
                     .tier);
@@ -1158,8 +1152,7 @@ module econia::incentives {
                 QuoteCoinType>>(fee_account_address).map;
         // Borrow mutable reference to fees for given market ID.
         let econia_fee_store_coins_ref_mut = tablist::borrow_mut(
-            econia_fee_store_map_ref_mut, market_id
-        );
+            econia_fee_store_map_ref_mut, market_id);
         // Verify merge will not overflow Econia fee store.
         range_check_coin_merge(econia_fee_share, econia_fee_store_coins_ref_mut,
             E_ECONIA_FEE_STORE_OVERFLOW);
@@ -1428,8 +1421,7 @@ module econia::incentives {
         let fee_account_address = resource_account::get_address();
         // Borrow mutable reference to coins in utility coin store.
         let utility_coins_ref_mut = &mut borrow_global_mut<UtilityCoinStore<UtilityCoinType>>(
-            fee_account_address
-        ).coins;
+            fee_account_address).coins;
         // Verify merge will not overflow utility coin store.
         range_check_coin_merge(coin::value(&coins), utility_coins_ref_mut,
             E_UTILITY_COIN_STORE_OVERFLOW);
@@ -1642,8 +1634,7 @@ module econia::incentives {
                 custodian_registration_fee,
                 taker_fee_divisor,
                 integrator_fee_store_tiers
-            }
-        );
+            });
         // Borrow a mutable reference to the incentive parameters
         // resource at the Econia account.
         let incentive_parameters_ref_mut = borrow_global_mut<IncentiveParameters>(@econia);
@@ -1753,8 +1744,7 @@ module econia::incentives {
                     fee_share_divisor: *fee_share_divisor_ref,
                     tier_activation_fee: *tier_activation_fee_ref,
                     withdrawal_fee: *withdrawal_fee_ref
-                }
-            );
+                });
             // Store divisor for comparison during next iteration.
             divisor_last = *fee_share_divisor_ref;
             // Store activation fee to compare during next iteration.
@@ -1898,8 +1888,7 @@ module econia::incentives {
         let fee_account_address = resource_account::get_address();
         // Borrow mutable reference to coins in utility coin store.
         let utility_coins_ref_mut = &mut borrow_global_mut<UtilityCoinStore<UtilityCoinType>>(
-            fee_account_address
-        ).coins;
+            fee_account_address).coins;
         // If flagged to extract all, extract all and return.
         if (all) coin::extract_all(utility_coins_ref_mut) else
             // Else extract specified amount and return.
@@ -1964,8 +1953,7 @@ module econia::incentives {
         integrator: address, market_id: u64
     ): u64 acquires IntegratorFeeStores {
         coin::value(&tablist::borrow(&borrow_global<IntegratorFeeStores<QuoteCoinType>>(
-                    integrator
-                ).map, market_id).coins)
+                    integrator).map, market_id).coins)
     }
 
     #[test_only]
@@ -2007,8 +1995,7 @@ module econia::incentives {
         assets::init_coin_types_test(); // Initialize coin types.
         // Get signer for Econia account.
         let econia = account::create_signer_with_capability(&account::create_test_signer_cap(
-                @econia
-            ));
+                @econia));
         resource_account::init_test(); // Init fee account.
         // Vectorize fee store tier parameters.
         let integrator_fee_store_tiers = vector[
@@ -2123,14 +2110,11 @@ module econia::incentives {
         let custodian_registration_fee = get_custodian_registration_fee();
         // Deposit fees.
         deposit_market_registration_utility_coins<UC>(assets::mint_test(
-                market_registration_fee
-            ));
+                market_registration_fee));
         deposit_underwriter_registration_utility_coins<UC>(assets::mint_test(
-                underwriter_registration_fee
-            ));
+                underwriter_registration_fee));
         deposit_custodian_registration_utility_coins<UC>(assets::mint_test(
-                custodian_registration_fee
-            ));
+                custodian_registration_fee));
         // Assert total amount.
         assert!(get_utility_coin_store_balance_test() == MARKET_REGISTRATION_FEE + UNDERWRITER_REGISTRATION_FEE
             + CUSTODIAN_REGISTRATION_FEE,
@@ -2390,8 +2374,7 @@ module econia::incentives {
         let taker_fee_divisor = get_taker_fee_divisor();
         // Declare utility coin balance after integrator registration.
         let utility_coin_balance_0 = get_tier_activation_fee(tier_0) + get_tier_activation_fee(
-            tier_1
-        );
+            tier_1);
         // Declare utility coin balance after integrator fee withdrawal.
         let utility_coin_balance_1 = utility_coin_balance_0 + get_tier_withdrawal_fee(tier_0);
         let quote_fill_0 = 12345; // Declare quote fill amount, fill 0.
@@ -2845,8 +2828,7 @@ module econia::incentives {
             resource_account::get_address()).map;
         // Borrow mutable reference to fees for given market ID.
         let econia_fee_store_coins_ref_mut = tablist::borrow_mut(
-            econia_fee_store_map_ref_mut, market_id
-        );
+            econia_fee_store_map_ref_mut, market_id);
         // Merge simulated fees into the fee store.
         coin::merge(econia_fee_store_coins_ref_mut, assets::mint_test<QC>(fee_coin_amount));
         // Withdraw 1 coin, registering coin store.

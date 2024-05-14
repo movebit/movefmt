@@ -334,8 +334,7 @@ spec aptos_framework::coin {
         let post post_value = optional_aggregator::optional_aggregator_value(post_supply);
 
         let supply_no_parallel = option::spec_is_some(maybe_supply) && !optional_aggregator::is_parallelizable(
-            supply
-        );
+            supply);
 
         aborts_if supply_no_parallel && !exists<aggregator_factory::AggregatorFactory>(@aptos_framework);
         ensures supply_no_parallel ==>
@@ -396,15 +395,13 @@ spec aptos_framework::coin {
         let post limit = optional_aggregator::optional_aggregator_limit(supply);
         modifies global<CoinInfo<CoinType>>(account_addr);
         aborts_if monitor_supply && parallelizable && !exists<aggregator_factory::AggregatorFactory>(
-            @aptos_framework
-        );
+            @aptos_framework);
         /// [managed_coin::high-level-req-2]
         ensures exists<CoinInfo<CoinType>>(account_addr) && coin_info.name == name && coin_info
             .symbol == symbol && coin_info.decimals == decimals;
         ensures if (monitor_supply) {
             value == 0 && limit == MAX_U128 && (parallelizable == optional_aggregator::is_parallelizable(
-                    supply
-                ))
+                    supply))
         } else { option::spec_is_none(coin_info.supply) };
         ensures result_1 == BurnCapability<CoinType> {};
         ensures result_2 == FreezeCapability<CoinType> {};
@@ -427,8 +424,7 @@ spec aptos_framework::coin {
             > MAX_U64;
         /// [high-level-req-5]
         aborts_if !exists<CoinStore<CoinType>>(account_addr) && !exists<account::Account>(
-            account_addr
-        );
+            account_addr);
         aborts_if !exists<CoinStore<CoinType>>(account_addr) && !type_info::spec_is_struct<CoinType>();
         ensures exists<CoinStore<CoinType>>(account_addr);
     }
@@ -503,12 +499,10 @@ spec aptos_framework::coin {
         let aggr = dst_coin.value;
         let post p_aggr = dst_coin.value;
         aborts_if aggregator::spec_aggregator_get_val(aggr) + coin.value > aggregator::spec_get_limit(
-            aggr
-        );
+            aggr);
         aborts_if aggregator::spec_aggregator_get_val(aggr) + coin.value > MAX_U128;
         ensures aggregator::spec_aggregator_get_val(aggr) + coin.value == aggregator::spec_aggregator_get_val(
-            p_aggr
-        );
+            p_aggr);
     }
 
     spec collect_into_aggregatable_coin<CoinType>(account_addr: address, amount: u64, dst_coin: &mut AggregatableCoin<CoinType>) {
@@ -519,12 +513,10 @@ spec aptos_framework::coin {
         aborts_if amount > 0 && !exists<CoinStore<CoinType>>(account_addr);
         aborts_if amount > 0 && coin_store.coin.value < amount;
         aborts_if amount > 0 && aggregator::spec_aggregator_get_val(aggr) + amount > aggregator::spec_get_limit(
-            aggr
-        );
+            aggr);
         aborts_if amount > 0 && aggregator::spec_aggregator_get_val(aggr) + amount > MAX_U128;
         ensures aggregator::spec_aggregator_get_val(aggr) + amount == aggregator::spec_aggregator_get_val(
-            p_aggr
-        );
+            p_aggr);
         ensures coin_store.coin.value - amount == p_coin_store.coin.value;
     }
 }

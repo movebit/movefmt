@@ -222,8 +222,7 @@ module aptos_framework::account {
 
         let guid_for_rotation = guid::create(new_address, &mut guid_creation_num);
         let key_rotation_events = event::new_event_handle<KeyRotationEvent>(
-            guid_for_rotation
-        );
+            guid_for_rotation);
 
         move_to(&new_account,
             Account {
@@ -339,19 +338,16 @@ module aptos_framework::account {
         // Verify the given `from_public_key_bytes` matches this account's current authentication key.
         if (from_scheme == ED25519_SCHEME) {
             let from_pk = ed25519::new_unvalidated_public_key_from_bytes(
-                from_public_key_bytes
-            );
+                from_public_key_bytes);
             let from_auth_key = ed25519::unvalidated_public_key_to_authentication_key(&from_pk);
             assert!(account_resource.authentication_key == from_auth_key,
                 error::unauthenticated(EWRONG_CURRENT_PUBLIC_KEY));
         }
         else if (from_scheme == MULTI_ED25519_SCHEME) {
             let from_pk = multi_ed25519::new_unvalidated_public_key_from_bytes(
-                from_public_key_bytes
-            );
+                from_public_key_bytes);
             let from_auth_key = multi_ed25519::unvalidated_public_key_to_authentication_key(
-                &from_pk
-            );
+                &from_pk);
             assert!(account_resource.authentication_key == from_auth_key,
                 error::unauthenticated(EWRONG_CURRENT_PUBLIC_KEY));
         }
@@ -404,13 +400,11 @@ module aptos_framework::account {
 
         // Verifies that the `RotationProofChallenge` from above is signed under the new public key that we are rotating to.        l
         let new_auth_key = assert_valid_rotation_proof_signature_and_get_auth_key(
-            new_scheme, new_public_key_bytes, cap_update_table, &challenge
-        );
+            new_scheme, new_public_key_bytes, cap_update_table, &challenge);
 
         // Update the `OriginatingAddress` table, so we can find the originating address using the new address.
         let offerer_account_resource = borrow_global_mut<Account>(
-            rotation_cap_offerer_address
-        );
+            rotation_cap_offerer_address);
         update_auth_key_and_originating_address_table(rotation_cap_offerer_address,
             offerer_account_resource, new_auth_key);
     }
@@ -454,32 +448,27 @@ module aptos_framework::account {
         // verify the signature on `RotationCapabilityOfferProofChallengeV2` by the account owner
         if (account_scheme == ED25519_SCHEME) {
             let pubkey = ed25519::new_unvalidated_public_key_from_bytes(
-                account_public_key_bytes
-            );
+                account_public_key_bytes);
             let expected_auth_key = ed25519::unvalidated_public_key_to_authentication_key(&pubkey);
             assert!(account_resource.authentication_key == expected_auth_key,
                 error::invalid_argument(EWRONG_CURRENT_PUBLIC_KEY));
 
             let rotation_capability_sig = ed25519::new_signature_from_bytes(
-                rotation_capability_sig_bytes
-            );
+                rotation_capability_sig_bytes);
             assert!(ed25519::signature_verify_strict_t(&rotation_capability_sig, &pubkey,
                     proof_challenge),
                 error::invalid_argument(EINVALID_PROOF_OF_KNOWLEDGE));
         }
         else if (account_scheme == MULTI_ED25519_SCHEME) {
             let pubkey = multi_ed25519::new_unvalidated_public_key_from_bytes(
-                account_public_key_bytes
-            );
+                account_public_key_bytes);
             let expected_auth_key = multi_ed25519::unvalidated_public_key_to_authentication_key(
-                &pubkey
-            );
+                &pubkey);
             assert!(account_resource.authentication_key == expected_auth_key,
                 error::invalid_argument(EWRONG_CURRENT_PUBLIC_KEY));
 
             let rotation_capability_sig = multi_ed25519::new_signature_from_bytes(
-                rotation_capability_sig_bytes
-            );
+                rotation_capability_sig_bytes);
             assert!(multi_ed25519::signature_verify_strict_t(&rotation_capability_sig, &pubkey,
                     proof_challenge),
                 error::invalid_argument(EINVALID_PROOF_OF_KNOWLEDGE));
@@ -682,8 +671,7 @@ module aptos_framework::account {
             KeyRotationEvent {
                 old_authentication_key: account_resource.authentication_key,
                 new_authentication_key: new_auth_key_vector,
-            }
-        );
+            });
 
         // Update the account resource's authentication key.
         account_resource.authentication_key = new_auth_key_vector;
@@ -828,25 +816,21 @@ module aptos_framework::account {
                 error::invalid_argument(EWRONG_CURRENT_PUBLIC_KEY),);
 
             let signer_capability_sig = ed25519::new_signature_from_bytes(
-                signed_message_bytes
-            );
+                signed_message_bytes);
             assert!(ed25519::signature_verify_strict_t(&signer_capability_sig, &pubkey,
                     message),
                 error::invalid_argument(EINVALID_PROOF_OF_KNOWLEDGE),);
         }
         else if (account_scheme == MULTI_ED25519_SCHEME) {
             let pubkey = multi_ed25519::new_unvalidated_public_key_from_bytes(
-                account_public_key
-            );
+                account_public_key);
             let expected_auth_key = multi_ed25519::unvalidated_public_key_to_authentication_key(
-                &pubkey
-            );
+                &pubkey);
             assert!(account_resource.authentication_key == expected_auth_key,
                 error::invalid_argument(EWRONG_CURRENT_PUBLIC_KEY),);
 
             let signer_capability_sig = multi_ed25519::new_signature_from_bytes(
-                signed_message_bytes
-            );
+                signed_message_bytes);
             assert!(multi_ed25519::signature_verify_strict_t(&signer_capability_sig, &pubkey,
                     message),
                 error::invalid_argument(EINVALID_PROOF_OF_KNOWLEDGE),);
@@ -912,8 +896,7 @@ module aptos_framework::account {
         vector::append(&mut account_public_key_bytes, eve_pk_bytes);
         vector::push_back(&mut account_public_key_bytes, 1); // Multisig verification threshold.
         let fake_pk = multi_ed25519::new_unvalidated_public_key_from_bytes(
-            account_public_key_bytes
-        );
+            account_public_key_bytes);
 
         // Construct a multisig for `proof_challenge` as if it is signed by the signers behind `fake_pk`,
         // Eve being the only participant.
