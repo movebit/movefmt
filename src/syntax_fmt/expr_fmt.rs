@@ -220,26 +220,20 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
         (TokType::Sign, TokType::Alphabet) => Tok::Exclaim != curr_end_tok,
         (TokType::Sign, TokType::Number) => true,
         (TokType::Sign, TokType::String | TokType::AtSign | TokType::Amp | TokType::AmpMut) => {
-            let mut result = false;
             if !is_next_tok_nested && Tok::ByteStringValue == next_start_tok {
-                result = true;
+                return true;
             }
 
             if Tok::Comma == curr_start_tok
                 && matches!(next_start_tok, Tok::AtSign | Tok::Amp | Tok::AmpMut)
             {
-                result = true;
-                tracing::debug!(
-                    "after Comma, result = {}, next_start_tok = {:?}",
-                    result,
-                    next_start_tok
-                );
+                return true;
             }
             // eg: (exp) & ...
             if Tok::RParen == curr_end_tok && Tok::Amp == next_start_tok {
-                result = true;
+                return true;
             }
-            result
+            false
         }
         (TokType::Number, TokType::Alphabet) => true,
         (_, TokType::AmpMut) => true,
@@ -282,20 +276,20 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
             } else {
                 let mut result = false;
                 if is_next_tok_nested && next_tok_nested_kind == NestKind_::Brace {
-                    result = true;
+                    return true;
                 }
                 if !is_next_tok_nested {
                     if matches!(
                         next_start_tok,
                         Tok::NumValue | Tok::NumTypedValue | Tok::LParen
                     ) {
-                        result = true;
+                        return true;
                     }
                     if Tok::Identifier == next_start_tok {
                         if next_tok_simple_content.contains("vector") {
                             result = false;
                         } else if is_bin_current {
-                            result = true;
+                            return true;
                         }
                     }
                 }
@@ -308,17 +302,17 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
         (TokType::Alphabet | TokType::Number | TokType::Sign, TokType::Sign) => {
             let mut result = false;
             if is_next_tok_nested && Tok::LBrace == next_start_tok {
-                result = true;
+                return true;
             }
             if !is_next_tok_nested && Tok::Slash == next_start_tok {
-                result = true;
+                return true;
             }
 
             if matches!(
                 curr_start_tok,
-                Tok::Let | Tok::Slash | Tok::If | Tok::Else | Tok::While
+                Tok::Let | Tok::Slash | Tok::If | Tok::Else | Tok::While | Tok::Comma
             ) {
-                result = true;
+                return true;
             }
             if next_start_tok == Tok::Exclaim {
                 result = matches!(TokType::from(curr_start_tok), TokType::Alphabet)
@@ -341,7 +335,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                         | "apply"
                         | "global"
                 ) {
-                    result = true;
+                    return true;
                 }
                 if content == "assert" && next_start_tok == Tok::Exclaim {
                     result = false;
@@ -350,16 +344,16 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                 // added in 20240430: support for loop
                 // optimize in 20240510: and in(special identifier)
                 if matches!(content, "for" | "in") && next_start_tok == Tok::LParen {
-                    result = true;
+                    return true;
                 }
             }
 
             if Tok::RParen == curr_end_tok && next_start_tok == Tok::LParen {
-                result = true;
+                return true;
             }
 
             if Tok::Pipe == next_start_tok && next_start_tok != Tok::LParen {
-                result = true;
+                return true;
             }
             // tracing::debug!("result = {}, next_start_tok = {:?}", result, next_start_tok);
             result

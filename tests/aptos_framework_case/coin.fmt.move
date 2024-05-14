@@ -330,7 +330,7 @@ module aptos_framework::coin {
             .supply;
         if (option::is_some(maybe_supply)) {
             let supply = option::borrow_mut(maybe_supply);
-            optional_aggregator::sub(supply,(amount as u128));
+            optional_aggregator::sub(supply, (amount as u128));
         }
     }
 
@@ -556,7 +556,7 @@ module aptos_framework::coin {
                     (option::borrow(supply.integer).value + amount <= option::borrow(supply
                                 .integer).limit);
             };
-            optional_aggregator::add(supply,(amount as u128));
+            optional_aggregator::add(supply, (amount as u128));
         };
         spec {
             update supply<CoinType> = supply<CoinType> + amount;
