@@ -174,22 +174,25 @@ module aptos_framework::coin {
 
     /// Creates a new aggregatable coin with value overflowing on `limit`. Note that this function can
     /// only be called by Aptos Framework (0x1) account for now because of `create_aggregator`.
-    public(friend) fun initialize_aggregatable_coin<CoinType>(aptos_framework: &signer)
-        : AggregatableCoin<CoinType> {
+    public(friend) fun initialize_aggregatable_coin<CoinType>(
+        aptos_framework: &signer
+    ): AggregatableCoin<CoinType> {
         let aggregator = aggregator_factory::create_aggregator(aptos_framework, MAX_U64);
         AggregatableCoin<CoinType> { value: aggregator, }
     }
 
     /// Returns true if the value of aggregatable coin is zero.
-    public(friend) fun is_aggregatable_coin_zero<CoinType>(coin: &AggregatableCoin<CoinType>)
-        : bool {
+    public(friend) fun is_aggregatable_coin_zero<CoinType>(
+        coin: &AggregatableCoin<CoinType>
+    ): bool {
         let amount = aggregator::read(&coin.value);
         amount == 0
     }
 
     /// Drains the aggregatable coin, setting it to zero and returning a standard coin.
-    public(friend) fun drain_aggregatable_coin<CoinType>(coin: &mut AggregatableCoin<CoinType>)
-        : Coin<CoinType> {
+    public(friend) fun drain_aggregatable_coin<CoinType>(
+        coin: &mut AggregatableCoin<CoinType>
+    ): Coin<CoinType> {
         spec {
             // TODO: The data invariant is not properly assumed from CollectedFeesPerBlock.
             assume aggregator::spec_get_limit(coin.value) == MAX_U64;
@@ -314,7 +317,9 @@ module aptos_framework::coin {
 
     /// Burn `coin` with capability.
     /// The capability `_cap` should be passed as a reference to `BurnCapability<CoinType>`.
-    public fun burn<CoinType>(coin: Coin<CoinType>, _cap: &BurnCapability<CoinType>,) acquires CoinInfo {
+    public fun burn<CoinType>(
+        coin: Coin<CoinType>, _cap: &BurnCapability<CoinType>,
+    ) acquires CoinInfo {
         spec {
             update supply<CoinType> = supply<CoinType> - coin.value;
         };
@@ -362,7 +367,9 @@ module aptos_framework::coin {
 
     /// Deposit the coin balance into the recipient's account without checking if the account is frozen.
     /// This is for internal use only and doesn't emit an DepositEvent.
-    public(friend) fun force_deposit<CoinType>(account_addr: address, coin: Coin<CoinType>) acquires CoinStore {
+    public(friend) fun force_deposit<CoinType>(
+        account_addr: address, coin: Coin<CoinType>
+    ) acquires CoinStore {
         assert!(is_account_registered<CoinType>(account_addr),
             error::not_found(ECOIN_STORE_NOT_PUBLISHED),);
 
@@ -511,7 +518,9 @@ module aptos_framework::coin {
 
     /// "Merges" the two given coins.  The coin passed in as `dst_coin` will have a value equal
     /// to the sum of the two tokens (`dst_coin` and `source_coin`).
-    public fun merge<CoinType>(dst_coin: &mut Coin<CoinType>, source_coin: Coin<CoinType>) {
+    public fun merge<CoinType>(
+        dst_coin: &mut Coin<CoinType>, source_coin: Coin<CoinType>
+    ) {
         spec {
             assume dst_coin.value + source_coin.value <= MAX_U64;
         };
@@ -605,17 +614,23 @@ module aptos_framework::coin {
     }
 
     /// Destroy a freeze capability. Freeze capability is dangerous and therefore should be destroyed if not used.
-    public fun destroy_freeze_cap<CoinType>(freeze_cap: FreezeCapability<CoinType>) {
+    public fun destroy_freeze_cap<CoinType>(
+        freeze_cap: FreezeCapability<CoinType>
+    ) {
         let FreezeCapability<CoinType> {} = freeze_cap;
     }
 
     /// Destroy a mint capability.
-    public fun destroy_mint_cap<CoinType>(mint_cap: MintCapability<CoinType>) {
+    public fun destroy_mint_cap<CoinType>(
+        mint_cap: MintCapability<CoinType>
+    ) {
         let MintCapability<CoinType> {} = mint_cap;
     }
 
     /// Destroy a burn capability.
-    public fun destroy_burn_cap<CoinType>(burn_cap: BurnCapability<CoinType>) {
+    public fun destroy_burn_cap<CoinType>(
+        burn_cap: BurnCapability<CoinType>
+    ) {
         let BurnCapability<CoinType> {} = burn_cap;
     }
 
@@ -630,19 +645,18 @@ module aptos_framework::coin {
     }
 
     #[test_only]
-    fun initialize_fake_money(account: &signer, decimals: u8, monitor_supply: bool,)
-        : (BurnCapability<FakeMoney>,
-        FreezeCapability<FakeMoney>, MintCapability<FakeMoney>) {
+    fun initialize_fake_money(
+        account: &signer, decimals: u8, monitor_supply: bool,
+    ): (BurnCapability<FakeMoney>, FreezeCapability<FakeMoney>, MintCapability<FakeMoney>) {
         aggregator_factory::initialize_aggregator_factory_for_test(account);
         initialize<FakeMoney>(account, string::utf8(b"Fake money"), string::utf8(b"FMD"),
             decimals, monitor_supply)
     }
 
     #[test_only]
-    fun initialize_and_register_fake_money(account: &signer, decimals: u8, monitor_supply: bool,)
-        : (
-        BurnCapability<FakeMoney>, FreezeCapability<FakeMoney>, MintCapability<FakeMoney>
-    ) {
+    fun initialize_and_register_fake_money(
+        account: &signer, decimals: u8, monitor_supply: bool,
+    ): (BurnCapability<FakeMoney>, FreezeCapability<FakeMoney>, MintCapability<FakeMoney>) {
         let (burn_cap, freeze_cap, mint_cap) = initialize_fake_money(account, decimals,
             monitor_supply);
         register<FakeMoney>(account);
@@ -650,7 +664,9 @@ module aptos_framework::coin {
     }
 
     #[test_only]
-    public entry fun create_fake_money(source: &signer, destination: &signer, amount: u64) acquires CoinInfo, CoinStore {
+    public entry fun create_fake_money(
+        source: &signer, destination: &signer, amount: u64
+    ) acquires CoinInfo, CoinStore {
         let (burn_cap, freeze_cap, mint_cap) = initialize_and_register_fake_money(source,
             18, true);
 

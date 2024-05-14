@@ -69,6 +69,63 @@ impl CallExtractor {
         }
     }
 
+    fn collect_spec(&mut self, spec_block: &SpecBlock) {
+        match &spec_block.value.target.value {
+            SpecBlockTarget_::Code => {}
+            SpecBlockTarget_::Module => {}
+            SpecBlockTarget_::Member(_, _) | SpecBlockTarget_::Schema(_, _) => {}
+        }
+        for m in spec_block.value.members.iter() {
+            match &m.value {
+                SpecBlockMember_::Condition {
+                    kind: _,
+                    properties: _,
+                    exp,
+                    additional_exps: _,
+                } => {
+                    self.collect_expr(exp);
+                }
+                SpecBlockMember_::Function {
+                    uninterpreted: _,
+                    name: _,
+                    signature: _,
+                    body,
+                } => match &body.value {
+                    FunctionBody_::Defined(s) => self.collect_seq(s),
+                    FunctionBody_::Native => {}
+                },
+                SpecBlockMember_::Variable {
+                    is_global: _,
+                    name: _,
+                    type_parameters: _,
+                    type_: _,
+                    init: _,
+                } => {}
+
+                SpecBlockMember_::Let {
+                    name: _,
+                    post_state: _,
+                    def,
+                } => self.collect_expr(def),
+                SpecBlockMember_::Update { lhs, rhs } => {
+                    self.collect_expr(lhs);
+                    self.collect_expr(rhs);
+                }
+                SpecBlockMember_::Include { properties: _, exp } => {
+                    self.collect_expr(exp);
+                }
+                SpecBlockMember_::Apply {
+                    exp,
+                    patterns: _,
+                    exclusion_patterns: _,
+                } => {
+                    self.collect_expr(exp);
+                }
+                SpecBlockMember_::Pragma { properties: _ } => {}
+            }
+        }
+    }
+
     fn collect_expr(&mut self, e: &Exp) {
         match &e.value {
             Exp_::Call(name, _, _tys, es) => {
@@ -181,11 +238,17 @@ impl CallExtractor {
             if let ModuleMember::Function(x) = &m {
                 self.collect_function(x)
             }
+            if let ModuleMember::Spec(s) = &m {
+                self.collect_spec(s)
+            }
         }
     }
 
     fn collect_script(&mut self, d: &Script) {
         self.collect_function(&d.function);
+        for s in d.specs.iter() {
+            self.collect_spec(s);
+        }
     }
 
     fn collect_definition(&mut self, d: &Definition) {

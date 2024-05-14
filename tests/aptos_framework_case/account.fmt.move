@@ -273,7 +273,9 @@ module aptos_framework::account {
     /// 1. During normal key rotation via `rotate_authentication_key` or `rotate_authentication_key_call`
     /// 2. During resource account initialization so that no private key can control the resource account
     /// 3. During multisig_v2 account creation
-    public(friend) fun rotate_authentication_key_internal(account: &signer, new_auth_key: vector<u8>) acquires Account {
+    public(friend) fun rotate_authentication_key_internal(
+        account: &signer, new_auth_key: vector<u8>
+    ) acquires Account {
         let addr = signer::address_of(account);
         assert!(exists_at(addr), error::not_found(EACCOUNT_DOES_NOT_EXIST));
         assert!(vector::length(&new_auth_key) == 32,
@@ -287,7 +289,9 @@ module aptos_framework::account {
     /// does not come with a proof-of-knowledge of the underlying SK. Nonetheless, we need this functionality due to
     /// the introduction of non-standard key algorithms, such as passkeys, which cannot produce proofs-of-knowledge in
     /// the format expected in `rotate_authentication_key`.
-    entry fun rotate_authentication_key_call(account: &signer, new_auth_key: vector<u8>) acquires Account {
+    entry fun rotate_authentication_key_call(
+        account: &signer, new_auth_key: vector<u8>
+    ) acquires Account {
         rotate_authentication_key_internal(account, new_auth_key);
     }
 
@@ -506,7 +510,9 @@ module aptos_framework::account {
     }
 
     /// Revoke the rotation capability offer given to `to_be_revoked_recipient_address` from `account`
-    public entry fun revoke_rotation_capability(account: &signer, to_be_revoked_address: address) acquires Account {
+    public entry fun revoke_rotation_capability(
+        account: &signer, to_be_revoked_address: address
+    ) acquires Account {
         assert!(exists_at(to_be_revoked_address), error::not_found(EACCOUNT_DOES_NOT_EXIST));
         let addr = signer::address_of(account);
         let account_resource = borrow_global_mut<Account>(addr);
@@ -576,7 +582,9 @@ module aptos_framework::account {
 
     /// Revoke the account owner's signer capability offer for `to_be_revoked_address` (i.e., the address that
     /// has a signer capability offer from `account` but will be revoked in this function).
-    public entry fun revoke_signer_capability(account: &signer, to_be_revoked_address: address) acquires Account {
+    public entry fun revoke_signer_capability(
+        account: &signer, to_be_revoked_address: address
+    ) acquires Account {
         assert!(exists_at(to_be_revoked_address), error::not_found(EACCOUNT_DOES_NOT_EXIST));
         let addr = signer::address_of(account);
         let account_resource = borrow_global_mut<Account>(addr);
@@ -593,7 +601,9 @@ module aptos_framework::account {
 
     /// Return an authorized signer of the offerer, if there's an existing signer capability offer for `account`
     /// at the offerer's address.
-    public fun create_authorized_signer(account: &signer, offerer_address: address): signer acquires Account {
+    public fun create_authorized_signer(
+        account: &signer, offerer_address: address
+    ): signer acquires Account {
         assert!(exists_at(offerer_address),
             error::not_found(EOFFERER_ADDRESS_DOES_NOT_EXIST));
 
@@ -976,13 +986,17 @@ module aptos_framework::account {
     }
 
     #[test_only]
-    public fun set_signer_capability_offer(offerer: address, receiver: address) acquires Account {
+    public fun set_signer_capability_offer(
+        offerer: address, receiver: address
+    ) acquires Account {
         let account_resource = borrow_global_mut<Account>(offerer);
         option::swap_or_fill(&mut account_resource.signer_capability_offer.for, receiver);
     }
 
     #[test_only]
-    public fun set_rotation_capability_offer(offerer: address, receiver: address) acquires Account {
+    public fun set_rotation_capability_offer(
+        offerer: address, receiver: address
+    ) acquires Account {
         let account_resource = borrow_global_mut<Account>(offerer);
         option::swap_or_fill(&mut account_resource.rotation_capability_offer.for, receiver);
     }
@@ -1066,7 +1080,9 @@ module aptos_framework::account {
     }
 
     #[test(bob = @0x345)]
-    public entry fun test_valid_check_signer_capability_and_create_authorized_signer(bob: signer) acquires Account {
+    public entry fun test_valid_check_signer_capability_and_create_authorized_signer(
+        bob: signer
+    ) acquires Account {
         let (alice_sk, alice_pk) = ed25519::generate_keys();
         let alice_pk_bytes = ed25519::validated_public_key_to_bytes(&alice_pk);
         let alice = create_account_from_ed25519_public_key(alice_pk_bytes);
@@ -1187,7 +1203,9 @@ module aptos_framework::account {
 
     #[test(bob = @0x345, charlie = @0x567)]
     #[expected_failure(abort_code = 393230, location = Self)]
-    public entry fun test_invalid_revoke_signer_capability(bob: signer, charlie: signer) acquires Account {
+    public entry fun test_invalid_revoke_signer_capability(
+        bob: signer, charlie: signer
+    ) acquires Account {
         let (alice_sk, alice_pk) = ed25519::generate_keys();
         let alice_pk_bytes = ed25519::validated_public_key_to_bytes(&alice_pk);
         let alice = create_account_from_ed25519_public_key(alice_pk_bytes);
@@ -1218,7 +1236,9 @@ module aptos_framework::account {
     // Tests for offering rotation capabilities
     //
     #[test(bob = @0x345, framework = @aptos_framework)]
-    public entry fun test_valid_offer_rotation_capability(bob: signer, framework: signer) acquires Account {
+    public entry fun test_valid_offer_rotation_capability(
+        bob: signer, framework: signer
+    ) acquires Account {
         chain_id::initialize_for_test(&framework, 4);
         let (alice_sk, alice_pk) = ed25519::generate_keys();
         let alice_pk_bytes = ed25519::validated_public_key_to_bytes(&alice_pk);
@@ -1250,7 +1270,9 @@ module aptos_framework::account {
 
     #[test(bob = @0x345, framework = @aptos_framework)]
     #[expected_failure(abort_code = 65544, location = Self)]
-    public entry fun test_invalid_offer_rotation_capability(bob: signer, framework: signer) acquires Account {
+    public entry fun test_invalid_offer_rotation_capability(
+        bob: signer, framework: signer
+    ) acquires Account {
         chain_id::initialize_for_test(&framework, 4);
         let (alice_sk, alice_pk) = ed25519::generate_keys();
         let alice_pk_bytes = ed25519::validated_public_key_to_bytes(&alice_pk);
@@ -1278,7 +1300,9 @@ module aptos_framework::account {
     }
 
     #[test(bob = @0x345, framework = @aptos_framework)]
-    public entry fun test_valid_revoke_rotation_capability(bob: signer, framework: signer) acquires Account {
+    public entry fun test_valid_revoke_rotation_capability(
+        bob: signer, framework: signer
+    ) acquires Account {
         chain_id::initialize_for_test(&framework, 4);
         let (alice_sk, alice_pk) = ed25519::generate_keys();
         let alice_pk_bytes = ed25519::validated_public_key_to_bytes(&alice_pk);
@@ -1381,7 +1405,9 @@ module aptos_framework::account {
     }
 
     #[test(account = @aptos_framework)]
-    public entry fun test_valid_rotate_authentication_key_multi_ed25519_to_ed25519(account: signer) acquires Account, OriginatingAddress {
+    public entry fun test_valid_rotate_authentication_key_multi_ed25519_to_ed25519(
+        account: signer
+    ) acquires Account, OriginatingAddress {
         initialize(&account);
 
         let (curr_sk, curr_pk) = multi_ed25519::generate_keys(2, 3);

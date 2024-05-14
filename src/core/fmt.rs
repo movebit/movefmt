@@ -545,8 +545,9 @@ impl Format {
                     .fun_extractor
                     .is_parameter_paren_in_fun_header(kind)
                 {
+                    // Reserve 25% space for return ty and specifier
                     new_line_mode =
-                        self.get_cur_line_len() + nested_token_len > self.global_cfg.max_width();
+                        (self.get_cur_line_len() + nested_token_len) as f32 > max_len_when_no_add_line;
                     if (nested_and_comma_pair.0 >= 4 || nested_and_comma_pair.1 >= 4)
                         && nested_token_len as f32 > max_len_when_no_add_line
                     {

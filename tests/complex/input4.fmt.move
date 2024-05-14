@@ -59,7 +59,9 @@ module oracle::oracle {
         };
     }
 
-    public entry fun update_oracle<CoinType>(oracle: &signer, feed: address, adapter: u8) acquires OracleStore {
+    public entry fun update_oracle<CoinType>(
+        oracle: &signer, feed: address, adapter: u8
+    ) acquires OracleStore {
         assert!(address_of(oracle) == @oracle, error::unauthenticated(E_BAD_SIGNER));
         assert_feed_adapter(feed, adapter);
 

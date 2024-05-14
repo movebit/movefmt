@@ -150,7 +150,9 @@ module std::bit_vector {
     /// Returns the length of the longest sequence of set bits starting at (and
     /// including) `start_index` in the `bitvector`. If there is no such
     /// sequence, then `0` is returned.
-    public fun longest_set_sequence_starting_at(bitvector: &BitVector, start_index: u64): u64 {
+    public fun longest_set_sequence_starting_at(
+        bitvector: &BitVector, start_index: u64
+    ): u64 {
         assert!(start_index < bitvector.length, EINDEX);
         let index = start_index;
 
@@ -185,7 +187,9 @@ module std::bit_vector {
     }
 
     #[verify_only]
-    public fun shift_left_for_verification_only(bitvector: &mut BitVector, amount: u64) {
+    public fun shift_left_for_verification_only(
+        bitvector: &mut BitVector, amount: u64
+    ) {
         if (amount >= bitvector.length) {
             let len = vector::length(&bitvector.bit_field);
             let i = 0;
