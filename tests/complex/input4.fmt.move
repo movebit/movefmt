@@ -76,11 +76,8 @@ module oracle::oracle {
             table::add(&mut oracle_store.oracles, coin_type, Oracle { feed, adapter });
         };
 
-        emit_event(&mut oracle_store.update_oracle_events, UpdateOracleEvent {
-                feed,
-                adapter,
-                coin_type,
-            });
+        emit_event(&mut oracle_store.update_oracle_events,
+            UpdateOracleEvent { feed, adapter, coin_type, });
     }
 
     public fun lookup(coin_type: TypeInfo): (address, u8) acquires OracleStore {

@@ -1000,7 +1000,9 @@ mod comment_test {
         let token_tree = parse.parse_tokens();
         let s = serde_json::to_string(&token_tree).unwrap();
         // check this using some online json tool.
-        tracing::info!("json:{}", s);
+        eprintln!("json:{:?}", s);
+        let and_op_num = s.matches("\"content\":\",\"").count() as u32;
+        eprintln!("and_op_num:{}", and_op_num);
     }
 
     #[test]

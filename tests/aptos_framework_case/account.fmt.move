@@ -1018,8 +1018,13 @@ module aptos_framework::account {
         create_account(signer::address_of(&alice));
         let test_signature = vector::empty<u8>();
         let pk = x"0000000000000000000000000000000000000000000000000000000000000000";
-        rotate_authentication_key(&alice, ED25519_SCHEME, pk, ED25519_SCHEME, pk,
-            test_signature, test_signature);
+        rotate_authentication_key(&alice,
+            ED25519_SCHEME,
+            pk,
+            ED25519_SCHEME,
+            pk,
+            test_signature,
+            test_signature);
     }
 
     #[test_only]

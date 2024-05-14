@@ -649,8 +649,11 @@ module aptos_framework::coin {
         account: &signer, decimals: u8, monitor_supply: bool,
     ): (BurnCapability<FakeMoney>, FreezeCapability<FakeMoney>, MintCapability<FakeMoney>) {
         aggregator_factory::initialize_aggregator_factory_for_test(account);
-        initialize<FakeMoney>(account, string::utf8(b"Fake money"), string::utf8(b"FMD"),
-            decimals, monitor_supply)
+        initialize<FakeMoney>(account,
+            string::utf8(b"Fake money"),
+            string::utf8(b"FMD"),
+            decimals,
+            monitor_supply)
     }
 
     #[test_only]
