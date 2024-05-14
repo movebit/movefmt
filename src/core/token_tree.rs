@@ -320,9 +320,10 @@ impl<'a> Parser<'a> {
         if self.fun_body.contains(&start) {
             note = Some(Note::FunBody);
         }
-        for (addr, modname) in self.address_module.clone() {
-            if addr < start && start < modname {
+        for (idx, (addr, modname)) in self.address_module.iter().enumerate() {
+            if *addr < start && start < *modname {
                 note = Some(Note::ModuleAddress);
+                self.address_module.remove(idx);
                 break;
             }
         }
