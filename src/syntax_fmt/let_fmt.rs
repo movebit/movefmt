@@ -45,7 +45,20 @@ impl LetExtractor {
         for bin_op_exp in this_let_extractor.bin_op_exp_vec.iter() {
             let bin_op_exp_str = &this_let_extractor.source
                 [bin_op_exp.loc.start() as usize..bin_op_exp.loc.end() as usize];
-            if bin_op_exp_str.len() > 64 {
+
+            let bin_op_right_is_long = match &bin_op_exp.value {
+                Exp_::BinopExp(_, _, r) => {
+                    this_let_extractor.source[r.loc.start() as usize..r.loc.end() as usize].len()
+                        > 16
+                }
+                Exp_::Assign(_, r) => {
+                    this_let_extractor.source[r.loc.start() as usize..r.loc.end() as usize].len()
+                        > 32
+                }
+                _ => false,
+            };
+
+            if bin_op_exp_str.len() > 64 && bin_op_right_is_long {
                 this_let_extractor
                     .long_bin_op_exp_vec
                     .push(bin_op_exp.clone());
@@ -176,6 +189,7 @@ impl LetExtractor {
                 es.iter().for_each(|e| self.collect_expr(e));
             }
             Exp_::Assign(l, r) => {
+                self.bin_op_exp_vec.push(e.clone());
                 self.collect_expr(l.as_ref());
                 self.collect_expr(r.as_ref());
             }
@@ -270,6 +284,9 @@ impl LetExtractor {
     }
 
     pub(crate) fn need_split_long_bin_op_exp(&self, token: TokenTree) -> bool {
+        //     if !matches!(token.simple_str().unwrap_or_default(), "==> " | "<==>") {
+        //         return false;
+        //     }
         for (idx, bin_op_exp) in self.long_bin_op_exp_vec.iter().enumerate() {
             if let Exp_::BinopExp(_, m, _) = &bin_op_exp.value {
                 if token.end_pos() == m.loc.end() {
@@ -282,6 +299,9 @@ impl LetExtractor {
     }
 
     pub(crate) fn is_long_bin_op_exp_end(&self, token: TokenTree) -> bool {
+        //     if !matches!(token.simple_str().unwrap_or_default(), "==> " | "<==>") {
+        //         return false;
+        //     }
         for (idx, bin_op_exp) in self.long_bin_op_exp_vec.iter().enumerate() {
             if let Exp_::BinopExp(_, _, r) = &bin_op_exp.value {
                 if token.end_pos() == r.loc.end() && self.split_bin_op_vec.borrow()[idx] {

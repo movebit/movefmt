@@ -424,6 +424,20 @@ impl Format {
                 new_line = true;
             }
         }
+
+        if !new_line
+            && next_t.is_some()
+            && matches!(next_t.unwrap().simple_str().unwrap_or_default(), "=" | "==")
+            && self
+                .syntax_extractor
+                .let_extractor
+                .is_long_bin_op(next_t.unwrap().clone())
+        {
+            let next_token_start_pos = self.get_token_tree_start_pos(next_t.unwrap());
+            if self.translate_line(next_token_start_pos) == self.translate_line(t.end_pos()) + 1 {
+                return true;
+            }
+        }
         new_line
     }
 

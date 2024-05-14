@@ -2416,8 +2416,8 @@ module econia::incentives {
         // Destroy empty coins, asserting that all taker fees assessed.
         coin::destroy_zero(quote_coins);
         assert!(get_econia_fee_store_balance_test<QC>(market_id_0) == econia_fees_0, 0); // Assert Econia fee share.
-        assert!(get_integrator_fee_store_balance_test<QC>(@user, market_id_0) == integrator_fees_0,
-            0); // Assert integrator fee share.
+        assert!(get_integrator_fee_store_balance_test<QC>(@user, market_id_0)
+            == integrator_fees_0, 0); // Assert integrator fee share.
         // Mint enough quote coins to cover taker fees for fill 1.
         quote_coins = assets::mint_test(econia_fees_1);
         // Assess fees on fill 1.
