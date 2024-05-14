@@ -28,6 +28,7 @@ pub struct FormatContext {
     pub content: String,
     pub cur_module_name: String,
     pub cur_tok: Tok,
+    pub cur_nested_kind: NestKind,
 }
 
 impl FormatContext {
@@ -36,6 +37,11 @@ impl FormatContext {
             content,
             cur_module_name: "".to_string(),
             cur_tok: Tok::EOF,
+            cur_nested_kind: NestKind {
+                kind: NestKind_::Lambda,
+                start_pos: 0,
+                end_pos: 0,
+            },
         }
     }
 }
@@ -562,6 +568,9 @@ impl Format {
             }
             NestKind_::Bracket => {
                 new_line_mode = nested_token_len as f32 > max_len_when_no_add_line;
+                if elements.len() > 32 {
+                    return (new_line_mode, Some(false));
+                }
             }
             NestKind_::Lambda => {
                 if delimiter.is_none() && nested_token_len as f32 <= max_len_when_no_add_line {
@@ -740,6 +749,8 @@ impl Format {
         has_colon: bool,
         b_new_line_mode: bool,
     ) {
+        let old_kind = self.format_context.borrow_mut().cur_nested_kind;
+        self.format_context.borrow_mut().cur_nested_kind = *kind;
         let nested_token = TokenTree::Nested {
             elements: elements.to_owned(),
             kind: *kind,
@@ -837,6 +848,7 @@ impl Format {
             );
             internal_token_idx += 1;
         }
+        self.format_context.borrow_mut().cur_nested_kind = old_kind;
     }
 
     fn judge_add_space_around_brace(&self, token: &TokenTree, b_new_line_mode: bool) -> bool {
@@ -1076,20 +1088,26 @@ impl Format {
                     split_line_after_content = true;
                 }
 
-                let leading_space_cnt = self.last_line().len()
-                    - self
-                        .last_line()
-                        .clone()
-                        .trim_start_matches(char::is_whitespace)
-                        .len();
-                let cur_indent_cnt = self.depth.get() * self.local_cfg.indent_size;
-                if leading_space_cnt + self.local_cfg.indent_size == cur_indent_cnt {
-                    tracing::debug!("cur_indent_cnt: {}", cur_indent_cnt);
-                    self.new_line(None);
+                let need_inc_depth =
+                    self.format_context.borrow().cur_nested_kind.kind != NestKind_::Bracket;
+                if need_inc_depth {
+                    let leading_space_cnt = self.last_line().len()
+                        - self
+                            .last_line()
+                            .clone()
+                            .trim_start_matches(char::is_whitespace)
+                            .len();
+                    let cur_indent_cnt = self.depth.get() * self.local_cfg.indent_size;
+                    if leading_space_cnt + self.local_cfg.indent_size == cur_indent_cnt {
+                        tracing::debug!("cur_indent_cnt: {}", cur_indent_cnt);
+                        self.new_line(None);
+                    } else {
+                        self.inc_depth();
+                        self.new_line(None);
+                        self.dec_depth();
+                    }
                 } else {
-                    self.inc_depth();
                     self.new_line(None);
-                    self.dec_depth();
                 }
             }
 
@@ -1531,7 +1549,8 @@ impl Format {
             | Tok::LessEqualEqualGreater
             | Tok::GreaterEqual
             | Tok::GreaterGreater
-            | Tok::NumValue => true,
+            | Tok::NumValue
+            | Tok::NumTypedValue => true,
             _ => false,
         };
         tracing::debug!("tok_suitable_for_new_line ret = {}", ret);
