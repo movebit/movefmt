@@ -766,7 +766,7 @@ pub(crate) fn has_special_key_for_break_line_in_code_buf(code_buffer: String) ->
     lexer.advance().unwrap();
     const FOR_IDENT: &str = "for";
     while lexer.peek() != Tok::EOF {
-        if matches!(lexer.peek(), Tok::Module | Tok::Script | Tok::Loop) {
+        if matches!(lexer.peek(), Tok::Module | Tok::Script | Tok::Loop | Tok::Spec) {
             return true;
         }
         if lexer.peek() == Tok::Identifier && matches!(lexer.lookahead_nth(0), Ok(Tok::LParen)) {

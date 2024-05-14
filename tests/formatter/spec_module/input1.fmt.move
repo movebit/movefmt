@@ -18,7 +18,9 @@ spec std::string {
         ensures [abstract] result == spec_internal_sub_string(v, i, j);
     }
 
-    spec fun spec_utf8(bytes: vector<u8>): String { String { bytes } }
+    spec fun spec_utf8(bytes: vector<u8>): String {
+        String { bytes }
+    }
 
     spec module {
         fun spec_internal_check_utf8(v: vector<u8>): bool;

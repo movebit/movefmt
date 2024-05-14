@@ -61,13 +61,17 @@ spec std::features {
         spec_is_enabled(PERIODICAL_REWARD_RATE_DECREASE)
     }
 
-    spec fun spec_fee_payer_enabled(): bool { spec_is_enabled(FEE_PAYER_ENABLED) }
+    spec fun spec_fee_payer_enabled(): bool {
+        spec_is_enabled(FEE_PAYER_ENABLED)
+    }
 
     spec fun spec_collect_and_distribute_gas_fees_enabled(): bool {
         spec_is_enabled(COLLECT_AND_DISTRIBUTE_GAS_FEES)
     }
 
-    spec fun spec_module_event_enabled(): bool { spec_is_enabled(MODULE_EVENT) }
+    spec fun spec_module_event_enabled(): bool {
+        spec_is_enabled(MODULE_EVENT)
+    }
 
     spec periodical_reward_rate_decrease_enabled {
         pragma opaque;
