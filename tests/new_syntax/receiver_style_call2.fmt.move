@@ -13,18 +13,19 @@ module 0x42::m {
 
     fun test_link_call(s: S) {
         let p1m = &mut s;
-        let p2m = p1m.plus_one()
-            .plus_one()
-            .plus_one()
-            .plus_one()
-            .plus_one()
-            .plus_one()
-            .plus_one()
-            .plus_one()
-            .plus_one()
-            .plus_one()
-            .plus_one()
-            .plus_one();
+        let p2m =
+            p1m.plus_one()
+                .plus_one()
+                .plus_one()
+                .plus_one()
+                .plus_one()
+                .plus_one()
+                .plus_one()
+                .plus_one()
+                .plus_one()
+                .plus_one()
+                .plus_one()
+                .plus_one();
     }
 }
 //# run 0x42::m::test

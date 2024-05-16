@@ -272,15 +272,14 @@ impl Format {
                 return true;
             }
         }
-        if matches!(current.simple_str().unwrap_or_default(), "==>" | "<==>")
-            && self
-                .syntax_extractor
-                .let_extractor
-                .is_long_bin_op(current.clone())
-        {
+        if matches!(current.simple_str().unwrap_or_default(), "==>" | "<==>") {
             let next_token_start_pos = self.get_token_tree_start_pos(next.unwrap());
             if self.translate_line(next_token_start_pos)
                 <= self.translate_line(current.end_pos()) + 1
+                && self
+                    .syntax_extractor
+                    .let_extractor
+                    .is_long_bin_op(current.clone())
             {
                 return true;
             }
@@ -305,15 +304,14 @@ impl Format {
         {
             return true;
         }
-        if matches!(current.simple_str().unwrap_or_default(), "==>" | "<==>")
-            && self
-                .syntax_extractor
-                .let_extractor
-                .is_long_bin_op(current.clone())
-        {
+        if matches!(current.simple_str().unwrap_or_default(), "==>" | "<==>") {
             let next_token_start_pos = self.get_token_tree_start_pos(next.unwrap());
             if self.translate_line(next_token_start_pos)
                 <= self.translate_line(current.end_pos()) + 1
+                && self
+                    .syntax_extractor
+                    .let_extractor
+                    .is_long_bin_op(current.clone())
             {
                 return true;
             }
@@ -425,16 +423,31 @@ impl Format {
             }
         }
 
-        if !new_line
-            && next_t.is_some()
-            && matches!(next_t.unwrap().simple_str().unwrap_or_default(), "=" | "==")
-            && self
-                .syntax_extractor
-                .let_extractor
-                .is_long_bin_op(next_t.unwrap().clone())
-        {
+        if !new_line && next_t.is_some() {
             let next_token_start_pos = self.get_token_tree_start_pos(next_t.unwrap());
-            if self.translate_line(next_token_start_pos) == self.translate_line(t.end_pos()) + 1 {
+            let next_token_is_same_line =
+                self.translate_line(next_token_start_pos) == self.translate_line(t.end_pos());
+            if matches!(
+                next_token,
+                Tok::ExclaimEqual | Tok::LessEqual | Tok::EqualEqual | Tok::GreaterEqual
+            ) && next_token_is_same_line
+                && self
+                    .syntax_extractor
+                    .let_extractor
+                    .is_long_bin_op(next_t.unwrap().clone())
+            {
+                return true;
+            }
+
+            if t.simple_str().unwrap_or_default() == "="
+                && next_t.unwrap().simple_str().unwrap_or_default() != "vector"
+                && next_token != Tok::LBrace
+                && next_token_is_same_line
+                && self
+                    .syntax_extractor
+                    .let_extractor
+                    .is_long_assign(t.clone())
+            {
                 return true;
             }
         }
@@ -1212,7 +1225,7 @@ impl Format {
                     && self
                         .syntax_extractor
                         .let_extractor
-                        .need_split_long_bin_op_exp(token.clone())
+                        .need_inc_depth_by_long_op(token.clone())
                 {
                     self.inc_depth();
                 }
@@ -1220,7 +1233,7 @@ impl Format {
                 if self
                     .syntax_extractor
                     .let_extractor
-                    .is_long_bin_op_exp_end(token.clone())
+                    .need_dec_depth_by_long_op(token.clone())
                 {
                     self.dec_depth();
                 }
@@ -1576,7 +1589,6 @@ impl Format {
             | Tok::LessEqualEqualGreater
             | Tok::GreaterEqual
             | Tok::GreaterGreater
-            | Tok::AtSign
             | Tok::NumValue
             | Tok::NumTypedValue => true,
             _ => false,
@@ -1596,7 +1608,8 @@ impl Format {
         note: Option<Note>,
         next: Option<&TokenTree>,
     ) -> bool {
-        if self.get_cur_line_len() + tok_str.len() > self.global_cfg.max_width() {
+        let len_plus_tok_len = self.get_cur_line_len() + tok_str.len();
+        if len_plus_tok_len > self.global_cfg.max_width() {
             tracing::trace!(
                 "self.get_cur_line_len() = {}, tok_str.len() = {}",
                 self.get_cur_line_len(),
@@ -1609,7 +1622,16 @@ impl Format {
             );
         }
 
-        self.get_cur_line_len() + tok_str.len() > self.global_cfg.max_width()
+        if tok == Tok::AtSign && next.is_some() {
+            let next_tok_len = next.unwrap().simple_str().unwrap_or_default().len();
+            if next_tok_len > 8 
+                && len_plus_tok_len + next.unwrap().simple_str().unwrap_or_default().len()
+                    > self.global_cfg.max_width() {
+                return true;
+            }
+        }
+
+        len_plus_tok_len > self.global_cfg.max_width()
             && Self::tok_suitable_for_new_line(tok, note, next)
     }
 

@@ -10,8 +10,9 @@ script {
     use aptos_framework::code;
 
     fun main(core_resources: &signer) {
-        let framework_signer = aptos_governance::get_signer_testnet_only(core_resources, @
-            0000000000000000000000000000000000000000000000000000000000000001);
+        let framework_signer =
+            aptos_governance::get_signer_testnet_only(core_resources,
+                @0000000000000000000000000000000000000000000000000000000000000001);
         let code = vector::empty();
         let chunk0 = vector[
             161u8, 28u8, 235u8, 11u8, 6u8, 0u8, 0u8, 0u8, 5u8, 1u8, 0u8, 2u8, 2u8, 2u8,

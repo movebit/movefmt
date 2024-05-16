@@ -95,7 +95,8 @@ module ExperimentalFramework::MultiToken {
     /// Returns the supply of tokens with `id` on the chain.
     public fun supply<TokenType: store>(id: &guid::ID): u64 acquires TokenDataCollection {
         let owner_addr = guid::id_creator_address(id);
-        let tokens = &mut borrow_global_mut<TokenDataCollection<TokenType>>(owner_addr).tokens;
+        let tokens =
+            &mut borrow_global_mut<TokenDataCollection<TokenType>>(owner_addr).tokens;
         let index_opt = index_of_token<TokenType>(tokens, id);
         assert!(option::is_some(&index_opt), errors::invalid_argument(EWRONG_TOKEN_ID));
         let index = option::extract(&mut index_opt);
@@ -115,7 +116,8 @@ module ExperimentalFramework::MultiToken {
     public fun extract_token<TokenType: store>(nft: &Token<TokenType>)
         : TokenDataWrapper<TokenType> acquires TokenDataCollection {
         let owner_addr = guid::id_creator_address(&nft.id);
-        let tokens = &mut borrow_global_mut<TokenDataCollection<TokenType>>(owner_addr).tokens;
+        let tokens =
+            &mut borrow_global_mut<TokenDataCollection<TokenType>>(owner_addr).tokens;
         let index_opt = index_of_token<TokenType>(tokens, &nft.id);
         assert!(option::is_some(&index_opt), errors::invalid_argument(EWRONG_TOKEN_ID));
         let index = option::extract(&mut index_opt);
@@ -132,12 +134,14 @@ module ExperimentalFramework::MultiToken {
         aborts_if !exists<TokenDataCollection<TokenType>>(addr);
         aborts_if token_collection[min_token_idx].metadata == option::spec_none();
         aborts_if !is_in_tokens(token_collection, id);
-        ensures result == TokenDataWrapper {
+        ensures result
+        == TokenDataWrapper {
             origin: addr,
             index: min_token_idx,
             metadata: option::borrow(token_collection[min_token_idx].metadata)
         };
-        ensures get_tokens<TokenType>(addr)[min_token_idx].metadata == option::spec_none();
+        ensures get_tokens<TokenType>(addr)[min_token_idx].metadata
+        == option::spec_none();
     }
 
     /// Restore the token in the wrapper back into global storage under original address.
@@ -145,7 +149,8 @@ module ExperimentalFramework::MultiToken {
         wrapper: TokenDataWrapper<TokenType>
     ) acquires TokenDataCollection {
         let TokenDataWrapper { origin, index, metadata } = wrapper;
-        let tokens = &mut borrow_global_mut<TokenDataCollection<TokenType>>(origin).tokens;
+        let tokens =
+            &mut borrow_global_mut<TokenDataCollection<TokenType>>(origin).tokens;
         assert!(vector::length(tokens) > index, EINDEX_EXCEEDS_LENGTH);
         let item_opt = &mut vector::borrow_mut(tokens, index).metadata;
         assert!(option::is_none(item_opt), ETOKEN_PRESENT);
@@ -159,8 +164,8 @@ module ExperimentalFramework::MultiToken {
         aborts_if !exists<TokenDataCollection<TokenType>>(addr);
         aborts_if len(token_collection) <= wrapper.index;
         aborts_if item_opt != option::spec_none();
-        ensures get_tokens<TokenType>(addr)[wrapper.index].metadata == option::spec_some(wrapper
-            .metadata);
+        ensures get_tokens<TokenType>(addr)[wrapper.index].metadata
+        == option::spec_some(wrapper.metadata);
     }
 
     /// Finds the index of token with the given id in the gallery.
@@ -253,8 +258,9 @@ module ExperimentalFramework::MultiToken {
             move_to(account,
                 TokenDataCollection { tokens: vector::empty<TokenData<TokenType>>() });
         };
-        let token_data_collection = &mut borrow_global_mut<TokenDataCollection<TokenType>>(signer::address_of(
-                account)).tokens;
+        let token_data_collection =
+            &mut borrow_global_mut<TokenDataCollection<TokenType>>(signer::address_of(account))
+                .tokens;
         vector::push_back(token_data_collection,
             TokenData {
                 metadata: option::some(metadata),
@@ -276,7 +282,8 @@ module ExperimentalFramework::MultiToken {
         ensures result.balance == amount;
         ensures guid::id_creator_address(result.id) == addr;
         ensures exists<TokenDataCollection<TokenType>>(addr);
-        ensures post_tokens[len(post_tokens) - 1] == TokenData<TokenType> {
+        ensures post_tokens[len(post_tokens) - 1]
+        == TokenData<TokenType> {
             metadata: option::spec_some(metadata),
             token_id: guid::GUID { id: result.id },
             content_uri,

@@ -250,20 +250,19 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
         (_, TokType::Amp) => is_bin_next,
         (TokType::Amp, _) => is_bin_current,
         (_, TokType::Star) => {
-            let result = if is_bin_next || is_apply_next {
-                is_to_execpt
-            } else {
-                false
-            };
-            result
-                || matches!(
-                    curr_start_tok,
-                    Tok::NumValue | Tok::NumTypedValue | Tok::Acquires | Tok::Identifier
-                )
-                || matches!(
-                    curr_end_tok,
-                    Tok::RParen | Tok::Comma | Tok::Slash | Tok::Pipe | Tok::PipePipe
-                )
+            if is_bin_next {
+                return true;
+            }
+            if is_apply_next {
+                return is_to_execpt;
+            }
+            matches!(
+                curr_start_tok,
+                Tok::NumValue | Tok::NumTypedValue | Tok::Acquires | Tok::Identifier
+            ) || matches!(
+                curr_end_tok,
+                Tok::RParen | Tok::Comma | Tok::Slash | Tok::Pipe | Tok::PipePipe
+            )
         }
 
         (TokType::Star, _) => {
@@ -274,7 +273,6 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
             if is_apply_current {
                 is_to_execpt
             } else {
-                let mut result = false;
                 if is_next_tok_nested && next_tok_nested_kind == NestKind_::Brace {
                     return true;
                 }
@@ -285,16 +283,11 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                     ) {
                         return true;
                     }
-                    if Tok::Identifier == next_start_tok {
-                        if next_tok_simple_content.contains("vector") {
-                            result = false;
-                        } else if is_bin_current {
-                            return true;
-                        }
+                    if next_tok_simple_content == "vector" {
+                        return false;
                     }
                 }
-
-                result
+                return false;
             }
         }
 
