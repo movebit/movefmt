@@ -174,5 +174,4 @@ module DiemFramework::PaymentScripts {
         aborts_if !exists<DiemAccount::Balance<Currency>>(payer_addr) with errors::NOT_PUBLISHED;
         aborts_if !exists<DiemAccount::Balance<Currency>>(payee) with errors::INVALID_ARGUMENT;
     }
-
 }

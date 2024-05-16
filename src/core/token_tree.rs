@@ -739,7 +739,6 @@ pub(crate) fn get_code_buf_len(code_buffer: String) -> usize {
             special_key = matches!(
                 lexer.peek(),
                 Tok::If
-                    | Tok::LBrace
                     | Tok::Module
                     | Tok::Script
                     | Tok::Struct
@@ -747,6 +746,7 @@ pub(crate) fn get_code_buf_len(code_buffer: String) -> usize {
                     | Tok::Public
                     | Tok::Inline
                     | Tok::Spec
+                    | Tok::LBrace
             );
         }
         if lexer.advance().is_err() {
@@ -755,7 +755,11 @@ pub(crate) fn get_code_buf_len(code_buffer: String) -> usize {
     }
 
     if special_key {
-        tokens_len
+        if tokens_len == code_buffer.len() {
+            tokens_len - 1
+        } else {
+            tokens_len
+        }
     } else {
         code_buffer.len()
     }

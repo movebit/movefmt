@@ -1279,9 +1279,7 @@ module econia::incentives {
             (taker_fee_divisor as u128) * (max_quote_delta_user as u128);
         // Calculate denominator based on direction.
         let denominator =
-            if (direction == BUY)
-                (taker_fee_divisor + 1 as u128)
-            else
+            if (direction == BUY) (taker_fee_divisor + 1 as u128) else
                 (taker_fee_divisor - 1 as u128);
         // Calculate maximum quote coins to match.
         let max_quote_match = numerator / denominator;
@@ -2892,5 +2890,4 @@ module econia::incentives {
     }
 
     // Tests <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
 }

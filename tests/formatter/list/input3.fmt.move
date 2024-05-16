@@ -13,5 +13,4 @@ module econia::incentives {
                 WITHDRAWAL_FEE_1], // Withdrawal fee for tier 1
             vector[FEE_SHARE__DIVISOR__2, FEE__SHARE__DIVISOR__2, FEE__SHARE__DIVISOR__2]]; // ... and so on for other tiers
     }
-
 }

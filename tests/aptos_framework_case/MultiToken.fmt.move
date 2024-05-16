@@ -182,7 +182,9 @@ module ExperimentalFramework::MultiToken {
                 };
                 (i < len1)
             }) {
-            if (guid::eq_id(&vector::borrow(gallery, i).token_id, id)) { return option::some(i) };
+            if (guid::eq_id(&vector::borrow(gallery, i).token_id, id)) {
+                return option::some(i)
+            };
             i = i + 1;
         };
         option::none()
@@ -290,5 +292,4 @@ module ExperimentalFramework::MultiToken {
             supply: amount
         };
     }
-
 }

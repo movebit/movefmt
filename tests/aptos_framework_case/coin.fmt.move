@@ -510,7 +510,9 @@ module aptos_framework::coin {
                 name,
                 symbol,
                 decimals,
-                supply: if (monitor_supply) { option::some(optional_aggregator::new(MAX_U128, parallelizable)) } else {
+                supply: if (monitor_supply) {
+                    option::some(optional_aggregator::new(MAX_U128, parallelizable))
+                } else {
                     option::none()
                 },
             };

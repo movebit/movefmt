@@ -238,8 +238,8 @@ module DiemFramework::DiemAccount {
     }
 
     spec fun spec_has_published_account_limits<Token>(addr: address): bool {
-        if (VASP::is_vasp(addr)) VASP::spec_has_account_limits<Token>(addr) else AccountLimits::has_window_published<Token>(
-            addr)
+        if (VASP::is_vasp(addr)) VASP::spec_has_account_limits<Token>(addr) else
+            AccountLimits::has_window_published<Token>(addr)
     }
 
     /// Returns whether we should track and record limits for the `payer` or `payee` account.
@@ -1382,9 +1382,9 @@ module DiemFramework::DiemAccount {
         include Roles::AbortsIfNotTreasuryCompliance { account: creator_account };
         aborts_if exists<Roles::RoleId>(new_account_address) with errors::ALREADY_PUBLISHED;
         aborts_if exists<DesignatedDealer::Dealer>(new_account_address) with errors::ALREADY_PUBLISHED;
-        include if (add_all_currencies) DesignatedDealer::AddCurrencyAbortsIf<XUS> {
-            dd_addr: new_account_address
-        } else DesignatedDealer::AddCurrencyAbortsIf<CoinType> { dd_addr: new_account_address };
+        include if (add_all_currencies)
+            DesignatedDealer::AddCurrencyAbortsIf<XUS> { dd_addr: new_account_address }
+        else DesignatedDealer::AddCurrencyAbortsIf<CoinType> { dd_addr: new_account_address };
         include AddCurrencyForAccountAbortsIf<CoinType> { addr: new_account_address };
         include MakeAccountAbortsIf { addr: new_account_address };
     }
@@ -2594,7 +2594,6 @@ module DiemFramework::DiemAccount {
         fun spec_holds_delegated_withdraw_capability(addr: address): bool {
             exists_at(addr) && option::is_none(global<DiemAccount>(addr).withdraw_capability)
         }
-
     }
 
     /// ## Prologue

@@ -1,5 +1,4 @@
 address 0x2 {
-
 module Token {
 
     struct Coin<AssetType: copy + drop> has store {
@@ -15,13 +14,10 @@ module Token {
     public fun value<ATy: copy + drop + store>(coin: &Coin<ATy>): u64 {
         coin.value
     }
-
+}
 }
 
-}
 address 0xB055 {
-
-
 module OneToOneMarket {
     use std::signer;
     use 0x2::Token;
@@ -49,9 +45,8 @@ module OneToOneMarket {
         let output_deposited = borrowed_amount<In, Out>(account);
 
         let input_into_output = input_deposited * borrow_global<Price<In, Out>>(@0xB055).price;
-        // let max_output =
-        //     if (input_into_output < output_deposited) 0
-        //     else (input_into_output - output_deposited);
+        let max_output = if (input_into_output < output_deposited) 0 else
+            (input_into_output - output_deposited);
         let available_output = {
             let pool = borrow_global<Pool<Out>>(@0xB055);
             Token::value(&pool.coin)
@@ -68,11 +63,9 @@ module OneToOneMarket {
         borrow_global<BorrowRecord<In, Out>>(sender).record
     }
 }
-
 }
+
 address 0x70DD {
-
-
 module ToddNickels {
     use 0x2::Token;
     use std::signer;
@@ -87,7 +80,5 @@ module ToddNickels {
         assert!(signer::address_of(account) == @0x70DD, 42);
         move_to(account, Wallet { nickels: Token::create(T {}, 0) })
     }
-
 }
-
 }

@@ -82,6 +82,7 @@ module 0xcafe::vectors {
         guess_without_break_with_inline(flips);
     }
 }
+
 //#run 0xcafe::vectors::test_guess_with_inline_break
 
 //#run 0xcafe::vectors::test_guess_directly

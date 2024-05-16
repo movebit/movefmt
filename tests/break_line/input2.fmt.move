@@ -30,5 +30,4 @@ script {
         let signer_cap = SignerCapability { account: addr };
         (signer, signer_cap)
     }
-
 }

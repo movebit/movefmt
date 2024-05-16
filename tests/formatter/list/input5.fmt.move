@@ -20,5 +20,4 @@ module econia::incentives {
             // ...
             vector[FEE_SHARE_DIVISOR_N, TIER_ACTIVATION_FEE_N, WITHDRAWAL_FEE_N]];
     }
-
 }

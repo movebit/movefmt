@@ -304,9 +304,8 @@ module 0xABCD::simple {
             (vector::length(&resource1.data.data), vector::length(&resource2.data.data))
         };
         let (new_len, resource) =
-            if (len1 > len2) { (len2 / 2, borrow_global_mut<Resource>(signer::address_of(owner))) } else {
-                (len1 / 2, borrow_global_mut<Resource>(other))
-            };
+            if (len1 > len2) { (len2 / 2, borrow_global_mut<Resource>(signer::address_of(owner))) }
+            else { (len1 / 2, borrow_global_mut<Resource>(other)) };
         while (vector::length(&resource.data.data) > new_len) {
             vector::pop_back(&mut resource.data.data);
         }
@@ -402,8 +401,7 @@ module 0xABCD::simple {
         if (*ret2 < r2.id) {
             ret1 = ret2;
             ret2 = &c2.count;
-        }
-        else if (ret1 != &r1.id) {
+        } else if (ret1 != &r1.id) {
             ret1 = &c1.count;
             ret2 = &r2.id;
         };
@@ -414,7 +412,8 @@ module 0xABCD::simple {
             ret1 = ret2;
             ret2
         };
-        if (ret1 == ret2) { ret1 } else { ret2 }
+        if (ret1 == ret2) { ret1 }
+        else { ret2 }
     }
 
     struct TableStore has key {

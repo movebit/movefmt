@@ -452,6 +452,7 @@ pub(crate) fn need_break_cur_line_when_trim_blank_lines(current: &Tok, next: &To
         ) | (
             Tok::AtSign | Tok::Amp,
             Tok::NumValue | Tok::Identifier | Tok::LParen
-        )
+        ) | (Tok::RBrace, Tok::RBrace)
+        | (Tok::LBrace, Tok::Module)
     )
 }

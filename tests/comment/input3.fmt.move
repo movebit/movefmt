@@ -12,6 +12,7 @@ the commission fee is 0%.</li>
 module aptos_framework::delegation_pool {
     use std::vector;
 }
+
 //  /* xxx */
 /*
 level1

@@ -83,14 +83,16 @@ impl LetExtractor {
         match &s.value {
             SequenceItem_::Seq(e) => self.collect_expr(e),
             SequenceItem_::Bind(b, _, e) => {
-                self.let_assign_loc_vec.push(
-                    Loc::new(
-                        b.loc.file_hash(),
-                        b.loc.end(),
-                        e.loc.start(),
-                    )
-                );
-                self.let_assign_rhs_exp.push(*e.clone());
+                if b.loc.end() < e.loc.start() {
+                    self.let_assign_loc_vec.push(
+                        Loc::new(
+                            b.loc.file_hash(),
+                            b.loc.end(),
+                            e.loc.start(),
+                        )
+                    );
+                    self.let_assign_rhs_exp.push(*e.clone());
+                }
                 self.collect_expr(e);
             }
             _ => {}

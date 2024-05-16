@@ -139,7 +139,10 @@ module std::bit_vector {
     }
 
     spec fun spec_is_index_set(bitvector: BitVector, bit_index: u64): bool {
-        if (bit_index >= length(bitvector)) { false } else { bitvector.bit_field[bit_index] }
+        if (bit_index >= length(bitvector)) { false }
+        else {
+            bitvector.bit_field[bit_index]
+        }
     }
 
     /// Return the length (number of usable bits) of this bitvector

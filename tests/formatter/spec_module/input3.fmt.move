@@ -21,5 +21,4 @@ spec aptos_framework::aptos_coin {
     spec schema ExistsAptosCoin {
         requires exists<coin::CoinInfo<AptosCoin>>(@aptos_framework);
     }
-
 }

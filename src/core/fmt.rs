@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::core::token_tree::*;
-use crate::syntax_fmt::branch_fmt::{self, BranchExtractor, BranchKind};
+use crate::syntax_fmt::branch_fmt::BranchExtractor;
 use crate::syntax_fmt::call_fmt::CallExtractor;
 use crate::syntax_fmt::fun_fmt::FunExtractor;
 use crate::syntax_fmt::let_fmt::LetExtractor;
@@ -26,7 +26,6 @@ const BREAK_LINE_FOR_LOGIC_OP_NUM: u32 = 2;
 
 pub struct FormatContext {
     pub content: String,
-    pub cur_module_name: String,
     pub cur_tok: Tok,
     pub cur_nested_kind: NestKind,
 }
@@ -35,7 +34,6 @@ impl FormatContext {
     pub fn new(content: String) -> Self {
         FormatContext {
             content,
-            cur_module_name: "".to_string(),
             cur_tok: Tok::EOF,
             cur_nested_kind: NestKind {
                 kind: NestKind_::Lambda,
@@ -79,7 +77,7 @@ impl Format {
         let mut line_mapping = FileLineMappingOneFile::default();
         line_mapping.update(content);
         let syntax_extractor = SyntaxExtractor {
-            branch_extractor: BranchExtractor::new(content.to_string(), BranchKind::ComIfElse),
+            branch_extractor: BranchExtractor::new(content.to_string()),
             fun_extractor: FunExtractor::new(content.to_string()),
             call_extractor: CallExtractor::new(content.to_string()),
             let_extractor: LetExtractor::new(content.to_string()),
@@ -120,11 +118,6 @@ impl Format {
         *self.ret.borrow_mut() =
             fun_fmt::fmt_fun(self.ret.clone().into_inner(), self.global_cfg.clone());
         tracing::debug!("post_process -- split_if_else_in_let_block");
-        *self.ret.borrow_mut() = branch_fmt::split_if_else_in_let_block(
-            self.ret.clone().into_inner(),
-            self.global_cfg.clone(),
-        );
-
         if self.ret.clone().into_inner().contains("spec ") {
             *self.ret.borrow_mut() =
                 spec_fmt::fmt_spec(self.ret.clone().into_inner(), self.global_cfg.clone());
@@ -132,6 +125,13 @@ impl Format {
         tracing::debug!("post_process -- fmt_big_block");
         *self.ret.borrow_mut() = big_block_fmt::fmt_big_block(self.ret.clone().into_inner());
         self.remove_trailing_whitespaces();
+
+        {
+            // this step must before add_comments. because there maybe some comments before new module
+            // https://github.com/movebit/movefmt/issues/1
+            self.process_last_empty_line();
+        }
+
         tracing::debug!("post_process << done !!!");
     }
 
@@ -935,17 +935,21 @@ impl Format {
             let (delimiter, has_colon) = Self::analyze_token_tree_delimiter(elements);
             let (b_new_line_mode, opt_component_break_mode) =
                 self.get_new_line_mode_begin_nested(kind, elements, note, delimiter);
-            let b_add_indent = !note.map(|x| x == Note::ModuleAddress).unwrap_or_default();
+
+            let b_add_indent = elements.is_empty() || elements.first().unwrap().simple_str().unwrap_or_default() != "module";
             let nested_token_head = self.format_context.borrow().cur_tok;
             if Tok::NumSign == nested_token_head {
                 self.push_str(fun_fmt::process_fun_annotation(*kind, elements.to_vec()));
                 return;
             }
-            if b_new_line_mode {
+
+            if b_new_line_mode && !elements.is_empty() {
                 tracing::debug!(
-                    "nested_token_head = [{:?}], add a new line; opt_component_break_mode = {:?}",
+                    "nested_token_head = [{:?}], add a new line before {:?}; opt_component_break_mode = {:?}; b_add_indent = {:?};",
                     nested_token_head,
-                    opt_component_break_mode
+                    elements.first().unwrap().simple_str(),
+                    opt_component_break_mode,
+                    b_add_indent
                 );
             }
             let b_add_space_around_brace =
@@ -1002,6 +1006,7 @@ impl Format {
             // added in 20240115
             // updated in 20240124
             if Tok::LBrace != *tok
+                && content != "for"
                 && self
                     .syntax_extractor
                     .branch_extractor
@@ -1013,15 +1018,25 @@ impl Format {
             }
 
             // process `else if`
-            if *tok == Tok::Else
-                && next_token.is_some()
-                && (next_token.unwrap().simple_str().unwrap_or_default() == "if"
-                    || self
-                        .syntax_extractor
-                        .branch_extractor
-                        .is_nested_within_an_outer_else(*pos))
-            {
-                self.new_line(None);
+            // updated in 20240516: optimize break line before else
+            if *tok == Tok::Else {
+                let get_cur_line_len = self.get_cur_line_len();
+                let has_special_key = get_cur_line_len != self.last_line().len();
+                if self.format_context.borrow().cur_tok == Tok::RBrace {
+                    if has_special_key {
+                        self.new_line(None);
+                    }
+                }
+                else if next_token.is_some() {
+                    if !has_special_key
+                        && get_cur_line_len + content.len() + next_token.unwrap().simple_str().unwrap_or_default().len() > self.global_cfg.max_width() {
+                        self.new_line(None);
+                    }
+                    let is_in_nested_else_branch = self.syntax_extractor.branch_extractor.is_nested_within_an_outer_else(*pos);
+                    if next_token.unwrap().simple_str().unwrap_or_default() == "if" || is_in_nested_else_branch {
+                        self.new_line(None);
+                    }
+                }
             }
         }
     }
@@ -1181,24 +1196,19 @@ impl Format {
             // step1
             self.top_half_process_branch_new_line_when_fmt_simple_token(token, next_token);
 
-            // step2: add blank row between module
-            // this step must before add_comments. because there maybe some comments before new module
-            // https://github.com/movebit/movefmt/issues/1
-            self.maybe_meet_new_module_in_same_file(*tok, next_token, *pos);
-
-            // step3: add comment(xxx) before current simple_token
+            // step2: add comment(xxx) before current simple_token
             self.add_comments(*pos, content.clone());
 
-            // step4
+            // step3
             self.process_blank_lines_before_simple_token(token);
 
-            // step5
+            // step4
             self.bottom_half_process_branch_new_line_when_fmt_simple_token(token);
 
-            // step6
+            // step5
             self.format_context.borrow_mut().cur_tok = *tok;
 
-            // step7
+            // step6
             self.fmt_simple_token_core(token, next_token, new_line_after);
         }
     }
@@ -1514,29 +1524,6 @@ impl Format {
         }
         self.push_str("\n");
         self.indent();
-    }
-
-    fn maybe_meet_new_module_in_same_file(
-        &self,
-        tok: Tok,
-        next_token: Option<&TokenTree>,
-        pos: u32,
-    ) {
-        if Tok::Module == tok {
-            // tracing::debug!("SimpleToken[{:?}], cur_module_name = {:?}", content,  self.format_context.borrow_mut().cur_module_name);
-            if !self.format_context.borrow_mut().cur_module_name.is_empty()
-                && (self.translate_line(pos) - self.cur_line.get()) >= 1
-            {
-                // tracing::debug!("SimpleToken[{:?}], add blank row between module", content);
-                self.new_line(None);
-            }
-            self.format_context.borrow_mut().cur_module_name = next_token
-                .unwrap()
-                .simple_str()
-                .unwrap_or_default()
-                .to_string();
-            // Note: You can get the token tree of the entire format_context.env here
-        }
     }
 }
 

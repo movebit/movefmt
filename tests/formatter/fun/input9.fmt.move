@@ -12,5 +12,4 @@ module TestFunFormat {
     public fun fun2(v: u64): SomeOtherStruct {
         SomeOtherStruct { some_field: v }
     }
-
 }

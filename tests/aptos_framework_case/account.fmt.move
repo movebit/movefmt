@@ -342,16 +342,14 @@ module aptos_framework::account {
             let from_auth_key = ed25519::unvalidated_public_key_to_authentication_key(&from_pk);
             assert!(account_resource.authentication_key == from_auth_key,
                 error::unauthenticated(EWRONG_CURRENT_PUBLIC_KEY));
-        }
-        else if (from_scheme == MULTI_ED25519_SCHEME) {
+        } else if (from_scheme == MULTI_ED25519_SCHEME) {
             let from_pk =
                 multi_ed25519::new_unvalidated_public_key_from_bytes(from_public_key_bytes);
             let from_auth_key =
                 multi_ed25519::unvalidated_public_key_to_authentication_key(&from_pk);
             assert!(account_resource.authentication_key == from_auth_key,
                 error::unauthenticated(EWRONG_CURRENT_PUBLIC_KEY));
-        }
-        else {
+        } else {
             abort error::invalid_argument(EINVALID_SCHEME)
         };
 
@@ -464,8 +462,7 @@ module aptos_framework::account {
             assert!(ed25519::signature_verify_strict_t(&rotation_capability_sig, &pubkey,
                     proof_challenge),
                 error::invalid_argument(EINVALID_PROOF_OF_KNOWLEDGE));
-        }
-        else if (account_scheme == MULTI_ED25519_SCHEME) {
+        } else if (account_scheme == MULTI_ED25519_SCHEME) {
             let pubkey =
                 multi_ed25519::new_unvalidated_public_key_from_bytes(
                     account_public_key_bytes);
@@ -479,8 +476,7 @@ module aptos_framework::account {
             assert!(multi_ed25519::signature_verify_strict_t(&rotation_capability_sig, &pubkey,
                     proof_challenge),
                 error::invalid_argument(EINVALID_PROOF_OF_KNOWLEDGE));
-        }
-        else {
+        } else {
             abort error::invalid_argument(EINVALID_SCHEME)
         };
 
@@ -628,16 +624,14 @@ module aptos_framework::account {
             assert!(ed25519::signature_verify_strict_t(&sig, &pk, *challenge),
                 std::error::invalid_argument(EINVALID_PROOF_OF_KNOWLEDGE));
             ed25519::unvalidated_public_key_to_authentication_key(&pk)
-        }
-        else if (scheme == MULTI_ED25519_SCHEME) {
+        } else if (scheme == MULTI_ED25519_SCHEME) {
             let pk =
                 multi_ed25519::new_unvalidated_public_key_from_bytes(public_key_bytes);
             let sig = multi_ed25519::new_signature_from_bytes(signature);
             assert!(multi_ed25519::signature_verify_strict_t(&sig, &pk, *challenge),
                 std::error::invalid_argument(EINVALID_PROOF_OF_KNOWLEDGE));
             multi_ed25519::unvalidated_public_key_to_authentication_key(&pk)
-        }
-        else {
+        } else {
             abort error::invalid_argument(EINVALID_SCHEME)
         }
     }
@@ -720,7 +714,9 @@ module aptos_framework::account {
                 assert!(account.sequence_number == 0,
                     error::invalid_state(EACCOUNT_ALREADY_USED),);
                 create_signer(resource_addr)
-            } else { create_account_unchecked(resource_addr) };
+            } else {
+                create_account_unchecked(resource_addr)
+            };
 
         // By default, only the SignerCapability should have control over the resource account and not the auth key.
         // If the source account wants direct control via auth key, they would need to explicitly rotate the auth key
@@ -832,8 +828,7 @@ module aptos_framework::account {
             assert!(ed25519::signature_verify_strict_t(&signer_capability_sig, &pubkey,
                     message),
                 error::invalid_argument(EINVALID_PROOF_OF_KNOWLEDGE),);
-        }
-        else if (account_scheme == MULTI_ED25519_SCHEME) {
+        } else if (account_scheme == MULTI_ED25519_SCHEME) {
             let pubkey =
                 multi_ed25519::new_unvalidated_public_key_from_bytes(account_public_key);
             let expected_auth_key =
@@ -846,8 +841,7 @@ module aptos_framework::account {
             assert!(multi_ed25519::signature_verify_strict_t(&signer_capability_sig, &pubkey,
                     message),
                 error::invalid_argument(EINVALID_PROOF_OF_KNOWLEDGE),);
-        }
-        else {
+        } else {
             abort error::invalid_argument(EINVALID_SCHEME)
         };
     }

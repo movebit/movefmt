@@ -24,4 +24,5 @@ module 0x42::m {
         test_arg_freeze(S { x: 2 })
     }
 }
+
 //# run 0x42::m::test

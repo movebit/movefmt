@@ -210,7 +210,9 @@ spec aptos_framework::coin {
         let supply = option::spec_borrow(maybe_supply);
         let value = optional_aggregator::optional_aggregator_value(supply);
 
-        ensures if (option::spec_is_some(maybe_supply)) { result == option::spec_some(value) } else {
+        ensures if (option::spec_is_some(maybe_supply)) {
+            result == option::spec_some(value)
+        } else {
             option::spec_is_none(result)
         };
     }
@@ -249,7 +251,9 @@ spec aptos_framework::coin {
 
         ensures post_coin_store.coin.value == coin_store.coin.value - amount;
         /// [managed_coin::high-level-req-5]
-        ensures if (option::spec_is_some(maybe_supply)) { post_value == value - amount } else {
+        ensures if (option::spec_is_some(maybe_supply)) {
+            post_value == value - amount
+        } else {
             option::spec_is_none(post_maybe_supply)
         };
         ensures supply<CoinType> == old(supply<CoinType>) - amount;
@@ -405,7 +409,9 @@ spec aptos_framework::coin {
         ensures if (monitor_supply) {
             value == 0 && limit == MAX_U128 && (parallelizable
                 == optional_aggregator::is_parallelizable(supply))
-        } else { option::spec_is_none(coin_info.supply) };
+        } else {
+            option::spec_is_none(coin_info.supply)
+        };
         ensures result_1 == BurnCapability<CoinType> {};
         ensures result_2 == FreezeCapability<CoinType> {};
         ensures result_3 == MintCapability<CoinType> {};

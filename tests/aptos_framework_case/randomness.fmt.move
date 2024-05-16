@@ -551,7 +551,9 @@ module aptos_framework::randomness {
 
         for (i in 0..n) {
             let bit = vector::borrow(&present, i);
-            if (*bit == false) { return false };
+            if (*bit == false) {
+                return false
+            };
         };
 
         true

@@ -28,4 +28,5 @@ module 0x42::m {
                 .plus_one();
     }
 }
+
 //# run 0x42::m::test
