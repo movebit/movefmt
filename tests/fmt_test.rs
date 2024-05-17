@@ -241,7 +241,7 @@ fn extract_tokens(content: &str) -> Result<Vec<ExtractToken>, Vec<String>> {
 }
 
 #[test]
-fn test_dir() { 
+fn test_dir() {
     std::env::set_var("MOVEFMT_LOG", "movefmt=WARN");
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_env("MOVEFMT_LOG"))

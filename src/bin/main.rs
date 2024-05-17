@@ -166,6 +166,7 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
     eprintln!("options = {:?}", options);
     let (config, config_path) = load_config(None, Some(options.clone()))?;
     let mut use_config = config.clone();
+    let mut success_cnt = 0;
     let mut skips_cnt = 0;
     tracing::info!(
         "config.[verbose, indent] = [{:?}, {:?}], {:?}",
@@ -218,6 +219,7 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
         }
         match format_entry(content_origin.clone(), use_config.clone()) {
             Ok(formatted_text) => {
+                success_cnt += 1;
                 let emit_mode = if let Some(op_emit) = options.emit_mode {
                     op_emit
                 } else {
@@ -259,13 +261,16 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
                 if std::io::stdout().write_all(&diags_buf).is_err() {
                     // Cannot output compiler diagnostics;
                     // https://github.com/movebit/movefmt/issues/2
-                    tracing::error!("file '{:?}' skipped because of parse not ok", file);
+                    eprintln!("file '{:?}' skipped because of parse not ok", file);
                 }
             }
         }
     }
     if skips_cnt > 0 {
-        tracing::error!("{:?} file skipped because of parse not ok", skips_cnt);
+        eprintln!("{:?} files skipped because of parse failed", skips_cnt);
+    }
+    if success_cnt > 0 {
+        println!("{:?} files successfully formatted", success_cnt);
     }
     Ok(0)
 }

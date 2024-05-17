@@ -4,10 +4,8 @@
 
 use crate::tools::utils::FileLineMappingOneFile;
 use commentfmt::Config;
-// use move_command_line_common::files::FileHash;
 use move_compiler::parser::ast::Definition;
 use move_compiler::parser::ast::*;
-// use move_compiler::parser::lexer::{Lexer, Tok};
 use move_ir_types::location::*;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -300,7 +298,6 @@ impl BranchExtractor {
     ) -> bool {
         for then_loc in &self.com_if_else.then_loc_vec {
             if then_loc.start() == then_start_pos {
-                tracing::debug!("need_new_line_in_then_without_brace -- then_loc = {}", &self.source[then_loc.start() as usize..then_loc.end() as usize]);
                 let has_added = cur_line.len() as u32 + then_loc.end() - then_loc.start()
                     > config.max_width() as u32;
 
@@ -330,7 +327,6 @@ impl BranchExtractor {
     ) -> bool {
         for (else_loc_idx, else_loc) in self.com_if_else.else_loc_vec.iter().enumerate() {
             if else_loc.start() == else_start_pos {
-                tracing::debug!("need_new_line_after_else -- else_loc = {}", &self.source[else_loc.start() as usize..else_loc.end() as usize]);
                 let mut has_added = cur_line.len() as u32 + else_loc.end() - else_loc.start()
                     > config.max_width() as u32;
                 if !has_added && else_loc_idx + 1 < self.com_if_else.else_loc_vec.len() {

@@ -56,10 +56,12 @@ impl LetExtractor {
 
             let bin_op_right_is_long = match &bin_op_exp.value {
                 Exp_::BinopExp(_, op, r) => {
-                    let bin_op_right_str = &this_let_extractor.source[r.loc.start() as usize..r.loc.end() as usize].len();
+                    let bin_op_right_str = &this_let_extractor.source
+                        [r.loc.start() as usize..r.loc.end() as usize]
+                        .len();
                     match op.value {
-                        BinOp_::Implies | BinOp_::Iff | BinOp_::Eq => { *bin_op_right_str > 16 }
-                        _ => { *bin_op_right_str > 64 }
+                        BinOp_::Implies | BinOp_::Iff | BinOp_::Eq => *bin_op_right_str > 16,
+                        _ => *bin_op_right_str > 64,
                     }
                 }
                 Exp_::Assign(_, r) => {
@@ -84,13 +86,11 @@ impl LetExtractor {
             SequenceItem_::Seq(e) => self.collect_expr(e),
             SequenceItem_::Bind(b, _, e) => {
                 if b.loc.end() < e.loc.start() {
-                    self.let_assign_loc_vec.push(
-                        Loc::new(
-                            b.loc.file_hash(),
-                            b.loc.end(),
-                            e.loc.start(),
-                        )
-                    );
+                    self.let_assign_loc_vec.push(Loc::new(
+                        b.loc.file_hash(),
+                        b.loc.end(),
+                        e.loc.start(),
+                    ));
                     self.let_assign_rhs_exp.push(*e.clone());
                 }
                 self.collect_expr(e);
@@ -306,14 +306,19 @@ impl LetExtractor {
 
     pub(crate) fn is_long_assign(&self, token: TokenTree) -> bool {
         for (idx, let_assign) in self.let_assign_loc_vec.iter().enumerate() {
-            tracing::trace!("let_assign: {:?}", &self.source[let_assign.start() as usize..let_assign.end() as usize]);
+            tracing::trace!(
+                "let_assign: {:?}",
+                &self.source[let_assign.start() as usize..let_assign.end() as usize]
+            );
             if let_assign.start() <= token.end_pos() && token.end_pos() <= let_assign.end() {
                 let rhs_exp_loc = &self.let_assign_rhs_exp[idx].loc;
-                let is_long_rhs = self.source[rhs_exp_loc.start() as usize..rhs_exp_loc.end() as usize].len() > 64;
+                let is_long_rhs =
+                    self.source[rhs_exp_loc.start() as usize..rhs_exp_loc.end() as usize].len()
+                        > 64;
                 if is_long_rhs {
                     self.break_line_by_let_rhs
-                    .borrow_mut()
-                    .insert(rhs_exp_loc.end(), token.end_pos());
+                        .borrow_mut()
+                        .insert(rhs_exp_loc.end(), token.end_pos());
                 }
                 return is_long_rhs;
             }
@@ -402,7 +407,10 @@ fn get_bin_op_exp(fmt_buffer: String) {
     }
 
     for let_assign in let_extractor.let_assign_loc_vec.iter() {
-        eprintln!("let_assign: {:?}", &let_extractor.source[let_assign.start() as usize..let_assign.end() as usize]);
+        eprintln!(
+            "let_assign: {:?}",
+            &let_extractor.source[let_assign.start() as usize..let_assign.end() as usize]
+        );
     }
 }
 

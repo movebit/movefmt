@@ -936,7 +936,8 @@ impl Format {
             let (b_new_line_mode, opt_component_break_mode) =
                 self.get_new_line_mode_begin_nested(kind, elements, note, delimiter);
 
-            let b_add_indent = elements.is_empty() || elements.first().unwrap().simple_str().unwrap_or_default() != "module";
+            let b_add_indent = elements.is_empty()
+                || elements.first().unwrap().simple_str().unwrap_or_default() != "module";
             let nested_token_head = self.format_context.borrow().cur_tok;
             if Tok::NumSign == nested_token_head {
                 self.push_str(fun_fmt::process_fun_annotation(*kind, elements.to_vec()));
@@ -1026,14 +1027,22 @@ impl Format {
                     if has_special_key {
                         self.new_line(None);
                     }
-                }
-                else if next_token.is_some() {
+                } else if next_token.is_some() {
                     if !has_special_key
-                        && get_cur_line_len + content.len() + next_token.unwrap().simple_str().unwrap_or_default().len() > self.global_cfg.max_width() {
+                        && get_cur_line_len
+                            + content.len()
+                            + next_token.unwrap().simple_str().unwrap_or_default().len()
+                            > self.global_cfg.max_width()
+                    {
                         self.new_line(None);
                     }
-                    let is_in_nested_else_branch = self.syntax_extractor.branch_extractor.is_nested_within_an_outer_else(*pos);
-                    if next_token.unwrap().simple_str().unwrap_or_default() == "if" || is_in_nested_else_branch {
+                    let is_in_nested_else_branch = self
+                        .syntax_extractor
+                        .branch_extractor
+                        .is_nested_within_an_outer_else(*pos);
+                    if next_token.unwrap().simple_str().unwrap_or_default() == "if"
+                        || is_in_nested_else_branch
+                    {
                         self.new_line(None);
                     }
                 }
@@ -1611,9 +1620,10 @@ impl Format {
 
         if tok == Tok::AtSign && next.is_some() {
             let next_tok_len = next.unwrap().simple_str().unwrap_or_default().len();
-            if next_tok_len > 8 
+            if next_tok_len > 8
                 && len_plus_tok_len + next.unwrap().simple_str().unwrap_or_default().len()
-                    > self.global_cfg.max_width() {
+                    > self.global_cfg.max_width()
+            {
                 return true;
             }
         }
