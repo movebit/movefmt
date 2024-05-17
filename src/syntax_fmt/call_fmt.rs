@@ -3,16 +3,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::core::token_tree::{analyze_token_tree_length, get_code_buf_len, NestKind, TokenTree};
-use crate::tools::syntax::parse_file_string;
 use crate::tools::utils::FileLineMappingOneFile;
 use commentfmt::Config;
-use move_command_line_common::files::FileHash;
 use move_compiler::parser::ast::Definition;
 use move_compiler::parser::ast::*;
-use move_compiler::shared::CompilationEnv;
-use move_compiler::Flags;
 use move_ir_types::location::*;
-use std::collections::BTreeSet;
 
 #[derive(Debug, Default)]
 pub struct CallExtractor {
@@ -38,15 +33,6 @@ impl CallExtractor {
         };
 
         this_call_extractor.line_mapping.update(&fmt_buffer);
-        let attrs: BTreeSet<String> = BTreeSet::new();
-        let mut env = CompilationEnv::new(Flags::testing(), attrs);
-        let filehash = FileHash::empty();
-        let (defs, _) = parse_file_string(&mut env, filehash, &fmt_buffer).unwrap();
-
-        for d in defs.iter() {
-            this_call_extractor.collect_definition(d);
-        }
-
         this_call_extractor
     }
 
@@ -265,6 +251,12 @@ impl CallExtractor {
 }
 
 impl CallExtractor {
+    pub(crate) fn preprocess(&mut self, module_defs: Vec<Definition>) {
+        for d in module_defs.iter() {
+            self.collect_definition(d);
+        }
+    }
+
     // fn_call(comp1, comp2, nested_call_maybe_too_long(...), comp4);
     // >>
     // fn_call(comp1, comp2,

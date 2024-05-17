@@ -42,16 +42,6 @@ impl FunExtractor {
         };
 
         this_fun_extractor.line_mapping.update(&fmt_buffer);
-        let attrs: BTreeSet<String> = BTreeSet::new();
-        let mut env = CompilationEnv::new(Flags::testing(), attrs);
-        let filehash = FileHash::empty();
-        let (defs, _) = parse_file_string(&mut env, filehash, &fmt_buffer).unwrap();
-
-        for d in defs.iter() {
-            this_fun_extractor.cur_module_id += 1;
-            this_fun_extractor.collect_definition(d);
-        }
-
         this_fun_extractor
     }
 
@@ -138,6 +128,13 @@ fn get_space_cnt_before_line_str(s: &str) -> usize {
 }
 
 impl FunExtractor {
+    pub(crate) fn preprocess(&mut self, module_defs: Vec<Definition>) {
+        for d in module_defs.iter() {
+            self.cur_module_id += 1;
+            self.collect_definition(d);
+        }
+    }
+
     pub(crate) fn is_generic_ty_in_fun_header(&self, kind: &NestKind) -> bool {
         let loc_vec = &self.loc_vec;
         let body_loc_vec = &self.body_loc_vec;
@@ -177,6 +174,15 @@ impl FunExtractor {
         }
         false
     }
+}
+
+fn get_defs(fmt_buffer: String) -> Vec<Definition> {
+    let attrs: BTreeSet<String> = BTreeSet::new();
+    let mut env = CompilationEnv::new(Flags::testing(), attrs);
+    let filehash = FileHash::empty();
+    parse_file_string(&mut env, filehash, &fmt_buffer)
+        .unwrap()
+        .0
 }
 
 pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &str) -> String {
@@ -352,7 +358,8 @@ pub(crate) fn process_block_comment_before_fun_header(
 ) -> String {
     let buf = fmt_buffer.clone();
     let mut result = fmt_buffer.clone();
-    let fun_extractor = FunExtractor::new(fmt_buffer.clone());
+    let mut fun_extractor = FunExtractor::new(fmt_buffer.clone());
+    fun_extractor.preprocess(get_defs(fmt_buffer.clone()));
     let mut insert_char_nums = 0;
     for (fun_idx, (fun_start_line, _)) in fun_extractor.loc_line_vec.iter().enumerate() {
         let fun_header_str =
@@ -377,7 +384,8 @@ pub(crate) fn process_block_comment_before_fun_header(
 pub(crate) fn process_fun_header_too_long(fmt_buffer: String, config: Config) -> String {
     let buf = fmt_buffer.clone();
     let mut result = fmt_buffer.clone();
-    let fun_extractor = FunExtractor::new(fmt_buffer.clone());
+    let mut fun_extractor = FunExtractor::new(fmt_buffer.clone());
+    fun_extractor.preprocess(get_defs(fmt_buffer.clone()));
     let mut insert_char_nums = 0;
     let mut fun_idx = 0;
     for fun_loc in fun_extractor.loc_vec.iter() {
@@ -457,7 +465,8 @@ pub(crate) fn process_fun_ret_ty(fmt_buffer: String, config: Config) -> String {
     // : u64 {}
     let buf = fmt_buffer.clone();
     let mut result = fmt_buffer.clone();
-    let fun_extractor = FunExtractor::new(fmt_buffer.clone());
+    let mut fun_extractor = FunExtractor::new(fmt_buffer.clone());
+    fun_extractor.preprocess(get_defs(fmt_buffer.clone()));
     let mut insert_char_nums = 0;
     let mut fun_idx = 0;
     for fun_loc in fun_extractor.loc_vec.iter() {

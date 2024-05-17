@@ -107,7 +107,14 @@ impl Format {
         let lexer = Lexer::new(content, FileHash::empty());
         let parse = crate::core::token_tree::Parser::new(lexer, &defs, content.to_string());
         self.token_tree = parse.parse_tokens();
-        self.syntax_extractor.branch_extractor.preprocess(defs);
+        self.syntax_extractor
+            .branch_extractor
+            .preprocess(defs.clone());
+        self.syntax_extractor.fun_extractor.preprocess(defs.clone());
+        self.syntax_extractor
+            .call_extractor
+            .preprocess(defs.clone());
+        self.syntax_extractor.let_extractor.preprocess(defs.clone());
         Ok("parse ok".to_string())
     }
 
@@ -330,6 +337,11 @@ impl Format {
         index: usize,
         new_line_mode: bool,
     ) -> bool {
+        // updated in 20240517: not break line for big vec[]
+        if kind.kind == NestKind_::Bracket && elements.len() > 128 {
+            return false;
+        }
+
         let t = elements.get(index).unwrap();
         let next_t = elements.get(index + 1);
         let d = delimiter.map(|x| x.to_static_str());
@@ -997,6 +1009,11 @@ impl Format {
         token: &TokenTree,
         next_token: Option<&TokenTree>,
     ) {
+        // updated in 20240517: add condition `NestKind_::Bracket`
+        if self.format_context.borrow().cur_nested_kind.kind == NestKind_::Bracket
+        {
+            return;
+        }
         if let TokenTree::SimpleToken {
             content,
             pos,
@@ -1061,6 +1078,8 @@ impl Format {
             // added in 20240115
             // updated in 20240124
             // updated in 20240222: remove condition `if Tok::RBrace != *tok `
+            // updated in 20240517: add condition `NestKind_::Bracket`
+            if self.format_context.borrow().cur_nested_kind.kind != NestKind_::Bracket
             {
                 let tok_end_pos = *pos + content.len() as u32;
                 let mut nested_branch_depth = self
@@ -1135,8 +1154,8 @@ impl Format {
             let mut split_line_after_content = false;
             if self.judge_change_new_line_when_over_limits(content.clone(), *tok, *note, next_token)
             {
-                tracing::debug!("last_line = {:?}", self.last_line());
-                tracing::debug!(
+                tracing::trace!("last_line = {:?}", self.last_line());
+                tracing::trace!(
                     "SimpleToken{:?} too long, add a new line because of split line",
                     content
                 );
@@ -1240,7 +1259,9 @@ impl Format {
                 tok: _,
                 note: _,
             } => {
+                // updated in 20240517: add condition `ParentTheses | Brace`
                 if new_line_after
+                    && matches!(self.format_context.borrow().cur_nested_kind.kind, NestKind_::ParentTheses | NestKind_::Brace)
                     && self
                         .syntax_extractor
                         .let_extractor
@@ -1249,7 +1270,8 @@ impl Format {
                     self.inc_depth();
                 }
                 self.format_simple_token(token, next_token, new_line_after);
-                if self
+                if matches!(self.format_context.borrow().cur_nested_kind.kind, NestKind_::ParentTheses | NestKind_::Brace)
+                    && self
                     .syntax_extractor
                     .let_extractor
                     .need_dec_depth_by_long_op(token.clone())
@@ -1605,23 +1627,10 @@ impl Format {
         next: Option<&TokenTree>,
     ) -> bool {
         let len_plus_tok_len = self.get_cur_line_len() + tok_str.len();
-        if len_plus_tok_len > self.global_cfg.max_width() {
-            tracing::trace!(
-                "self.get_cur_line_len() = {}, tok_str.len() = {}",
-                self.get_cur_line_len(),
-                tok_str.len()
-            );
-            tracing::trace!(
-                "self.last_line = {}, tok_str = {}",
-                self.last_line(),
-                tok_str
-            );
-        }
-
         if tok == Tok::AtSign && next.is_some() {
             let next_tok_len = next.unwrap().simple_str().unwrap_or_default().len();
             if next_tok_len > 8
-                && len_plus_tok_len + next.unwrap().simple_str().unwrap_or_default().len()
+                && len_plus_tok_len + next_tok_len
                     > self.global_cfg.max_width()
             {
                 return true;
