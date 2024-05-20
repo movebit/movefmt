@@ -62,4 +62,4 @@
 
 <a id="v1.0.0.beta"></a>
 
-## 2024-0-29, Version v1.0.0.beta
+## 2024-3-29, Version v1.0.0.beta
