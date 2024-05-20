@@ -19,6 +19,109 @@
 
 ## 2024-5-17, Version v1.0.0
 
+### Features
+- Support new syntax { for loop; receiver style call }
+- Support running movefmt without a target file
+- Optimize line breaks in various scenarios
+- Optimize multiple empty line folding
+- Optimize formatting performance, such as very huge vector
+- Fixed some bugs
+
+### Notes
+We have formatted all the Move files in the aptos-core repository, and here are some records.
+```
+edy@edydeMBP-4 aptos-core % movefmt -v
+no file argument is supplied, movefmt runs on current directory by default, 
+formatting all .move files within it......
+
+----------------------------------------------------------------------------
+
+Current directory: "/Users/edy/workspace/movebit/aptos-core"
+options = GetOptsOptions { quiet: false, verbose: true, config_path: None, emit_mode: None, inline_config: {} }
+Formatting /Users/edy/workspace/movebit/aptos-core/crates/aptos/debug-move-example/sources/DebugDemo.move
+Spent 0.004 secs in the parsing phase, and 0.002 secs in the formatting phase
+Formatting /Users/edy/workspace/movebit/aptos-core/crates/aptos/src/move_tool/aptos_dep_example/pack2/sources/m.move
+Spent 0.000 secs in the parsing phase, and 0.000 secs in the formatting phase
+......
+Formatting /Users/edy/workspace/movebit/aptos-core/api/src/tests/move/pack_exceed_limit/sources/exceed_limit.move
+Spent 0.001 secs in the parsing phase, and 0.003 secs in the formatting phase
+124 files skipped because of parse failed
+3515 files successfully formatted
+edy@edydeMBP-4 aptos-core % 
+```
+
+Out of the 3515 files, we have the following before and after formatting:
+1. There are 57 files with more than 200 lines of difference or a total character difference exceeding 512.
+2. There are 334 files with a difference in the number of lines between 20 and 200, and a total character difference less than 512.
+3. There are 928 files with fewer than 20 lines of difference.
+```
+edy@edydeMBP-4 aptos-core % git diff --numstat --word-diff=porcelain | awk '
+BEGIN {
+    FS="\t"
+}
+# Calculate line diff and character diff for each file
+{
+    if (NR % 2 == 1) {
+        # On odd lines, parse the diff output
+        add = $1
+        del = $2
+        file = $3
+    } else {
+        # On even lines, parse the diff output
+        split($0, arr, /[+-]/)
+        total_chars = length(arr[1]) + length(arr[2])
+        if ((200 <= add + del) || (total_chars >= 512)) {                     
+            print file
+        }
+    }
+}' |  wc -l
+      57
+edy@edydeMBP-4 aptos-core % git diff --numstat --word-diff=porcelain | awk '
+BEGIN {
+    FS="\t"
+}
+# Calculate line diff and character diff for each file
+{
+    if (NR % 2 == 1) {
+        # On odd lines, parse the diff output
+        add = $1
+        del = $2
+        file = $3
+    } else {
+        # On even lines, parse the diff output
+        split($0, arr, /[+-]/)
+        total_chars = length(arr[1]) + length(arr[2])
+        if ((20 <= add + del) && (add + del <= 200) && (total_chars <= 512)) {
+            print file
+        }
+    }
+}' | wc -l 
+     334
+edy@edydeMBP-4 aptos-core % git diff --numstat --word-diff=porcelain | awk '
+BEGIN {
+    FS="\t"
+}
+# Calculate line diff and character diff for each file
+{
+    if (NR % 2 == 1) {
+        # On odd lines, parse the diff output
+        add = $1
+        del = $2
+        file = $3
+    } else {
+        # On even lines, parse the diff output
+        split($0, arr, /[+-]/)
+        total_chars = length(arr[1]) + length(arr[2])
+        if (add + del <= 20) {
+            print file
+        }
+    }
+}' |  wc -l
+     928
+edy@edydeMBP-4 aptos-core % 
+```
+
+
 ### Commits
 
 * [[`a00c73fe`](https://github.com/movebit/movefmt/commit/a00c73fe4842e9eba30b038d744e0829a116bda4)] - do cargo fmt (robinlzw)
