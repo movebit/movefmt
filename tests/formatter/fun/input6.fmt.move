@@ -1,32 +1,38 @@
 //#publish --print-bytecode
 module 0xcafe::vectors {
     use std::vector;
+    #[fmt::skip]
     public entry fun guess_flips(flips: vector<u8>) {
         loops_with_break(&flips);
         let _v = copy flips; // this is ok
 
         // this will fail, a UNKNOWN_INVARIANT_VIOLATION_ERROR (code 2000)
-        let _v2 = flips;
+        let _v2 =  flips;
     }
 
+    #[fmt::skip]
     // no function call
     public entry fun guess_flips_directly(flips: vector<u8>) {
         let i = 0;
         while (i < vector::length(&flips)) {
-            if (*vector::borrow(&flips, i) != 0) { break };
+            if (*vector::borrow(&flips, i) != 0) {
+                break
+            };
             i = i + 1;
         };
         let _v = copy flips; // this is ok
-        let _v2 = flips; // this is ok
+        let _v2 =  flips; // this is ok
     }
 
     // call function, no inline, with `break`
+    #[fmt::skip]
     public entry fun guess_with_break_without_inline(flips: vector<u8>) {
         loops_with_break_no_inline(&flips);
         let _v = copy flips; // this is ok
-        let _v2 = flips; // this is ok
+        let _v2 =  flips; // this is ok
     }
 
+    #[fmt::skip]
     // call `inline` function, without `break`
     public entry fun guess_without_break_with_inline(flips: vector<u8>) {
         loops_without_break(&flips);
@@ -34,10 +40,13 @@ module 0xcafe::vectors {
         let _v2 = copy flips; // this is ok
     }
 
+    #[fmt::skip]
     inline fun loops_with_break(flips: &vector<u8>) {
         let i = 0;
         while (i < vector::length(flips)) {
-            if (*vector::borrow(flips, i) != 0) { break };
+            if (*vector::borrow(flips, i) != 0) {
+                break
+            };
             i = i + 1;
         };
     }
@@ -50,6 +59,7 @@ module 0xcafe::vectors {
         };
     }
 
+    #[fmt::skip]
     inline fun loops_without_break(flips: &vector<u8>) {
         let i = 0;
         while (i < vector::length(flips)) {

@@ -13,11 +13,13 @@ use move_compiler::parser::ast::*;
 use move_compiler::parser::lexer::{Lexer, Tok};
 use move_compiler::shared::{CompilationEnv, Identifier};
 use move_compiler::Flags;
+use move_compiler::shared::ast_debug;
 use move_ir_types::location::*;
 use std::collections::BTreeSet;
 
 #[derive(Debug, Default)]
 pub struct FunExtractor {
+    pub attributes: Vec<Vec<Attributes>>,
     pub loc_vec: Vec<Loc>,
     pub para_span_vec: Vec<Loc>,
     pub ret_ty_loc_vec: Vec<Loc>,
@@ -31,6 +33,7 @@ pub struct FunExtractor {
 impl FunExtractor {
     pub fn new(fmt_buffer: String) -> Self {
         let mut this_fun_extractor = Self {
+            attributes: vec![],
             loc_vec: vec![],
             para_span_vec: vec![],
             ret_ty_loc_vec: vec![],
@@ -70,6 +73,8 @@ impl FunExtractor {
                     .unwrap()
                     .start
                     .line;
+                let attributes: Vec<Attributes> = d.attributes.clone();
+                self.attributes.push(attributes);
                 self.loc_vec.push(d.loc);
 
                 if d.signature.parameters.is_empty() {
@@ -177,6 +182,44 @@ impl FunExtractor {
         }
         false
     }
+
+    pub(crate) fn should_skip_this_fun_body(&self, kind: &NestKind) -> bool {
+        let loc_vec = &self.loc_vec;
+        let body_loc_vec = &self.body_loc_vec;
+
+        let len = loc_vec.len();
+        let mut left = 0;
+        let mut right = len;
+
+        while left < right {
+            if kind.end_pos < loc_vec[left].start() || kind.start_pos > loc_vec[right - 1].end() {
+                return false;
+            }
+
+            let mid = left + (right - left) / 2;
+            let mid_loc = loc_vec[mid];
+            let mid_body_loc = body_loc_vec[mid];
+
+            if kind.start_pos == mid_body_loc.start() && kind.end_pos + 1 == mid_body_loc.end() {
+                for attribute in &self.attributes[mid] {
+                    // ast_debug::print(&attribute.value);
+                    let attribute_str = ast_debug::display(&attribute.value);
+                    if attribute_str.contains("#[fmt::skip]") {
+                        tracing::trace!("{:?}", attribute_str);
+                        return true;
+                    }
+                }
+                return false;
+            } else if mid_loc.start() < kind.start_pos {
+                left = mid + 1;
+            } else {
+                right = mid;
+            }
+        }
+
+        false
+    }
+
 }
 
 pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &str) -> String {
@@ -565,31 +608,45 @@ pub fn fmt_fun(fmt_buffer: String, config: Config) -> String {
     result
 }
 
+#[allow(dead_code)]
+fn get_fun_attributes(fmt_buffer: String) {
+    // let buf = fmt_buffer.clone();
+    // let mut result = fmt_buffer.clone();
+    let fun_extractor = FunExtractor::new(fmt_buffer.clone());
+    for attributes in fun_extractor.attributes {
+        for attribute in attributes {
+            // ast_debug::print(&attribute.value);
+            let attribute_str = ast_debug::display(&attribute.value);
+            eprintln!("{:?}", attribute_str);
+        }
+    }
+}
+
 #[test]
 fn test_rewrite_fun_header_1() {
-    fun_header_specifier_fmt("acquires *(make_up_address(x))", &"    ".to_string());
-    fun_header_specifier_fmt("!reads *(0x42), *(0x43)", &"    ".to_string());
-    fun_header_specifier_fmt(": u32 !reads *(0x42), *(0x43)", &"    ".to_string());
-    fun_header_specifier_fmt(": /*(bool, bool)*/ (bool, bool) ", &"    ".to_string());
+    fun_header_specifier_fmt("acquires *(make_up_address(x))", "    ");
+    fun_header_specifier_fmt("!reads *(0x42), *(0x43)", "    ");
+    fun_header_specifier_fmt(": u32 !reads *(0x42), *(0x43)", "    ");
+    fun_header_specifier_fmt(": /*(bool, bool)*/ (bool, bool) ", "    ");
 }
 
 #[test]
 fn test_rewrite_fun_header_2() {
     fun_header_specifier_fmt(
         ": u64 /* acquires comment1 */ acquires SomeStruct ",
-        &"    ".to_string(),
+        "    ",
     );
     fun_header_specifier_fmt(
         ": u64 acquires SomeStruct/* acquires comment2 */ ",
-        &"    ".to_string(),
+        "    ",
     );
     fun_header_specifier_fmt(": u64 /* acquires comment3 */ acquires /* acquires comment4 */ SomeStruct /* acquires comment5 */", 
-        &"    ".to_string());
+        "    ");
     fun_header_specifier_fmt(
         "acquires R reads R writes T, S reads G<u64> ",
-        &"    ".to_string(),
+        "    ",
     );
-    fun_header_specifier_fmt("fun f11() !reads *(0x42) ", &"    ".to_string());
+    fun_header_specifier_fmt("fun f11() !reads *(0x42) ", "    ");
 }
 
 #[test]
@@ -601,7 +658,7 @@ fn test_rewrite_fun_header_3() {
         acquires // acquires comment2
         IncentiveParameters 
     ",
-        &"    ".to_string(),
+        "    ",
     );
 }
 
@@ -684,4 +741,28 @@ module 0x42::LambdaTest1 {
         .to_string(),
         Config::default(),
     );
+}
+
+
+#[test]
+fn test_get_fun_attributes() {
+    get_fun_attributes(
+        "
+module 0x42::LambdaTest1 {  
+    #[test]
+    #[test(user = @0x1)]
+    #[fmt::skip]
+    #[test(bob = @0x345)]
+    #[expected_failure(abort_code = 0x10007, location = Self)]
+    /** Public inline function */  
+    #[expected_failure(abort_code = 0x8000f, location = Self)]
+    public inline fun inline_mul(/** Input parameter a */ a: u64,   
+                                 /** Input parameter b */ b: u64)   
+    /** Returns a u64 value */ : u64 {  
+        /** Multiply a and b */  
+        a * b  
+    }  
+}
+"
+        .to_string());
 }

@@ -454,7 +454,7 @@ impl Format {
         new_line
     }
 
-    fn process_fn_header_before_before_fn_nested(&self) {
+    fn process_fn_header(&self) {
         let cur_ret = self.ret.clone().into_inner();
         // tracing::debug!("fun_header = {:?}", &self.format_context.content[(kind.start_pos as usize)..(kind.end_pos as usize)]);
         if let Some(last_fun_idx) = cur_ret.rfind("fun") {
@@ -517,7 +517,7 @@ impl Format {
         let nested_token_len = analyze_token_tree_length(elements, self.global_cfg.max_width());
 
         if fun_body {
-            self.process_fn_header_before_before_fn_nested();
+            self.process_fn_header();
         }
 
         // 20240329 updated
@@ -941,6 +941,22 @@ impl Format {
             let nested_token_head = self.format_context.borrow().cur_tok;
             if Tok::NumSign == nested_token_head {
                 self.push_str(fun_fmt::process_fun_annotation(*kind, elements.to_vec()));
+                return;
+            }
+
+            let fun_body = note.map(|x| x == Note::FunBody).unwrap_or_default();
+            if fun_body && self.syntax_extractor.fun_extractor.should_skip_this_fun_body(kind) {
+                let fun_body_str = &self.format_context.borrow().content[kind.start_pos as usize..kind.end_pos as usize + 1];
+                tracing::trace!("should_skip_this_fun_body = {:?}", fun_body_str);
+                self.push_str(fun_body_str);
+
+                for c in &self.comments[self.comments_index.get()..] {
+                    if c.start_offset > kind.end_pos {
+                        break;
+                    }
+                    self.comments_index.set(self.comments_index.get() + 1);
+                }
+                self.cur_line.set(self.translate_line(kind.end_pos));
                 return;
             }
 
