@@ -867,8 +867,8 @@ module econia::incentives {
         // Borrow mutable reference to integrator fee stores map for
         // quote coin type.
         let integrator_fee_stores_map_ref_mut =
-            &mut borrow_global_mut<IntegratorFeeStores<QuoteCoinType>>(address_of(
-                    integrator)).map;
+            &mut borrow_global_mut<IntegratorFeeStores<QuoteCoinType>>(
+                address_of(integrator)).map;
         // Borrow mutable reference to integrator fee store for given
         // market ID.
         let integrator_fee_store_ref_mut =
@@ -1945,7 +1945,9 @@ module econia::incentives {
     public fun get_econia_fee_store_balance_test<QuoteCoinType>(
         market_id: u64
     ): u64 acquires EconiaFeeStore {
-        coin::value(tablist::borrow(&borrow_global<EconiaFeeStore<QuoteCoinType>>(
+        coin::value(
+            tablist::borrow(
+                &borrow_global<EconiaFeeStore<QuoteCoinType>>(
                     resource_account::get_address()).map,
                 market_id))
     }
@@ -1961,8 +1963,9 @@ module econia::incentives {
     public fun get_integrator_fee_store_balance_test<QuoteCoinType>(
         integrator: address, market_id: u64
     ): u64 acquires IntegratorFeeStores {
-        coin::value(&tablist::borrow(&borrow_global<IntegratorFeeStores<QuoteCoinType>>(
-                    integrator).map, market_id).coins)
+        coin::value(
+            &tablist::borrow(&borrow_global<IntegratorFeeStores<QuoteCoinType>>(integrator)
+                .map, market_id).coins)
     }
 
     #[test_only]
@@ -1976,8 +1979,9 @@ module econia::incentives {
     public fun get_integrator_fee_store_tier_test<QuoteCoinType>(
         integrator: address, market_id: u64
     ): u8 acquires IntegratorFeeStores {
-        tablist::borrow(&borrow_global<IntegratorFeeStores<QuoteCoinType>>(integrator).map,
-            market_id).tier
+        tablist::borrow(
+            &borrow_global<IntegratorFeeStores<QuoteCoinType>>(integrator).map, market_id)
+            .tier
     }
 
     #[test_only]
@@ -1995,7 +1999,8 @@ module econia::incentives {
     /// * Restricted to test-only to prevent excessive public queries
     ///   and thus transaction collisions.
     public fun get_utility_coin_store_balance_test(): u64 acquires UtilityCoinStore {
-        coin::value(&borrow_global<UtilityCoinStore<UC>>(resource_account::get_address()).coins)
+        coin::value(
+            &borrow_global<UtilityCoinStore<UC>>(resource_account::get_address()).coins)
     }
 
     #[test_only]
@@ -2119,12 +2124,12 @@ module econia::incentives {
         let underwriter_registration_fee = get_underwriter_registration_fee();
         let custodian_registration_fee = get_custodian_registration_fee();
         // Deposit fees.
-        deposit_market_registration_utility_coins<UC>(assets::mint_test(
-                market_registration_fee));
-        deposit_underwriter_registration_utility_coins<UC>(assets::mint_test(
-                underwriter_registration_fee));
-        deposit_custodian_registration_utility_coins<UC>(assets::mint_test(
-                custodian_registration_fee));
+        deposit_market_registration_utility_coins<UC>(
+            assets::mint_test(market_registration_fee));
+        deposit_underwriter_registration_utility_coins<UC>(
+            assets::mint_test(underwriter_registration_fee));
+        deposit_custodian_registration_utility_coins<UC>(
+            assets::mint_test(custodian_registration_fee));
         // Assert total amount.
         assert!(get_utility_coin_store_balance_test()
             == MARKET_REGISTRATION_FEE + UNDERWRITER_REGISTRATION_FEE + CUSTODIAN_REGISTRATION_FEE,
@@ -2273,7 +2278,8 @@ module econia::incentives {
         assert!(get_tier_withdrawal_fee((4 as u8)) == WITHDRAWAL_FEE_4, 0);
         assert!(get_tier_withdrawal_fee((5 as u8)) == WITHDRAWAL_FEE_5, 0);
         assert!(get_tier_withdrawal_fee((6 as u8)) == WITHDRAWAL_FEE_6, 0);
-        assert!(exists<UtilityCoinStore<AptosCoin>>(resource_account::get_address()), 0);
+        assert!(
+            exists<UtilityCoinStore<AptosCoin>>(resource_account::get_address()), 0);
         // Update incentive parameters.
         let market_registration_fee = MARKET_REGISTRATION_FEE + 5;
         let underwriter_registration_fee = UNDERWRITER_REGISTRATION_FEE + 5;

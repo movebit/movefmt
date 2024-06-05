@@ -387,7 +387,8 @@ module aptos_framework::account {
         // Check that there exists a rotation capability offer at the offerer's account resource for the delegate.
         let delegate_address = signer::address_of(delegate_signer);
         let offerer_account_resource = borrow_global<Account>(rotation_cap_offerer_address);
-        assert!(option::contains(&offerer_account_resource.rotation_capability_offer.for, &delegate_address),
+        assert!(
+            option::contains(&offerer_account_resource.rotation_capability_offer.for, &delegate_address),
             error::not_found(ENO_SUCH_ROTATION_CAPABILITY_OFFER));
 
         let curr_auth_key =
@@ -459,7 +460,8 @@ module aptos_framework::account {
 
             let rotation_capability_sig = ed25519::new_signature_from_bytes(
                 rotation_capability_sig_bytes);
-            assert!(ed25519::signature_verify_strict_t(&rotation_capability_sig, &pubkey,
+            assert!(
+                ed25519::signature_verify_strict_t(&rotation_capability_sig, &pubkey,
                     proof_challenge),
                 error::invalid_argument(EINVALID_PROOF_OF_KNOWLEDGE));
         } else if (account_scheme == MULTI_ED25519_SCHEME) {
@@ -473,7 +475,8 @@ module aptos_framework::account {
 
             let rotation_capability_sig =
                 multi_ed25519::new_signature_from_bytes(rotation_capability_sig_bytes);
-            assert!(multi_ed25519::signature_verify_strict_t(&rotation_capability_sig, &pubkey,
+            assert!(
+                multi_ed25519::signature_verify_strict_t(&rotation_capability_sig, &pubkey,
                     proof_challenge),
                 error::invalid_argument(EINVALID_PROOF_OF_KNOWLEDGE));
         } else {
@@ -508,7 +511,8 @@ module aptos_framework::account {
         assert!(exists_at(to_be_revoked_address), error::not_found(EACCOUNT_DOES_NOT_EXIST));
         let addr = signer::address_of(account);
         let account_resource = borrow_global_mut<Account>(addr);
-        assert!(option::contains(&account_resource.rotation_capability_offer.for, &to_be_revoked_address),
+        assert!(
+            option::contains(&account_resource.rotation_capability_offer.for, &to_be_revoked_address),
             error::not_found(ENO_SUCH_ROTATION_CAPABILITY_OFFER));
         revoke_any_rotation_capability(account);
     }
@@ -581,7 +585,8 @@ module aptos_framework::account {
         assert!(exists_at(to_be_revoked_address), error::not_found(EACCOUNT_DOES_NOT_EXIST));
         let addr = signer::address_of(account);
         let account_resource = borrow_global_mut<Account>(addr);
-        assert!(option::contains(&account_resource.signer_capability_offer.for, &to_be_revoked_address),
+        assert!(
+            option::contains(&account_resource.signer_capability_offer.for, &to_be_revoked_address),
             error::not_found(ENO_SUCH_SIGNER_CAPABILITY));
         revoke_any_signer_capability(account);
     }
@@ -825,8 +830,8 @@ module aptos_framework::account {
 
             let signer_capability_sig = ed25519::new_signature_from_bytes(
                 signed_message_bytes);
-            assert!(ed25519::signature_verify_strict_t(&signer_capability_sig, &pubkey,
-                    message),
+            assert!(
+                ed25519::signature_verify_strict_t(&signer_capability_sig, &pubkey, message),
                 error::invalid_argument(EINVALID_PROOF_OF_KNOWLEDGE),);
         } else if (account_scheme == MULTI_ED25519_SCHEME) {
             let pubkey =
@@ -838,7 +843,8 @@ module aptos_framework::account {
 
             let signer_capability_sig = multi_ed25519::new_signature_from_bytes(
                 signed_message_bytes);
-            assert!(multi_ed25519::signature_verify_strict_t(&signer_capability_sig, &pubkey,
+            assert!(
+                multi_ed25519::signature_verify_strict_t(&signer_capability_sig, &pubkey,
                     message),
                 error::invalid_argument(EINVALID_PROOF_OF_KNOWLEDGE),);
         } else {
@@ -916,8 +922,8 @@ module aptos_framework::account {
         let fake_sig =
             multi_ed25519::new_signature_from_bytes(signer_capability_sig_bytes);
 
-        assert!(multi_ed25519::signature_verify_strict_t(&fake_sig, &fake_pk,
-                proof_challenge),
+        assert!(
+            multi_ed25519::signature_verify_strict_t(&fake_sig, &fake_pk, proof_challenge),
             error::invalid_state(EINVALID_PROOF_OF_KNOWLEDGE));
         offer_signer_capability(&resource,
             signer_capability_sig_bytes,
@@ -1107,8 +1113,8 @@ module aptos_framework::account {
             alice_pk_bytes,
             bob_addr);
 
-        assert!(option::contains(&borrow_global<Account>(alice_addr).signer_capability_offer
-                    .for, &bob_addr),
+        assert!(
+            option::contains(&borrow_global<Account>(alice_addr).signer_capability_offer.for, &bob_addr),
             0);
 
         let signer = create_authorized_signer(&bob, alice_addr);
@@ -1173,8 +1179,9 @@ module aptos_framework::account {
             bob_addr);
 
         let alice_account_resource = borrow_global_mut<Account>(alice_addr);
-        assert!(option::contains(&alice_account_resource.signer_capability_offer.for, &bob_addr),
-            0);
+        assert!(
+            option::contains(&alice_account_resource.signer_capability_offer.for, &bob_addr),
+                0);
 
         create_authorized_signer(&charlie, alice_addr);
     }

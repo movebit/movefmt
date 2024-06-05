@@ -75,7 +75,8 @@ spec aptos_framework::coin {
     }
 
     spec schema TotalSupplyTracked<CoinType> {
-        ensures old(spec_fun_supply_tracked<CoinType>(supply<CoinType> + aggregate_supply<CoinType>,
+        ensures old(
+            spec_fun_supply_tracked<CoinType>(supply<CoinType> + aggregate_supply<CoinType>,
                 global<CoinInfo<CoinType>>(type_info::type_of<CoinType>().account_address)
                     .supply)) ==>
             spec_fun_supply_tracked<CoinType>(supply<CoinType> + aggregate_supply<CoinType>,

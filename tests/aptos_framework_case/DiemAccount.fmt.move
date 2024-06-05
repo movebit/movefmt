@@ -306,7 +306,8 @@ module DiemFramework::DiemAccount {
         // Ensure that this deposit is compliant with the account limits on
         // this account.
         if (should_track_limits_for_account<Token>(payer, payee, false)) {
-            assert!(AccountLimits::update_deposit_limits<Token>(deposit_value,
+            assert!(
+                AccountLimits::update_deposit_limits<Token>(deposit_value,
                     VASP::parent_address(payee),
                     &borrow_global<AccountOperationsCapability>(@DiemRoot).limits_cap),
                 errors::limit_exceeded(EDEPOSIT_EXCEEDS_LIMITS))
@@ -382,10 +383,10 @@ module DiemFramework::DiemAccount {
         ensures balance<Token>(payee) == old(balance<Token>(payee)) + amount;
 
         ensures exists<DiemAccount>(payee);
-        ensures global<DiemAccount>(payee).withdraw_capability == old(global<DiemAccount>(payee)
-            .withdraw_capability);
-        ensures global<DiemAccount>(payee).authentication_key == old(global<DiemAccount>(payee)
-            .authentication_key);
+        ensures global<DiemAccount>(payee).withdraw_capability == old(
+            global<DiemAccount>(payee).withdraw_capability);
+        ensures global<DiemAccount>(payee).authentication_key == old(
+            global<DiemAccount>(payee).authentication_key);
 
         ensures event::spec_guid_eq(global<DiemAccount>(payee).sent_events,
             old(global<DiemAccount>(payee).sent_events));
@@ -569,8 +570,10 @@ module DiemFramework::DiemAccount {
             AccountLimits::UpdateWithdrawalLimitsAbortsIf<Token> {
                 addr: VASP::spec_parent_address(payer),
             };
-        aborts_if spec_should_track_limits_for_account<Token>(payer, payee, true) && (!spec_has_account_operations_cap() || !AccountLimits::spec_update_withdrawal_limits<Token>(
-                amount, VASP::spec_parent_address(payer))) with errors::LIMIT_EXCEEDED;
+        aborts_if spec_should_track_limits_for_account<Token>(payer, payee, true) && (
+            !spec_has_account_operations_cap() || !AccountLimits::spec_update_withdrawal_limits<Token>(
+                amount, VASP::spec_parent_address(payer))
+        ) with errors::LIMIT_EXCEEDED;
     }
 
     spec schema WithdrawFromBalanceNoLimitsAbortsIf<Token> {
@@ -622,8 +625,8 @@ module DiemFramework::DiemAccount {
         modifies global<DiemAccount>(payer);
         modifies global<AccountLimits::Window<Token>>(VASP::spec_parent_address(payer));
         ensures exists<DiemAccount>(payer);
-        ensures global<DiemAccount>(payer).withdraw_capability == old(global<DiemAccount>(payer)
-            .withdraw_capability);
+        ensures global<DiemAccount>(payer).withdraw_capability == old(
+            global<DiemAccount>(payer).withdraw_capability);
         ensures event::spec_guid_eq(global<DiemAccount>(payer).sent_events,
             old(global<DiemAccount>(payer).sent_events));
         ensures event::spec_guid_eq(global<DiemAccount>(payer).received_events,
@@ -690,8 +693,8 @@ module DiemFramework::DiemAccount {
         modifies global<AccountLimits::Window<Token>>(VASP::spec_parent_address(payer));
         modifies global<DiemAccount>(payer);
         ensures exists<DiemAccount>(payer);
-        ensures global<DiemAccount>(payer).withdraw_capability == old(global<DiemAccount>(payer)
-            .withdraw_capability);
+        ensures global<DiemAccount>(payer).withdraw_capability == old(
+            global<DiemAccount>(payer).withdraw_capability);
         ensures event::spec_guid_eq(global<DiemAccount>(payer).sent_events,
             old(global<DiemAccount>(payer).sent_events));
         ensures event::spec_guid_eq(global<DiemAccount>(payer).received_events,
@@ -863,8 +866,8 @@ module DiemFramework::DiemAccount {
         ensures exists_at(payee);
         ensures exists<Balance<Token>>(payer);
         ensures exists<Balance<Token>>(payee);
-        ensures global<DiemAccount>(payer).withdraw_capability == old(global<DiemAccount>(payer)
-            .withdraw_capability);
+        ensures global<DiemAccount>(payer).withdraw_capability == old(
+            global<DiemAccount>(payer).withdraw_capability);
         ensures event::spec_guid_eq(global<DiemAccount>(payer).sent_events,
             old(global<DiemAccount>(payer).sent_events));
         ensures event::spec_guid_eq(global<DiemAccount>(payer).received_events,
@@ -960,8 +963,8 @@ module DiemFramework::DiemAccount {
     spec schema RotateOnlyKeyOfCapAddress {
         cap: KeyRotationCapability;
         /// Can only rotate the authentication_key of cap.account_address [[H18]][PERMISSION].
-        ensures forall addr: address where addr != cap.account_address && old(exists_at(addr)): global<
-            DiemAccount>(addr).authentication_key
+        ensures forall addr: address where addr != cap.account_address && old(
+            exists_at(addr)): global<DiemAccount>(addr).authentication_key
         == old(global<DiemAccount>(addr).authentication_key);
     }
 
@@ -2384,8 +2387,8 @@ module DiemFramework::DiemAccount {
 
     spec schema PreserveWithdrawCapAbsence {
         /// The absence of WithdrawCap is preserved.
-        ensures forall addr: address: old(!exists<DiemAccount>(addr) || option::is_none(global<
-                    DiemAccount>(addr).withdraw_capability)) ==>
+        ensures forall addr: address: old(!exists<DiemAccount>(addr) || option::is_none(
+                global<DiemAccount>(addr).withdraw_capability)) ==>
             (!exists<DiemAccount>(addr) || option::is_none(global<DiemAccount>(addr).withdraw_capability));
     }
 
@@ -2429,8 +2432,8 @@ module DiemFramework::DiemAccount {
             exists<DiemWriteSetManager>(@DiemRoot);
 
         /// resource struct `Balance<CoinType>` is persistent
-        invariant<CoinType> update forall addr: address where old(exists<Balance<CoinType>>(
-                addr)): exists<Balance<CoinType>>(addr);
+        invariant<CoinType> update forall addr: address where old(
+            exists<Balance<CoinType>>(addr)): exists<Balance<CoinType>>(addr);
 
         /// resource struct `AccountOperationsCapability` is persistent
         invariant update old(exists<AccountOperationsCapability>(@DiemRoot)) ==>

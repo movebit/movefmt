@@ -261,8 +261,8 @@ module ExperimentalFramework::MultiToken {
                 TokenDataCollection { tokens: vector::empty<TokenData<TokenType>>() });
         };
         let token_data_collection =
-            &mut borrow_global_mut<TokenDataCollection<TokenType>>(signer::address_of(account))
-                .tokens;
+            &mut borrow_global_mut<TokenDataCollection<TokenType>>(
+                signer::address_of(account)).tokens;
         vector::push_back(token_data_collection,
             TokenData {
                 metadata: option::some(metadata),

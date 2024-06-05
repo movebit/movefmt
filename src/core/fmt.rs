@@ -590,7 +590,19 @@ impl Format {
                         && first_ele_len > 8;
                     let is_nested_len_too_large =
                         nested_token_len as f32 > 2.0 * max_len_when_no_add_line;
-                    new_line_mode = is_plus_first_ele_over_width || is_nested_len_too_large;
+                    new_line_mode = is_plus_first_ele_over_width 
+                        || is_nested_len_too_large 
+                        || self
+                            .syntax_extractor
+                            .call_extractor
+                            .first_para_is_complex_blk(
+                                self.global_cfg.clone(),
+                                kind,
+                                elements,
+                                self.get_cur_line_len(),
+                            );
+
+                    // set opt_component_break_mode
                     if !opt_component_break_mode
                         && self.syntax_extractor.call_extractor.paren_in_call(kind)
                     {
@@ -1153,7 +1165,7 @@ impl Format {
             {
                 tracing::debug!("last_line = {:?}", self.last_line());
                 tracing::debug!(
-                    "SimpleToken{:?} too long, add a new line because of split line",
+                    "SimpleToken {:?} too long, add a new line because of split line",
                     content
                 );
 

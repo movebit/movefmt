@@ -18,7 +18,8 @@ module aptos_std::smart_vector_test {
     fun smart_vector_for_each_test() {
         let v = make_smart_vector(100);
         let i = 0;
-        V::for_each(v, |x| {
+        V::for_each(v,
+            |x| {
                 assert!(i + 1 == x, 0);
                 i = i + 1;
             });
@@ -28,7 +29,8 @@ module aptos_std::smart_vector_test {
     fun smart_vector_for_each_reverse_test() {
         let v = make_smart_vector(100);
         let i = 0;
-        V::for_each_reverse(v, |x| {
+        V::for_each_reverse(v,
+            |x| {
                 assert!(i == 100 - x, 0);
                 i = i + 1;
             });
@@ -58,7 +60,8 @@ module aptos_std::smart_vector_test {
     #[test]
     fun smart_vector_enumerate_ref_test() {
         let v = make_smart_vector(100);
-        V::enumerate_ref(&v, |i, x| {
+        V::enumerate_ref(&v,
+            |i, x| {
                 assert!(i + 1 == *x, 0);
             });
         V::destroy(v);
@@ -67,7 +70,8 @@ module aptos_std::smart_vector_test {
     #[test]
     fun smart_vector_enumerate_mut_test() {
         let v = make_smart_vector(100);
-        V::enumerate_mut(&mut v, |i, x| {
+        V::enumerate_mut(&mut v,
+            |i, x| {
                 let x: &mut u64 = x;
                 assert!(i + 1 == *x, 0);
                 *x = *x + 1;
@@ -80,7 +84,8 @@ module aptos_std::smart_vector_test {
         let v = make_smart_vector(100);
         let i = 0;
         let sum =
-            V::fold(v, 0, |s, x| {
+            V::fold(v, 0,
+                |s, x| {
                     assert!(i + 1 == x, 0);
                     i = i + 1;
                     s + x
@@ -93,7 +98,8 @@ module aptos_std::smart_vector_test {
         let v = make_smart_vector(100);
         let i = 0;
         let sum =
-            V::foldr(v, 0, |x, s| {
+            V::foldr(v, 0,
+                |x, s| {
                     assert!(i == 100 - x, i);
                     i = i + 1;
                     s + x
@@ -121,7 +127,8 @@ module aptos_std::smart_vector_test {
     fun smart_vector_filter_test() {
         let v = make_smart_vector(100);
         let filtered_v = V::filter(v, |x| *x % 10 == 0);
-        V::enumerate_ref(&filtered_v, |i, x| {
+        V::enumerate_ref(&filtered_v,
+            |i, x| {
                 assert!((i + 1) * 10 == *x, 0);
             });
         V::destroy(filtered_v);

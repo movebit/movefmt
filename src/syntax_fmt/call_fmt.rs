@@ -2,7 +2,7 @@
 // Copyright (c) The BitsLab.MoveBit Contributors
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::core::token_tree::{analyze_token_tree_length, get_code_buf_len, NestKind, TokenTree};
+use crate::core::token_tree::*;
 use crate::tools::syntax::parse_file_string;
 use crate::tools::utils::FileLineMappingOneFile;
 use commentfmt::Config;
@@ -276,7 +276,10 @@ impl CallExtractor {
         cur_ret_last_len: usize,
     ) -> bool {
         for call_in_call_loc in &self.call_loc_vec {
-            if next_t_start_pos == call_in_call_loc.start() {
+            // updated in 20240605: maybe has '&' before call name,
+            // like this: fun_call(para1, &call_name2(), !call_name3());
+            if next_t_start_pos == call_in_call_loc.start()
+            || next_t_start_pos + 1 == call_in_call_loc.start() {
                 let start_line = self
                     .line_mapping
                     .translate(call_in_call_loc.start(), call_in_call_loc.start())
@@ -368,28 +371,54 @@ impl CallExtractor {
             let next_t_start_pos = get_tok_start_pos(next_t.unwrap());
 
             for call_loc in self.call_paren_loc_vec.iter() {
-                if kind.start_pos <= call_loc.start() && call_loc.end() <= kind.end_pos {
-                    if self.should_split_pack_component(
-                        next_t_start_pos,
-                        config.clone(),
-                        cur_ret_last_len,
-                    ) {
-                        tracing::debug!(
-                            "should split pack: next_t = {:?}",
-                            next_t.unwrap().simple_str()
-                        );
-                        return true;
-                    }
-                    if self.should_split_call_component(
-                        next_t_start_pos,
-                        config.clone(),
-                        cur_ret_last_len,
-                    ) {
+                if kind.start_pos > call_loc.start() || call_loc.end() > kind.end_pos {
+                    continue;
+                }
+
+                if self.should_split_pack_component(
+                    next_t_start_pos,
+                    config.clone(),
+                    cur_ret_last_len,
+                ) {
+                    tracing::debug!(
+                        "should split pack: next_t = {:?}",
+                        next_t.unwrap().simple_str()
+                    );
+                    return true;
+                }
+                if self.should_split_call_component(
+                    next_t_start_pos,
+                    config.clone(),
+                    cur_ret_last_len,
+                ) {
                         tracing::debug!(
                             "should split call: next_t = {:?}",
                             next_t.unwrap().simple_str()
                         );
                         return true;
+                    }
+
+                // added in 20240605: judge if the next parameter is a lambda exp block
+                // eg: 
+                // V::enumerate_ref(&filtered_v, |i, x| { ... });
+                if let TokenTree::Nested {
+                    elements: _lambda_ele,
+                    kind,
+                    note: _,
+                } = next_t.unwrap() {
+                    if kind.kind == NestKind_::Lambda {
+                        let next_next_t = elements.get(index + 2);
+                        if next_next_t.is_some() {
+                            if let TokenTree::Nested {
+                                elements: _,
+                                kind: next_next_kind,
+                                note: _,
+                            } = next_next_t.unwrap() {
+                                if next_next_kind.kind == NestKind_::Brace {
+                                    return true;
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -436,6 +465,73 @@ impl CallExtractor {
         }
 
         (false, 0)
+    }
+
+    pub(crate) fn first_para_is_complex_blk(
+        &self,
+        config: Config,
+        kind: &NestKind,
+        elements: &[TokenTree],
+        cur_ret_last_len: usize,
+    ) -> bool {
+        let next_t = elements.first();
+        if next_t.is_none() {
+            return false;
+        }
+        let next_t_start_pos = get_tok_start_pos(next_t.unwrap());
+        for call_loc in self.call_paren_loc_vec.iter() {
+            if kind.start_pos > call_loc.start() || call_loc.end() > kind.end_pos {
+                continue;
+            }
+
+            if self.should_split_pack_component(
+                next_t_start_pos,
+                config.clone(),
+                cur_ret_last_len,
+            ) {
+                tracing::debug!(
+                    "should split pack: next_t = {:?}",
+                    next_t.unwrap().simple_str()
+                );
+                return true;
+            }
+            if self.should_split_call_component(
+                next_t_start_pos,
+                config.clone(),
+                cur_ret_last_len,
+            ) {
+                    tracing::debug!(
+                        "should split call: next_t = {:?}",
+                        next_t.unwrap().simple_str()
+                    );
+                    return true;
+                }
+
+            // added in 20240605: judge if the next parameter is a lambda exp block
+            // eg: 
+            // V::enumerate_ref(&filtered_v, |i, x| { ... });
+            if let TokenTree::Nested {
+                elements: _lambda_ele,
+                kind,
+                note: _,
+            } = next_t.unwrap() {
+                if kind.kind == NestKind_::Lambda {
+                    let next_next_t = elements.get(1);
+                    if next_next_t.is_some() {
+                        if let TokenTree::Nested {
+                            elements: _,
+                            kind: next_next_kind,
+                            note: _,
+                        } = next_next_t.unwrap() {
+                            if next_next_kind.kind == NestKind_::Brace {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        false
     }
 }
 
