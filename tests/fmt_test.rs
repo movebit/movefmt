@@ -53,7 +53,7 @@ fn test_single_file() {
         .with_env_filter(EnvFilter::from_env("MOVEFMT_LOG"))
         .init();
 
-    test_on_file(Path::new("./tests/complex/input4.move"));
+    test_on_file(Path::new("./tests/bug/input2.move"));
 }
 
 fn test_on_file(p: impl AsRef<Path>) -> bool {
@@ -255,6 +255,7 @@ fn test_dir() {
     num += scan_dir("./tests/comment");
     num += scan_dir("./tests/break_line");
     num += scan_dir("./tests/new_syntax");
+    num += scan_dir("./tests/bug");
     eprintln!("formated {} files", num);
 }
 
