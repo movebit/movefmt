@@ -250,6 +250,7 @@ fn test_dir() {
     let mut num: usize = 0;
     num += scan_dir("./tests/complex");
     num += scan_dir("./tests/complex2");
+    num += scan_dir("./tests/complex3");
     num += scan_dir("./tests/aptos_framework_case");
     num += scan_dir("./tests/issues");
     num += scan_dir("./tests/comment");

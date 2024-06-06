@@ -248,7 +248,8 @@ module ExperimentalFramework::MultiToken {
         account: &signer, metadata: TokenType, content_uri: vector<u8>, amount: u64
     ): Token<TokenType> acquires Admin, TokenDataCollection {
         let guid = guid::create(account);
-        event::emit_event(&mut borrow_global_mut<Admin>(ADMIN).mint_events,
+        event::emit_event(
+            &mut borrow_global_mut<Admin>(ADMIN).mint_events,
             MintEvent {
                 id: guid::id(&guid),
                 creator: signer::address_of(account),
@@ -263,7 +264,8 @@ module ExperimentalFramework::MultiToken {
         let token_data_collection =
             &mut borrow_global_mut<TokenDataCollection<TokenType>>(
                 signer::address_of(account)).tokens;
-        vector::push_back(token_data_collection,
+        vector::push_back(
+            token_data_collection,
             TokenData {
                 metadata: option::some(metadata),
                 token_id: guid,

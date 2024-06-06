@@ -603,14 +603,23 @@ impl Format {
                             );
 
                     // set opt_component_break_mode
-                    if !opt_component_break_mode
-                        && self.syntax_extractor.call_extractor.paren_in_call(kind)
-                    {
-                        let elements_str = serde_json::to_string(&elements).unwrap_or_default();
-                        let para_num = elements_str.matches("\"content\":\",\"").count() as u32;
-                        opt_component_break_mode |=
-                            para_num >= 4 && nested_token_len as f32 > max_len_when_no_add_line;
-                    }
+                    let elements_str = serde_json::to_string(&elements).unwrap_or_default();
+                    let has_multi_para = elements_str.matches("\"content\":\",\"").count() >= 4;
+                    let is_in_fun_call = self.syntax_extractor.call_extractor.paren_in_call(kind);
+                    let should_split_multi_para = has_multi_para
+                        && is_in_fun_call
+                        && nested_token_len as f32 > max_len_when_no_add_line;
+
+                    opt_component_break_mode |= should_split_multi_para;
+
+                    // optimize in 20240606: 
+                    // 1.fun call,  should add new_line if has_multi_para;
+                    // 2.spec fun header, should add new_line if has_multi_para;
+                    // you can see case at tests/complex3/input1.move
+                    new_line_mode |= should_split_multi_para;
+                    new_line_mode |= has_multi_para
+                        && !is_in_fun_call
+                        && self.format_context.borrow().cur_tok == Tok::Identifier;
                 }
                 return (new_line_mode, Some(opt_component_break_mode));
             }

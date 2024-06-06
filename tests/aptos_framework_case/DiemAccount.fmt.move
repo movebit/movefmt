@@ -317,8 +317,8 @@ module DiemFramework::DiemAccount {
         Diem::deposit(&mut borrow_global_mut<Balance<Token>>(payee).coin, to_deposit);
 
         // Log a received event
-        event::emit_event<ReceivedPaymentEvent>(&mut borrow_global_mut<DiemAccount>(payee)
-            .received_events,
+        event::emit_event<ReceivedPaymentEvent>(
+            &mut borrow_global_mut<DiemAccount>(payee).received_events,
             ReceivedPaymentEvent {
                 amount: deposit_value,
                 currency_code: Diem::currency_code<Token>(),
@@ -609,7 +609,8 @@ module DiemFramework::DiemAccount {
             errors::not_published(EPAYER_DOESNT_HOLD_CURRENCY));
         let account_balance = borrow_global_mut<Balance<Token>>(payer);
         // Load the payer's account and emit an event to record the withdrawal
-        event::emit_event<SentPaymentEvent>(&mut borrow_global_mut<DiemAccount>(payer).sent_events,
+        event::emit_event<SentPaymentEvent>(
+            &mut borrow_global_mut<DiemAccount>(payer).sent_events,
             SentPaymentEvent {
                 amount,
                 currency_code: Diem::currency_code<Token>(),
@@ -804,7 +805,8 @@ module DiemFramework::DiemAccount {
         metadata: vector<u8>,
         metadata_signature: vector<u8>
     ) acquires DiemAccount, Balance, AccountOperationsCapability {
-        deposit<Token>(*&cap.account_address,
+        deposit<Token>(
+            *&cap.account_address,
             payee,
             withdraw_from(cap, payee, amount, copy metadata),
             metadata,
@@ -823,7 +825,8 @@ module DiemFramework::DiemAccount {
         metadata: vector<u8>,
     ) acquires DiemAccount, Balance, AccountOperationsCapability {
         let payee_address = signer::address_of(payee);
-        deposit<Token>(*&cap.account_address,
+        deposit<Token>(
+            *&cap.account_address,
             payee_address,
             withdraw_from(cap, payee_address, amount, copy metadata),
             metadata,
@@ -1098,7 +1101,8 @@ module DiemFramework::DiemAccount {
                 created: new_account_addr,
                 role_id: Roles::get_role_id(new_account_addr)
             },);
-        move_to(new_account,
+        move_to(
+            new_account,
             DiemAccount {
                 authentication_key,
                 withdraw_capability: option::some(WithdrawCapability {
@@ -1669,7 +1673,8 @@ module DiemFramework::DiemAccount {
         assert!(DiemTransactionPublishingOption::is_module_allowed(&sender),
             errors::invalid_state(PROLOGUE_EMODULE_NOT_ALLOWED),);
 
-        prologue_common<Token>(&sender,
+        prologue_common<Token>(
+            &sender,
             txn_sequence_number,
             txn_public_key,
             txn_gas_price,
@@ -1724,7 +1729,8 @@ module DiemFramework::DiemAccount {
         assert!(DiemTransactionPublishingOption::is_script_allowed(&sender, &script_hash),
             errors::invalid_state(PROLOGUE_ESCRIPT_NOT_ALLOWED),);
 
-        prologue_common<Token>(&sender,
+        prologue_common<Token>(
+            &sender,
             txn_sequence_number,
             txn_public_key,
             txn_gas_price,
@@ -1774,7 +1780,8 @@ module DiemFramework::DiemAccount {
             errors::invalid_argument(PROLOGUE_EINVALID_WRITESET_SENDER));
 
         // Currency code don't matter here as it won't be charged anyway. Gas constants are ommitted.
-        prologue_common<XUS>(&sender,
+        prologue_common<XUS>(
+            &sender,
             txn_sequence_number,
             txn_public_key,
             0,
@@ -1877,7 +1884,8 @@ module DiemFramework::DiemAccount {
     ) acquires DiemAccount, Balance {
         check_secondary_signers(secondary_signer_addresses,
             secondary_signer_public_key_hashes);
-        prologue_common<Token>(&sender,
+        prologue_common<Token>(
+            &sender,
             txn_sequence_number,
             txn_sender_public_key,
             txn_gas_price,
@@ -2053,7 +2061,8 @@ module DiemFramework::DiemAccount {
         txn_max_gas_units: u64,
         gas_units_remaining: u64
     ) acquires DiemAccount, Balance {
-        epilogue_common<Token>(&account,
+        epilogue_common<Token>(
+            &account,
             txn_sequence_number,
             txn_gas_price,
             txn_max_gas_units,

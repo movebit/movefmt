@@ -224,7 +224,8 @@ module aptos_framework::account {
         let key_rotation_events = event::new_event_handle<KeyRotationEvent>(
             guid_for_rotation);
 
-        move_to(&new_account,
+        move_to(
+            &new_account,
             Account {
                 authentication_key,
                 sequence_number: 0,
@@ -549,7 +550,8 @@ module aptos_framework::account {
                 source_address,
                 recipient_address,
             };
-        verify_signed_message(source_address,
+        verify_signed_message(
+            source_address,
             account_scheme,
             account_public_key_bytes,
             signer_capability_sig_bytes,
@@ -925,7 +927,8 @@ module aptos_framework::account {
         assert!(
             multi_ed25519::signature_verify_strict_t(&fake_sig, &fake_pk, proof_challenge),
             error::invalid_state(EINVALID_PROOF_OF_KNOWLEDGE));
-        offer_signer_capability(&resource,
+        offer_signer_capability(
+            &resource,
             signer_capability_sig_bytes,
             MULTI_ED25519_SCHEME,
             account_public_key_bytes,
@@ -1036,7 +1039,8 @@ module aptos_framework::account {
         let test_signature = vector::empty<u8>();
         let pk =
             x"0000000000000000000000000000000000000000000000000000000000000000";
-        rotate_authentication_key(&alice,
+        rotate_authentication_key(
+            &alice,
             ED25519_SCHEME,
             pk,
             ED25519_SCHEME,
@@ -1107,7 +1111,8 @@ module aptos_framework::account {
 
         let alice_signer_capability_offer_sig = ed25519::sign_struct(&alice_sk, challenge);
 
-        offer_signer_capability(&alice,
+        offer_signer_capability(
+            &alice,
             ed25519::signature_to_bytes(&alice_signer_capability_offer_sig),
             0,
             alice_pk_bytes,
@@ -1140,7 +1145,8 @@ module aptos_framework::account {
 
         let alice_signer_capability_offer_sig = ed25519::sign_struct(&alice_sk, challenge);
 
-        offer_signer_capability(&alice,
+        offer_signer_capability(
+            &alice,
             ed25519::signature_to_bytes(&alice_signer_capability_offer_sig),
             0,
             alice_pk_bytes,
@@ -1172,7 +1178,8 @@ module aptos_framework::account {
 
         let alice_signer_capability_offer_sig = ed25519::sign_struct(&alice_sk, challenge);
 
-        offer_signer_capability(&alice,
+        offer_signer_capability(
+            &alice,
             ed25519::signature_to_bytes(&alice_signer_capability_offer_sig),
             0,
             alice_pk_bytes,
@@ -1205,7 +1212,8 @@ module aptos_framework::account {
 
         let alice_signer_capability_offer_sig = ed25519::sign_struct(&alice_sk, challenge);
 
-        offer_signer_capability(&alice,
+        offer_signer_capability(
+            &alice,
             ed25519::signature_to_bytes(&alice_signer_capability_offer_sig),
             0,
             alice_pk_bytes,
@@ -1237,7 +1245,8 @@ module aptos_framework::account {
                 recipient_address: bob_addr,
             };
         let alice_signer_capability_offer_sig = ed25519::sign_struct(&alice_sk, challenge);
-        offer_signer_capability(&alice,
+        offer_signer_capability(
+            &alice,
             ed25519::signature_to_bytes(&alice_signer_capability_offer_sig),
             0,
             alice_pk_bytes,
@@ -1271,7 +1280,8 @@ module aptos_framework::account {
 
         let alice_rotation_capability_offer_sig = ed25519::sign_struct(&alice_sk, challenge);
 
-        offer_rotation_capability(&alice,
+        offer_rotation_capability(
+            &alice,
             ed25519::signature_to_bytes(&alice_rotation_capability_offer_sig),
             0,
             alice_pk_bytes,
@@ -1307,7 +1317,8 @@ module aptos_framework::account {
 
         let alice_rotation_capability_offer_sig = ed25519::sign_struct(&alice_sk, challenge);
 
-        offer_rotation_capability(&alice,
+        offer_rotation_capability(
+            &alice,
             ed25519::signature_to_bytes(&alice_rotation_capability_offer_sig),
             0,
             alice_pk_bytes,
@@ -1337,7 +1348,8 @@ module aptos_framework::account {
 
         let alice_rotation_capability_offer_sig = ed25519::sign_struct(&alice_sk, challenge);
 
-        offer_rotation_capability(&alice,
+        offer_rotation_capability(
+            &alice,
             ed25519::signature_to_bytes(&alice_rotation_capability_offer_sig),
             0,
             alice_pk_bytes,
@@ -1370,7 +1382,8 @@ module aptos_framework::account {
 
         let alice_rotation_capability_offer_sig = ed25519::sign_struct(&alice_sk, challenge);
 
-        offer_rotation_capability(&alice,
+        offer_rotation_capability(
+            &alice,
             ed25519::signature_to_bytes(&alice_rotation_capability_offer_sig),
             0,
             alice_pk_bytes,
@@ -1411,7 +1424,8 @@ module aptos_framework::account {
         let from_sig = multi_ed25519::sign_struct(&curr_sk, challenge);
         let to_sig = multi_ed25519::sign_struct(&new_sk, challenge);
 
-        rotate_authentication_key(&alice,
+        rotate_authentication_key(
+            &alice,
             MULTI_ED25519_SCHEME,
             multi_ed25519::unvalidated_public_key_to_bytes(&curr_pk_unvalidated),
             MULTI_ED25519_SCHEME,
@@ -1457,7 +1471,8 @@ module aptos_framework::account {
         let from_sig = multi_ed25519::sign_struct(&curr_sk, challenge);
         let to_sig = ed25519::sign_struct(&new_sk, challenge);
 
-        rotate_authentication_key(&alice,
+        rotate_authentication_key(
+            &alice,
             MULTI_ED25519_SCHEME,
             multi_ed25519::unvalidated_public_key_to_bytes(&curr_pk_unvalidated),
             ED25519_SCHEME,

@@ -10,9 +10,11 @@ module 0x42::LambdaTest1 {
     public inline fun inline_apply1(f: |u64| u64, b: u64): u64 {
         // Apply the function f to b and multiply the result by 3 and 4
         inline_mul(
-            inline_mul(inline_mul(f(b) + 0, inline_mul(1, 2)),
+            inline_mul(
+                inline_mul(f(b) + 0, inline_mul(1, 2)),
                 inline_mul(f(b) + 1, inline_mul(3, 4))),
-            iinline_mul(inline_mul(f(b) + 2, inline_mul(5, 6)),
+            iinline_mul(
+                inline_mul(f(b) + 2, inline_mul(5, 6)),
                 inline_mul(f(b) + 3, inline_mul(7, 8))))
     }
 }
