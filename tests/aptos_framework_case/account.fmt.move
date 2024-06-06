@@ -1188,7 +1188,7 @@ module aptos_framework::account {
         let alice_account_resource = borrow_global_mut<Account>(alice_addr);
         assert!(
             option::contains(&alice_account_resource.signer_capability_offer.for, &bob_addr),
-                0);
+            0);
 
         create_authorized_signer(&charlie, alice_addr);
     }

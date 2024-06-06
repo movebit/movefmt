@@ -730,7 +730,7 @@ module econia::incentives {
     public fun is_utility_coin_type<T>(): bool acquires IncentiveParameters {
         // Return if provided type info is that of the utility coin.
         type_info::type_of<T>()
-        == borrow_global<IncentiveParameters>(@econia).utility_coin_type_info
+            == borrow_global<IncentiveParameters>(@econia).utility_coin_type_info
     }
 
     // View functions <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<

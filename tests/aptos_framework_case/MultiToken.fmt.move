@@ -135,13 +135,13 @@ module ExperimentalFramework::MultiToken {
         aborts_if token_collection[min_token_idx].metadata == option::spec_none();
         aborts_if !is_in_tokens(token_collection, id);
         ensures result
-        == TokenDataWrapper {
-            origin: addr,
-            index: min_token_idx,
-            metadata: option::borrow(token_collection[min_token_idx].metadata)
-        };
+            == TokenDataWrapper {
+                origin: addr,
+                index: min_token_idx,
+                metadata: option::borrow(token_collection[min_token_idx].metadata)
+            };
         ensures get_tokens<TokenType>(addr)[min_token_idx].metadata
-        == option::spec_none();
+            == option::spec_none();
     }
 
     /// Restore the token in the wrapper back into global storage under original address.
@@ -165,7 +165,7 @@ module ExperimentalFramework::MultiToken {
         aborts_if len(token_collection) <= wrapper.index;
         aborts_if item_opt != option::spec_none();
         ensures get_tokens<TokenType>(addr)[wrapper.index].metadata
-        == option::spec_some(wrapper.metadata);
+            == option::spec_some(wrapper.metadata);
     }
 
     /// Finds the index of token with the given id in the gallery.
@@ -287,11 +287,11 @@ module ExperimentalFramework::MultiToken {
         ensures guid::id_creator_address(result.id) == addr;
         ensures exists<TokenDataCollection<TokenType>>(addr);
         ensures post_tokens[len(post_tokens) - 1]
-        == TokenData<TokenType> {
-            metadata: option::spec_some(metadata),
-            token_id: guid::GUID { id: result.id },
-            content_uri,
-            supply: amount
-        };
+            == TokenData<TokenType> {
+                metadata: option::spec_some(metadata),
+                token_id: guid::GUID { id: result.id },
+                content_uri,
+                supply: amount
+            };
     }
 }

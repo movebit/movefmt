@@ -10,6 +10,7 @@ use move_compiler::parser::ast::Definition;
 use move_compiler::parser::ast::*;
 use move_compiler::shared::CompilationEnv;
 use move_compiler::Flags;
+use move_compiler::shared::ast_debug;
 use move_ir_types::location::*;
 use std::cell::RefCell;
 use std::collections::BTreeSet;
@@ -49,35 +50,7 @@ impl LetExtractor {
         for d in defs.iter() {
             this_let_extractor.collect_definition(d);
         }
-
-        for bin_op_exp in this_let_extractor.bin_op_exp_vec.iter() {
-            let bin_op_exp_str = &this_let_extractor.source
-                [bin_op_exp.loc.start() as usize..bin_op_exp.loc.end() as usize];
-
-            let bin_op_right_is_long = match &bin_op_exp.value {
-                Exp_::BinopExp(_, op, r) => {
-                    let bin_op_right_str = &this_let_extractor.source
-                        [r.loc.start() as usize..r.loc.end() as usize]
-                        .len();
-                    match op.value {
-                        BinOp_::Implies | BinOp_::Iff | BinOp_::Eq => *bin_op_right_str > 16,
-                        _ => *bin_op_right_str > 64,
-                    }
-                }
-                Exp_::Assign(_, r) => {
-                    this_let_extractor.source[r.loc.start() as usize..r.loc.end() as usize].len()
-                        > 64
-                }
-                _ => false,
-            };
-
-            if bin_op_exp_str.len() > 64 && bin_op_right_is_long {
-                this_let_extractor
-                    .long_bin_op_exp_vec
-                    .push(bin_op_exp.clone());
-                this_let_extractor.split_bin_op_vec.borrow_mut().push(false);
-            }
-        }
+        this_let_extractor.collect_long_op_exp();
         this_let_extractor
     }
 
@@ -293,6 +266,79 @@ impl LetExtractor {
 }
 
 impl LetExtractor {
+    fn collect_long_op_exp(&mut self) {
+        self.multi_ampamp_or_pipepipe_exp();
+        for bin_op_exp in self.bin_op_exp_vec.iter() {
+            let bin_op_exp_str = &self.source
+                [bin_op_exp.loc.start() as usize..bin_op_exp.loc.end() as usize];
+
+            let bin_op_right_is_long = match &bin_op_exp.value {
+                Exp_::BinopExp(_, op, r) => {
+                    let bin_op_right_str = &self.source
+                        [r.loc.start() as usize..r.loc.end() as usize]
+                        .len();
+                    match op.value {
+                        BinOp_::Implies | BinOp_::Iff | BinOp_::Eq => *bin_op_right_str > 16,
+                        _ => *bin_op_right_str > 64,
+                    }
+                }
+                Exp_::Assign(_, r) => {
+                    self.source[r.loc.start() as usize..r.loc.end() as usize].len()
+                        > 64
+                }
+                _ => false,
+            };
+
+            if bin_op_exp_str.len() > 64 && bin_op_right_is_long {
+                self
+                    .long_bin_op_exp_vec
+                    .push(bin_op_exp.clone());
+                self.split_bin_op_vec.borrow_mut().push(false);
+            }
+        }
+    }
+
+    #[allow(unused_assignments)]
+    fn multi_ampamp_or_pipepipe_exp(&mut self) {
+        let mut idx = 0;
+        while idx < self.bin_op_exp_vec.len() {
+            let bin_op_exp = &self.bin_op_exp_vec[idx];
+            let bin_op_exp_str = ast_debug::display(&bin_op_exp.value);
+            if bin_op_exp_str.matches("&&").count() < 2 && bin_op_exp_str.matches("||").count() < 2 {
+                idx += 1;
+                continue;
+            }
+
+            if let Exp_::BinopExp(_, end_op, _) = &bin_op_exp.value {
+                if matches!(end_op.value, BinOp_::And | BinOp_::Or) {
+                    self
+                        .long_bin_op_exp_vec
+                        .push(bin_op_exp.clone());
+                    self.split_bin_op_vec.borrow_mut().push(false);
+                }
+            }
+
+            for nested_continue_ampamp_idx in idx+1..self.bin_op_exp_vec.len() {
+                let nested_op_exp = &self.bin_op_exp_vec[nested_continue_ampamp_idx];
+                if let Exp_::BinopExp(_, nested_op, _) = &nested_op_exp.value {
+                    if matches!(nested_op.value, BinOp_::And | BinOp_::Or) {
+                        if bin_op_exp.loc.start() <= nested_op_exp.loc.start()
+                        && nested_op_exp.loc.end() <= bin_op_exp.loc.end() {
+                            idx = nested_continue_ampamp_idx + 1;
+                            self
+                                .long_bin_op_exp_vec
+                                .push(nested_op_exp.clone());
+                            self.split_bin_op_vec.borrow_mut().push(false);
+                        }
+                    }
+                }
+            }
+            idx += 1;
+        }
+    }
+}
+
+impl LetExtractor {
     pub(crate) fn is_long_bin_op(&self, token: TokenTree) -> bool {
         for bin_op_exp in self.long_bin_op_exp_vec.iter() {
             if let Exp_::BinopExp(_, m, _) = &bin_op_exp.value {
@@ -329,7 +375,7 @@ impl LetExtractor {
     pub(crate) fn need_split_long_bin_op_exp(&self, token: TokenTree) -> bool {
         for (idx, bin_op_exp) in self.long_bin_op_exp_vec.iter().enumerate() {
             if let Exp_::BinopExp(_, m, _) = &bin_op_exp.value {
-                if token.end_pos() == m.loc.end() {
+                if token.end_pos() == m.loc.end() && !self.split_bin_op_vec.borrow_mut()[idx] {
                     self.split_bin_op_vec.borrow_mut()[idx] = true;
                     return true;
                 }
@@ -338,15 +384,16 @@ impl LetExtractor {
         false
     }
 
-    pub(crate) fn is_long_bin_op_exp_end(&self, token: TokenTree) -> bool {
+    pub(crate) fn is_long_bin_op_exp_end(&self, token: TokenTree) -> usize {
+        let mut inc_depth_cnt = 0;
         for (idx, bin_op_exp) in self.long_bin_op_exp_vec.iter().enumerate() {
             if let Exp_::BinopExp(_, _, r) = &bin_op_exp.value {
                 if token.end_pos() == r.loc.end() && self.split_bin_op_vec.borrow()[idx] {
-                    return true;
+                    inc_depth_cnt += 1;
                 }
             }
         }
-        false
+        inc_depth_cnt
     }
 
     pub(crate) fn need_split_long_let_assign_rhs(&self, token: TokenTree) -> bool {
@@ -358,21 +405,22 @@ impl LetExtractor {
         false
     }
 
-    pub(crate) fn is_long_let_assign_rhs_end(&self, token: TokenTree) -> bool {
+    pub(crate) fn is_long_let_assign_rhs_end(&self, token: TokenTree) -> usize {
+        let mut inc_depth_cnt = 0;
         for long_let_rhs_pos in self.break_line_by_let_rhs.borrow().iter() {
             if token.end_pos() == *long_let_rhs_pos.0 {
-                return true;
+                inc_depth_cnt += 1;
             }
         }
-        false
+        inc_depth_cnt
     }
 
     pub(crate) fn need_inc_depth_by_long_op(&self, token: TokenTree) -> bool {
         self.need_split_long_bin_op_exp(token.clone()) || self.need_split_long_let_assign_rhs(token)
     }
 
-    pub(crate) fn need_dec_depth_by_long_op(&self, token: TokenTree) -> bool {
-        self.is_long_bin_op_exp_end(token.clone()) || self.is_long_let_assign_rhs_end(token)
+    pub(crate) fn need_dec_depth_by_long_op(&self, token: TokenTree) -> usize {
+        self.is_long_bin_op_exp_end(token.clone()) + self.is_long_let_assign_rhs_end(token)
     }
 }
 
@@ -437,6 +485,13 @@ fn test_get_bin_op_exp() {
                 let max_output =
                     if (input_into_output < output_deposited) 0
                     else (input_into_output - output_deposited);
+            }
+
+            spec create_property_value<T: copy>(data: &T): PropertyValue {
+                aborts_if name != spec_utf8(b1) && name != spec_utf8(b2) && name != spec_utf8(
+                    b3) && name != spec_utf8(b4) && name != spec_utf8(b5) && name
+                    != spec_utf8(b6) && !string::spec_internal_check_utf8(
+                    b7);
             }
         }
 "

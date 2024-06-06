@@ -236,6 +236,49 @@ impl Format {
         }
     }
 
+    fn check_current_token_is_long_bin_op(
+        &self,
+        current: &TokenTree,
+        next: Option<&TokenTree>,
+    ) -> bool {
+        if matches!(current.simple_str().unwrap_or_default(), "==>" | "<==>") {
+            let next_token_start_pos = self.get_token_tree_start_pos(next.unwrap());
+            if self.translate_line(next_token_start_pos)
+                <= self.translate_line(current.end_pos()) + 1
+                && self
+                    .syntax_extractor
+                    .let_extractor
+                    .is_long_bin_op(current.clone())
+            {
+                return true;
+            }
+        }
+        false
+    }
+
+    fn check_next_token_is_long_bin_op(
+        &self,
+        next_t: Option<&TokenTree>,
+        next_token: Tok
+    ) -> bool {
+        if matches!(
+            next_token,
+            Tok::ExclaimEqual |
+            Tok::LessEqual |
+            Tok::EqualEqual |
+            Tok::GreaterEqual |
+            Tok::AmpAmp |
+            Tok::PipePipe
+        ) && self
+            .syntax_extractor
+            .let_extractor
+            .is_long_bin_op(next_t.unwrap().clone())
+        {
+            return true;
+        }
+        false
+    }
+
     fn check_new_line_mode_for_each_token_in_nested(
         &self,
         kind_outer: &NestKind,
@@ -272,19 +315,7 @@ impl Format {
                 return true;
             }
         }
-        if matches!(current.simple_str().unwrap_or_default(), "==>" | "<==>") {
-            let next_token_start_pos = self.get_token_tree_start_pos(next.unwrap());
-            if self.translate_line(next_token_start_pos)
-                <= self.translate_line(current.end_pos()) + 1
-                && self
-                    .syntax_extractor
-                    .let_extractor
-                    .is_long_bin_op(current.clone())
-            {
-                return true;
-            }
-        }
-        false
+        self.check_current_token_is_long_bin_op(current, next)
     }
 
     fn get_new_line_mode_for_each_token_in_nested(
@@ -304,19 +335,7 @@ impl Format {
         {
             return true;
         }
-        if matches!(current.simple_str().unwrap_or_default(), "==>" | "<==>") {
-            let next_token_start_pos = self.get_token_tree_start_pos(next.unwrap());
-            if self.translate_line(next_token_start_pos)
-                <= self.translate_line(current.end_pos()) + 1
-                && self
-                    .syntax_extractor
-                    .let_extractor
-                    .is_long_bin_op(current.clone())
-            {
-                return true;
-            }
-        }
-        false
+        self.check_current_token_is_long_bin_op(current, next)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -425,24 +444,15 @@ impl Format {
 
         if !new_line && next_t.is_some() {
             let next_token_start_pos = self.get_token_tree_start_pos(next_t.unwrap());
-            let next_token_is_same_line =
-                self.translate_line(next_token_start_pos) == self.translate_line(t.end_pos());
-            if matches!(
-                next_token,
-                Tok::ExclaimEqual | Tok::LessEqual | Tok::EqualEqual | Tok::GreaterEqual
-            ) && next_token_is_same_line
-                && self
-                    .syntax_extractor
-                    .let_extractor
-                    .is_long_bin_op(next_t.unwrap().clone())
-            {
+            if self.translate_line(next_token_start_pos) != self.translate_line(t.end_pos()) {
+                return new_line;
+            }
+            if self.check_next_token_is_long_bin_op(next_t, next_token) {
                 return true;
             }
-
             if t.simple_str().unwrap_or_default() == "="
                 && next_t.unwrap().simple_str().unwrap_or_default() != "vector"
                 && next_token != Tok::LBrace
-                && next_token_is_same_line
                 && self
                     .syntax_extractor
                     .let_extractor
@@ -1190,7 +1200,8 @@ impl Format {
                 }
 
                 let need_inc_depth =
-                    self.format_context.borrow().cur_nested_kind.kind != NestKind_::Bracket;
+                    self.format_context.borrow().cur_nested_kind.kind != NestKind_::Bracket
+                    && self.format_context.borrow().cur_nested_kind.kind != NestKind_::ParentTheses;
                 if need_inc_depth {
                     let leading_space_cnt = self.last_line().len()
                         - self
@@ -1270,7 +1281,19 @@ impl Format {
                 elements: _,
                 kind: _,
                 note: _,
-            } => self.format_nested_token(token, next_token),
+            } => {
+                if new_line_after
+                    && next_token.is_some()
+                    && self
+                        .syntax_extractor
+                        .let_extractor
+                        .need_inc_depth_by_long_op(next_token.unwrap().clone())
+                    && self.format_context.borrow().cur_nested_kind.kind != NestKind_::ParentTheses
+                {
+                    self.inc_depth();
+                }
+                self.format_nested_token(token, next_token);
+            },
             TokenTree::SimpleToken {
                 content: _,
                 pos: _,
@@ -1278,20 +1301,37 @@ impl Format {
                 note: _,
             } => {
                 if new_line_after
-                    && self
+                    && next_token.is_some()
+                    && (self
                         .syntax_extractor
                         .let_extractor
-                        .need_inc_depth_by_long_op(token.clone())
+                        .need_inc_depth_by_long_op(token.clone()) 
+                        || self
+                        .syntax_extractor
+                        .let_extractor
+                        .need_inc_depth_by_long_op(next_token.unwrap().clone()))
+                    && self.format_context.borrow().cur_nested_kind.kind != NestKind_::ParentTheses
                 {
                     self.inc_depth();
                 }
                 self.format_simple_token(token, next_token, new_line_after);
-                if self
-                    .syntax_extractor
-                    .let_extractor
-                    .need_dec_depth_by_long_op(token.clone())
-                {
-                    self.dec_depth();
+
+                if self.format_context.borrow().cur_nested_kind.kind != NestKind_::ParentTheses {
+                    let mut nested_break_line_depth = self
+                        .syntax_extractor
+                        .let_extractor
+                        .need_dec_depth_by_long_op(token.clone());
+                    if nested_break_line_depth > 0 {
+                        tracing::debug!(
+                            "nested_break_line_depth[{:?}] = [{:?}]",
+                            token.simple_str(),
+                            nested_break_line_depth
+                        );
+                    }
+                    while nested_break_line_depth > 0 {
+                        self.dec_depth();
+                        nested_break_line_depth -= 1;
+                    }
                 }
             }
         }
