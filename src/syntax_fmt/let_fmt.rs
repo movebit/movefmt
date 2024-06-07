@@ -3,17 +3,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::core::token_tree::TokenTree;
-use crate::tools::syntax::parse_file_string;
 use crate::tools::utils::FileLineMappingOneFile;
-use move_command_line_common::files::FileHash;
 use move_compiler::parser::ast::Definition;
 use move_compiler::parser::ast::*;
 use move_compiler::shared::ast_debug;
-use move_compiler::shared::CompilationEnv;
-use move_compiler::Flags;
 use move_ir_types::location::*;
 use std::cell::RefCell;
-use std::collections::BTreeSet;
 use std::collections::HashMap;
 
 #[derive(Debug, Default)]
@@ -42,15 +37,6 @@ impl LetExtractor {
         };
 
         this_let_extractor.line_mapping.update(&fmt_buffer);
-        let attrs: BTreeSet<String> = BTreeSet::new();
-        let mut env = CompilationEnv::new(Flags::testing(), attrs);
-        let filehash = FileHash::empty();
-        let (defs, _) = parse_file_string(&mut env, filehash, &fmt_buffer).unwrap();
-
-        for d in defs.iter() {
-            this_let_extractor.collect_definition(d);
-        }
-        this_let_extractor.collect_long_op_exp();
         this_let_extractor
     }
 
@@ -333,6 +319,13 @@ impl LetExtractor {
 }
 
 impl LetExtractor {
+    pub(crate) fn preprocess(&mut self, module_defs: Vec<Definition>) {
+        for d in module_defs.iter() {
+            self.collect_definition(d);
+        }
+        self.collect_long_op_exp();
+    }
+
     pub(crate) fn is_long_bin_op(&self, token: TokenTree) -> bool {
         for bin_op_exp in self.long_bin_op_exp_vec.iter() {
             if let Exp_::BinopExp(_, m, _) = &bin_op_exp.value {
