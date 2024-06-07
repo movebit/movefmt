@@ -8,11 +8,46 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.0.1">v1.0.1</a><br/>
 <a href="#v1.0.0">v1.0.0</a><br/>
 <a href="#v1.0.0.beta">v1.0.0.beta</a><br/>
 </td>
 </tr>
 </table>
+
+
+<a id="v1.0.1"></a>
+
+## 2024-6-7, Version v1.0.1
+
+### Features
+- Fixed some bugs about adding space
+- Fixed issue7 and issue8
+- Optimize line breaks in various scenarios
+- Optimize indentation where parameters that are lambda block in function calls
+- Optimize formatting performance, such as very huge vector
+- Support skipping fun body by adding attribute `#[fmt::skip]`
+
+### TODO
+- Optimize indentation in more scenarios
+- Optimize skipping code block in more scenarios
+
+### Commits
+* [[`60afc64`](https://github.com/movebit/movefmt/commit/60afc6404301ad05ad88f6c40ac302a395f279b3)] - Merge remote-tracking branch 'origin/fea/optimize_fun_call' into develop (edy)
+* [[`c6884f3`](https://github.com/movebit/movefmt/commit/c6884f3b7f0bc1b54404da6d3094739ebf73ef41)] - Merge remote-tracking branch 'origin/fix/err_space2' into develop (edy)
+* [[`87d3504`](https://github.com/movebit/movefmt/commit/87d35049896bb0fc7f88769ed106265863370ce3)] - optimize fmt performance for big vec[] (edy)
+* [[`400b3aa`](https://github.com/movebit/movefmt/commit/400b3aa2fdd97645ab50968f7bfef50128d4dd9d)] - cargo fmt (edy)
+* [[`a5d5501`](https://github.com/movebit/movefmt/commit/a5d55017f255a07c6c6b2798cece132444d77ae3)] - fix issue8 (edy)
+* [[`86c188a`](https://github.com/movebit/movefmt/commit/86c188a4aa9d880b347457e5c6e97448102b5b8b)] - Fixed the issue where a * *b was incorrectly formatted as a ** b. (hapeeeeee)
+* [[`ab3e3c2`](https://github.com/movebit/movefmt/commit/ab3e3c2d7e1568446cd20a92dcba3b0a17fef10d)] - add testunit for break line after last para in func call (hapeeeeee)
+* [[`cc6ccc5`](https://github.com/movebit/movefmt/commit/cc6ccc56527179107e36d6e45a33f5be0ee7433e)] - optimize for break line and add comma after last para in fun call (hapeeeeee)
+* [[`b8a1042`](https://github.com/movebit/movefmt/commit/b8a10425f4fe0b07e95ad6b9f8916be895b91aae)] - fixed issue7 (edy)
+* [[`7e10ac0`](https://github.com/movebit/movefmt/commit/7e10ac0c8c4abc132364ff3818c2cf9babc5d975)] - optimize exp with multi '&&' or '||' (edy)
+* [[`ab2931b`](https://github.com/movebit/movefmt/commit/ab2931b9d599d85fc09b70c104d78fe1669578b4)] - optimize break line about spec header's para_list (edy)
+* [[`f0c70c2`](https://github.com/movebit/movefmt/commit/f0c70c2f24e4c81b840ec8bb688007809e440271)] - optimize indent where parameters that are lambda block in function calls (edy)
+* [[`f78feba`](https://github.com/movebit/movefmt/commit/f78febaa9ad4eb0d514369559c3b46d443d43df3)] - a space before '@' and a space after return (hapeeeeee)
+* [[`9312d91`](https://github.com/movebit/movefmt/commit/9312d910db5b34984d60b863ac05e230b1fa399e)] - add should_skip_this_fun_body() (edy)
+* [[`ee8d740`](https://github.com/movebit/movefmt/commit/ee8d740ca2dc54ebb4ba35f072434152f0cae284)] - update changelog, add features and notes (edy)
 
 
 <a id="v1.0.0"></a>
@@ -24,7 +59,6 @@
 - Support running movefmt without a target file
 - Optimize line breaks in various scenarios
 - Optimize multiple empty line folding
-- Optimize formatting performance, such as very huge vector
 - Fixed some bugs
 
 ### Notes

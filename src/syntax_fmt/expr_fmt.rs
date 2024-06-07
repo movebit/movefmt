@@ -215,7 +215,10 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
     }
 
     match (TokType::from(curr_start_tok), TokType::from(next_start_tok)) {
-        (TokType::Alphabet, TokType::Alphabet | TokType::String | TokType::Number | TokType::AtSign) => true,
+        (
+            TokType::Alphabet,
+            TokType::Alphabet | TokType::String | TokType::Number | TokType::AtSign,
+        ) => true,
         (TokType::MathSign, _) => true,
         (TokType::Sign, TokType::Alphabet) => Tok::Exclaim != curr_end_tok,
         (TokType::Sign, TokType::Number) => true,

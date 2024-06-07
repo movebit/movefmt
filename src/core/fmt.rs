@@ -372,7 +372,6 @@ impl Format {
             self.get_new_line_mode_for_each_token_in_nested(kind, t, next_t)
         };
 
-
         // If there are more than 2 arguments in a function call
         // a new line is needed after the last argument.
         if new_line_mode
@@ -751,13 +750,15 @@ impl Format {
                 self.last_line()
             );
             let mut b_break_line_before_kind_end = true;
-            
-            // If components do not need to be on a new line or if the function has fewer than two arguments, 
+
+            // If components do not need to be on a new line or if the function has fewer than two arguments,
             // the last argument in the function call does not need to be on a new line.
             if kind.kind == NestKind_::ParentTheses
                 && self.syntax_extractor.call_extractor.paren_in_call(kind)
             {
-                if !opt_component_break_mode || self.get_para_num_in_func_call(elements, delimiter) <= 2 {
+                if !opt_component_break_mode
+                    || self.get_para_num_in_func_call(elements, delimiter) <= 2
+                {
                     b_break_line_before_kind_end = false;
                 }
             }
@@ -811,7 +812,11 @@ impl Format {
         self.new_line(Some(kind.start_pos));
     }
 
-    fn get_para_num_in_func_call(&self, elements: &[TokenTree], delimiter: Option<Delimiter>) -> usize {
+    fn get_para_num_in_func_call(
+        &self,
+        elements: &[TokenTree],
+        delimiter: Option<Delimiter>,
+    ) -> usize {
         let d = delimiter.map(|x| x.to_static_str());
         let mut elements_len = 0;
         if elements.is_empty() {
@@ -838,7 +843,7 @@ impl Format {
         pound_sign_new_line: bool,
         new_line: bool,
         pound_sign: &mut Option<usize>,
-        is_add_comma_to_last_parameter_in_func_call: bool
+        is_add_comma_to_last_parameter_in_func_call: bool,
     ) {
         let TokenTree::Nested {
             elements,
@@ -923,8 +928,8 @@ impl Format {
                             self.get_cur_line_len(),
                         );
             }
-  
-            // This code determines whether a comma should be added after the last argument in a function call 
+
+            // This code determines whether a comma should be added after the last argument in a function call
             // if the arguments are split across multiple lines.
             // Add a comment if the last argument needs to be on a new line and there is no comma after the last argument.
             let mut is_add_comma_to_last_parameter_in_func_call = false;
@@ -933,7 +938,12 @@ impl Format {
                 && kind.kind == NestKind_::ParentTheses
                 && self.syntax_extractor.call_extractor.paren_in_call(kind)
                 && self.get_para_num_in_func_call(elements, delimiter) > 2
-                && elements.get(internal_token_idx).unwrap().simple_str().unwrap_or_default() != ","
+                && elements
+                    .get(internal_token_idx)
+                    .unwrap()
+                    .simple_str()
+                    .unwrap_or_default()
+                    != ","
             {
                 is_add_comma_to_last_parameter_in_func_call = true;
             }
@@ -979,7 +989,7 @@ impl Format {
                             false,
                             is_dot_new_line,
                             &mut pound_sign,
-                            is_add_comma_to_last_parameter_in_func_call
+                            is_add_comma_to_last_parameter_in_func_call,
                         );
                         internal_token_idx += 1;
                     }
@@ -996,7 +1006,7 @@ impl Format {
                 pound_sign_new_line,
                 new_line,
                 &mut pound_sign,
-                is_add_comma_to_last_parameter_in_func_call
+                is_add_comma_to_last_parameter_in_func_call,
             );
             internal_token_idx += 1;
         }
@@ -1136,8 +1146,7 @@ impl Format {
         next_token: Option<&TokenTree>,
     ) {
         // updated in 20240517: add condition `NestKind_::Bracket`
-        if self.format_context.borrow().cur_nested_kind.kind == NestKind_::Bracket
-        {
+        if self.format_context.borrow().cur_nested_kind.kind == NestKind_::Bracket {
             return;
         }
         if let TokenTree::SimpleToken {
@@ -1205,8 +1214,7 @@ impl Format {
             // updated in 20240124
             // updated in 20240222: remove condition `if Tok::RBrace != *tok `
             // updated in 20240517: add condition `NestKind_::Bracket`
-            if self.format_context.borrow().cur_nested_kind.kind != NestKind_::Bracket
-            {
+            if self.format_context.borrow().cur_nested_kind.kind != NestKind_::Bracket {
                 let tok_end_pos = *pos + content.len() as u32;
                 let mut nested_branch_depth = self
                     .syntax_extractor
@@ -1783,10 +1791,7 @@ impl Format {
         let len_plus_tok_len = self.get_cur_line_len() + tok_str.len();
         if tok == Tok::AtSign && next.is_some() {
             let next_tok_len = next.unwrap().simple_str().unwrap_or_default().len();
-            if next_tok_len > 8
-                && len_plus_tok_len + next_tok_len
-                    > self.global_cfg.max_width()
-            {
+            if next_tok_len > 8 && len_plus_tok_len + next_tok_len > self.global_cfg.max_width() {
                 return true;
             }
         }
