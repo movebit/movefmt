@@ -215,7 +215,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
     }
 
     match (TokType::from(curr_start_tok), TokType::from(next_start_tok)) {
-        (TokType::Alphabet, TokType::Alphabet | TokType::String | TokType::Number) => true,
+        (TokType::Alphabet, TokType::Alphabet | TokType::String | TokType::Number | TokType::AtSign) => true,
         (TokType::MathSign, _) => true,
         (TokType::Sign, TokType::Alphabet) => Tok::Exclaim != curr_end_tok,
         (TokType::Sign, TokType::Number) => true,
@@ -258,7 +258,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
             }
             matches!(
                 curr_start_tok,
-                Tok::NumValue | Tok::NumTypedValue | Tok::Acquires | Tok::Identifier
+                Tok::NumValue | Tok::NumTypedValue | Tok::Acquires | Tok::Identifier | Tok::Star
             ) || matches!(
                 curr_end_tok,
                 Tok::RParen | Tok::Comma | Tok::Slash | Tok::Pipe | Tok::PipePipe
@@ -303,7 +303,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
 
             if matches!(
                 curr_start_tok,
-                Tok::Let | Tok::Slash | Tok::If | Tok::Else | Tok::While | Tok::Comma
+                Tok::Let | Tok::Slash | Tok::If | Tok::Else | Tok::While | Tok::Comma | Tok::Return
             ) {
                 return true;
             }

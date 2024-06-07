@@ -686,7 +686,7 @@ module std::vector_tests {
         let v1 = vector[1, 2, 3];
         let v2 = vector[10, 20, 30];
         let s = 0;
-        V::zip_ref(&v1, &v2, |e1, e2| s = s + *e1 **e2);
+        V::zip_ref(&v1, &v2, |e1, e2| s = s + *e1 * *e2);
         assert!(s == 140, 0);
     }
 
@@ -697,7 +697,7 @@ module std::vector_tests {
         let v1 = vector[1];
         let v2 = vector[10, 20];
         let s = 0;
-        V::zip_ref(&v1, &v2, |e1, e2| s = s + *e1 **e2);
+        V::zip_ref(&v1, &v2, |e1, e2| s = s + *e1 * *e2);
     }
 
     #[test]
@@ -737,7 +737,7 @@ module std::vector_tests {
         let v1 = vector[1];
         let v2 = vector[10, 20];
         let s = 0;
-        V::zip_mut(&mut v1, &mut v2, |e1, e2| s = s + *e1 **e2);
+        V::zip_mut(&mut v1, &mut v2, |e1, e2| s = s + *e1 * *e2);
     }
 
     #[test]
@@ -755,7 +755,7 @@ module std::vector_tests {
     fun test_zip_map_ref_mismatching_lengths_should_fail() {
         let v1 = vector[1];
         let v2 = vector[10, 20];
-        V::zip_map_ref(&v1, &v2, |e1, e2| *e1 **e2);
+        V::zip_map_ref(&v1, &v2, |e1, e2| *e1 * *e2);
     }
 
     #[test]
