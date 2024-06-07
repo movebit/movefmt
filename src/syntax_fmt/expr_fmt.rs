@@ -258,7 +258,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
             }
             matches!(
                 curr_start_tok,
-                Tok::NumValue | Tok::NumTypedValue | Tok::Acquires | Tok::Identifier
+                Tok::NumValue | Tok::NumTypedValue | Tok::Acquires | Tok::Identifier | Tok::Star
             ) || matches!(
                 curr_end_tok,
                 Tok::RParen | Tok::Comma | Tok::Slash | Tok::Pipe | Tok::PipePipe

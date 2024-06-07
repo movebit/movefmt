@@ -53,7 +53,7 @@ fn test_single_file() {
         .with_env_filter(EnvFilter::from_env("MOVEFMT_LOG"))
         .init();
 
-    test_on_file(Path::new("./tests/bug/input2.move"));
+    test_on_file(Path::new("./tests/bug/input1.move"));
 }
 
 fn test_on_file(p: impl AsRef<Path>) -> bool {
