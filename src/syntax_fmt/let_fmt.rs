@@ -8,9 +8,9 @@ use crate::tools::utils::FileLineMappingOneFile;
 use move_command_line_common::files::FileHash;
 use move_compiler::parser::ast::Definition;
 use move_compiler::parser::ast::*;
+use move_compiler::shared::ast_debug;
 use move_compiler::shared::CompilationEnv;
 use move_compiler::Flags;
-use move_compiler::shared::ast_debug;
 use move_ir_types::location::*;
 use std::cell::RefCell;
 use std::collections::BTreeSet;
@@ -269,30 +269,26 @@ impl LetExtractor {
     fn collect_long_op_exp(&mut self) {
         self.multi_ampamp_or_pipepipe_exp();
         for bin_op_exp in self.bin_op_exp_vec.iter() {
-            let bin_op_exp_str = &self.source
-                [bin_op_exp.loc.start() as usize..bin_op_exp.loc.end() as usize];
+            let bin_op_exp_str =
+                &self.source[bin_op_exp.loc.start() as usize..bin_op_exp.loc.end() as usize];
 
             let bin_op_right_is_long = match &bin_op_exp.value {
                 Exp_::BinopExp(_, op, r) => {
-                    let bin_op_right_str = &self.source
-                        [r.loc.start() as usize..r.loc.end() as usize]
-                        .len();
+                    let bin_op_right_str =
+                        &self.source[r.loc.start() as usize..r.loc.end() as usize].len();
                     match op.value {
                         BinOp_::Implies | BinOp_::Iff | BinOp_::Eq => *bin_op_right_str > 16,
                         _ => *bin_op_right_str > 64,
                     }
                 }
                 Exp_::Assign(_, r) => {
-                    self.source[r.loc.start() as usize..r.loc.end() as usize].len()
-                        > 64
+                    self.source[r.loc.start() as usize..r.loc.end() as usize].len() > 64
                 }
                 _ => false,
             };
 
             if bin_op_exp_str.len() > 64 && bin_op_right_is_long {
-                self
-                    .long_bin_op_exp_vec
-                    .push(bin_op_exp.clone());
+                self.long_bin_op_exp_vec.push(bin_op_exp.clone());
                 self.split_bin_op_vec.borrow_mut().push(false);
             }
         }
@@ -304,30 +300,28 @@ impl LetExtractor {
         while idx < self.bin_op_exp_vec.len() {
             let bin_op_exp = &self.bin_op_exp_vec[idx];
             let bin_op_exp_str = ast_debug::display(&bin_op_exp.value);
-            if bin_op_exp_str.matches("&&").count() < 2 && bin_op_exp_str.matches("||").count() < 2 {
+            if bin_op_exp_str.matches("&&").count() < 2 && bin_op_exp_str.matches("||").count() < 2
+            {
                 idx += 1;
                 continue;
             }
 
             if let Exp_::BinopExp(_, end_op, _) = &bin_op_exp.value {
                 if matches!(end_op.value, BinOp_::And | BinOp_::Or) {
-                    self
-                        .long_bin_op_exp_vec
-                        .push(bin_op_exp.clone());
+                    self.long_bin_op_exp_vec.push(bin_op_exp.clone());
                     self.split_bin_op_vec.borrow_mut().push(false);
                 }
             }
 
-            for nested_continue_ampamp_idx in idx+1..self.bin_op_exp_vec.len() {
+            for nested_continue_ampamp_idx in idx + 1..self.bin_op_exp_vec.len() {
                 let nested_op_exp = &self.bin_op_exp_vec[nested_continue_ampamp_idx];
                 if let Exp_::BinopExp(_, nested_op, _) = &nested_op_exp.value {
                     if matches!(nested_op.value, BinOp_::And | BinOp_::Or) {
                         if bin_op_exp.loc.start() <= nested_op_exp.loc.start()
-                        && nested_op_exp.loc.end() <= bin_op_exp.loc.end() {
+                            && nested_op_exp.loc.end() <= bin_op_exp.loc.end()
+                        {
                             idx = nested_continue_ampamp_idx + 1;
-                            self
-                                .long_bin_op_exp_vec
-                                .push(nested_op_exp.clone());
+                            self.long_bin_op_exp_vec.push(nested_op_exp.clone());
                             self.split_bin_op_vec.borrow_mut().push(false);
                         }
                     }

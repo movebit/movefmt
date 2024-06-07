@@ -11,9 +11,9 @@ use move_command_line_common::files::FileHash;
 use move_compiler::parser::ast::Definition;
 use move_compiler::parser::ast::*;
 use move_compiler::parser::lexer::{Lexer, Tok};
+use move_compiler::shared::ast_debug;
 use move_compiler::shared::{CompilationEnv, Identifier};
 use move_compiler::Flags;
-use move_compiler::shared::ast_debug;
 use move_ir_types::location::*;
 use std::collections::BTreeSet;
 
@@ -219,7 +219,6 @@ impl FunExtractor {
 
         false
     }
-
 }
 
 pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &str) -> String {
@@ -632,20 +631,11 @@ fn test_rewrite_fun_header_1() {
 
 #[test]
 fn test_rewrite_fun_header_2() {
-    fun_header_specifier_fmt(
-        ": u64 /* acquires comment1 */ acquires SomeStruct ",
-        "    ",
-    );
-    fun_header_specifier_fmt(
-        ": u64 acquires SomeStruct/* acquires comment2 */ ",
-        "    ",
-    );
+    fun_header_specifier_fmt(": u64 /* acquires comment1 */ acquires SomeStruct ", "    ");
+    fun_header_specifier_fmt(": u64 acquires SomeStruct/* acquires comment2 */ ", "    ");
     fun_header_specifier_fmt(": u64 /* acquires comment3 */ acquires /* acquires comment4 */ SomeStruct /* acquires comment5 */", 
         "    ");
-    fun_header_specifier_fmt(
-        "acquires R reads R writes T, S reads G<u64> ",
-        "    ",
-    );
+    fun_header_specifier_fmt("acquires R reads R writes T, S reads G<u64> ", "    ");
     fun_header_specifier_fmt("fun f11() !reads *(0x42) ", "    ");
 }
 
@@ -743,7 +733,6 @@ module 0x42::LambdaTest1 {
     );
 }
 
-
 #[test]
 fn test_get_fun_attributes() {
     get_fun_attributes(
@@ -764,5 +753,6 @@ module 0x42::LambdaTest1 {
     }  
 }
 "
-        .to_string());
+        .to_string(),
+    );
 }

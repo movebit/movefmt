@@ -256,19 +256,15 @@ impl Format {
         false
     }
 
-    fn check_next_token_is_long_bin_op(
-        &self,
-        next_t: Option<&TokenTree>,
-        next_token: Tok
-    ) -> bool {
+    fn check_next_token_is_long_bin_op(&self, next_t: Option<&TokenTree>, next_token: Tok) -> bool {
         if matches!(
             next_token,
-            Tok::ExclaimEqual |
-            Tok::LessEqual |
-            Tok::EqualEqual |
-            Tok::GreaterEqual |
-            Tok::AmpAmp |
-            Tok::PipePipe
+            Tok::ExclaimEqual
+                | Tok::LessEqual
+                | Tok::EqualEqual
+                | Tok::GreaterEqual
+                | Tok::AmpAmp
+                | Tok::PipePipe
         ) && self
             .syntax_extractor
             .let_extractor
@@ -464,7 +460,8 @@ impl Format {
                         elements,
                         index as i64,
                         self.get_cur_line_len(),
-                    ) != 2
+                    )
+                    != 2
                 && self
                     .syntax_extractor
                     .let_extractor
@@ -612,8 +609,8 @@ impl Format {
                         && first_ele_len > 8;
                     let is_nested_len_too_large =
                         nested_token_len as f32 > 2.0 * max_len_when_no_add_line;
-                    new_line_mode = is_plus_first_ele_over_width 
-                        || is_nested_len_too_large 
+                    new_line_mode = is_plus_first_ele_over_width
+                        || is_nested_len_too_large
                         || self
                             .syntax_extractor
                             .call_extractor
@@ -634,7 +631,7 @@ impl Format {
 
                     opt_component_break_mode |= should_split_multi_para;
 
-                    // optimize in 20240606: 
+                    // optimize in 20240606:
                     // 1.fun call,  should add new_line if has_multi_para;
                     // 2.spec fun header, should add new_line if has_multi_para;
                     // you can see case at tests/complex3/input1.move
@@ -988,8 +985,14 @@ impl Format {
             }
 
             let fun_body = note.map(|x| x == Note::FunBody).unwrap_or_default();
-            if fun_body && self.syntax_extractor.fun_extractor.should_skip_this_fun_body(kind) {
-                let fun_body_str = &self.format_context.borrow().content[kind.start_pos as usize..kind.end_pos as usize + 1];
+            if fun_body
+                && self
+                    .syntax_extractor
+                    .fun_extractor
+                    .should_skip_this_fun_body(kind)
+            {
+                let fun_body_str = &self.format_context.borrow().content
+                    [kind.start_pos as usize..kind.end_pos as usize + 1];
                 tracing::trace!("should_skip_this_fun_body = {:?}", fun_body_str);
                 self.push_str(fun_body_str);
 
@@ -1211,8 +1214,8 @@ impl Format {
                     split_line_after_content = true;
                 }
 
-                let need_inc_depth =
-                    self.format_context.borrow().cur_nested_kind.kind != NestKind_::Bracket
+                let need_inc_depth = self.format_context.borrow().cur_nested_kind.kind
+                    != NestKind_::Bracket
                     && self.format_context.borrow().cur_nested_kind.kind != NestKind_::ParentTheses;
                 if need_inc_depth {
                     let leading_space_cnt = self.last_line().len()
@@ -1305,7 +1308,7 @@ impl Format {
                     self.inc_depth();
                 }
                 self.format_nested_token(token, next_token);
-            },
+            }
             TokenTree::SimpleToken {
                 content: _,
                 pos: _,
@@ -1317,11 +1320,11 @@ impl Format {
                     && (self
                         .syntax_extractor
                         .let_extractor
-                        .need_inc_depth_by_long_op(token.clone()) 
+                        .need_inc_depth_by_long_op(token.clone())
                         || self
-                        .syntax_extractor
-                        .let_extractor
-                        .need_inc_depth_by_long_op(next_token.unwrap().clone()))
+                            .syntax_extractor
+                            .let_extractor
+                            .need_inc_depth_by_long_op(next_token.unwrap().clone()))
                     && self.format_context.borrow().cur_nested_kind.kind != NestKind_::ParentTheses
                 {
                     self.inc_depth();
