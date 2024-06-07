@@ -356,13 +356,12 @@ module aptos_framework::account {
 
         // Construct a valid `RotationProofChallenge` that `cap_rotate_key` and `cap_update_table` will validate against.
         let curr_auth_key_as_address = from_bcs::to_address(account_resource.authentication_key);
-        let challenge =
-            RotationProofChallenge {
-                sequence_number: account_resource.sequence_number,
-                originator: addr,
-                current_auth_key: curr_auth_key_as_address,
-                new_public_key: to_public_key_bytes,
-            };
+        let challenge = RotationProofChallenge {
+            sequence_number: account_resource.sequence_number,
+            originator: addr,
+            current_auth_key: curr_auth_key_as_address,
+            new_public_key: to_public_key_bytes,
+        };
 
         // Assert the challenges signed by the current and new keys are valid
         assert_valid_rotation_proof_signature_and_get_auth_key(from_scheme,
@@ -394,13 +393,12 @@ module aptos_framework::account {
 
         let curr_auth_key =
             from_bcs::to_address(offerer_account_resource.authentication_key);
-        let challenge =
-            RotationProofChallenge {
-                sequence_number: get_sequence_number(delegate_address),
-                originator: rotation_cap_offerer_address,
-                current_auth_key: curr_auth_key,
-                new_public_key: new_public_key_bytes,
-            };
+        let challenge = RotationProofChallenge {
+            sequence_number: get_sequence_number(delegate_address),
+            originator: rotation_cap_offerer_address,
+            current_auth_key: curr_auth_key,
+            new_public_key: new_public_key_bytes,
+        };
 
         // Verifies that the `RotationProofChallenge` from above is signed under the new public key that we are rotating to.        l
         let new_auth_key =
@@ -443,13 +441,12 @@ module aptos_framework::account {
 
         // proof that this account intends to delegate its rotation capability to another account
         let account_resource = borrow_global_mut<Account>(addr);
-        let proof_challenge =
-            RotationCapabilityOfferProofChallengeV2 {
-                chain_id: chain_id::get(),
-                sequence_number: account_resource.sequence_number,
-                source_address: addr,
-                recipient_address,
-            };
+        let proof_challenge = RotationCapabilityOfferProofChallengeV2 {
+            chain_id: chain_id::get(),
+            sequence_number: account_resource.sequence_number,
+            source_address: addr,
+            recipient_address,
+        };
 
         // verify the signature on `RotationCapabilityOfferProofChallengeV2` by the account owner
         if (account_scheme == ED25519_SCHEME) {
@@ -544,12 +541,11 @@ module aptos_framework::account {
         assert!(exists_at(recipient_address), error::not_found(EACCOUNT_DOES_NOT_EXIST));
 
         // Proof that this account intends to delegate its signer capability to another account.
-        let proof_challenge =
-            SignerCapabilityOfferProofChallengeV2 {
-                sequence_number: get_sequence_number(source_address),
-                source_address,
-                recipient_address,
-            };
+        let proof_challenge = SignerCapabilityOfferProofChallengeV2 {
+            sequence_number: get_sequence_number(source_address),
+            source_address,
+            recipient_address,
+        };
         verify_signed_message(
             source_address,
             account_scheme,
@@ -899,12 +895,11 @@ module aptos_framework::account {
         let (resource, _) = create_resource_account(&alice, seed);
 
         let resource_addr = signer::address_of(&resource);
-        let proof_challenge =
-            SignerCapabilityOfferProofChallengeV2 {
-                sequence_number: borrow_global_mut<Account>(resource_addr).sequence_number,
-                source_address: resource_addr,
-                recipient_address,
-            };
+        let proof_challenge = SignerCapabilityOfferProofChallengeV2 {
+            sequence_number: borrow_global_mut<Account>(resource_addr).sequence_number,
+            source_address: resource_addr,
+            recipient_address,
+        };
 
         let eve_sig = ed25519::sign_struct(&eve_sk, copy proof_challenge);
 
@@ -1073,12 +1068,11 @@ module aptos_framework::account {
         let bob_addr = signer::address_of(&bob);
         create_account(bob_addr);
 
-        let challenge =
-            SignerCapabilityOfferProofChallengeV2 {
-                sequence_number: borrow_global<Account>(alice_addr).sequence_number,
-                source_address: alice_addr,
-                recipient_address: bob_addr,
-            };
+        let challenge = SignerCapabilityOfferProofChallengeV2 {
+            sequence_number: borrow_global<Account>(alice_addr).sequence_number,
+            source_address: alice_addr,
+            recipient_address: bob_addr,
+        };
 
         let sig = ed25519::sign_struct(&_alice_sk, challenge);
 
@@ -1102,12 +1096,11 @@ module aptos_framework::account {
         let bob_addr = signer::address_of(&bob);
         create_account(bob_addr);
 
-        let challenge =
-            SignerCapabilityOfferProofChallengeV2 {
-                sequence_number: borrow_global<Account>(alice_addr).sequence_number,
-                source_address: alice_addr,
-                recipient_address: bob_addr,
-            };
+        let challenge = SignerCapabilityOfferProofChallengeV2 {
+            sequence_number: borrow_global<Account>(alice_addr).sequence_number,
+            source_address: alice_addr,
+            recipient_address: bob_addr,
+        };
 
         let alice_signer_capability_offer_sig = ed25519::sign_struct(&alice_sk, challenge);
 
@@ -1136,12 +1129,11 @@ module aptos_framework::account {
         let bob_addr = signer::address_of(&bob);
         create_account(bob_addr);
 
-        let challenge =
-            SignerCapabilityOfferProofChallengeV2 {
-                sequence_number: borrow_global<Account>(alice_addr).sequence_number,
-                source_address: alice_addr,
-                recipient_address: bob_addr,
-            };
+        let challenge = SignerCapabilityOfferProofChallengeV2 {
+            sequence_number: borrow_global<Account>(alice_addr).sequence_number,
+            source_address: alice_addr,
+            recipient_address: bob_addr,
+        };
 
         let alice_signer_capability_offer_sig = ed25519::sign_struct(&alice_sk, challenge);
 
@@ -1169,12 +1161,11 @@ module aptos_framework::account {
         let bob_addr = signer::address_of(&bob);
         create_account(bob_addr);
 
-        let challenge =
-            SignerCapabilityOfferProofChallengeV2 {
-                sequence_number: borrow_global<Account>(alice_addr).sequence_number,
-                source_address: alice_addr,
-                recipient_address: bob_addr,
-            };
+        let challenge = SignerCapabilityOfferProofChallengeV2 {
+            sequence_number: borrow_global<Account>(alice_addr).sequence_number,
+            source_address: alice_addr,
+            recipient_address: bob_addr,
+        };
 
         let alice_signer_capability_offer_sig = ed25519::sign_struct(&alice_sk, challenge);
 
@@ -1203,12 +1194,11 @@ module aptos_framework::account {
         let bob_addr = signer::address_of(&bob);
         create_account(bob_addr);
 
-        let challenge =
-            SignerCapabilityOfferProofChallengeV2 {
-                sequence_number: borrow_global<Account>(alice_addr).sequence_number,
-                source_address: alice_addr,
-                recipient_address: bob_addr,
-            };
+        let challenge = SignerCapabilityOfferProofChallengeV2 {
+            sequence_number: borrow_global<Account>(alice_addr).sequence_number,
+            source_address: alice_addr,
+            recipient_address: bob_addr,
+        };
 
         let alice_signer_capability_offer_sig = ed25519::sign_struct(&alice_sk, challenge);
 
@@ -1238,12 +1228,11 @@ module aptos_framework::account {
         let charlie_addr = signer::address_of(&charlie);
         create_account(charlie_addr);
 
-        let challenge =
-            SignerCapabilityOfferProofChallengeV2 {
-                sequence_number: alice_account_resource.sequence_number,
-                source_address: alice_addr,
-                recipient_address: bob_addr,
-            };
+        let challenge = SignerCapabilityOfferProofChallengeV2 {
+            sequence_number: alice_account_resource.sequence_number,
+            source_address: alice_addr,
+            recipient_address: bob_addr,
+        };
         let alice_signer_capability_offer_sig = ed25519::sign_struct(&alice_sk, challenge);
         offer_signer_capability(
             &alice,
@@ -1270,13 +1259,12 @@ module aptos_framework::account {
         let bob_addr = signer::address_of(&bob);
         create_account(bob_addr);
 
-        let challenge =
-            RotationCapabilityOfferProofChallengeV2 {
-                chain_id: chain_id::get(),
-                sequence_number: get_sequence_number(alice_addr),
-                source_address: alice_addr,
-                recipient_address: bob_addr,
-            };
+        let challenge = RotationCapabilityOfferProofChallengeV2 {
+            chain_id: chain_id::get(),
+            sequence_number: get_sequence_number(alice_addr),
+            source_address: alice_addr,
+            recipient_address: bob_addr,
+        };
 
         let alice_rotation_capability_offer_sig = ed25519::sign_struct(&alice_sk, challenge);
 
@@ -1306,14 +1294,13 @@ module aptos_framework::account {
         let bob_addr = signer::address_of(&bob);
         create_account(bob_addr);
 
-        let challenge =
-            RotationCapabilityOfferProofChallengeV2 {
-                chain_id: chain_id::get(),
-                // Intentionally make the signature invalid.
-                sequence_number: 2,
-                source_address: alice_addr,
-                recipient_address: bob_addr,
-            };
+        let challenge = RotationCapabilityOfferProofChallengeV2 {
+            chain_id: chain_id::get(),
+            // Intentionally make the signature invalid.
+            sequence_number: 2,
+            source_address: alice_addr,
+            recipient_address: bob_addr,
+        };
 
         let alice_rotation_capability_offer_sig = ed25519::sign_struct(&alice_sk, challenge);
 
@@ -1338,13 +1325,12 @@ module aptos_framework::account {
         let bob_addr = signer::address_of(&bob);
         create_account(bob_addr);
 
-        let challenge =
-            RotationCapabilityOfferProofChallengeV2 {
-                chain_id: chain_id::get(),
-                sequence_number: get_sequence_number(alice_addr),
-                source_address: alice_addr,
-                recipient_address: bob_addr,
-            };
+        let challenge = RotationCapabilityOfferProofChallengeV2 {
+            chain_id: chain_id::get(),
+            sequence_number: get_sequence_number(alice_addr),
+            source_address: alice_addr,
+            recipient_address: bob_addr,
+        };
 
         let alice_rotation_capability_offer_sig = ed25519::sign_struct(&alice_sk, challenge);
 
@@ -1372,13 +1358,12 @@ module aptos_framework::account {
         create_account(bob_addr);
         create_account(signer::address_of(&charlie));
 
-        let challenge =
-            RotationCapabilityOfferProofChallengeV2 {
-                chain_id: chain_id::get(),
-                sequence_number: get_sequence_number(alice_addr),
-                source_address: alice_addr,
-                recipient_address: bob_addr,
-            };
+        let challenge = RotationCapabilityOfferProofChallengeV2 {
+            chain_id: chain_id::get(),
+            sequence_number: get_sequence_number(alice_addr),
+            source_address: alice_addr,
+            recipient_address: bob_addr,
+        };
 
         let alice_rotation_capability_offer_sig = ed25519::sign_struct(&alice_sk, challenge);
 
@@ -1413,13 +1398,12 @@ module aptos_framework::account {
             multi_ed25519::unvalidated_public_key_to_authentication_key(&new_pk_unvalidated);
         let new_address = from_bcs::to_address(new_auth_key);
 
-        let challenge =
-            RotationProofChallenge {
-                sequence_number: borrow_global<Account>(alice_addr).sequence_number,
-                originator: alice_addr,
-                current_auth_key: alice_addr,
-                new_public_key: multi_ed25519::unvalidated_public_key_to_bytes(&new_pk_unvalidated),
-            };
+        let challenge = RotationProofChallenge {
+            sequence_number: borrow_global<Account>(alice_addr).sequence_number,
+            originator: alice_addr,
+            current_auth_key: alice_addr,
+            new_public_key: multi_ed25519::unvalidated_public_key_to_bytes(&new_pk_unvalidated),
+        };
 
         let from_sig = multi_ed25519::sign_struct(&curr_sk, challenge);
         let to_sig = multi_ed25519::sign_struct(&new_sk, challenge);
@@ -1460,13 +1444,12 @@ module aptos_framework::account {
             ed25519::unvalidated_public_key_to_authentication_key(&new_pk_unvalidated);
         let new_addr = from_bcs::to_address(new_auth_key);
 
-        let challenge =
-            RotationProofChallenge {
-                sequence_number: account_resource.sequence_number,
-                originator: alice_addr,
-                current_auth_key: alice_addr,
-                new_public_key: ed25519::unvalidated_public_key_to_bytes(&new_pk_unvalidated),
-            };
+        let challenge = RotationProofChallenge {
+            sequence_number: account_resource.sequence_number,
+            originator: alice_addr,
+            current_auth_key: alice_addr,
+            new_public_key: ed25519::unvalidated_public_key_to_bytes(&new_pk_unvalidated),
+        };
 
         let from_sig = multi_ed25519::sign_struct(&curr_sk, challenge);
         let to_sig = ed25519::sign_struct(&new_sk, challenge);

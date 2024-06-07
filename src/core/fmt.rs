@@ -450,9 +450,21 @@ impl Format {
             if self.check_next_token_is_long_bin_op(next_t, next_token) {
                 return true;
             }
+
+            // updated in 20240607: fix https://github.com/movebit/movefmt/issues/7
             if t.simple_str().unwrap_or_default() == "="
                 && next_t.unwrap().simple_str().unwrap_or_default() != "vector"
                 && next_token != Tok::LBrace
+                && self
+                    .syntax_extractor
+                    .call_extractor
+                    .component_is_complex_blk(
+                        self.global_cfg.clone(),
+                        kind,
+                        elements,
+                        index as i64,
+                        self.get_cur_line_len(),
+                    ) != 2
                 && self
                     .syntax_extractor
                     .let_extractor

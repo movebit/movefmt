@@ -362,68 +362,14 @@ impl CallExtractor {
     ) -> bool {
         let current = elements.get(index).unwrap();
         let next_t = elements.get(index + 1);
-        if current.simple_str() == Some(",") && next_t.is_some() {
-            let component_lenth = analyze_token_tree_length(&[next_t.unwrap().clone()], 10);
-            if cur_ret_last_len + component_lenth > config.max_width() && component_lenth > 4 {
-                return true;
-            }
-
-            let next_t_start_pos = get_tok_start_pos(next_t.unwrap());
-
-            for call_loc in self.call_paren_loc_vec.iter() {
-                if kind.start_pos > call_loc.start() || call_loc.end() > kind.end_pos {
-                    continue;
-                }
-
-                if self.should_split_pack_component(
-                    next_t_start_pos,
-                    config.clone(),
-                    cur_ret_last_len,
-                ) {
-                    tracing::debug!(
-                        "should split pack: next_t = {:?}",
-                        next_t.unwrap().simple_str()
-                    );
-                    return true;
-                }
-                if self.should_split_call_component(
-                    next_t_start_pos,
-                    config.clone(),
-                    cur_ret_last_len,
-                ) {
-                        tracing::debug!(
-                            "should split call: next_t = {:?}",
-                            next_t.unwrap().simple_str()
-                        );
-                        return true;
-                    }
-
-                // added in 20240605: judge if the next parameter is a lambda exp block
-                // eg: 
-                // V::enumerate_ref(&filtered_v, |i, x| { ... });
-                if let TokenTree::Nested {
-                    elements: _lambda_ele,
-                    kind,
-                    note: _,
-                } = next_t.unwrap() {
-                    if kind.kind == NestKind_::Lambda {
-                        let next_next_t = elements.get(index + 2);
-                        if next_next_t.is_some() {
-                            if let TokenTree::Nested {
-                                elements: _,
-                                kind: next_next_kind,
-                                note: _,
-                            } = next_next_t.unwrap() {
-                                if next_next_kind.kind == NestKind_::Brace {
-                                    return true;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+        if current.simple_str() != Some(",") || next_t.is_none() {
+            return false;
         }
-        false
+        let component_lenth = analyze_token_tree_length(&[next_t.unwrap().clone()], 10);
+        if cur_ret_last_len + component_lenth > config.max_width() && component_lenth > 4 {
+            return true;
+        }
+        self.component_is_complex_blk(config, kind, elements, index as i64, cur_ret_last_len) > 0
     }
 
     pub(crate) fn paren_in_call(&self, kind: &NestKind) -> bool {
@@ -467,21 +413,35 @@ impl CallExtractor {
         (false, 0)
     }
 
-    pub(crate) fn first_para_is_complex_blk(
+    pub(crate) fn component_is_complex_blk(
         &self,
         config: Config,
         kind: &NestKind,
         elements: &[TokenTree],
+        index: i64,
         cur_ret_last_len: usize,
-    ) -> bool {
-        let next_t = elements.first();
+    ) -> i16 {
+        let next_t = elements.get((index + 1) as usize);
+        let next_next_t = elements.get((index + 2) as usize);
         if next_t.is_none() {
-            return false;
+            return 0;
         }
         let next_t_start_pos = get_tok_start_pos(next_t.unwrap());
         for call_loc in self.call_paren_loc_vec.iter() {
             if kind.start_pos > call_loc.start() || call_loc.end() > kind.end_pos {
                 continue;
+            }
+
+            if self.should_split_call_component(
+                next_t_start_pos,
+                config.clone(),
+                cur_ret_last_len,
+            ) {
+                tracing::debug!(
+                    "should split call: next_t = {:?}",
+                    next_t.unwrap().simple_str()
+                );
+                return 1;
             }
 
             if self.should_split_pack_component(
@@ -493,46 +453,43 @@ impl CallExtractor {
                     "should split pack: next_t = {:?}",
                     next_t.unwrap().simple_str()
                 );
-                return true;
+                return 2;
             }
-            if self.should_split_call_component(
-                next_t_start_pos,
-                config.clone(),
-                cur_ret_last_len,
-            ) {
-                    tracing::debug!(
-                        "should split call: next_t = {:?}",
-                        next_t.unwrap().simple_str()
-                    );
-                    return true;
-                }
 
             // added in 20240605: judge if the next parameter is a lambda exp block
             // eg: 
             // V::enumerate_ref(&filtered_v, |i, x| { ... });
             if let TokenTree::Nested {
                 elements: _lambda_ele,
-                kind,
+                kind: next_kind,
                 note: _,
             } = next_t.unwrap() {
-                if kind.kind == NestKind_::Lambda {
-                    let next_next_t = elements.get(1);
-                    if next_next_t.is_some() {
-                        if let TokenTree::Nested {
-                            elements: _,
-                            kind: next_next_kind,
-                            note: _,
-                        } = next_next_t.unwrap() {
-                            if next_next_kind.kind == NestKind_::Brace {
-                                return true;
-                            }
+                if next_kind.kind == NestKind_::Lambda && next_next_t.is_some(){                    
+                    if let TokenTree::Nested {
+                        elements: _,
+                        kind: next_next_kind,
+                        note: _,
+                    } = next_next_t.unwrap() {
+                        if next_next_kind.kind == NestKind_::Brace {
+                            return 3;
                         }
                     }
                 }
             }
         }
-        false
+        0
     }
+
+    pub(crate) fn first_para_is_complex_blk(
+        &self,
+        config: Config,
+        kind: &NestKind,
+        elements: &[TokenTree],
+        cur_ret_last_len: usize,
+    ) -> bool {
+        self.component_is_complex_blk(config, kind, elements, -1, cur_ret_last_len) > 0
+    }
+
 }
 
 fn get_tok_start_pos(t: &TokenTree) -> u32 {

@@ -219,8 +219,7 @@ module 0xABCD::simple {
             *(&mut resource.data.data) = DATA;
         } else {
             let data = Data { data: DATA };
-            let resource =
-                Resource { id: 0, name: string::utf8(NAME), data };
+            let resource = Resource { id: 0, name: string::utf8(NAME), data };
             move_to<Resource>(owner, resource);
         }
     }
@@ -238,8 +237,7 @@ module 0xABCD::simple {
             return };
         if (!exists<Resource>(signer::address_of(owner))) {
             let data = Data { data: DATA };
-            let resource =
-                Resource { id: 0, name: string::utf8(NAME), data };
+            let resource = Resource { id: 0, name: string::utf8(NAME), data };
             move_to<Resource>(owner, resource);
         };
         // get data length for owner (len1) and address (len2)
@@ -294,8 +292,7 @@ module 0xABCD::simple {
             return };
         if (!exists<Resource>(signer::address_of(owner))) {
             let data = Data { data: DATA };
-            let resource =
-                Resource { id: 0, name: string::utf8(NAME), data };
+            let resource = Resource { id: 0, name: string::utf8(NAME), data };
             move_to<Resource>(owner, resource);
         };
         let (len1, len2) = {
@@ -318,8 +315,7 @@ module 0xABCD::simple {
     public entry fun set_id(owner: &signer, id: u64) acquires Resource {
         if (!exists<Resource>(signer::address_of(owner))) {
             let data = Data { data: DATA };
-            let resource =
-                Resource { id, name: string::utf8(NAME), data, };
+            let resource = Resource { id, name: string::utf8(NAME), data, };
             move_to<Resource>(owner, resource);
         } else {
             let resource = borrow_global_mut<Resource>(signer::address_of(owner));
@@ -334,8 +330,7 @@ module 0xABCD::simple {
     public entry fun set_name(owner: &signer, name: String) acquires Resource {
         if (!exists<Resource>(signer::address_of(owner))) {
             let data = Data { data: DATA };
-            let resource =
-                Resource { id: 0, name, data, };
+            let resource = Resource { id: 0, name, data, };
             move_to<Resource>(owner, resource);
         } else {
             let resource = borrow_global_mut<Resource>(signer::address_of(owner));
@@ -351,8 +346,7 @@ module 0xABCD::simple {
     public entry fun double(owner: &signer) acquires Resource {
         if (!exists<Resource>(signer::address_of(owner))) {
             let data = Data { data: DATA };
-            let resource =
-                Resource { id: 0, name: utf8(NAME), data, };
+            let resource = Resource { id: 0, name: utf8(NAME), data, };
             move_to<Resource>(owner, resource);
         } else {
             let resource = borrow_global_mut<Resource>(signer::address_of(owner));
@@ -371,8 +365,7 @@ module 0xABCD::simple {
     public entry fun half(owner: &signer) acquires Resource {
         if (!exists<Resource>(signer::address_of(owner))) {
             let data = Data { data: DATA };
-            let resource =
-                Resource { id: 0, name: utf8(NAME), data, };
+            let resource = Resource { id: 0, name: utf8(NAME), data, };
             move_to<Resource>(owner, resource);
         } else {
             let resource = borrow_global_mut<Resource>(signer::address_of(owner));

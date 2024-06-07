@@ -505,17 +505,16 @@ module aptos_framework::coin {
         assert!(string::length(&symbol) <= MAX_COIN_SYMBOL_LENGTH,
             error::invalid_argument(ECOIN_SYMBOL_TOO_LONG));
 
-        let coin_info =
-            CoinInfo<CoinType> {
-                name,
-                symbol,
-                decimals,
-                supply: if (monitor_supply) {
-                    option::some(optional_aggregator::new(MAX_U128, parallelizable))
-                } else {
-                    option::none()
-                },
-            };
+        let coin_info = CoinInfo<CoinType> {
+            name,
+            symbol,
+            decimals,
+            supply: if (monitor_supply) {
+                option::some(optional_aggregator::new(MAX_U128, parallelizable))
+            } else {
+                option::none()
+            },
+        };
         move_to(account, coin_info);
 
         (BurnCapability<CoinType> {}, FreezeCapability<CoinType> {}, MintCapability<CoinType> {})
@@ -576,13 +575,12 @@ module aptos_framework::coin {
         if (is_account_registered<CoinType>(account_addr)) { return };
 
         account::register_coin<CoinType>(account_addr);
-        let coin_store =
-            CoinStore<CoinType> {
-                coin: Coin { value: 0 },
-                frozen: false,
-                deposit_events: account::new_event_handle<DepositEvent>(account),
-                withdraw_events: account::new_event_handle<WithdrawEvent>(account),
-            };
+        let coin_store = CoinStore<CoinType> {
+            coin: Coin { value: 0 },
+            frozen: false,
+            deposit_events: account::new_event_handle<DepositEvent>(account),
+            withdraw_events: account::new_event_handle<WithdrawEvent>(account),
+        };
         move_to(account, coin_store);
     }
 
