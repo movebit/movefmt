@@ -660,7 +660,8 @@ module aptos_framework::coin {
             string::utf8(b"Fake money"),
             string::utf8(b"FMD"),
             decimals,
-            monitor_supply)
+            monitor_supply,
+        )
     }
 
     #[test_only]

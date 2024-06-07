@@ -549,7 +549,8 @@ module aptos_framework::account {
             account_scheme,
             account_public_key_bytes,
             signer_capability_sig_bytes,
-            proof_challenge);
+            proof_challenge,
+        );
 
         // Update the existing signer capability offer or put in a new signer capability offer for the recipient.
         let account_resource = borrow_global_mut<Account>(source_address);
@@ -923,7 +924,8 @@ module aptos_framework::account {
             signer_capability_sig_bytes,
             MULTI_ED25519_SCHEME,
             account_public_key_bytes,
-            recipient_address);
+            recipient_address,
+        );
     }
 
     #[test_only]
@@ -1036,7 +1038,8 @@ module aptos_framework::account {
             ED25519_SCHEME,
             pk,
             test_signature,
-            test_signature);
+            test_signature,
+        );
     }
 
     #[test_only]
@@ -1105,7 +1108,8 @@ module aptos_framework::account {
             ed25519::signature_to_bytes(&alice_signer_capability_offer_sig),
             0,
             alice_pk_bytes,
-            bob_addr);
+            bob_addr,
+        );
 
         assert!(option::contains(&borrow_global<Account>(alice_addr).signer_capability_offer
                     .for, &bob_addr),
@@ -1138,7 +1142,8 @@ module aptos_framework::account {
             ed25519::signature_to_bytes(&alice_signer_capability_offer_sig),
             0,
             alice_pk_bytes,
-            bob_addr);
+            bob_addr,
+        );
 
         assert!(is_signer_capability_offered(alice_addr), 0);
         assert!(get_signer_capability_offer_for(alice_addr) == bob_addr, 0);
@@ -1170,7 +1175,8 @@ module aptos_framework::account {
             ed25519::signature_to_bytes(&alice_signer_capability_offer_sig),
             0,
             alice_pk_bytes,
-            bob_addr);
+            bob_addr,
+        );
 
         let alice_account_resource = borrow_global_mut<Account>(alice_addr);
         assert!(option::contains(&alice_account_resource.signer_capability_offer.for, &bob_addr),
@@ -1202,7 +1208,8 @@ module aptos_framework::account {
             ed25519::signature_to_bytes(&alice_signer_capability_offer_sig),
             0,
             alice_pk_bytes,
-            bob_addr);
+            bob_addr,
+        );
         revoke_signer_capability(&alice, bob_addr);
     }
 
@@ -1234,7 +1241,8 @@ module aptos_framework::account {
             ed25519::signature_to_bytes(&alice_signer_capability_offer_sig),
             0,
             alice_pk_bytes,
-            bob_addr);
+            bob_addr,
+        );
         revoke_signer_capability(&alice, charlie_addr);
     }
 
@@ -1268,7 +1276,8 @@ module aptos_framework::account {
             ed25519::signature_to_bytes(&alice_rotation_capability_offer_sig),
             0,
             alice_pk_bytes,
-            bob_addr);
+            bob_addr,
+        );
 
         let alice_resource = borrow_global_mut<Account>(signer::address_of(&alice));
         assert!(option::contains(&alice_resource.rotation_capability_offer.for, &bob_addr),
@@ -1304,7 +1313,8 @@ module aptos_framework::account {
             ed25519::signature_to_bytes(&alice_rotation_capability_offer_sig),
             0,
             alice_pk_bytes,
-            signer::address_of(&bob));
+            signer::address_of(&bob),
+        );
     }
 
     #[test(bob = @0x345, framework = @aptos_framework)]
@@ -1334,7 +1344,8 @@ module aptos_framework::account {
             ed25519::signature_to_bytes(&alice_rotation_capability_offer_sig),
             0,
             alice_pk_bytes,
-            signer::address_of(&bob));
+            signer::address_of(&bob),
+        );
         revoke_rotation_capability(&alice, signer::address_of(&bob));
     }
 
@@ -1367,7 +1378,8 @@ module aptos_framework::account {
             ed25519::signature_to_bytes(&alice_rotation_capability_offer_sig),
             0,
             alice_pk_bytes,
-            signer::address_of(&bob));
+            signer::address_of(&bob),
+        );
         revoke_rotation_capability(&alice, signer::address_of(&charlie));
     }
 
@@ -1410,7 +1422,8 @@ module aptos_framework::account {
             MULTI_ED25519_SCHEME,
             multi_ed25519::unvalidated_public_key_to_bytes(&new_pk_unvalidated),
             multi_ed25519::signature_to_bytes(&from_sig),
-            multi_ed25519::signature_to_bytes(&to_sig),);
+            multi_ed25519::signature_to_bytes(&to_sig),
+        );
         let address_map =
             &mut borrow_global_mut<OriginatingAddress>(@aptos_framework).address_map;
         let expected_originating_address = table::borrow(address_map, new_address);
@@ -1456,7 +1469,8 @@ module aptos_framework::account {
             ED25519_SCHEME,
             ed25519::unvalidated_public_key_to_bytes(&new_pk_unvalidated),
             multi_ed25519::signature_to_bytes(&from_sig),
-            ed25519::signature_to_bytes(&to_sig),);
+            ed25519::signature_to_bytes(&to_sig),
+        );
 
         let address_map =
             &mut borrow_global_mut<OriginatingAddress>(@aptos_framework).address_map;

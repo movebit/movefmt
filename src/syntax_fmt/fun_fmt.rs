@@ -46,7 +46,6 @@ impl FunExtractor {
         let mut env = CompilationEnv::new(Flags::testing(), attrs);
         let filehash = FileHash::empty();
         let (defs, _) = parse_file_string(&mut env, filehash, &fmt_buffer).unwrap();
-
         for d in defs.iter() {
             this_fun_extractor.cur_module_id += 1;
             this_fun_extractor.collect_definition(d);
