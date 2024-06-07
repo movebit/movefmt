@@ -23,7 +23,8 @@ module test {
             ed25519::signature_to_bytes(&alice_signer_capability_offer_sig),
             0,
             alice_pk_bytes,
-            bob_addr);
+            bob_addr,
+        );
 
         let alice_account_resource = borrow_global_mut<Account>(alice_addr);
         assert!(

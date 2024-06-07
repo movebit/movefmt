@@ -311,7 +311,8 @@ module DiemFramework::DiemAccount {
             assert!(
                 AccountLimits::update_deposit_limits<Token>(deposit_value,
                     VASP::parent_address(payee),
-                    &borrow_global<AccountOperationsCapability>(@DiemRoot).limits_cap),
+                    &borrow_global<AccountOperationsCapability>(@DiemRoot).limits_cap,
+                ),
                 errors::limit_exceeded(EDEPOSIT_EXCEEDS_LIMITS))
         };
 
@@ -548,7 +549,8 @@ module DiemFramework::DiemAccount {
             let can_withdraw =
                 AccountLimits::update_withdrawal_limits<Token>(amount,
                     VASP::parent_address(payer),
-                    &borrow_global<AccountOperationsCapability>(@DiemRoot).limits_cap);
+                    &borrow_global<AccountOperationsCapability>(@DiemRoot).limits_cap,
+                );
             assert!(can_withdraw, errors::limit_exceeded(EWITHDRAWAL_EXCEEDS_LIMITS));
         };
         let coin = &mut balance.coin;
@@ -814,7 +816,8 @@ module DiemFramework::DiemAccount {
             withdraw_from(cap, payee, amount, copy metadata),
             metadata,
             metadata_signature,
-            true);
+            true,
+        );
     }
 
     /// Withdraw `amount` Diem<Token> from the address embedded in `WithdrawCapability` and
@@ -834,7 +837,8 @@ module DiemFramework::DiemAccount {
             withdraw_from(cap, payee_address, amount, copy metadata),
             metadata,
             x"",
-            false);
+            false,
+        );
     }
 
     spec pay_from {
@@ -1683,7 +1687,8 @@ module DiemFramework::DiemAccount {
             txn_gas_price,
             txn_max_gas_units,
             txn_expiration_time,
-            chain_id,)
+            chain_id,
+        )
     }
 
     spec module_prologue {
@@ -1739,7 +1744,8 @@ module DiemFramework::DiemAccount {
             txn_gas_price,
             txn_max_gas_units,
             txn_expiration_time,
-            chain_id,)
+            chain_id,
+        )
     }
 
     spec script_prologue {
@@ -1790,7 +1796,8 @@ module DiemFramework::DiemAccount {
             0,
             0,
             txn_expiration_time,
-            chain_id,)
+            chain_id,
+        )
     }
 
     spec writeset_prologue {
@@ -1894,7 +1901,8 @@ module DiemFramework::DiemAccount {
             txn_gas_price,
             txn_max_gas_units,
             txn_expiration_time,
-            chain_id,)
+            chain_id,
+        )
     }
 
     spec multi_agent_script_prologue {
@@ -2069,7 +2077,8 @@ module DiemFramework::DiemAccount {
             txn_sequence_number,
             txn_gas_price,
             txn_max_gas_units,
-            gas_units_remaining,)
+            gas_units_remaining,
+        )
     }
 
     spec epilogue {

@@ -941,7 +941,8 @@ module econia::incentives {
             custodian_registration_fee,
             taker_fee_divisor,
             &integrator_fee_store_tiers,
-            true);
+            true,
+        );
     }
 
     /// Wrapped call to `upgrade_integrator_fee_store()`, for paying
@@ -1484,7 +1485,8 @@ module econia::incentives {
             CUSTODIAN_REGISTRATION_FEE,
             TAKER_FEE_DIVISOR,
             &integrator_fee_store_tiers,
-            false);
+            false,
+        );
     }
 
     /// Initialize a `UtilityCoinStore` under the Econia fee account.
@@ -1605,7 +1607,8 @@ module econia::incentives {
             underwriter_registration_fee,
             custodian_registration_fee,
             taker_fee_divisor,
-            integrator_fee_store_tiers_ref);
+            integrator_fee_store_tiers_ref,
+        );
         // Get fee account signer.
         let fee_account = resource_account::get_signer();
         // Initialize a utility coin store under the fee account (aborts
@@ -1651,7 +1654,8 @@ module econia::incentives {
         // Parse in integrator fee store tier parameters.
         set_incentive_parameters_parse_tiers_vector(taker_fee_divisor,
             integrator_fee_store_tiers_ref,
-            &mut incentive_parameters_ref_mut.integrator_fee_store_tiers);
+            &mut incentive_parameters_ref_mut.integrator_fee_store_tiers,
+        );
     }
 
     /// Parse vectorized fee store tier parameters passed to
@@ -2027,7 +2031,8 @@ module econia::incentives {
             CUSTODIAN_REGISTRATION_FEE,
             TAKER_FEE_DIVISOR,
             &integrator_fee_store_tiers,
-            false);
+            false,
+        );
     }
 
     #[test_only]
@@ -2327,7 +2332,8 @@ module econia::incentives {
             underwriter_registration_fee,
             custodian_registration_fee,
             taker_fee_divisor,
-            integrator_fee_store_tiers);
+            integrator_fee_store_tiers,
+        );
         // Assert state.
         verify_utility_coin_type<QC>();
         assert!(!is_utility_coin_type<UC>(), 0);
@@ -2783,7 +2789,8 @@ module econia::incentives {
             UNDERWRITER_REGISTRATION_FEE,
             CUSTODIAN_REGISTRATION_FEE,
             TAKER_FEE_DIVISOR,
-            integrator_fee_store_tiers);
+            integrator_fee_store_tiers,
+        );
     }
 
     #[test(integrator = @user)]

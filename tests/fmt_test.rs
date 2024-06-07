@@ -195,11 +195,13 @@ fn extract_tokens(content: &str) -> Result<Vec<ExtractToken>, Vec<String>> {
                     .translate(&Path::new(".").to_path_buf(), *pos, *pos)
                     .unwrap();
 
-                ret.push(ExtractToken {
-                    content: content.clone(),
-                    line: loc.line_start,
-                    col: loc.col_start,
-                });
+                if content != "," {
+                    ret.push(ExtractToken {
+                        content: content.clone(),
+                        line: loc.line_start,
+                        col: loc.col_start,
+                    });
+                }
             }
             TokenTree::Nested {
                 elements,
