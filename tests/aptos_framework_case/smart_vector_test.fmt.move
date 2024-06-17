@@ -40,7 +40,8 @@ module aptos_std::smart_vector_test {
     fun smart_vector_for_each_ref_test() {
         let v = make_smart_vector(100);
         let s = 0;
-        V::for_each_ref(&v, |x| {
+        V::for_each_ref(&v,
+            |x| {
                 s = s + *x;
             });
         assert!(s == 5050, 0);
@@ -50,7 +51,8 @@ module aptos_std::smart_vector_test {
     #[test]
     fun smart_vector_for_each_mut_test() {
         let v = make_smart_vector(100);
-        V::for_each_mut(&mut v, |x| {
+        V::for_each_mut(&mut v,
+            |x| {
                 let x: &mut u64 = x;
                 *x = *x + 1;
             });
@@ -139,7 +141,8 @@ module aptos_std::smart_vector_test {
         let v1 = make_smart_vector(100);
         let v2 = make_smart_vector(100);
         let s = 0;
-        V::zip(v1, v2, |e1, e2| {
+        V::zip(v1, v2,
+            |e1, e2| {
                 let e1: u64 = e1;
                 let e2: u64 = e2;
                 s = s + e1 / e2
@@ -154,7 +157,8 @@ module aptos_std::smart_vector_test {
         let v1 = make_smart_vector(100);
         let v2 = make_smart_vector(99);
         let s = 0;
-        V::zip(v1, v2, |e1, e2| {
+        V::zip(v1, v2,
+            |e1, e2| {
                 let e1: u64 = e1;
                 let e2: u64 = e2;
                 s = s + e1 / e2
@@ -188,7 +192,8 @@ module aptos_std::smart_vector_test {
     fun smart_vector_test_zip_mut() {
         let v1 = make_smart_vector(100);
         let v2 = make_smart_vector(100);
-        V::zip_mut(&mut v1, &mut v2, |e1, e2| {
+        V::zip_mut(&mut v1, &mut v2,
+            |e1, e2| {
                 let e1: &mut u64 = e1;
                 let e2: &mut u64 = e2;
                 *e1 = *e1 + 1;

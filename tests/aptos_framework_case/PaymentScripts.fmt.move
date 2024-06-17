@@ -159,9 +159,7 @@ module DiemFramework::PaymentScripts {
         /// The balances of payer and payee change by the correct amount.
         ensures payer_addr != payee ==>
             DiemAccount::balance<Currency>(payer_addr)
-                == old(
-                    DiemAccount::balance<Currency>(payer_addr)
-                ) - amount;
+                == old(DiemAccount::balance<Currency>(payer_addr)) - amount;
         ensures payer_addr != payee ==>
             DiemAccount::balance<Currency>(payee)
                 == old(DiemAccount::balance<Currency>(payee)) + amount;

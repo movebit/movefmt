@@ -639,11 +639,14 @@ impl Format {
                     let is_plus_first_ele_over_width = self.get_cur_line_len() + first_ele_len
                         > self.global_cfg.max_width()
                         && first_ele_len > 8;
+                    let is_plus_nested_over_width = self.get_cur_line_len() + nested_token_len
+                        > self.global_cfg.max_width()
+                        && nested_token_len > 8;
                     let is_nested_len_too_large =
                         nested_token_len as f32 > 2.0 * max_len_when_no_add_line;
                     new_line_mode = is_plus_first_ele_over_width
                         || is_nested_len_too_large
-                        || self
+                        || (is_plus_nested_over_width && self
                             .syntax_extractor
                             .call_extractor
                             .first_para_is_complex_blk(
@@ -651,7 +654,7 @@ impl Format {
                                 kind,
                                 elements,
                                 self.get_cur_line_len(),
-                            );
+                            ));
 
                     // set opt_component_break_mode
                     let elements_str = serde_json::to_string(&elements).unwrap_or_default();
@@ -1064,7 +1067,7 @@ impl Format {
             note,
         } = token
         {
-            let (delimiter, has_colon) = Self::analyze_token_tree_delimiter(elements);
+            let (delimiter, has_colon) = analyze_token_tree_delimiter(elements);
             let (b_new_line_mode, opt_component_break_mode) =
                 self.get_break_mode_begin_nested(token, delimiter);
 
@@ -1605,43 +1608,6 @@ impl Format {
             .unwrap_or_default()
             .start
             .line
-    }
-
-    /// analyzer a `Nested` token tree.
-    fn analyze_token_tree_delimiter(
-        token_tree: &[TokenTree],
-    ) -> (
-        Option<Delimiter>, // if this is a `Delimiter::Semicolon` we can know this is a function body or etc.
-        bool,              // has a `:`
-    ) {
-        let mut d = None;
-        let mut has_colon = false;
-        for t in token_tree.iter() {
-            match t {
-                TokenTree::SimpleToken {
-                    content,
-                    pos: _,
-                    tok: _,
-                    note: _,
-                } => match content.as_str() {
-                    ";" => {
-                        d = Some(Delimiter::Semicolon);
-                    }
-                    "," => {
-                        if d.is_none() {
-                            // Somehow `;` has high priority.
-                            d = Some(Delimiter::Comma);
-                        }
-                    }
-                    ":" => {
-                        has_colon = true;
-                    }
-                    _ => {}
-                },
-                TokenTree::Nested { .. } => {}
-            }
-        }
-        (d, has_colon)
     }
 
     fn get_token_tree_start_pos(&self, token_tree: &TokenTree) -> u32 {

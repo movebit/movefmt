@@ -2326,9 +2326,7 @@ module econia::incentives {
         assert!(get_tier_withdrawal_fee((4 as u8)) == WITHDRAWAL_FEE_4, 0);
         assert!(get_tier_withdrawal_fee((5 as u8)) == WITHDRAWAL_FEE_5, 0);
         assert!(get_tier_withdrawal_fee((6 as u8)) == WITHDRAWAL_FEE_6, 0);
-        assert!(
-            exists<UtilityCoinStore<AptosCoin>>(resource_account::get_address()), 0
-        );
+        assert!(exists<UtilityCoinStore<AptosCoin>>(resource_account::get_address()), 0);
         // Update incentive parameters.
         let market_registration_fee = MARKET_REGISTRATION_FEE + 5;
         let underwriter_registration_fee = UNDERWRITER_REGISTRATION_FEE + 5;

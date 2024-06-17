@@ -624,7 +624,8 @@ module std::vector_tests {
     fun test_for_each() {
         let v = vector[1, 2, 3];
         let s = 0;
-        V::for_each(v, |e| {
+        V::for_each(v,
+            |e| {
                 s = s + e;
             });
         assert!(s == 6, 0)
@@ -654,7 +655,8 @@ module std::vector_tests {
         let v = vector[1, 2, 3];
         let i_s = 0;
         let s = 0;
-        V::enumerate_ref(&v, |i, e| {
+        V::enumerate_ref(&v,
+            |i, e| {
                 i_s = i_s + i;
                 s = s + *e;
             });
@@ -674,7 +676,8 @@ module std::vector_tests {
     fun test_for_each_mut() {
         let v = vector[1, 2, 3];
         let s = 2;
-        V::for_each_mut(&mut v, |e| {
+        V::for_each_mut(&mut v,
+            |e| {
                 *e = s;
                 s = s + 1
             });
@@ -704,7 +707,8 @@ module std::vector_tests {
     fun test_zip_mut() {
         let v1 = vector[1, 2, 3];
         let v2 = vector[10, 20, 30];
-        V::zip_mut(&mut v1, &mut v2, |e1, e2| {
+        V::zip_mut(&mut v1, &mut v2,
+            |e1, e2| {
                 let e1: &mut u64 = e1;
                 let e2: &mut u64 = e2;
                 *e1 = *e1 + 1;
@@ -763,7 +767,8 @@ module std::vector_tests {
         let v = vector[1, 2, 3];
         let i_s = 0;
         let s = 2;
-        V::enumerate_mut(&mut v, |i, e| {
+        V::enumerate_mut(&mut v,
+            |i, e| {
                 i_s = i_s + i;
                 *e = s;
                 s = s + 1
@@ -956,7 +961,8 @@ module std::vector_tests {
     #[test]
     fun test_destroy() {
         let v = vector[MoveOnly {}];
-        vector::destroy(v, |m| {
+        vector::destroy(v,
+            |m| {
                 let MoveOnly {} = m;
             })
     }

@@ -790,6 +790,8 @@ pub(crate) fn has_special_key_for_break_line_in_code_buf(code_buffer: String) ->
     let mut lexer = Lexer::new(&code_buffer, FileHash::empty());
     lexer.advance().unwrap();
     const FOR_IDENT: &str = "for";
+    let mut pre_tok = Tok::EOF;
+    let mut pre_tok_pos = 0;
     while lexer.peek() != Tok::EOF {
         if matches!(
             lexer.peek(),
@@ -797,17 +799,55 @@ pub(crate) fn has_special_key_for_break_line_in_code_buf(code_buffer: String) ->
         ) {
             return true;
         }
-        if lexer.peek() == Tok::Identifier && matches!(lexer.lookahead_nth(0), Ok(Tok::LParen)) {
-            let lexer_str = &code_buffer[lexer.start_loc()..];
-            if lexer_str.starts_with(FOR_IDENT) {
-                return true;
-            }
+
+        let pre_lexer_str = &code_buffer[pre_tok_pos..lexer.previous_end_loc()];
+        if lexer.peek() == Tok::LParen && pre_tok == Tok::Identifier && pre_lexer_str == FOR_IDENT {
+            return true;
         }
+        pre_tok = lexer.peek();
+        pre_tok_pos = lexer.start_loc();
         if lexer.advance().is_err() {
             break;
         }
     }
     false
+}
+
+/// analyzer a `Nested` token tree.
+pub(crate) fn analyze_token_tree_delimiter(
+    token_tree: &[TokenTree],
+) -> (
+    Option<Delimiter>, // if this is a `Delimiter::Semicolon` we can know this is a function body or etc.
+    bool,              // has a `:`
+) {
+    let mut d = None;
+    let mut has_colon = false;
+    for t in token_tree.iter() {
+        match t {
+            TokenTree::SimpleToken {
+                content,
+                pos: _,
+                tok: _,
+                note: _,
+            } => match content.as_str() {
+                ";" => {
+                    d = Some(Delimiter::Semicolon);
+                }
+                "," => {
+                    if d.is_none() {
+                        // Somehow `;` has high priority.
+                        d = Some(Delimiter::Comma);
+                    }
+                }
+                ":" => {
+                    has_colon = true;
+                }
+                _ => {}
+            },
+            TokenTree::Nested { .. } => {}
+        }
+    }
+    (d, has_colon)
 }
 
 // ===================================================================================================

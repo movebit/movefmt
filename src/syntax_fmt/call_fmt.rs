@@ -443,29 +443,39 @@ impl CallExtractor {
                 return 2;
             }
 
-            // added in 20240605: judge if the next parameter is a lambda exp block
-            // eg:
-            // V::enumerate_ref(&filtered_v, |i, x| { ... });
-            if let TokenTree::Nested {
-                elements: _lambda_ele,
-                kind: next_kind,
-                note: _,
-            } = next_t.unwrap()
-            {
-                if next_kind.kind == NestKind_::Lambda && next_next_t.is_some() {
-                    if let TokenTree::Nested {
-                        elements: _,
-                        kind: next_next_kind,
-                        note: _,
-                    } = next_next_t.unwrap()
-                    {
-                        if next_next_kind.kind == NestKind_::Brace {
+        }
+
+        // added in 20240605: judge if the next parameter is a lambda exp block
+        // eg:
+        // V::enumerate_ref(&filtered_v, |i, x| { ... });
+        if let TokenTree::Nested {
+            elements: _lambda_ele,
+            kind: next_kind,
+            note: _,
+        } = next_t.unwrap()
+        {
+            if next_kind.kind == NestKind_::Lambda && next_next_t.is_some() {
+                if let TokenTree::Nested {
+                    elements: lambda_brace_ele,
+                    kind: next_next_kind,
+                    note: _,
+                } = next_next_t.unwrap()
+                {
+                    if next_next_kind.kind == NestKind_::Brace {
+                        tracing::debug!("next_next_kind.kind == NestKind_::Brace");
+                        let mut new_line_mode = cur_ret_last_len + (next_t.unwrap().token_len() + next_next_t.unwrap().token_len()) as usize
+                            > config.max_width();
+
+                        let (delimiter, _) = analyze_token_tree_delimiter(lambda_brace_ele);
+                        new_line_mode |= delimiter.map(|x| x == Delimiter::Semicolon).unwrap_or_default();
+                        if new_line_mode {
                             return 3;
                         }
                     }
                 }
             }
         }
+
         0
     }
 
