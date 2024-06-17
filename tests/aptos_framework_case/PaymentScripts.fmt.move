@@ -119,7 +119,10 @@ module DiemFramework::PaymentScripts {
     /// * `AccountAdministrationScripts::add_currency_to_account`
     /// * `PaymentScripts::peer_to_peer_with_metadata`
     public entry fun peer_to_peer_by_signers<Currency>(
-        payer: signer, payee: signer, amount: u64, metadata: vector<u8>,
+        payer: signer,
+        payee: signer,
+        amount: u64,
+        metadata: vector<u8>,
     ) {
         let payer_withdrawal_cap = DiemAccount::extract_withdraw_capability(&payer);
         DiemAccount::pay_by_signers<Currency>(&payer_withdrawal_cap, &payee, amount,
@@ -157,7 +160,8 @@ module DiemFramework::PaymentScripts {
         ensures payer_addr != payee ==>
             DiemAccount::balance<Currency>(payer_addr)
                 == old(
-                    DiemAccount::balance<Currency>(payer_addr)) - amount;
+                    DiemAccount::balance<Currency>(payer_addr)
+                ) - amount;
         ensures payer_addr != payee ==>
             DiemAccount::balance<Currency>(payee)
                 == old(DiemAccount::balance<Currency>(payee)) + amount;

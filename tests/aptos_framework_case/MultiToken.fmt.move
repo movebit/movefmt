@@ -255,7 +255,8 @@ module ExperimentalFramework::MultiToken {
                 creator: signer::address_of(account),
                 content_uri: copy content_uri,
                 amount,
-            });
+            }
+        );
         let id = guid::id(&guid);
         if (!exists<TokenDataCollection<TokenType>>(signer::address_of(account))) {
             move_to(account,
@@ -263,7 +264,8 @@ module ExperimentalFramework::MultiToken {
         };
         let token_data_collection =
             &mut borrow_global_mut<TokenDataCollection<TokenType>>(
-                signer::address_of(account)).tokens;
+                signer::address_of(account)
+            ).tokens;
         vector::push_back(
             token_data_collection,
             TokenData {
@@ -271,7 +273,8 @@ module ExperimentalFramework::MultiToken {
                 token_id: guid,
                 content_uri,
                 supply: amount
-            });
+            }
+        );
         Token { id, balance: amount }
     }
 

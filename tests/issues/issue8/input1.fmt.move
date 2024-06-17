@@ -6,14 +6,16 @@ module 0xc0ffee::m {
                 creator_address: player1_addr,
                 opponent_address: player2_addr,
                 object_address: object::object_address(&obj),
-            },);
+            },
+        );
 
         event::emit(
             &GameCreatedEvent {
                 creator_address: player1_addr,
                 opponent_address: player2_addr,
                 object_address: object::object_address(&obj),
-            },);
+            },
+        );
 
         assert!(
             event::was_event_emitted(
@@ -24,7 +26,9 @@ module 0xc0ffee::m {
                         field: false
                     },
                     bytes: vector[]
-                }),
-            111111111111111111111111111111111111111111111111111111111);
+                }
+            ),
+            111111111111111111111111111111111111111111111111111111111
+        );
     }
 }

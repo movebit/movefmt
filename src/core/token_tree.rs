@@ -167,6 +167,23 @@ impl TokenTree {
             } => *note,
         }
     }
+
+    pub fn start_pos(&self) -> u32 {
+        match self {
+            TokenTree::SimpleToken {
+                content: _,
+                pos,
+                tok: _,
+                note: _,
+            } => *pos,
+            TokenTree::Nested {
+                elements: _,
+                kind,
+                note: _,
+            } => kind.start_pos,
+        }
+    }
+
     pub fn end_pos(&self) -> u32 {
         match self {
             TokenTree::SimpleToken {
@@ -181,6 +198,10 @@ impl TokenTree {
                 note: _,
             } => kind.end_pos,
         }
+    }
+
+    pub fn token_len(&self) -> u32 {
+        self.end_pos() - self.start_pos()
     }
 
     pub fn is_pound(&self) -> bool {

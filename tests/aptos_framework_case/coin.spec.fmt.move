@@ -72,17 +72,23 @@ spec aptos_framework::coin {
         option::spec_is_some(supply) ==>
             val
                 == optional_aggregator::optional_aggregator_value(
-                    option::spec_borrow(supply))
+                    option::spec_borrow(supply)
+                )
     }
 
     spec schema TotalSupplyTracked<CoinType> {
         ensures old(
-            spec_fun_supply_tracked<CoinType>(supply<CoinType> + aggregate_supply<CoinType>,
+            spec_fun_supply_tracked<CoinType>(
+                supply<CoinType> + aggregate_supply<CoinType>,
                 global<CoinInfo<CoinType>>(type_info::type_of<CoinType>().account_address)
-                .supply)) ==>
-            spec_fun_supply_tracked<CoinType>(supply<CoinType> + aggregate_supply<CoinType>,
+                .supply
+            )
+        ) ==>
+            spec_fun_supply_tracked<CoinType>(
+                supply<CoinType> + aggregate_supply<CoinType>,
                 global<CoinInfo<CoinType>>(type_info::type_of<CoinType>().account_address)
-                .supply);
+                .supply
+            );
     }
 
     spec fun spec_fun_supply_no_change<CoinType>(old_supply: Option<OptionalAggregator>, supply: Option<
@@ -90,7 +96,8 @@ spec aptos_framework::coin {
         option::spec_is_some(old_supply) ==>
             optional_aggregator::optional_aggregator_value(option::spec_borrow(old_supply))
                 == optional_aggregator::optional_aggregator_value(
-                    option::spec_borrow(supply))
+                    option::spec_borrow(supply)
+                )
     }
 
     spec schema TotalSupplyNoChange<CoinType> {
@@ -361,7 +368,8 @@ spec aptos_framework::coin {
     }
 
     // `account` must be `@aptos_framework`.
-    spec initialize_with_parallelizable_supply<CoinType>(account: &signer,
+    spec initialize_with_parallelizable_supply<CoinType>(
+        account: &signer,
         name: string::String,
         symbol: string::String,
         decimals: u8,
@@ -390,7 +398,8 @@ spec aptos_framework::coin {
         aborts_if len(symbol) > MAX_COIN_SYMBOL_LENGTH;
     }
 
-    spec initialize_internal<CoinType>(account: &signer,
+    spec initialize_internal<CoinType>(
+        account: &signer,
         name: string::String,
         symbol: string::String,
         decimals: u8,
@@ -440,7 +449,8 @@ spec aptos_framework::coin {
             > MAX_U64;
         /// [high-level-req-5]
         aborts_if !exists<CoinStore<CoinType>>(account_addr) && !exists<account::Account>(
-            account_addr);
+            account_addr
+        );
         aborts_if !exists<CoinStore<CoinType>>(account_addr) && !type_info::spec_is_struct<CoinType>();
         ensures exists<CoinStore<CoinType>>(account_addr);
     }
@@ -520,7 +530,8 @@ spec aptos_framework::coin {
         let aggr = dst_coin.value;
         let post p_aggr = dst_coin.value;
         aborts_if aggregator::spec_aggregator_get_val(aggr) + coin.value > aggregator::spec_get_limit(
-            aggr);
+            aggr
+        );
         aborts_if aggregator::spec_aggregator_get_val(aggr) + coin.value > MAX_U128;
         ensures aggregator::spec_aggregator_get_val(aggr) + coin.value
             == aggregator::spec_aggregator_get_val(p_aggr);
@@ -535,7 +546,8 @@ spec aptos_framework::coin {
         aborts_if amount > 0 && coin_store.coin.value < amount;
         aborts_if amount > 0
             && aggregator::spec_aggregator_get_val(aggr) + amount > aggregator::spec_get_limit(
-                aggr);
+                aggr
+            );
         aborts_if amount > 0 && aggregator::spec_aggregator_get_val(aggr) + amount > MAX_U128;
         ensures aggregator::spec_aggregator_get_val(aggr) + amount
             == aggregator::spec_aggregator_get_val(p_aggr);

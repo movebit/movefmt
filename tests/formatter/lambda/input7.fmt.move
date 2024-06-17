@@ -25,7 +25,8 @@ module 0x42::LambdaTest2 {
                 g(a + b)
             },
 
-            3) + 4
+            3
+        ) + 4
 
     }
 }

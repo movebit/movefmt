@@ -521,13 +521,16 @@ impl Format {
         }
     }
 
-    fn get_new_line_mode_begin_nested(
+    fn get_break_mode_begin_nested(
         &self,
-        kind: &NestKind,
-        elements: &[TokenTree],
-        note: &Option<Note>,
+        token: &TokenTree,
         delimiter: Option<Delimiter>,
     ) -> (bool, Option<bool>) {
+        let TokenTree::Nested {
+            elements,
+            kind,
+            note,
+        } = token else { return (false, None); };
         let stct_def = note
             .map(|x| x == Note::StructDefinition)
             .unwrap_or_default();
@@ -614,14 +617,20 @@ impl Format {
                     .fun_extractor
                     .is_parameter_paren_in_fun_header(kind)
                 {
-                    // Reserve 25% space for return ty and specifier
-                    new_line_mode = (self.get_cur_line_len() + nested_token_len) as f32
-                        > max_len_when_no_add_line;
-                    if (nested_and_comma_pair.0 >= 4 || nested_and_comma_pair.1 >= 4)
-                        && nested_token_len as f32 > max_len_when_no_add_line
-                    {
-                        opt_component_break_mode = true;
+                    let header_str = &self.format_context.borrow().content[token.start_pos() as usize..token.end_pos() as usize];
+                    if header_str.matches("\n").count() > 2 {
+                        opt_component_break_mode |= nested_and_comma_pair.1 >= 3;
+                        new_line_mode = true;
                     }
+
+                    // Reserve 25% space for return ty and specifier
+                    new_line_mode |= (self.get_cur_line_len() + nested_token_len) as f32
+                        > max_len_when_no_add_line;
+
+                    opt_component_break_mode |=
+                        (nested_and_comma_pair.0 >= 4 || nested_and_comma_pair.1 >= 4)
+                        && token.token_len() as f32 > max_len_when_no_add_line;
+                    new_line_mode |= opt_component_break_mode;
                 } else if self.get_cur_line_len() > self.global_cfg.max_width()
                     && !elements.is_empty()
                 {
@@ -658,7 +667,7 @@ impl Format {
                     // 1.fun call,  should add new_line if has_multi_para;
                     // 2.spec fun header, should add new_line if has_multi_para;
                     // you can see case at tests/complex3/input1.move
-                    new_line_mode |= should_split_multi_para;
+                    new_line_mode |= opt_component_break_mode;
                     new_line_mode |= has_multi_para
                         && !is_in_fun_call
                         && self.format_context.borrow().cur_tok == Tok::Identifier;
@@ -753,15 +762,15 @@ impl Format {
 
             // If components do not need to be on a new line or if the function has fewer than two arguments,
             // the last argument in the function call does not need to be on a new line.
-            if kind.kind == NestKind_::ParentTheses
-                && self.syntax_extractor.call_extractor.paren_in_call(kind)
-            {
-                if !opt_component_break_mode
-                    || self.get_para_num_in_func_call(elements, delimiter) <= 2
-                {
-                    b_break_line_before_kind_end = false;
-                }
-            }
+            // if kind.kind == NestKind_::ParentTheses
+            //     && self.syntax_extractor.call_extractor.paren_in_call(kind)
+            // {
+            //     if !opt_component_break_mode
+            //         || self.get_para_num_in_func_call(elements, delimiter) <= 2
+            //     {
+            //         b_break_line_before_kind_end = false;
+            //     }
+            // }
             if nested_token_head == Tok::If
                 || kind.kind == NestKind_::Bracket
                 || kind.kind == NestKind_::Type
@@ -1057,7 +1066,7 @@ impl Format {
         {
             let (delimiter, has_colon) = Self::analyze_token_tree_delimiter(elements);
             let (b_new_line_mode, opt_component_break_mode) =
-                self.get_new_line_mode_begin_nested(kind, elements, note, delimiter);
+                self.get_break_mode_begin_nested(token, delimiter);
 
             let b_add_indent = elements.is_empty()
                 || elements.first().unwrap().simple_str().unwrap_or_default() != "module";

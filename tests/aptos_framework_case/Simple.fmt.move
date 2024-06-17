@@ -53,7 +53,11 @@ module 0xABCD::simple {
     }
 
     public entry fun nop_5_signers(
-        _s1: &signer, _s2: &signer, _s3: &signer, _s4: &signer, _s5: &signer
+        _s1: &signer,
+        _s2: &signer,
+        _s3: &signer,
+        _s4: &signer,
+        _s5: &signer
     ) {
     }
 
@@ -267,7 +271,8 @@ module 0xABCD::simple {
             };
         // copy the biger data into the smaller one
         while (vector::length(&data) > vector::length(&resource.data.data) || vector::length(
-                &resource.data.data) < 10000) {
+                &resource.data.data
+            ) < 10000) {
             append_data(&mut resource.data.data, &data);
         }
     }
@@ -381,7 +386,12 @@ module 0xABCD::simple {
     // Utility functions in Rust are provided for that.
     // The purpose is to make the module bigger and to give something more
     // meaningful to the verifier (so make publish more expensive in computation).
-    fun copy_pasta_ref(r1: &Resource, r2: &Resource, c1: &Counter, c2: &Counter,): &u64 {
+    fun copy_pasta_ref(
+        r1: &Resource,
+        r2: &Resource,
+        c1: &Counter,
+        c2: &Counter,
+    ): &u64 {
         let ret1 = &r1.id;
         let ret2 = &r2.id;
         if (*ret1 < *ret2) {

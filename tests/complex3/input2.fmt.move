@@ -29,7 +29,8 @@ module test {
         let alice_account_resource = borrow_global_mut<Account>(alice_addr);
         assert!(
             option::contains(&alice_account_resource.signer_capability_offer.for, &bob_addr),
-            0);
+            0
+        );
     }
 
     #[verify_only]
@@ -122,7 +123,8 @@ module test {
         };
 
         let new_auth_key_vector = spec_assert_valid_rotation_proof_signature_and_get_auth_key(
-            new_scheme, new_public_key_bytes, cap_update_table, challenge);
+            new_scheme, new_public_key_bytes, cap_update_table, challenge
+        );
         let address_map = global<OriginatingAddress>(@aptos_framework).address_map;
 
         // Verify all properties in update_auth_key_and_originating_address_table

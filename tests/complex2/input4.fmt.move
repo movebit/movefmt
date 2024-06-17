@@ -17,6 +17,7 @@ module DiemFramework::DiemAccount {
         /// Every account holds either no key rotation capability (because KeyRotationCapability has been delegated)
         /// or the key rotation capability for addr itself [[H18]][PERMISSION].
         invariant forall addr: address where exists_at(addr): delegated_key_rotation_capability(
-            addr) || spec_holds_own_key_rotation_cap(addr);
+            addr
+        ) || spec_holds_own_key_rotation_cap(addr);
     }
 }

@@ -384,48 +384,69 @@ module aptos_framework::randomness {
         assert!(2 == safe_add_mod(4, 3, 5), 1);
         assert!(7 == safe_add_mod(3, 4, 9), 1);
         assert!(7 == safe_add_mod(4, 3, 9), 1);
-        assert!(0xfffffffffffffffffffffffffffffffffffffffffffffffe
-            == safe_add_mod(0xfffffffffffffffffffffffffffffffffffffffffffffffd,
+        assert!(
+            0xfffffffffffffffffffffffffffffffffffffffffffffffe
+            == safe_add_mod(
+                0xfffffffffffffffffffffffffffffffffffffffffffffffd,
                 0x000000000000000000000000000000000000000000000001,
                 0xffffffffffffffffffffffffffffffffffffffffffffffff,
             ),
-            1);
-        assert!(0xfffffffffffffffffffffffffffffffffffffffffffffffe
-            == safe_add_mod(0x000000000000000000000000000000000000000000000001,
+            1
+        );
+        assert!(
+            0xfffffffffffffffffffffffffffffffffffffffffffffffe
+            == safe_add_mod(
+                0x000000000000000000000000000000000000000000000001,
                 0xfffffffffffffffffffffffffffffffffffffffffffffffd,
                 0xffffffffffffffffffffffffffffffffffffffffffffffff,
             ),
-            1);
-        assert!(0x000000000000000000000000000000000000000000000000
-            == safe_add_mod(0xfffffffffffffffffffffffffffffffffffffffffffffffd,
+            1
+        );
+        assert!(
+            0x000000000000000000000000000000000000000000000000
+            == safe_add_mod(
+                0xfffffffffffffffffffffffffffffffffffffffffffffffd,
                 0x000000000000000000000000000000000000000000000002,
                 0xffffffffffffffffffffffffffffffffffffffffffffffff,
             ),
-            1);
-        assert!(0x000000000000000000000000000000000000000000000000
-            == safe_add_mod(0x000000000000000000000000000000000000000000000002,
+            1
+        );
+        assert!(
+            0x000000000000000000000000000000000000000000000000
+            == safe_add_mod(
+                0x000000000000000000000000000000000000000000000002,
                 0xfffffffffffffffffffffffffffffffffffffffffffffffd,
                 0xffffffffffffffffffffffffffffffffffffffffffffffff,
             ),
-            1);
-        assert!(0x000000000000000000000000000000000000000000000001
-            == safe_add_mod(0xfffffffffffffffffffffffffffffffffffffffffffffffd,
+            1
+        );
+        assert!(
+            0x000000000000000000000000000000000000000000000001
+            == safe_add_mod(
+                0xfffffffffffffffffffffffffffffffffffffffffffffffd,
                 0x000000000000000000000000000000000000000000000003,
                 0xffffffffffffffffffffffffffffffffffffffffffffffff,
             ),
-            1);
-        assert!(0x000000000000000000000000000000000000000000000001
-            == safe_add_mod(0x000000000000000000000000000000000000000000000003,
+            1
+        );
+        assert!(
+            0x000000000000000000000000000000000000000000000001
+            == safe_add_mod(
+                0x000000000000000000000000000000000000000000000003,
                 0xfffffffffffffffffffffffffffffffffffffffffffffffd,
                 0xffffffffffffffffffffffffffffffffffffffffffffffff,
             ),
-            1);
-        assert!(0xfffffffffffffffffffffffffffffffffffffffffffffffd
-            == safe_add_mod(0xfffffffffffffffffffffffffffffffffffffffffffffffe,
+            1
+        );
+        assert!(
+            0xfffffffffffffffffffffffffffffffffffffffffffffffd
+            == safe_add_mod(
+                0xfffffffffffffffffffffffffffffffffffffffffffffffe,
                 0xfffffffffffffffffffffffffffffffffffffffffffffffe,
                 0xffffffffffffffffffffffffffffffffffffffffffffffff,
             ),
-            1);
+            1
+        );
     }
 
     #[test(fx = @aptos_framework)]

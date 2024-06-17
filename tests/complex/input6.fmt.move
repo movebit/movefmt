@@ -13,7 +13,9 @@ module econia::incentives {
     #[test(econia = @econia, integrator = @user)]
     /// Verify registration of assorted coin stores, fee assessment, and
     /// withdrawal scenarios.
-    fun test_register_assess_withdraw(econia: &signer, integrator: &signer) acquires EconiaFeeStore, IncentiveParameters, IntegratorFeeStores, UtilityCoinStore {
+    fun test_register_assess_withdraw(
+        econia: &signer, integrator: &signer
+    ) acquires EconiaFeeStore, IncentiveParameters, IntegratorFeeStores, UtilityCoinStore {
         init_test(); // Init incentives.
     }
 }
