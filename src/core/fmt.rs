@@ -463,13 +463,13 @@ impl Format {
 
         if !new_line && next_t.is_some() {
             let next_token_start_pos = self.get_token_tree_start_pos(next_t.unwrap());
-            if self.translate_line(next_token_start_pos) != self.translate_line(t.end_pos()) {
+            if self.translate_line(next_token_start_pos) != self.translate_line(t.end_pos())
+                && next_token != Tok::If {
                 return new_line;
             }
             if self.check_next_token_is_long_bin_op(next_t, next_token) {
                 return true;
             }
-
             // updated in 20240607: fix https://github.com/movebit/movefmt/issues/7
             if t.simple_str().unwrap_or_default() == "="
                 && next_t.unwrap().simple_str().unwrap_or_default() != "vector"
@@ -1189,16 +1189,19 @@ impl Format {
                 let has_special_key = get_cur_line_len != self.last_line().len();
                 if self.format_context.borrow().cur_tok == Tok::RBrace {
                     if has_special_key {
+                        // process case:
+                        // else if() {} `insert '\n' here` else
                         self.new_line(None);
                     }
                 } else if next_token.is_some() {
-                    if !has_special_key
-                        && get_cur_line_len
-                            + content.len()
-                            + next_token.unwrap().simple_str().unwrap_or_default().len()
-                            > self.global_cfg.max_width()
+                    if self.last_line().len()
+                        + content.len()
+                        + 2
+                        + next_token.unwrap().token_len() as usize
+                        > self.global_cfg.max_width()
                     {
                         self.new_line(None);
+                        return;
                     }
                     let is_in_nested_else_branch = self
                         .syntax_extractor

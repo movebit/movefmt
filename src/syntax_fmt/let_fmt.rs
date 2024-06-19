@@ -339,15 +339,10 @@ impl LetExtractor {
 
     pub(crate) fn is_long_assign(&self, token: TokenTree) -> bool {
         for (idx, let_assign) in self.let_assign_loc_vec.iter().enumerate() {
-            tracing::trace!(
-                "let_assign: {:?}",
-                &self.source[let_assign.start() as usize..let_assign.end() as usize]
-            );
             if let_assign.start() <= token.end_pos() && token.end_pos() <= let_assign.end() {
                 let rhs_exp_loc = &self.let_assign_rhs_exp[idx].loc;
-                let is_long_rhs =
-                    self.source[rhs_exp_loc.start() as usize..rhs_exp_loc.end() as usize].len()
-                        > 64;
+                let rhs_exp_str = &self.source[rhs_exp_loc.start() as usize..rhs_exp_loc.end() as usize];
+                let is_long_rhs = rhs_exp_str.len() > 64;
                 if is_long_rhs {
                     self.break_line_by_let_rhs
                         .borrow_mut()

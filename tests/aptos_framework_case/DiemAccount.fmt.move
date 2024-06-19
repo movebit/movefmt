@@ -238,8 +238,8 @@ module DiemFramework::DiemAccount {
     }
 
     spec fun spec_has_published_account_limits<Token>(addr: address): bool {
-        if (VASP::is_vasp(addr)) VASP::spec_has_account_limits<Token>(addr) else
-            AccountLimits::has_window_published<Token>(addr)
+        if (VASP::is_vasp(addr)) VASP::spec_has_account_limits<Token>(addr)
+        else AccountLimits::has_window_published<Token>(addr)
     }
 
     /// Returns whether we should track and record limits for the `payer` or `payee` account.
