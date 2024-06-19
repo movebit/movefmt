@@ -601,11 +601,14 @@ module econia::incentives {
         // vector.
         let integrator_fee_store_tiers_ref = &borrow_global<IncentiveParameters>(@econia).integrator_fee_store_tiers;
         // Assert provided 0-indexed tier number is within range.
-        assert!((tier as u64) < vector::length(integrator_fee_store_tiers_ref),
-            E_INVALID_TIER);
+        assert!(
+            (tier as u64) < vector::length(integrator_fee_store_tiers_ref),
+            E_INVALID_TIER
+        );
         // Borrow immutable reference to indicated tier parameters.
-        let integrator_fee_store_tier_ref = vector::borrow(integrator_fee_store_tiers_ref,
-            (tier as u64));
+        let integrator_fee_store_tier_ref = vector::borrow(
+            integrator_fee_store_tiers_ref, (tier as u64)
+        );
         // Return corresponding fee share divisor.
         integrator_fee_store_tier_ref.fee_share_divisor
     }
@@ -680,11 +683,14 @@ module econia::incentives {
         // vector.
         let integrator_fee_store_tiers_ref = &borrow_global<IncentiveParameters>(@econia).integrator_fee_store_tiers;
         // Assert provided 0-indexed tier number is within range.
-        assert!((tier as u64) < vector::length(integrator_fee_store_tiers_ref),
-            E_INVALID_TIER);
+        assert!(
+            (tier as u64) < vector::length(integrator_fee_store_tiers_ref),
+            E_INVALID_TIER
+        );
         // Borrow immutable reference to given tier.
-        let integrator_fee_store_tier_ref = vector::borrow(integrator_fee_store_tiers_ref,
-            (tier as u64));
+        let integrator_fee_store_tier_ref = vector::borrow(
+            integrator_fee_store_tiers_ref, (tier as u64)
+        );
         // Return its activation fee.
         integrator_fee_store_tier_ref.tier_activation_fee
     }
@@ -702,11 +708,14 @@ module econia::incentives {
         // vector.
         let integrator_fee_store_tiers_ref = &borrow_global<IncentiveParameters>(@econia).integrator_fee_store_tiers;
         // Assert provided 0-indexed tier number is within range.
-        assert!((tier as u64) < vector::length(integrator_fee_store_tiers_ref),
-            E_INVALID_TIER);
+        assert!(
+            (tier as u64) < vector::length(integrator_fee_store_tiers_ref),
+            E_INVALID_TIER
+        );
         // Borrow immutable reference to given tier.
-        let integrator_fee_store_tier_ref = vector::borrow(integrator_fee_store_tiers_ref,
-            (tier as u64));
+        let integrator_fee_store_tier_ref = vector::borrow(
+            integrator_fee_store_tiers_ref, (tier as u64)
+        );
         // Return its withdrawal fee.
         integrator_fee_store_tier_ref.withdrawal_fee
     }
@@ -761,7 +770,9 @@ module econia::incentives {
     public fun get_integrator_withdrawal_fee<QuoteCoinType>(
         integrator: &signer, market_id: u64,
     ): u64 acquires IncentiveParameters, IntegratorFeeStores {
-        get_integrator_withdrawal_fee_view<QuoteCoinType>(address_of(integrator), market_id)
+        get_integrator_withdrawal_fee_view<QuoteCoinType>(
+            address_of(integrator), market_id
+        )
     }
 
     /// Upgrade `IntegratorFeeStore` to a higher tier.
@@ -830,7 +841,9 @@ module econia::incentives {
     public fun withdraw_econia_fees<QuoteCoinType>(
         econia: &signer, market_id: u64, amount: u64
     ): coin::Coin<QuoteCoinType> acquires EconiaFeeStore {
-        withdraw_econia_fees_internal<QuoteCoinType>(econia, market_id, false, amount)
+        withdraw_econia_fees_internal<QuoteCoinType>(
+            econia, market_id, false, amount
+        )
     }
 
     /// Withdraw all fee coins from an `EconiaFeeStore` of given
@@ -846,7 +859,9 @@ module econia::incentives {
     public fun withdraw_econia_fees_all<QuoteCoinType>(
         econia: &signer, market_id: u64,
     ): coin::Coin<QuoteCoinType> acquires EconiaFeeStore {
-        withdraw_econia_fees_internal<QuoteCoinType>(econia, market_id, true, 0)
+        withdraw_econia_fees_internal<QuoteCoinType>(
+            econia, market_id, true, 0
+        )
     }
 
     /// Withdraw all fees from an `IntegratorFeeStore`.
@@ -916,8 +931,9 @@ module econia::incentives {
     /// * `test_deposit_withdraw_utility_coins()`
     /// * `test_register_assess_withdraw()`
     /// * `test_withdraw_utility_coins_all_not_econia()`
-    public fun withdraw_utility_coins_all<UtilityCoinType>(econia: &signer)
-        : coin::Coin<UtilityCoinType> acquires UtilityCoinStore {
+    public fun withdraw_utility_coins_all<UtilityCoinType>(
+        econia: &signer
+    ): coin::Coin<UtilityCoinType> acquires UtilityCoinStore {
         withdraw_utility_coins_internal<UtilityCoinType>(econia, true, 0)
     }
 
@@ -972,8 +988,12 @@ module econia::incentives {
                 integrator, market_id, new_tier
             );
         // Upgrade integrator fee store, paying cost from coin store.
-        upgrade_integrator_fee_store<QuoteCoinType, UtilityCoinType>(integrator, market_id,
-            new_tier, coin::withdraw(integrator, cost));
+        upgrade_integrator_fee_store<QuoteCoinType, UtilityCoinType>(
+            integrator,
+            market_id,
+            new_tier,
+            coin::withdraw(integrator, cost),
+        );
     }
 
     /// Wrapped call to `withdraw_econia_fees_to_coin_store_internal()`,
@@ -985,8 +1005,9 @@ module econia::incentives {
     public entry fun withdraw_econia_fees_all_to_coin_store<QuoteCoinType>(
         econia: &signer, market_id: u64,
     ) acquires EconiaFeeStore {
-        withdraw_econia_fees_to_coin_store_internal<QuoteCoinType>(econia, market_id, true,
-            0);
+        withdraw_econia_fees_to_coin_store_internal<QuoteCoinType>(
+            econia, market_id, true, 0
+        );
     }
 
     /// Wrapped call to `withdraw_econia_fees_to_coin_store_internal()`,
@@ -998,8 +1019,9 @@ module econia::incentives {
     public entry fun withdraw_econia_fees_to_coin_store<QuoteCoinType>(
         econia: &signer, market_id: u64, amount: u64
     ) acquires EconiaFeeStore {
-        withdraw_econia_fees_to_coin_store_internal<QuoteCoinType>(econia, market_id, false,
-            amount);
+        withdraw_econia_fees_to_coin_store_internal<QuoteCoinType>(
+            econia, market_id, false, amount
+        );
     }
 
     /// Wrapped call to `get_withdraw_integrator_fees()`, for paying
@@ -1031,8 +1053,9 @@ module econia::incentives {
         let utility_coins =
             coin::withdraw<UtilityCoinType>(integrator, withdrawal_fee);
         let quote_coins = // Withdraw integrator fees (quote coins).
-        withdraw_integrator_fees<QuoteCoinType, UtilityCoinType>(integrator, market_id,
-            utility_coins);
+        withdraw_integrator_fees<QuoteCoinType, UtilityCoinType>(
+            integrator, market_id, utility_coins
+        );
         // Get integrator address.
         let integrator_address = address_of(integrator);
         // If integrator does not have quote coin store, register one.
@@ -1063,7 +1086,9 @@ module econia::incentives {
     public entry fun withdraw_utility_coins_to_coin_store<UtilityCoinType>(
         econia: &signer, amount: u64
     ) acquires UtilityCoinStore {
-        withdraw_utility_coins_to_coin_store_internal<UtilityCoinType>(econia, false, amount);
+        withdraw_utility_coins_to_coin_store_internal<UtilityCoinType>(
+            econia, false, amount
+        );
     }
 
     // Public entry functions <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -1150,10 +1175,15 @@ module econia::incentives {
                 // Calculate resultant integrator fee share.
                 integrator_fee_share = quote_fill / fee_share_divisor;
                 // Verify merge will not overflow integrator fee store.
-                range_check_coin_merge(integrator_fee_share, &integrator_fee_store_ref_mut
-                    .coins, E_INTEGRATOR_FEE_STORE_OVERFLOW);
+                range_check_coin_merge(
+                    integrator_fee_share,
+                    &integrator_fee_store_ref_mut.coins,
+                    E_INTEGRATOR_FEE_STORE_OVERFLOW,
+                );
                 // Extract resultant amount from supplied quote coins.
-                let integrator_fees = coin::extract(&mut quote_coins, integrator_fee_share);
+                let integrator_fees = coin::extract(
+                    &mut quote_coins, integrator_fee_share
+                );
                 // Merge the fees into the corresponding fee store.
                 coin::merge(&mut integrator_fee_store_ref_mut.coins, integrator_fees);
             }
@@ -1173,8 +1203,9 @@ module econia::incentives {
         let econia_fee_store_coins_ref_mut =
             tablist::borrow_mut(econia_fee_store_map_ref_mut, market_id);
         // Verify merge will not overflow Econia fee store.
-        range_check_coin_merge(econia_fee_share, econia_fee_store_coins_ref_mut,
-            E_ECONIA_FEE_STORE_OVERFLOW);
+        range_check_coin_merge(
+            econia_fee_share, econia_fee_store_coins_ref_mut, E_ECONIA_FEE_STORE_OVERFLOW
+        );
         // Merge the Econia fees into the fee store.
         coin::merge(econia_fee_store_coins_ref_mut, econia_fees);
         (quote_coins, total_fee) // Return coins, fee paid.
@@ -1309,8 +1340,9 @@ module econia::incentives {
     public(friend) fun deposit_custodian_registration_utility_coins<UtilityCoinType>(
         coins: coin::Coin<UtilityCoinType>
     ) acquires IncentiveParameters, UtilityCoinStore {
-        deposit_utility_coins_verified<UtilityCoinType>(coins,
-            get_custodian_registration_fee());
+        deposit_utility_coins_verified<UtilityCoinType>(
+            coins, get_custodian_registration_fee()
+        );
     }
 
     /// Deposit `coins` of `UtilityCoinType`, verifying that the proper
@@ -1322,7 +1354,9 @@ module econia::incentives {
     public(friend) fun deposit_market_registration_utility_coins<UtilityCoinType>(
         coins: coin::Coin<UtilityCoinType>
     ) acquires IncentiveParameters, UtilityCoinStore {
-        deposit_utility_coins_verified<UtilityCoinType>(coins, get_market_registration_fee());
+        deposit_utility_coins_verified<UtilityCoinType>(
+            coins, get_market_registration_fee()
+        );
     }
 
     /// Deposit `coins` of `UtilityCoinType`, verifying that the proper
@@ -1334,8 +1368,9 @@ module econia::incentives {
     public(friend) fun deposit_underwriter_registration_utility_coins<UtilityCoinType>(
         coins: coin::Coin<UtilityCoinType>
     ) acquires IncentiveParameters, UtilityCoinStore {
-        deposit_utility_coins_verified<UtilityCoinType>(coins,
-            get_underwriter_registration_fee());
+        deposit_utility_coins_verified<UtilityCoinType>(
+            coins, get_underwriter_registration_fee()
+        );
     }
 
     /// Register an `EconiaFeeStore` entry for given `market_id` and
@@ -1355,8 +1390,9 @@ module econia::incentives {
         // already been initialized at the fee account:
         if (!exists<EconiaFeeStore<QuoteCoinType>>(fee_account_address))
             // Move to the Econia fee account an empty one.
-            move_to<EconiaFeeStore<QuoteCoinType>>(&fee_account,
-                EconiaFeeStore { map: tablist::new() });
+            move_to<EconiaFeeStore<QuoteCoinType>>(
+                &fee_account, EconiaFeeStore { map: tablist::new() }
+            );
         // Borrow mutable reference to Econia fee store map for
         // given quote coin type.
         let econia_fee_store_map_ref_mut = &mut borrow_global_mut<EconiaFeeStore<
@@ -1402,8 +1438,9 @@ module econia::incentives {
         // already been initialized at the integrator account:
         if (!exists<IntegratorFeeStores<QuoteCoinType>>(integrator_address))
             // Move to the integrator account an empty one.
-            move_to<IntegratorFeeStores<QuoteCoinType>>(integrator,
-                IntegratorFeeStores { map: tablist::new() });
+            move_to<IntegratorFeeStores<QuoteCoinType>>(
+                integrator, IntegratorFeeStores { map: tablist::new() }
+            );
         // Declare integrator fee store for given tier, with no coins.
         let integrator_fee_store = IntegratorFeeStore {
             tier,
@@ -1446,8 +1483,9 @@ module econia::incentives {
             fee_account_address
         ).coins;
         // Verify merge will not overflow utility coin store.
-        range_check_coin_merge(coin::value(&coins), utility_coins_ref_mut,
-            E_UTILITY_COIN_STORE_OVERFLOW);
+        range_check_coin_merge(
+            coin::value(&coins), utility_coins_ref_mut, E_UTILITY_COIN_STORE_OVERFLOW
+        );
         // Merge in deposited coins.
         coin::merge(utility_coins_ref_mut, coins);
     }
@@ -1533,8 +1571,9 @@ module econia::incentives {
         // If a utility coin store does not already exist at account,
         if (!exists<UtilityCoinStore<CoinType>>(address_of(fee_account)))
             // Move to the fee account an initialized one.
-            move_to<UtilityCoinStore<CoinType>>(fee_account,
-                UtilityCoinStore { coins: coin::zero<CoinType>() });
+            move_to<UtilityCoinStore<CoinType>>(
+                fee_account, UtilityCoinStore { coins: coin::zero<CoinType>() }
+            );
     }
 
     /// Verify that attempting to merge `amount` into `target_coins`
@@ -1561,7 +1600,10 @@ module econia::incentives {
         // Get value of target coins.
         let target_value = coin::value(target_coins);
         // Assert merge does not overflow a u64.
-        assert!((amount as u128) + (target_value as u128) <= (HI_64 as u128), error_code);
+        assert!(
+            (amount as u128) + (target_value as u128) <= (HI_64 as u128),
+            error_code
+        );
     }
 
     /// Set all fields for `IncentiveParameters` under Econia account.
@@ -1639,7 +1681,9 @@ module econia::incentives {
             assert!(n_new_tiers >= n_old_tiers, E_FEWER_TIERS);
             // Borrow a mutable reference to the incentive parameters
             // resource at the Econia account.
-            let incentive_parameters_ref_mut = borrow_global_mut<IncentiveParameters>(@econia);
+            let incentive_parameters_ref_mut = borrow_global_mut<IncentiveParameters>(
+                @econia
+            );
             // Set integrator fee stores to empty vector before
             // moving from.
             incentive_parameters_ref_mut.integrator_fee_store_tiers = vector::empty();
@@ -1741,28 +1785,37 @@ module econia::incentives {
             // Borrow immutable reference to fields for given tier.
             let tier_fields_ref = vector::borrow(integrator_fee_store_tiers_ref, i);
             // Assert containing vector is correct length.
-            assert!(vector::length(tier_fields_ref) == N_TIER_FIELDS,
-                E_TIER_FIELDS_WRONG_LENGTH);
+            assert!(
+                vector::length(tier_fields_ref) == N_TIER_FIELDS,
+                E_TIER_FIELDS_WRONG_LENGTH
+            );
             // Borrow immutable reference to fee share divisor.
-            let fee_share_divisor_ref = vector::borrow(tier_fields_ref,
-                FEE_SHARE_DIVISOR_INDEX);
+            let fee_share_divisor_ref = vector::borrow(
+                tier_fields_ref, FEE_SHARE_DIVISOR_INDEX
+            );
             // Assert indicated fee share divisor is less than divisor
             // from last tier.
             assert!(*fee_share_divisor_ref < divisor_last, E_FEE_SHARE_DIVISOR_TOO_BIG);
             // Assert indicated fee share divisor is greater than or
             // equal to taker fee divisor.
-            assert!(*fee_share_divisor_ref >= taker_fee_divisor,
-                E_FEE_SHARE_DIVISOR_TOO_SMALL);
+            assert!(
+                *fee_share_divisor_ref >= taker_fee_divisor, E_FEE_SHARE_DIVISOR_TOO_SMALL
+            );
             // Borrow immutable reference to tier activation fee.
-            let tier_activation_fee_ref = vector::borrow(tier_fields_ref,
-                TIER_ACTIVATION_FEE_INDEX);
+            let tier_activation_fee_ref = vector::borrow(
+                tier_fields_ref, TIER_ACTIVATION_FEE_INDEX
+            );
             if (i == 0) { // If parsing parameters for first tier:
                 // Assert activation fee is 0.
-                assert!(*tier_activation_fee_ref == 0, E_FIRST_TIER_ACTIVATION_FEE_NONZERO);
+                assert!(
+                    *tier_activation_fee_ref == 0, E_FIRST_TIER_ACTIVATION_FEE_NONZERO
+                );
             } else { // If parameters for tier that is not first:
                 // Assert activation fee greater than that of last tier.
-                assert!(*tier_activation_fee_ref > activation_fee_last,
-                    E_ACTIVATION_FEE_TOO_SMALL);
+                assert!(
+                    *tier_activation_fee_ref > activation_fee_last,
+                    E_ACTIVATION_FEE_TOO_SMALL
+                );
             };
             // Borrow immutable reference to withdrawal fee.
             let withdrawal_fee_ref = vector::borrow(tier_fields_ref, WITHDRAWAL_FEE_INDEX);
@@ -1842,17 +1895,25 @@ module econia::incentives {
         // Assert signer is from Econia account.
         assert!(address_of(econia) == @econia, E_NOT_ECONIA);
         // Assert market registration fee meets minimum threshold.
-        assert!(market_registration_fee >= MIN_FEE, E_MARKET_REGISTRATION_FEE_LESS_THAN_MIN);
+        assert!(
+            market_registration_fee >= MIN_FEE, E_MARKET_REGISTRATION_FEE_LESS_THAN_MIN
+        );
         // Assert underwriter registration fee meets minimum threshold.
-        assert!(underwriter_registration_fee >= MIN_FEE,
-            E_UNDERWRITER_REGISTRATION_FEE_LESS_THAN_MIN);
+        assert!(
+            underwriter_registration_fee >= MIN_FEE,
+            E_UNDERWRITER_REGISTRATION_FEE_LESS_THAN_MIN
+        );
         // Assert custodian registration fee meets minimum threshold.
-        assert!(custodian_registration_fee >= MIN_FEE,
-            E_CUSTODIAN_REGISTRATION_FEE_LESS_THAN_MIN);
+        assert!(
+            custodian_registration_fee >= MIN_FEE,
+            E_CUSTODIAN_REGISTRATION_FEE_LESS_THAN_MIN
+        );
         // Assert taker fee divisor is meets minimum threshold.
         assert!(taker_fee_divisor >= MIN_DIVISOR, E_TAKER_DIVISOR_LESS_THAN_MIN);
         // Assert integrator fee store parameters vector not empty.
-        assert!(!vector::is_empty(integrator_fee_store_tiers_ref), E_EMPTY_FEE_STORE_TIERS);
+        assert!(
+            !vector::is_empty(integrator_fee_store_tiers_ref), E_EMPTY_FEE_STORE_TIERS
+        );
         // Assert integrator fee store parameters vector not too long.
         assert!(
             vector::length(integrator_fee_store_tiers_ref) <= MAX_INTEGRATOR_FEE_STORE_TIERS,
@@ -1906,7 +1967,9 @@ module econia::incentives {
     ) acquires EconiaFeeStore {
         // Withdraw coins from fee store, verifying Econia signer.
         let coins =
-            withdraw_econia_fees_internal<QuoteCoinType>(econia, market_id, all, amount);
+            withdraw_econia_fees_internal<QuoteCoinType>(
+                econia, market_id, all, amount
+            );
         // If Econia does not have coin store for coin type:
         if (!coin::is_account_registered<QuoteCoinType>(@econia))
             // Register one.
@@ -2003,8 +2066,10 @@ module econia::incentives {
         integrator: address, market_id: u64
     ): u64 acquires IntegratorFeeStores {
         coin::value(
-            &tablist::borrow(&borrow_global<IntegratorFeeStores<QuoteCoinType>>(integrator)
-                .map, market_id).coins
+            &tablist::borrow(
+                &borrow_global<IntegratorFeeStores<QuoteCoinType>>(integrator).map,
+                market_id
+            ).coins
         )
     }
 
@@ -2020,7 +2085,8 @@ module econia::incentives {
         integrator: address, market_id: u64
     ): u8 acquires IntegratorFeeStores {
         tablist::borrow(
-            &borrow_global<IntegratorFeeStores<QuoteCoinType>>(integrator).map, market_id
+            &borrow_global<IntegratorFeeStores<QuoteCoinType>>(integrator).map,
+            market_id
         ).tier
     }
 
@@ -2050,7 +2116,9 @@ module econia::incentives {
         assets::init_coin_types_test(); // Initialize coin types.
         // Get signer for Econia account.
         let econia =
-            account::create_signer_with_capability(&account::create_test_signer_cap(@econia));
+            account::create_signer_with_capability(
+                &account::create_test_signer_cap(@econia)
+            );
         resource_account::init_test(); // Init fee account.
         // Vectorize fee store tier parameters.
         let integrator_fee_store_tiers = vector[
@@ -2113,8 +2181,9 @@ module econia::incentives {
         max_quote_delta_user = 100;
         max_quote_match_expected = 104;
         // Calculate max quote match value.
-        max_quote_match = calculate_max_quote_match(direction, taker_fee_divisor,
-            max_quote_delta_user);
+        max_quote_match = calculate_max_quote_match(
+            direction, taker_fee_divisor, max_quote_delta_user
+        );
         // Assert calculated amount.
         assert!(max_quote_match == max_quote_match_expected, 0);
     }
@@ -2135,8 +2204,9 @@ module econia::incentives {
         assert!(max_quote_match == HI_64, 0);
         // Calculate max quote match value for one more than critical
         // amount.
-        max_quote_match = calculate_max_quote_match(direction, taker_fee_divisor,
-            max_quote_delta_user + 1);
+        max_quote_match = calculate_max_quote_match(
+            direction, taker_fee_divisor, max_quote_delta_user + 1
+        );
         // Assert corrected amount.
         assert!(max_quote_match == HI_64, 0);
         // Calculate max quote match value for highest possible input.
@@ -2145,8 +2215,9 @@ module econia::incentives {
         assert!(max_quote_match == HI_64, 0);
         // Calculate max quote match value for one less than critical
         // amount.
-        max_quote_match = calculate_max_quote_match(direction, taker_fee_divisor,
-            max_quote_delta_user - 1);
+        max_quote_match = calculate_max_quote_match(
+            direction, taker_fee_divisor, max_quote_delta_user - 1
+        );
         // Calculate expected return.
         let max_quote_match_expected =
             ((taker_fee_divisor as u128) * ((max_quote_delta_user - 1) as u128)) / (
@@ -2219,8 +2290,12 @@ module econia::incentives {
         // Declare market ID, tier numbers.
         let (market_id, tier_0, tier_1) = (0, 0, 1);
         // Register to tier 0.
-        register_integrator_fee_store<QC, UC>(integrator, market_id, tier_0,
-            assets::mint_test(get_tier_activation_fee(tier_0)));
+        register_integrator_fee_store<QC, UC>(
+            integrator,
+            market_id,
+            tier_0,
+            assets::mint_test(get_tier_activation_fee(tier_0)),
+        );
         // Get cumulative fee to activate to tier 0.
         let tier_0_fee = get_tier_activation_fee(tier_0);
         // Mutably borrow incentive parameters.
@@ -2228,8 +2303,9 @@ module econia::incentives {
         // Mutably borrow integrator fee store tiers.
         let integrator_fee_store_tiers_ref_mut = &mut incentive_parameters_ref_mut.integrator_fee_store_tiers;
         // Mutably borrow tier 1.
-        let tier_1_ref_mut = vector::borrow_mut(integrator_fee_store_tiers_ref_mut,
-            (tier_1 as u64));
+        let tier_1_ref_mut = vector::borrow_mut(
+            integrator_fee_store_tiers_ref_mut, (tier_1 as u64)
+        );
         // Manually set fee to that of previous tier.
         tier_1_ref_mut.tier_activation_fee = tier_0_fee;
         // Attempt invalid query against modified tier 1.
@@ -2245,8 +2321,12 @@ module econia::incentives {
         init_test(); // Init incentives.
         let (market_id, tier) = (0, 0); // Declare market ID, tier.
         // Register to given tier.
-        register_integrator_fee_store<QC, UC>(integrator, market_id, tier,
-            assets::mint_test(get_tier_activation_fee(tier)));
+        register_integrator_fee_store<QC, UC>(
+            integrator,
+            market_id,
+            tier,
+            assets::mint_test(get_tier_activation_fee(tier)),
+        );
         // Attempt invalid query.
         get_cost_to_upgrade_integrator_fee_store<QC, UC>(integrator, market_id, tier);
     }
@@ -2326,7 +2406,10 @@ module econia::incentives {
         assert!(get_tier_withdrawal_fee((4 as u8)) == WITHDRAWAL_FEE_4, 0);
         assert!(get_tier_withdrawal_fee((5 as u8)) == WITHDRAWAL_FEE_5, 0);
         assert!(get_tier_withdrawal_fee((6 as u8)) == WITHDRAWAL_FEE_6, 0);
-        assert!(exists<UtilityCoinStore<AptosCoin>>(resource_account::get_address()), 0);
+        assert!(
+            exists<UtilityCoinStore<AptosCoin>>(resource_account::get_address()),
+            0
+        );
         // Update incentive parameters.
         let market_registration_fee = MARKET_REGISTRATION_FEE + 5;
         let underwriter_registration_fee = UNDERWRITER_REGISTRATION_FEE + 5;
@@ -2408,7 +2491,9 @@ module econia::incentives {
         assert!(get_tier_withdrawal_fee((4 as u8)) == withdrawal_fee_4, 0);
         assert!(get_tier_withdrawal_fee((5 as u8)) == withdrawal_fee_5, 0);
         assert!(get_tier_withdrawal_fee((6 as u8)) == withdrawal_fee_6, 0);
-        assert!(exists<UtilityCoinStore<QC>>(resource_account::get_address()), 0);
+        assert!(
+            exists<UtilityCoinStore<QC>>(resource_account::get_address()), 0
+        );
     }
 
     #[test]
@@ -2483,13 +2568,27 @@ module econia::incentives {
         register_econia_fee_store_entry<QC>(market_id_1);
         register_econia_fee_store_entry<QC>(market_id_2);
         // Register an integrator fee store for first two markets.
-        register_integrator_fee_store<QC, UC>(integrator, market_id_0, tier_0,
-            assets::mint_test(get_tier_activation_fee(tier_0)));
-        register_integrator_fee_store<QC, UC>(integrator, market_id_1, tier_1,
-            assets::mint_test(get_tier_activation_fee(tier_1)));
+        register_integrator_fee_store<QC, UC>(
+            integrator,
+            market_id_0,
+            tier_0,
+            assets::mint_test(get_tier_activation_fee(tier_0)),
+        );
+        register_integrator_fee_store<QC, UC>(
+            integrator,
+            market_id_1,
+            tier_1,
+            assets::mint_test(get_tier_activation_fee(tier_1)),
+        );
         // Assert tiers.
-        assert!(get_integrator_fee_store_tier_test<QC>(@user, market_id_0) == tier_0, 0);
-        assert!(get_integrator_fee_store_tier_test<QC>(@user, market_id_1) == tier_1, 0);
+        assert!(
+            get_integrator_fee_store_tier_test<QC>(@user, market_id_0) == tier_0,
+            0
+        );
+        assert!(
+            get_integrator_fee_store_tier_test<QC>(@user, market_id_1) == tier_1,
+            0
+        );
         // Assert utility coins deposited.
         assert!(get_utility_coin_store_balance_test()
             == utility_coin_balance_0, 0);
@@ -2497,41 +2596,65 @@ module econia::incentives {
         let quote_coins = assets::mint_test(taker_fees_0);
         // Assess fees on fill 0.
         let (quote_coins, taker_fees) =
-            assess_taker_fees<QC>(market_id_0, @user, taker_fee_divisor, quote_fill_0,
-                quote_coins);
+            assess_taker_fees<QC>(
+                market_id_0,
+                @user,
+                taker_fee_divisor,
+                quote_fill_0,
+                quote_coins,
+            );
         // Assert fee amount.
         assert!(taker_fees == taker_fees_0, 0);
         // Destroy empty coins, asserting that all taker fees assessed.
         coin::destroy_zero(quote_coins);
-        assert!(get_econia_fee_store_balance_test<QC>(market_id_0) == econia_fees_0, 0); // Assert Econia fee share.
-        assert!(get_integrator_fee_store_balance_test<QC>(@user, market_id_0) == integrator_fees_0,
-            0); // Assert integrator fee share.
+        assert!(
+            get_econia_fee_store_balance_test<QC>(market_id_0) == econia_fees_0,
+            0
+        ); // Assert Econia fee share.
+        assert!(
+            get_integrator_fee_store_balance_test<QC>(@user, market_id_0) == integrator_fees_0,
+            0
+        ); // Assert integrator fee share.
         // Mint enough quote coins to cover taker fees for fill 1.
         quote_coins = assets::mint_test(econia_fees_1);
         // Assess fees on fill 1.
-        (quote_coins, taker_fees) = assess_taker_fees<QC>(market_id_1, @econia,
-            taker_fee_divisor, quote_fill_1, quote_coins);
+        (quote_coins, taker_fees) = assess_taker_fees<QC>(
+            market_id_1,
+            @econia,
+            taker_fee_divisor,
+            quote_fill_1,
+            quote_coins,
+        );
         // Assert fee amount.
         assert!(taker_fees == econia_fees_1, 0);
         // Destroy empty coins, asserting that all taker fees assessed.
         coin::destroy_zero(quote_coins);
-        assert!(get_econia_fee_store_balance_test<QC>(market_id_1) == econia_fees_1, 0); // Assert Econia fee share.
+        assert!(
+            get_econia_fee_store_balance_test<QC>(market_id_1) == econia_fees_1,
+            0
+        ); // Assert Econia fee share.
         // Mint enough quote coins to cover taker fees for fill 2.
         quote_coins = assets::mint_test(econia_fees_2);
         // Assess fees on fill 2.
-        (quote_coins, taker_fees) = assess_taker_fees<QC>(market_id_2, @user,
-            taker_fee_divisor, quote_fill_2, quote_coins);
+        (quote_coins, taker_fees) = assess_taker_fees<QC>(
+            market_id_2, @user, taker_fee_divisor, quote_fill_2, quote_coins
+        );
         // Assert fee amount.
         assert!(taker_fees == econia_fees_2, 0);
         // Destroy empty coins, asserting that all taker fees assessed.
         coin::destroy_zero(quote_coins);
-        assert!(get_econia_fee_store_balance_test<QC>(market_id_2) == econia_fees_2, 0); // Assert Econia fee share.
+        assert!(
+            get_econia_fee_store_balance_test<QC>(market_id_2) == econia_fees_2,
+            0
+        ); // Assert Econia fee share.
         // Register account for integrator.
         account::create_account_for_test(@user);
         // Register utility coin store for integrator.
         coin::register<UC>(integrator);
         // Deposit sufficient utility coins to pay fees
-        coin::deposit<UC>(@user, assets::mint_test<UC>(get_tier_withdrawal_fee(tier_0)));
+        coin::deposit<UC>(
+            @user, assets::mint_test<UC>(get_tier_withdrawal_fee(tier_0))
+        );
         // Have integrator withdraw all fees for market ID 0.
         withdraw_integrator_fees_via_coinstores<QC, UC>(integrator, market_id_0);
         // Assert integrator got all coins.
@@ -2561,7 +2684,9 @@ module econia::incentives {
         assets::burn(utility_coins); // Burn coins.
         // Deposit sufficient utility coins to integrator to pay
         // withdrawal fees a second time.
-        coin::deposit<UC>(@user, assets::mint_test<UC>(get_tier_withdrawal_fee(tier_0)));
+        coin::deposit<UC>(
+            @user, assets::mint_test<UC>(get_tier_withdrawal_fee(tier_0))
+        );
         // Have integrator withdraw fees for market ID 0
         withdraw_integrator_fees_via_coinstores<QC, UC>(integrator, market_id_0);
         // Assert integrator quote coin balance unchanged.
@@ -2580,8 +2705,11 @@ module econia::incentives {
         vector::push_back(&mut tier_0, HI_64 - 1); // Withdrawal fee.
         let integrator_fee_store_tiers = vector::singleton(tier_0);
         let integrator_fee_store_tiers_target = vector::empty();
-        set_incentive_parameters_parse_tiers_vector(taker_fee_divisor, &integrator_fee_store_tiers,
-            &mut integrator_fee_store_tiers_target);
+        set_incentive_parameters_parse_tiers_vector(
+            taker_fee_divisor,
+            &integrator_fee_store_tiers,
+            &mut integrator_fee_store_tiers_target,
+        );
     }
 
     #[test]
@@ -2603,8 +2731,11 @@ module econia::incentives {
         let integrator_fee_store_tiers = vector::singleton(tier_0);
         vector::push_back(&mut integrator_fee_store_tiers, tier_1);
         let integrator_fee_store_tiers_target = vector::empty();
-        set_incentive_parameters_parse_tiers_vector(taker_fee_divisor, &integrator_fee_store_tiers,
-            &mut integrator_fee_store_tiers_target);
+        set_incentive_parameters_parse_tiers_vector(
+            taker_fee_divisor,
+            &integrator_fee_store_tiers,
+            &mut integrator_fee_store_tiers_target,
+        );
     }
 
     #[test]
@@ -2618,8 +2749,11 @@ module econia::incentives {
         vector::push_back(&mut tier_0, 0); // Withdrawal fee.
         let integrator_fee_store_tiers = vector::singleton(tier_0);
         let integrator_fee_store_tiers_target = vector::empty();
-        set_incentive_parameters_parse_tiers_vector(taker_fee_divisor, &integrator_fee_store_tiers,
-            &mut integrator_fee_store_tiers_target);
+        set_incentive_parameters_parse_tiers_vector(
+            taker_fee_divisor,
+            &integrator_fee_store_tiers,
+            &mut integrator_fee_store_tiers_target,
+        );
     }
 
     #[test]
@@ -2640,8 +2774,11 @@ module econia::incentives {
         let integrator_fee_store_tiers = vector::singleton(tier_0);
         vector::push_back(&mut integrator_fee_store_tiers, tier_1);
         let integrator_fee_store_tiers_target = vector::empty();
-        set_incentive_parameters_parse_tiers_vector(taker_fee_divisor, &integrator_fee_store_tiers,
-            &mut integrator_fee_store_tiers_target);
+        set_incentive_parameters_parse_tiers_vector(
+            taker_fee_divisor,
+            &integrator_fee_store_tiers,
+            &mut integrator_fee_store_tiers_target,
+        );
     }
 
     #[test]
@@ -2657,8 +2794,11 @@ module econia::incentives {
         vector::push_back(&mut tier_0, 0); // Withdrawal fee.
         let integrator_fee_store_tiers = vector::singleton(tier_0);
         let integrator_fee_store_tiers_target = vector::empty();
-        set_incentive_parameters_parse_tiers_vector(taker_fee_divisor, &integrator_fee_store_tiers,
-            &mut integrator_fee_store_tiers_target);
+        set_incentive_parameters_parse_tiers_vector(
+            taker_fee_divisor,
+            &integrator_fee_store_tiers,
+            &mut integrator_fee_store_tiers_target,
+        );
     }
 
     #[test]
@@ -2674,8 +2814,11 @@ module econia::incentives {
         vector::push_back(&mut tier_0, HI_64); // Withdrawal fee.
         let integrator_fee_store_tiers = vector::singleton(tier_0);
         let integrator_fee_store_tiers_target = vector::empty();
-        set_incentive_parameters_parse_tiers_vector(taker_fee_divisor, &integrator_fee_store_tiers,
-            &mut integrator_fee_store_tiers_target);
+        set_incentive_parameters_parse_tiers_vector(
+            taker_fee_divisor,
+            &integrator_fee_store_tiers,
+            &mut integrator_fee_store_tiers_target,
+        );
     }
 
     #[test]
@@ -2696,8 +2839,11 @@ module econia::incentives {
         let integrator_fee_store_tiers = vector::singleton(tier_0);
         vector::push_back(&mut integrator_fee_store_tiers, tier_1);
         let integrator_fee_store_tiers_target = vector::empty();
-        set_incentive_parameters_parse_tiers_vector(taker_fee_divisor, &integrator_fee_store_tiers,
-            &mut integrator_fee_store_tiers_target);
+        set_incentive_parameters_parse_tiers_vector(
+            taker_fee_divisor,
+            &integrator_fee_store_tiers,
+            &mut integrator_fee_store_tiers_target,
+        );
     }
 
     #[test]
@@ -2713,8 +2859,11 @@ module econia::incentives {
         vector::push_back(&mut tier_0, 0); // Withdrawal fee.
         let integrator_fee_store_tiers = vector::singleton(tier_0);
         let integrator_fee_store_tiers_target = vector::empty();
-        set_incentive_parameters_parse_tiers_vector(taker_fee_divisor, &integrator_fee_store_tiers,
-            &mut integrator_fee_store_tiers_target);
+        set_incentive_parameters_parse_tiers_vector(
+            taker_fee_divisor,
+            &integrator_fee_store_tiers,
+            &mut integrator_fee_store_tiers_target,
+        );
     }
 
     #[test]
@@ -2725,8 +2874,11 @@ module econia::incentives {
         let taker_fee_divisor = 2345;
         let integrator_fee_store_tiers = vector::singleton(vector::empty());
         let integrator_fee_store_tiers_target = vector::empty();
-        set_incentive_parameters_parse_tiers_vector(taker_fee_divisor, &integrator_fee_store_tiers,
-            &mut integrator_fee_store_tiers_target);
+        set_incentive_parameters_parse_tiers_vector(
+            taker_fee_divisor,
+            &integrator_fee_store_tiers,
+            &mut integrator_fee_store_tiers_target,
+        );
     }
 
     #[test(econia = @econia)]
@@ -2736,7 +2888,9 @@ module econia::incentives {
         econia: &signer
     ) {
         // Attempt invalid invocation.
-        set_incentive_parameters_range_check_inputs(econia, 1, 1, 0, 0, &vector::empty());
+        set_incentive_parameters_range_check_inputs(
+            econia, 1, 1, 0, 0, &vector::empty()
+        );
     }
 
     #[test(econia = @econia)]
@@ -2746,7 +2900,9 @@ module econia::incentives {
         econia: &signer
     ) {
         // Attempt invalid invocation.
-        set_incentive_parameters_range_check_inputs(econia, 1, 1, 1, 0, &vector::empty());
+        set_incentive_parameters_range_check_inputs(
+            econia, 1, 1, 1, 0, &vector::empty()
+        );
     }
 
     #[test(econia = @econia)]
@@ -2756,7 +2912,9 @@ module econia::incentives {
         econia: &signer
     ) {
         // Attempt invalid invocation.
-        set_incentive_parameters_range_check_inputs(econia, 0, 0, 0, 0, &vector::empty());
+        set_incentive_parameters_range_check_inputs(
+            econia, 0, 0, 0, 0, &vector::empty()
+        );
     }
 
     #[test(account = @user)]
@@ -2766,7 +2924,9 @@ module econia::incentives {
         account: &signer
     ) {
         // Attempt invalid invocation.
-        set_incentive_parameters_range_check_inputs(account, 0, 0, 0, 0, &vector::empty());
+        set_incentive_parameters_range_check_inputs(
+            account, 0, 0, 0, 0, &vector::empty()
+        );
     }
 
     #[test(econia = @econia)]
@@ -2776,7 +2936,9 @@ module econia::incentives {
         econia: &signer
     ) {
         // Attempt invalid invocation.
-        set_incentive_parameters_range_check_inputs(econia, 1, 0, 0, 0, &vector::empty());
+        set_incentive_parameters_range_check_inputs(
+            econia, 1, 0, 0, 0, &vector::empty()
+        );
     }
 
     #[test(econia = @econia)]
@@ -2786,7 +2948,9 @@ module econia::incentives {
         econia: &signer
     ) {
         // Attempt invalid invocation.
-        set_incentive_parameters_range_check_inputs(econia, 1, 1, 1, 2, &vector::empty());
+        set_incentive_parameters_range_check_inputs(
+            econia, 1, 1, 1, 2, &vector::empty()
+        );
     }
 
     #[test(econia = @econia)]
@@ -2805,7 +2969,9 @@ module econia::incentives {
             i = i + 1; // Increment loop counter.
         };
         // Attempt invalid invocation.
-        set_incentive_parameters_range_check_inputs(econia, 1, 1, 1, 2, &integrator_fee_store_tiers);
+        set_incentive_parameters_range_check_inputs(
+            econia, 1, 1, 1, 2, &integrator_fee_store_tiers
+        );
     }
 
     #[test(econia = @econia)]
@@ -2844,10 +3010,14 @@ module econia::incentives {
         let (fee_start, fee_upgrade) =
             (get_tier_activation_fee(tier_start), get_tier_activation_fee(tier_upgrade));
         // Register to start tier.
-        register_integrator_fee_store<QC, UC>(integrator, market_id, tier_start,
-            assets::mint_test(fee_start));
+        register_integrator_fee_store<QC, UC>(
+            integrator, market_id, tier_start, assets::mint_test(fee_start)
+        );
         // Assert start tier.
-        assert!(get_integrator_fee_store_tier_test<QC>(@user, market_id) == tier_start, 0);
+        assert!(
+            get_integrator_fee_store_tier_test<QC>(@user, market_id) == tier_start,
+            0
+        );
         // Register account for given integrator.
         account::create_account_for_test(@user);
         // Register integrator with coinstore for utility coin.
@@ -2855,14 +3025,17 @@ module econia::incentives {
         // Deposit enough utility coins to pay for upgrade.
         coin::deposit<UC>(@user, assets::mint_test(fee_upgrade));
         // Upgrade to upgrade tier.
-        upgrade_integrator_fee_store_via_coinstore<QC, UC>(integrator, market_id,
-            tier_upgrade);
+        upgrade_integrator_fee_store_via_coinstore<QC, UC>(
+            integrator, market_id, tier_upgrade
+        );
         // Assert fees assessed for cumulative amount required to
         // activate to upgrade tier.
         assert!(get_utility_coin_store_balance_test() == fee_upgrade, 0);
         // Assert upgrade tier.
-        assert!(get_integrator_fee_store_tier_test<QC>(@user, market_id) == tier_upgrade,
-            0);
+        assert!(
+            get_integrator_fee_store_tier_test<QC>(@user, market_id) == tier_upgrade,
+            0
+        );
     }
 
     #[test]
@@ -2922,7 +3095,10 @@ module econia::incentives {
         let econia_fee_store_coins_ref_mut =
             tablist::borrow_mut(econia_fee_store_map_ref_mut, market_id);
         // Merge simulated fees into the fee store.
-        coin::merge(econia_fee_store_coins_ref_mut, assets::mint_test<QC>(fee_coin_amount));
+        coin::merge(
+            econia_fee_store_coins_ref_mut,
+            assets::mint_test<QC>(fee_coin_amount)
+        );
         // Withdraw 1 coin, registering coin store.
         withdraw_econia_fees_to_coin_store<QC>(&econia, market_id, 1);
         // Assert coin store balance.

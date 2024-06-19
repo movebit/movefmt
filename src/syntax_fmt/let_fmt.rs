@@ -408,7 +408,15 @@ impl LetExtractor {
 
 #[allow(dead_code)]
 fn get_bin_op_exp(fmt_buffer: String) {
-    let let_extractor = LetExtractor::new(fmt_buffer.clone());
+    use move_compiler::shared::CompilationEnv;
+    use move_compiler::Flags;
+    use move_command_line_common::files::FileHash;
+    use std::collections::BTreeSet;
+    use crate::tools::syntax::parse_file_string;
+    let mut let_extractor = LetExtractor::new(fmt_buffer.clone());
+    let mut env = CompilationEnv::new(Flags::testing(), BTreeSet::new());
+    let (defs, _) = parse_file_string(&mut env, FileHash::empty(), &fmt_buffer).unwrap();
+    let_extractor.preprocess(defs);
     for bin_op_exp in let_extractor.bin_op_exp_vec.iter() {
         eprintln!("\n ******************************************************** >>");
         let bin_op_exp_str =
@@ -444,6 +452,26 @@ fn get_bin_op_exp(fmt_buffer: String) {
     }
 }
 
+#[allow(dead_code)]
+fn get_long_assign(fmt_buffer: String) {
+    use move_compiler::shared::CompilationEnv;
+    use move_compiler::Flags;
+    use move_command_line_common::files::FileHash;
+    use std::collections::BTreeSet;
+    use crate::tools::syntax::parse_file_string;
+    let mut let_extractor = LetExtractor::new(fmt_buffer.clone());
+    let mut env = CompilationEnv::new(Flags::testing(), BTreeSet::new());
+    let (defs, _) = parse_file_string(&mut env, FileHash::empty(), &fmt_buffer).unwrap();
+    let_extractor.preprocess(defs);
+    for (idx, _) in let_extractor.let_assign_loc_vec.iter().enumerate() {
+        let rhs_exp_loc = &let_extractor.let_assign_rhs_exp[idx].loc;
+        let rhs_exp_str = &let_extractor.source[rhs_exp_loc.start() as usize..rhs_exp_loc.end() as usize];
+        if rhs_exp_str.len() > 64 {
+            eprintln!("rhs_exp_str: {:?}", rhs_exp_str);
+        }
+    }
+}
+
 #[test]
 fn test_get_bin_op_exp() {
     get_bin_op_exp(
@@ -474,6 +502,23 @@ fn test_get_bin_op_exp() {
                     b3) && name != spec_utf8(b4) && name != spec_utf8(b5) && name
                     != spec_utf8(b6) && !string::spec_internal_check_utf8(
                     b7);
+            }
+        }
+"
+        .to_string());
+}
+
+#[test]
+fn test_get_long_assign() {
+    get_long_assign(
+        "
+        module test {            
+            fun test() {
+                let key_rotation_events = event::new_event_handle<KeyRotationEvent>(
+                    guid_for_rotation
+                );
+
+                let key_rotation_events = event::new_event_handle<KeyRotationEvent>(guid_for_rotation);
             }
         }
 "

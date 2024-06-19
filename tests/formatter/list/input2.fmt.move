@@ -14,7 +14,10 @@ module econia::incentives {
     fun init_module(/** A reference to the signer */ econia: &signer) acquires /** The incentive parameters */ IncentiveParameters {
         /** Vectorize fee store tier parameters */
         let integrator_fee_store_tiers = vector[
-            /** Tier 0 parameters */ vector[FEE_SHARE_DIVISOR_0, /** Activation fee for tier 0 */ TIER_ACTIVATION_FEE_0, /** Withdrawal fee for tier 0 */ WITHDRAWAL_FEE_0],
+            /** Tier 0 parameters */ vector[
+                FEE_SHARE_DIVISOR_0,
+                /** Activation fee for tier 0 */ TIER_ACTIVATION_FEE_0,
+                /** Withdrawal fee for tier 0 */ WITHDRAWAL_FEE_0],
             /** Tier 1 parameters */ vector[FEE_SHARE_DIVISOR_1, TIER_ACTIVATION_FEE_1, WITHDRAWAL_FEE_1],
             /** Tier 2 parameters */ vector[FEE_SHARE_DIVISOR_2, TIER_ACTIVATION_FEE_2, WITHDRAWAL_FEE_2],
             /** Tier 3 parameters */ vector[FEE_SHARE_DIVISOR_3, TIER_ACTIVATION_FEE_3, WITHDRAWAL_FEE_3],

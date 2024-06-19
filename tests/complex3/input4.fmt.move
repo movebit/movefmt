@@ -11,7 +11,9 @@ module test {
             vector::push_back(&mut execution_hash, 1);
 
             if (finish_multi_step_execution) {
-                resolve_multi_step_proposal(proposal_id, signer_address, vector::empty<u8>())
+                resolve_multi_step_proposal(
+                    proposal_id, signer_address, vector::empty<u8>()
+                )
             } else {
                 resolve_multi_step_proposal(proposal_id, signer_address, execution_hash)
             }

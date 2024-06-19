@@ -43,11 +43,13 @@ module oracle::oracle {
     // Functions
 
     fun init_module(oracle: &signer) {
-        move_to(oracle,
+        move_to(
+            oracle,
             OracleStore {
                 oracles: table::new(),
                 update_oracle_events: new_event_handle(oracle),
-            });
+            }
+        );
     }
 
     fun assert_feed_adapter(feed: address, adapter: u8) {

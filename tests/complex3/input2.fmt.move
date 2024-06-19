@@ -28,7 +28,9 @@ module test {
 
         let alice_account_resource = borrow_global_mut<Account>(alice_addr);
         assert!(
-            option::contains(&alice_account_resource.signer_capability_offer.for, &bob_addr),
+            option::contains(
+                &alice_account_resource.signer_capability_offer.for, &bob_addr
+            ),
             0
         );
     }
@@ -62,8 +64,9 @@ module test {
                         invariant bitvector.length == old(bitvector).length;
                         invariant forall j in amount..i: old(bitvector).bit_field[j] == bitvector
                             .bit_field[j - amount];
-                        invariant forall j in (i - amount)..bitvector.length: old(bitvector)
-                            .bit_field[j] == bitvector.bit_field[j];
+                        invariant forall j in (i - amount)..bitvector.length: old(
+                            bitvector
+                        ).bit_field[j] == bitvector.bit_field[j];
                         invariant forall k in 0..i - amount: bitvector.bit_field[k] == old(
                             bitvector
                         ).bit_field[k + amount];
@@ -102,8 +105,12 @@ module test {
         aborts_if !exists<Account>(rotation_cap_offerer_address);
         let delegate_address = signer::address_of(delegate_signer);
         let offerer_account_resource = global<Account>(rotation_cap_offerer_address);
-        aborts_if !from_bcs::deserializable<address>(offerer_account_resource.authentication_key);
-        let curr_auth_key = from_bcs::deserialize<address>(offerer_account_resource.authentication_key);
+        aborts_if !from_bcs::deserializable<address>(
+            offerer_account_resource.authentication_key
+        );
+        let curr_auth_key = from_bcs::deserialize<address>(
+            offerer_account_resource.authentication_key
+        );
         aborts_if !exists<Account>(delegate_address);
         let challenge = RotationProofChallenge {
             sequence_number: global<Account>(delegate_address).sequence_number,
@@ -112,8 +119,9 @@ module test {
             new_public_key: new_public_key_bytes,
         };
         /// [high-level-req-6.2]
-        aborts_if !option::spec_contains(offerer_account_resource.rotation_capability_offer
-            .for, delegate_address);
+        aborts_if !option::spec_contains(
+            offerer_account_resource.rotation_capability_offer.for, delegate_address
+        );
         /// [high-level-req-9.1]
         include AssertValidRotationProofSignatureAndGetAuthKeyAbortsIf {
             scheme: new_scheme,
@@ -129,15 +137,18 @@ module test {
 
         // Verify all properties in update_auth_key_and_originating_address_table
         aborts_if !exists<OriginatingAddress>(@aptos_framework);
-        aborts_if !from_bcs::deserializable<address>(offerer_account_resource.authentication_key);
+        aborts_if !from_bcs::deserializable<address>(
+            offerer_account_resource.authentication_key
+        );
         aborts_if table::spec_contains(address_map, curr_auth_key)
             && table::spec_get(address_map, curr_auth_key) != rotation_cap_offerer_address;
 
         aborts_if !from_bcs::deserializable<address>(new_auth_key_vector);
         let new_auth_key = from_bcs::deserialize<address>(new_auth_key_vector);
 
-        aborts_if curr_auth_key != new_auth_key && table::spec_contains(address_map,
-            new_auth_key);
+        aborts_if curr_auth_key != new_auth_key && table::spec_contains(
+            address_map, new_auth_key
+        );
         include UpdateAuthKeyAndOriginatingAddressTableAbortsIf {
             originating_addr: rotation_cap_offerer_address,
             account_resource: offerer_account_resource,

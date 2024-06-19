@@ -136,7 +136,9 @@ module 0xABCD::simple {
     // Create the global `Counter`.
     // Stored under the module publisher address.
     fun init_module(publisher: &signer) {
-        move_to<Counter>(publisher, Counter { count: 0 });
+        move_to<Counter>(
+            publisher, Counter { count: 0 }
+        );
     }
 
     // Update `Counter` (private to the module, effectively a `static` in more
@@ -145,8 +147,9 @@ module 0xABCD::simple {
     // one) that changes across versions.
     public entry fun step_signer(s: &signer) acquires Counter {
         let addr = signer::address_of(s);
-        assert!(exists<Counter>(addr),
-            error::invalid_argument(ECOUNTER_RESOURCE_NOT_PRESENT));
+        assert!(
+            exists<Counter>(addr), error::invalid_argument(ECOUNTER_RESOURCE_NOT_PRESENT)
+        );
         let counter = borrow_global_mut<Counter>(addr);
         *(&mut counter.count) = counter.count + COUNTER_STEP;
     }
@@ -154,8 +157,9 @@ module 0xABCD::simple {
     // Get the value behind `Counter`.
     public entry fun get_counter(s: &signer) acquires Counter {
         let addr = signer::address_of(s);
-        assert!(exists<Counter>(addr),
-            error::invalid_argument(ECOUNTER_RESOURCE_NOT_PRESENT));
+        assert!(
+            exists<Counter>(addr), error::invalid_argument(ECOUNTER_RESOURCE_NOT_PRESENT)
+        );
         let counter = borrow_global<Counter>(addr);
         counter.count;
     }
@@ -238,7 +242,8 @@ module 0xABCD::simple {
     public entry fun maximize(owner: &signer, other: address) acquires Resource {
         if (exists<Resource>(other)) {
             // not much to do, in principle the testing framework is calling on address with Resource
-            return };
+            return
+        };
         if (!exists<Resource>(signer::address_of(owner))) {
             let data = Data { data: DATA };
             let resource = Resource { id: 0, name: string::utf8(NAME), data };
@@ -294,7 +299,8 @@ module 0xABCD::simple {
     public entry fun minimize(owner: &signer, other: address) acquires Resource {
         if (exists<Resource>(other)) {
             // not much to do, in principle the testing framework is calling on address with Resource
-            return };
+            return
+        };
         if (!exists<Resource>(signer::address_of(owner))) {
             let data = Data { data: DATA };
             let resource = Resource { id: 0, name: string::utf8(NAME), data };
@@ -306,8 +312,9 @@ module 0xABCD::simple {
             (vector::length(&resource1.data.data), vector::length(&resource2.data.data))
         };
         let (new_len, resource) =
-            if (len1 > len2) { (len2 / 2, borrow_global_mut<Resource>(signer::address_of(owner))) }
-            else { (len1 / 2, borrow_global_mut<Resource>(other)) };
+            if (len1 > len2) {
+                (len2 / 2, borrow_global_mut<Resource>(signer::address_of(owner)))
+            } else { (len1 / 2, borrow_global_mut<Resource>(other)) };
         while (vector::length(&resource.data.data) > new_len) {
             vector::pop_back(&mut resource.data.data);
         }
@@ -432,8 +439,9 @@ module 0xABCD::simple {
 
         while (count > 0) {
             count = count - 1;
-            let table_entry = table::borrow_mut_with_default(table_entries, offset + count,
-                0);
+            let table_entry = table::borrow_mut_with_default(
+                table_entries, offset + count, 0
+            );
             *table_entry = *table_entry + 1;
         }
     }
@@ -449,15 +457,18 @@ module 0xABCD::simple {
     fun emit_events(owner: &signer, count: u64) acquires EventStore {
         let owner_address = signer::address_of(owner);
         if (!exists<EventStore>(owner_address)) {
-            move_to<EventStore>(owner,
-                EventStore { simple_events: account::new_event_handle<SimpleEvent>(owner) });
+            move_to<EventStore>(
+                owner,
+                EventStore { simple_events: account::new_event_handle<SimpleEvent>(owner) }
+            );
         };
         let event_store = borrow_global_mut<EventStore>(owner_address);
         while (count > 0) {
             count = count - 1;
-            event::emit_event<SimpleEvent>(&mut event_store.simple_events, SimpleEvent {
-                    event_id: count
-                },);
+            event::emit_event<SimpleEvent>(
+                &mut event_store.simple_events,
+                SimpleEvent { event_id: count },
+            );
         }
     }
 }

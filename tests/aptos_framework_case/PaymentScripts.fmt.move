@@ -68,8 +68,9 @@ module DiemFramework::PaymentScripts {
         metadata_signature: vector<u8>
     ) {
         let payer_withdrawal_cap = DiemAccount::extract_withdraw_capability(&payer);
-        DiemAccount::pay_from<Currency>(&payer_withdrawal_cap, payee, amount, metadata,
-            metadata_signature);
+        DiemAccount::pay_from<Currency>(
+            &payer_withdrawal_cap, payee, amount, metadata, metadata_signature
+        );
         DiemAccount::restore_withdraw_capability(payer_withdrawal_cap);
     }
 
@@ -125,8 +126,9 @@ module DiemFramework::PaymentScripts {
         metadata: vector<u8>,
     ) {
         let payer_withdrawal_cap = DiemAccount::extract_withdraw_capability(&payer);
-        DiemAccount::pay_by_signers<Currency>(&payer_withdrawal_cap, &payee, amount,
-            metadata);
+        DiemAccount::pay_by_signers<Currency>(
+            &payer_withdrawal_cap, &payee, amount, metadata
+        );
         DiemAccount::restore_withdraw_capability(payer_withdrawal_cap);
     }
 
@@ -139,7 +141,10 @@ module DiemFramework::PaymentScripts {
     }
 
     spec peer_to_peer_by_signers {
-        include PeerToPeer<Currency> { payer_signer: payer, payee: signer::address_of(payee) };
+        include PeerToPeer<Currency> {
+            payer_signer: payer,
+            payee: signer::address_of(payee)
+        };
     }
 
     spec schema PeerToPeer<Currency> {
@@ -159,7 +164,9 @@ module DiemFramework::PaymentScripts {
         /// The balances of payer and payee change by the correct amount.
         ensures payer_addr != payee ==>
             DiemAccount::balance<Currency>(payer_addr)
-                == old(DiemAccount::balance<Currency>(payer_addr)) - amount;
+                == old(
+                    DiemAccount::balance<Currency>(payer_addr)
+                ) - amount;
         ensures payer_addr != payee ==>
             DiemAccount::balance<Currency>(payee)
                 == old(DiemAccount::balance<Currency>(payee)) + amount;

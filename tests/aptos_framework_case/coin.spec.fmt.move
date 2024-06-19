@@ -80,31 +80,38 @@ spec aptos_framework::coin {
         ensures old(
             spec_fun_supply_tracked<CoinType>(
                 supply<CoinType> + aggregate_supply<CoinType>,
-                global<CoinInfo<CoinType>>(type_info::type_of<CoinType>().account_address)
-                .supply
+                global<CoinInfo<CoinType>>(
+                    type_info::type_of<CoinType>().account_address
+                ).supply
             )
         ) ==>
             spec_fun_supply_tracked<CoinType>(
                 supply<CoinType> + aggregate_supply<CoinType>,
-                global<CoinInfo<CoinType>>(type_info::type_of<CoinType>().account_address)
-                .supply
+                global<CoinInfo<CoinType>>(
+                    type_info::type_of<CoinType>().account_address
+                ).supply
             );
     }
 
-    spec fun spec_fun_supply_no_change<CoinType>(old_supply: Option<OptionalAggregator>, supply: Option<
-            OptionalAggregator>): bool {
+    spec fun spec_fun_supply_no_change<CoinType>(
+        old_supply: Option<OptionalAggregator>, supply: Option<OptionalAggregator>
+    ): bool {
         option::spec_is_some(old_supply) ==>
-            optional_aggregator::optional_aggregator_value(option::spec_borrow(old_supply))
+            optional_aggregator::optional_aggregator_value(
+                    option::spec_borrow(old_supply)
+                )
                 == optional_aggregator::optional_aggregator_value(
                     option::spec_borrow(supply)
                 )
     }
 
     spec schema TotalSupplyNoChange<CoinType> {
-        let old_supply = global<CoinInfo<CoinType>>(type_info::type_of<CoinType>().account_address)
-            .supply;
-        let post supply = global<CoinInfo<CoinType>>(type_info::type_of<CoinType>().account_address)
-            .supply;
+        let old_supply = global<CoinInfo<CoinType>>(
+            type_info::type_of<CoinType>().account_address
+        ).supply;
+        let post supply = global<CoinInfo<CoinType>>(
+            type_info::type_of<CoinType>().account_address
+        ).supply;
         ensures spec_fun_supply_no_change<CoinType>(old_supply, supply);
     }
 
@@ -166,7 +173,9 @@ spec aptos_framework::coin {
     }
 
     spec fun get_coin_supply_opt<CoinType>(): Option<OptionalAggregator> {
-        global<CoinInfo<CoinType>>(type_info::type_of<CoinType>().account_address).supply
+        global<CoinInfo<CoinType>>(
+            type_info::type_of<CoinType>().account_address
+        ).supply
     }
 
     spec schema CoinSubAbortsIf<CoinType> {
@@ -236,7 +245,9 @@ spec aptos_framework::coin {
         ensures supply<CoinType> == old(supply<CoinType>) - coin.value;
     }
 
-    spec burn_from<CoinType>(account_addr: address, amount: u64, burn_cap: &BurnCapability<CoinType>,) {
+    spec burn_from<CoinType>(
+        account_addr: address, amount: u64, burn_cap: &BurnCapability<CoinType>,
+    ) {
         let addr = type_info::type_of<CoinType>().account_address;
         let coin_store = global<CoinStore<CoinType>>(account_addr);
         let post post_coin_store = global<CoinStore<CoinType>>(account_addr);
@@ -308,7 +319,9 @@ spec aptos_framework::coin {
         ensures coin.value == 0;
     }
 
-    spec freeze_coin_store<CoinType>(account_addr: address, _freeze_cap: &FreezeCapability<CoinType>,) {
+    spec freeze_coin_store<CoinType>(
+        account_addr: address, _freeze_cap: &FreezeCapability<CoinType>,
+    ) {
         pragma opaque;
         modifies global<CoinStore<CoinType>>(account_addr);
         /// [high-level-req-6.3]
@@ -317,7 +330,9 @@ spec aptos_framework::coin {
         ensures coin_store.frozen;
     }
 
-    spec unfreeze_coin_store<CoinType>(account_addr: address, _freeze_cap: &FreezeCapability<CoinType>,) {
+    spec unfreeze_coin_store<CoinType>(
+        account_addr: address, _freeze_cap: &FreezeCapability<CoinType>,
+    ) {
         pragma opaque;
         modifies global<CoinStore<CoinType>>(account_addr);
         /// [high-level-req-6.4]
@@ -380,7 +395,10 @@ spec aptos_framework::coin {
         aborts_if addr != @aptos_framework;
         aborts_if monitor_supply
             && !exists<aggregator_factory::AggregatorFactory>(@aptos_framework);
-        include InitializeInternalSchema<CoinType> { name: name.bytes, symbol: symbol.bytes };
+        include InitializeInternalSchema<CoinType> {
+            name: name.bytes,
+            symbol: symbol.bytes
+        };
         ensures exists<CoinInfo<CoinType>>(addr);
     }
 
@@ -406,7 +424,10 @@ spec aptos_framework::coin {
         monitor_supply: bool,
         parallelizable: bool,
     ): (BurnCapability<CoinType>, FreezeCapability<CoinType>, MintCapability<CoinType>) {
-        include InitializeInternalSchema<CoinType> { name: name.bytes, symbol: symbol.bytes };
+        include InitializeInternalSchema<CoinType> {
+            name: name.bytes,
+            symbol: symbol.bytes
+        };
         let account_addr = signer::address_of(account);
         let post coin_info = global<CoinInfo<CoinType>>(account_addr);
         let post supply = option::spec_borrow(coin_info.supply);
@@ -526,7 +547,9 @@ spec aptos_framework::coin {
             == aggregator::spec_aggregator_get_val(old(coin).value);
     }
 
-    spec merge_aggregatable_coin<CoinType>(dst_coin: &mut AggregatableCoin<CoinType>, coin: Coin<CoinType>) {
+    spec merge_aggregatable_coin<CoinType>(
+        dst_coin: &mut AggregatableCoin<CoinType>, coin: Coin<CoinType>
+    ) {
         let aggr = dst_coin.value;
         let post p_aggr = dst_coin.value;
         aborts_if aggregator::spec_aggregator_get_val(aggr) + coin.value > aggregator::spec_get_limit(
@@ -537,7 +560,9 @@ spec aptos_framework::coin {
             == aggregator::spec_aggregator_get_val(p_aggr);
     }
 
-    spec collect_into_aggregatable_coin<CoinType>(account_addr: address, amount: u64, dst_coin: &mut AggregatableCoin<CoinType>) {
+    spec collect_into_aggregatable_coin<CoinType>(
+        account_addr: address, amount: u64, dst_coin: &mut AggregatableCoin<CoinType>
+    ) {
         let aggr = dst_coin.value;
         let post p_aggr = dst_coin.value;
         let coin_store = global<CoinStore<CoinType>>(account_addr);

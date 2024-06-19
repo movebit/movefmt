@@ -29,7 +29,9 @@ spec std::features {
         ensures result == spec_contains(features, feature);
     }
 
-    spec change_feature_flags_for_next_epoch(framework: &signer, enable: vector<u64>, disable: vector<u64>) {
+    spec change_feature_flags_for_next_epoch(
+        framework: &signer, enable: vector<u64>, disable: vector<u64>
+    ) {
         aborts_if signer::address_of(framework) != @std;
         // TODO(tengzhang): add functional spec
         // TODO(#12526): undo declaring opaque once fixed
@@ -39,11 +41,15 @@ spec std::features {
     }
 
     spec fun spec_contains(features: vector<u8>, feature: u64): bool {
-        ((int2bv((((1 as u8) << ((feature % (8 as u64)) as u64)) as u8)) as u8)
-            & features[feature / 8] as u8) > (0 as u8) && (feature / 8) < len(features)
+        (
+            (int2bv((((1 as u8) << ((feature % (8 as u64)) as u64)) as u8)) as u8) & features[feature
+                / 8] as u8
+        ) > (0 as u8) && (feature / 8) < len(features)
     }
 
-    spec change_feature_flags_internal(framework: &signer, enable: vector<u64>, disable: vector<u64>) {
+    spec change_feature_flags_internal(
+        framework: &signer, enable: vector<u64>, disable: vector<u64>
+    ) {
         pragma opaque;
         modifies global<Features>(@std);
         aborts_if signer::address_of(framework) != @std;

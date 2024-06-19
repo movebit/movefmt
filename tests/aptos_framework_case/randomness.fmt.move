@@ -46,8 +46,10 @@ module aptos_framework::randomness {
     public fun initialize(framework: &signer) {
         system_addresses::assert_aptos_framework(framework);
         if (!exists<PerBlockRandomness>(@aptos_framework)) {
-            move_to(framework,
-                PerBlockRandomness { epoch: 0, round: 0, seed: option::none(), });
+            move_to(
+                framework,
+                PerBlockRandomness { epoch: 0, round: 0, seed: option::none(), }
+            );
         }
     }
 

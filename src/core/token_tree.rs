@@ -641,7 +641,10 @@ impl<'a> Parser<'a> {
                         p.type_lambda_pair
                             .push((name.0.loc.end(), signature.return_type.loc.end()));
                         match &body.value {
-                            FunctionBody_::Defined(s) => collect_seq(p, s),
+                            FunctionBody_::Defined(s) => {
+                                p.fun_body.insert(body.loc.start());
+                                collect_seq(p, s)
+                            },
                             FunctionBody_::Native => {}
                         }
                     }

@@ -13,6 +13,5 @@ module S {
 }
 
 module A {
-
 }
 }

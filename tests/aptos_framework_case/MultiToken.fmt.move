@@ -60,7 +60,9 @@ module ExperimentalFramework::MultiToken {
         exists token in tokens: token.token_id.id == token_id
     }
 
-    spec fun find_token_index_by_id<TokenType>(tokens: vector<TokenData<TokenType>>, id: guid::ID): u64 {
+    spec fun find_token_index_by_id<TokenType>(
+        tokens: vector<TokenData<TokenType>>, id: guid::ID
+    ): u64 {
         choose min i in range(tokens) where tokens[i].token_id.id == id
     }
 
@@ -215,8 +217,9 @@ module ExperimentalFramework::MultiToken {
     }
 
     /// Split the token into two tokens, one with balance `amount` and the other one with balance
-    public fun split<TokenType: store>(token: Token<TokenType>, amount: u64)
-        : (Token<TokenType>, Token<TokenType>) {
+    public fun split<TokenType: store>(
+        token: Token<TokenType>, amount: u64
+    ): (Token<TokenType>, Token<TokenType>) {
         assert!(token.balance >= amount, EAMOUNT_EXCEEDS_TOKEN_BALANCE);
         token.balance = token.balance - amount;
         let id = *&token.id;
@@ -233,7 +236,9 @@ module ExperimentalFramework::MultiToken {
     /// Initialize this module, to be called in genesis.
     public fun initialize_multi_token(account: signer) {
         assert!(signer::address_of(&account) == ADMIN, ENOT_ADMIN);
-        move_to(&account, Admin { mint_events: event::new_event_handle<MintEvent>(&account), })
+        move_to(
+            &account, Admin { mint_events: event::new_event_handle<MintEvent>(&account), }
+        )
     }
 
     spec initialize_multi_token {
@@ -259,8 +264,10 @@ module ExperimentalFramework::MultiToken {
         );
         let id = guid::id(&guid);
         if (!exists<TokenDataCollection<TokenType>>(signer::address_of(account))) {
-            move_to(account,
-                TokenDataCollection { tokens: vector::empty<TokenData<TokenType>>() });
+            move_to(
+                account,
+                TokenDataCollection { tokens: vector::empty<TokenData<TokenType>>() }
+            );
         };
         let token_data_collection =
             &mut borrow_global_mut<TokenDataCollection<TokenType>>(

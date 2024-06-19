@@ -94,10 +94,12 @@ module std::bit_vector {
     /// bitvector's length the bitvector will be zeroed out.
     public fun shift_left(bitvector: &mut BitVector, amount: u64) {
         if (amount >= bitvector.length) {
-            vector::for_each_mut(&mut bitvector.bit_field,
+            vector::for_each_mut(
+                &mut bitvector.bit_field,
                 |elem| {
                     *elem = false;
-                });
+                }
+            );
         } else {
             let i = amount;
 
@@ -165,11 +167,13 @@ module std::bit_vector {
                 spec {
                     invariant index >= start_index;
                     invariant index == start_index || is_index_set(bitvector, index - 1);
-                    invariant index == start_index || index - 1 < vector::length(bitvector
-                        .bit_field);
+                    invariant index == start_index || index - 1 < vector::length(
+                        bitvector.bit_field
+                    );
                     invariant forall j in start_index..index: is_index_set(bitvector, j);
-                    invariant forall j in start_index..index: j < vector::length(bitvector
-                        .bit_field);
+                    invariant forall j in start_index..index: j < vector::length(
+                        bitvector.bit_field
+                    );
                 };
                 index < bitvector.length
             }) {
@@ -219,8 +223,9 @@ module std::bit_vector {
                         invariant bitvector.length == old(bitvector).length;
                         invariant forall j in amount..i: old(bitvector).bit_field[j] == bitvector
                             .bit_field[j - amount];
-                        invariant forall j in (i - amount)..bitvector.length: old(bitvector)
-                            .bit_field[j] == bitvector.bit_field[j];
+                        invariant forall j in (i - amount)..bitvector.length: old(
+                            bitvector
+                        ).bit_field[j] == bitvector.bit_field[j];
                         invariant forall k in 0..i - amount: bitvector.bit_field[k] == old(
                             bitvector
                         ).bit_field[k + amount];
@@ -254,7 +259,9 @@ module std::bit_vector {
         ensures amount >= bitvector.length ==>
             (forall k in 0..bitvector.length: !bitvector.bit_field[k]);
         ensures amount < bitvector.length ==>
-            (forall i in bitvector.length - amount..bitvector.length: !bitvector.bit_field[i]);
+            (
+                forall i in bitvector.length - amount..bitvector.length: !bitvector.bit_field[i]
+            );
         ensures amount < bitvector.length ==>
             (
                 forall i in 0..bitvector.length - amount: bitvector.bit_field[i] == old(

@@ -442,7 +442,6 @@ impl CallExtractor {
                 );
                 return 2;
             }
-
         }
 
         // added in 20240605: judge if the next parameter is a lambda exp block
@@ -463,11 +462,15 @@ impl CallExtractor {
                 {
                     if next_next_kind.kind == NestKind_::Brace {
                         tracing::debug!("next_next_kind.kind == NestKind_::Brace");
-                        let mut new_line_mode = cur_ret_last_len + (next_t.unwrap().token_len() + next_next_t.unwrap().token_len()) as usize
+                        let mut new_line_mode = cur_ret_last_len
+                            + (next_t.unwrap().token_len() + next_next_t.unwrap().token_len())
+                                as usize
                             > config.max_width();
 
                         let (delimiter, _) = analyze_token_tree_delimiter(lambda_brace_ele);
-                        new_line_mode |= delimiter.map(|x| x == Delimiter::Semicolon).unwrap_or_default();
+                        new_line_mode |= delimiter
+                            .map(|x| x == Delimiter::Semicolon)
+                            .unwrap_or_default();
                         if new_line_mode {
                             return 3;
                         }
@@ -487,6 +490,81 @@ impl CallExtractor {
         cur_ret_last_len: usize,
     ) -> bool {
         self.component_is_complex_blk(config, kind, elements, -1, cur_ret_last_len) > 0
+    }
+}
+
+impl CallExtractor {
+    pub(crate) fn get_call_component_split_mode(
+        &self,
+        config: Config,
+        kind: &NestKind,
+        elements: &[TokenTree],
+        cur_ret_last_len: usize,
+    ) -> bool {
+        use move_compiler::parser::lexer::Tok;
+        if kind.kind != NestKind_::ParentTheses {
+            return false;
+        }
+        let len1 = cur_ret_last_len + (kind.end_pos - kind.start_pos) as usize;
+        if elements.is_empty() || len1 < config.max_width() {
+            return false;
+        }
+
+        let call_str_in_source = &self.source
+            [kind.start_pos as usize..kind.end_pos as usize];
+        let call_str_in_source_trim_multi_space = call_str_in_source
+            .replace('\n', "")
+            .split_whitespace()
+            .collect::<Vec<&str>>()
+            .join(" ");
+        let len2 = cur_ret_last_len + call_str_in_source_trim_multi_space.len();
+        tracing::debug!("len2 = {}", len2);
+
+        let line_cnt = call_str_in_source.matches("\n").count();
+        let mut simple_token_cnt = 0;
+        let mut nested_token_cnt = 0;
+        let mut comma_cnt = 0;
+        let mut bin_op_cnt = 0;
+        for ele in elements {
+            match *ele {
+                TokenTree::SimpleToken {
+                    content: _,
+                    pos: _,
+                    tok,
+                    note,
+                } => {
+                    simple_token_cnt += 1;
+                    if tok == Tok::Comma {
+                        comma_cnt += 1;
+                    }
+                    if note.map(|x| x == Note::BinaryOP).unwrap_or_default() {
+                        bin_op_cnt += 1;
+                    }
+                },
+                TokenTree::Nested {
+                    elements: _,
+                    kind: _,
+                    note: _,
+                } => {
+                    nested_token_cnt += 1;
+                },
+            }
+        }
+
+        tracing::debug!("nested_token_cnt = {}, comma_cnt = {}, bin_op_cnt = {}, line_cnt = {}, simple_token_cnt = {}", 
+            nested_token_cnt, comma_cnt, bin_op_cnt, line_cnt, simple_token_cnt);
+        if len2 < config.max_width()
+            && nested_token_cnt < 2
+            && comma_cnt < 3
+            && bin_op_cnt < 2
+            && line_cnt <= 2
+            && simple_token_cnt < 32
+            && !call_str_in_source.contains("//") {
+            return false;
+        }
+
+        tracing::debug!("call_str_in_source_trim_multi_space = {:?}", call_str_in_source_trim_multi_space);
+        true
     }
 }
 
