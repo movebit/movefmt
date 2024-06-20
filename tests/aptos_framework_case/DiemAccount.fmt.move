@@ -1043,8 +1043,7 @@ module DiemFramework::DiemAccount {
     spec schema RotateAuthenticationKeyEnsures {
         addr: address;
         new_authentication_key: vector<u8>;
-        ensures global<DiemAccount>(addr).authentication_key
-            == new_authentication_key;
+        ensures global<DiemAccount>(addr).authentication_key == new_authentication_key;
     }
 
     /// # Access Control
@@ -1053,8 +1052,9 @@ module DiemFramework::DiemAccount {
         /// Can only rotate the authentication_key of cap.account_address [[H18]][PERMISSION].
         ensures forall addr: address where addr != cap.account_address && old(
             exists_at(addr)
-        ): global<DiemAccount>(addr).authentication_key
-            == old(global<DiemAccount>(addr).authentication_key);
+        ): global<DiemAccount>(addr).authentication_key == old(
+            global<DiemAccount>(addr).authentication_key
+        );
     }
 
     /// Return a unique capability granting permission to rotate the sender's authentication key
@@ -1305,8 +1305,9 @@ module DiemFramework::DiemAccount {
         /// key prefix of a specific length.
         pragma opaque;
         include [abstract] CreateAuthenticationKeyAbortsIf;
-        ensures [abstract] result
-            == spec_abstract_create_authentication_key(auth_key_prefix); // && len(result) == 64;
+        ensures [abstract] result == spec_abstract_create_authentication_key(
+            auth_key_prefix
+        ); // && len(result) == 64;
     }
 
     spec schema CreateAuthenticationKeyAbortsIf {
@@ -1962,8 +1963,7 @@ module DiemFramework::DiemAccount {
 
         // Number of public key hashes must match the number of secondary signers.
         assert!(
-            vector::length(&secondary_signer_public_key_hashes)
-            == num_secondary_signers,
+            vector::length(&secondary_signer_public_key_hashes) == num_secondary_signers,
             errors::invalid_argument(PROLOGUE_ESECONDARY_KEYS_ADDRESSES_COUNT_MISMATCH),
         );
 
@@ -2115,8 +2115,7 @@ module DiemFramework::DiemAccount {
 
         // [PCA4]: Check that the hash of the transaction's public key matches the account's auth key
         assert!(
-            hash::sha3_256(txn_public_key)
-            == *&sender_account.authentication_key,
+            hash::sha3_256(txn_public_key) == *&sender_account.authentication_key,
             errors::invalid_argument(PROLOGUE_EINVALID_ACCOUNT_AUTH_KEY),
         );
 
@@ -2382,8 +2381,9 @@ module DiemFramework::DiemAccount {
         let gas_used = txn_max_gas_units - gas_units_remaining;
         let transaction_fee_amount = txn_gas_price * gas_used;
         let coin = global<Balance<Token>>(sender).coin;
-        ensures global<DiemAccount>(sender).sequence_number
-            == old(global<DiemAccount>(sender).sequence_number) + 1;
+        ensures global<DiemAccount>(sender).sequence_number == old(
+            global<DiemAccount>(sender).sequence_number
+        ) + 1;
         include (transaction_fee_amount > 0) ==>
             TransactionFee::PayFeeEnsures<Token> {
                 coin: Diem<Token> { value: transaction_fee_amount }
@@ -2633,8 +2633,7 @@ module DiemFramework::DiemAccount {
 
     spec schema AuthenticationKeyRemainsSame {
         ensures forall addr: address where old(exists_at(addr)): global<DiemAccount>(addr)
-            .authentication_key
-            == old(global<DiemAccount>(addr).authentication_key);
+            .authentication_key == old(global<DiemAccount>(addr).authentication_key);
     }
 
     /// ## Balance

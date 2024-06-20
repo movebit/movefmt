@@ -982,8 +982,7 @@ module aptos_framework::account {
         );
         let resource_addr = signer::address_of(&resource_account);
         assert!(resource_addr != signer::address_of(&user), 0);
-        assert!(resource_addr
-            == get_signer_capability_address(&resource_account_cap), 1);
+        assert!(resource_addr == get_signer_capability_address(&resource_account_cap), 1);
     }
 
     #[test]

@@ -644,7 +644,7 @@ impl<'a> Parser<'a> {
                             FunctionBody_::Defined(s) => {
                                 p.fun_body.insert(body.loc.start());
                                 collect_seq(p, s)
-                            },
+                            }
                             FunctionBody_::Native => {}
                         }
                     }
@@ -700,21 +700,15 @@ impl<'a> Parser<'a> {
         }
 
         fn collect_function(p: &mut Parser, d: &Function) {
-            p.type_lambda_pair.push((
-                d.name.0.loc.start(),
-                match &d.body.value {
-                    FunctionBody_::Defined(_x) => d.body.loc.start(),
-                    FunctionBody_::Native => d.loc.end(),
-                },
-            ));
-
-            match &d.body.value {
+            let second = match &d.body.value {
                 FunctionBody_::Defined(s) => {
                     p.fun_body.insert(d.body.loc.start());
                     collect_seq(p, s);
+                    d.body.loc.start()
                 }
-                FunctionBody_::Native => {}
-            }
+                FunctionBody_::Native => d.loc.end(),
+            };
+            p.type_lambda_pair.push((d.name.0.loc.start(), second));
         }
 
         fn collect_ty(p: &mut Parser, ty: &Type) {

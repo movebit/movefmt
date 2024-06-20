@@ -482,6 +482,7 @@ impl CallExtractor {
         0
     }
 
+    #[allow(dead_code)]
     pub(crate) fn first_para_is_complex_blk(
         &self,
         config: Config,
@@ -510,8 +511,7 @@ impl CallExtractor {
             return false;
         }
 
-        let call_str_in_source = &self.source
-            [kind.start_pos as usize..kind.end_pos as usize];
+        let call_str_in_source = &self.source[kind.start_pos as usize..kind.end_pos as usize];
         let call_str_in_source_trim_multi_space = call_str_in_source
             .replace('\n', "")
             .split_whitespace()
@@ -540,14 +540,14 @@ impl CallExtractor {
                     if note.map(|x| x == Note::BinaryOP).unwrap_or_default() {
                         bin_op_cnt += 1;
                     }
-                },
+                }
                 TokenTree::Nested {
                     elements: _,
                     kind: _,
                     note: _,
                 } => {
                     nested_token_cnt += 1;
-                },
+                }
             }
         }
 
@@ -559,11 +559,15 @@ impl CallExtractor {
             && bin_op_cnt < 2
             && line_cnt <= 2
             && simple_token_cnt < 32
-            && !call_str_in_source.contains("//") {
+            && !call_str_in_source.contains("//")
+        {
             return false;
         }
 
-        tracing::debug!("call_str_in_source_trim_multi_space = {:?}", call_str_in_source_trim_multi_space);
+        tracing::debug!(
+            "call_str_in_source_trim_multi_space = {:?}",
+            call_str_in_source_trim_multi_space
+        );
         true
     }
 }

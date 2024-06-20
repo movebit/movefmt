@@ -2372,10 +2372,8 @@ module econia::incentives {
         verify_utility_coin_type<AptosCoin>();
         assert!(!is_utility_coin_type<QC>(), 0);
         assert!(get_market_registration_fee() == MARKET_REGISTRATION_FEE, 0);
-        assert!(get_underwriter_registration_fee()
-            == UNDERWRITER_REGISTRATION_FEE, 0);
-        assert!(get_custodian_registration_fee()
-            == CUSTODIAN_REGISTRATION_FEE, 0);
+        assert!(get_underwriter_registration_fee() == UNDERWRITER_REGISTRATION_FEE, 0);
+        assert!(get_custodian_registration_fee() == CUSTODIAN_REGISTRATION_FEE, 0);
         assert!(get_taker_fee_divisor() == TAKER_FEE_DIVISOR, 0);
         assert!(get_n_fee_store_tiers() == 7, 0);
         assert!(get_fee_share_divisor((0 as u8)) == FEE_SHARE_DIVISOR_0, 0);
@@ -2385,20 +2383,13 @@ module econia::incentives {
         assert!(get_fee_share_divisor((4 as u8)) == FEE_SHARE_DIVISOR_4, 0);
         assert!(get_fee_share_divisor((5 as u8)) == FEE_SHARE_DIVISOR_5, 0);
         assert!(get_fee_share_divisor((6 as u8)) == FEE_SHARE_DIVISOR_6, 0);
-        assert!(get_tier_activation_fee((0 as u8))
-            == TIER_ACTIVATION_FEE_0, 0);
-        assert!(get_tier_activation_fee((1 as u8))
-            == TIER_ACTIVATION_FEE_1, 0);
-        assert!(get_tier_activation_fee((2 as u8))
-            == TIER_ACTIVATION_FEE_2, 0);
-        assert!(get_tier_activation_fee((3 as u8))
-            == TIER_ACTIVATION_FEE_3, 0);
-        assert!(get_tier_activation_fee((4 as u8))
-            == TIER_ACTIVATION_FEE_4, 0);
-        assert!(get_tier_activation_fee((5 as u8))
-            == TIER_ACTIVATION_FEE_5, 0);
-        assert!(get_tier_activation_fee((6 as u8))
-            == TIER_ACTIVATION_FEE_6, 0);
+        assert!(get_tier_activation_fee((0 as u8)) == TIER_ACTIVATION_FEE_0, 0);
+        assert!(get_tier_activation_fee((1 as u8)) == TIER_ACTIVATION_FEE_1, 0);
+        assert!(get_tier_activation_fee((2 as u8)) == TIER_ACTIVATION_FEE_2, 0);
+        assert!(get_tier_activation_fee((3 as u8)) == TIER_ACTIVATION_FEE_3, 0);
+        assert!(get_tier_activation_fee((4 as u8)) == TIER_ACTIVATION_FEE_4, 0);
+        assert!(get_tier_activation_fee((5 as u8)) == TIER_ACTIVATION_FEE_5, 0);
+        assert!(get_tier_activation_fee((6 as u8)) == TIER_ACTIVATION_FEE_6, 0);
         assert!(get_tier_withdrawal_fee((0 as u8)) == WITHDRAWAL_FEE_0, 0);
         assert!(get_tier_withdrawal_fee((1 as u8)) == WITHDRAWAL_FEE_1, 0);
         assert!(get_tier_withdrawal_fee((2 as u8)) == WITHDRAWAL_FEE_2, 0);
@@ -2458,10 +2449,8 @@ module econia::incentives {
         verify_utility_coin_type<QC>();
         assert!(!is_utility_coin_type<UC>(), 0);
         assert!(get_market_registration_fee() == market_registration_fee, 0);
-        assert!(get_underwriter_registration_fee()
-            == underwriter_registration_fee, 0);
-        assert!(get_custodian_registration_fee()
-            == custodian_registration_fee, 0);
+        assert!(get_underwriter_registration_fee() == underwriter_registration_fee, 0);
+        assert!(get_custodian_registration_fee() == custodian_registration_fee, 0);
         assert!(get_taker_fee_divisor() == taker_fee_divisor, 0);
         assert!(get_fee_share_divisor((0 as u8)) == fee_share_divisor_0, 0);
         assert!(get_fee_share_divisor((1 as u8)) == fee_share_divisor_1, 0);
@@ -2470,20 +2459,13 @@ module econia::incentives {
         assert!(get_fee_share_divisor((4 as u8)) == fee_share_divisor_4, 0);
         assert!(get_fee_share_divisor((5 as u8)) == fee_share_divisor_5, 0);
         assert!(get_fee_share_divisor((6 as u8)) == fee_share_divisor_6, 0);
-        assert!(get_tier_activation_fee((0 as u8))
-            == tier_activation_fee_0, 0);
-        assert!(get_tier_activation_fee((1 as u8))
-            == tier_activation_fee_1, 0);
-        assert!(get_tier_activation_fee((2 as u8))
-            == tier_activation_fee_2, 0);
-        assert!(get_tier_activation_fee((3 as u8))
-            == tier_activation_fee_3, 0);
-        assert!(get_tier_activation_fee((4 as u8))
-            == tier_activation_fee_4, 0);
-        assert!(get_tier_activation_fee((5 as u8))
-            == tier_activation_fee_5, 0);
-        assert!(get_tier_activation_fee((6 as u8))
-            == tier_activation_fee_6, 0);
+        assert!(get_tier_activation_fee((0 as u8)) == tier_activation_fee_0, 0);
+        assert!(get_tier_activation_fee((1 as u8)) == tier_activation_fee_1, 0);
+        assert!(get_tier_activation_fee((2 as u8)) == tier_activation_fee_2, 0);
+        assert!(get_tier_activation_fee((3 as u8)) == tier_activation_fee_3, 0);
+        assert!(get_tier_activation_fee((4 as u8)) == tier_activation_fee_4, 0);
+        assert!(get_tier_activation_fee((5 as u8)) == tier_activation_fee_5, 0);
+        assert!(get_tier_activation_fee((6 as u8)) == tier_activation_fee_6, 0);
         assert!(get_tier_withdrawal_fee((0 as u8)) == withdrawal_fee_0, 0);
         assert!(get_tier_withdrawal_fee((1 as u8)) == withdrawal_fee_1, 0);
         assert!(get_tier_withdrawal_fee((2 as u8)) == withdrawal_fee_2, 0);
@@ -2590,8 +2572,7 @@ module econia::incentives {
             0
         );
         // Assert utility coins deposited.
-        assert!(get_utility_coin_store_balance_test()
-            == utility_coin_balance_0, 0);
+        assert!(get_utility_coin_store_balance_test() == utility_coin_balance_0, 0);
         // Mint enough quote coins to cover taker fees for fill 0.
         let quote_coins = assets::mint_test(taker_fees_0);
         // Assess fees on fill 0.
@@ -2660,8 +2641,7 @@ module econia::incentives {
         // Assert integrator got all coins.
         assert!(coin::balance<QC>(@user) == integrator_fees_0, 0);
         // Assert utility coins deposited.
-        assert!(get_utility_coin_store_balance_test()
-            == utility_coin_balance_1, 0);
+        assert!(get_utility_coin_store_balance_test() == utility_coin_balance_1, 0);
         // Have Econia withdraw 1 coin for market ID 0.
         quote_coins = withdraw_econia_fees<QC>(econia, market_id_0, 1);
         // Assert 1 coin withdrawn.

@@ -255,20 +255,30 @@ impl LetExtractor {
     fn collect_long_op_exp(&mut self) {
         self.multi_ampamp_or_pipepipe_exp();
         for bin_op_exp in self.bin_op_exp_vec.iter() {
-            let bin_op_exp_str =
-                &self.source[bin_op_exp.loc.start() as usize..bin_op_exp.loc.end() as usize];
+            let bin_op_exp_str = &self.source
+                [bin_op_exp.loc.start() as usize..bin_op_exp.loc.end() as usize]
+                .replace('\n', "")
+                .split_whitespace()
+                .collect::<Vec<&str>>()
+                .join(" ");
 
             let bin_op_right_is_long = match &bin_op_exp.value {
                 Exp_::BinopExp(_, op, r) => {
                     let bin_op_right_str =
                         &self.source[r.loc.start() as usize..r.loc.end() as usize].len();
                     match op.value {
-                        BinOp_::Implies | BinOp_::Iff | BinOp_::Eq => *bin_op_right_str > 16,
+                        BinOp_::Implies | BinOp_::Iff => *bin_op_right_str > 16,
                         _ => *bin_op_right_str > 64,
                     }
                 }
                 Exp_::Assign(_, r) => {
-                    self.source[r.loc.start() as usize..r.loc.end() as usize].len() > 64
+                    self.source[r.loc.start() as usize..r.loc.end() as usize]
+                        .replace('\n', "")
+                        .split_whitespace()
+                        .collect::<Vec<&str>>()
+                        .join(" ")
+                        .len()
+                        > 64
                 }
                 _ => false,
             };
@@ -341,7 +351,8 @@ impl LetExtractor {
         for (idx, let_assign) in self.let_assign_loc_vec.iter().enumerate() {
             if let_assign.start() <= token.end_pos() && token.end_pos() <= let_assign.end() {
                 let rhs_exp_loc = &self.let_assign_rhs_exp[idx].loc;
-                let rhs_exp_str = &self.source[rhs_exp_loc.start() as usize..rhs_exp_loc.end() as usize];
+                let rhs_exp_str =
+                    &self.source[rhs_exp_loc.start() as usize..rhs_exp_loc.end() as usize];
                 let is_long_rhs = rhs_exp_str.len() > 64;
                 if is_long_rhs {
                     self.break_line_by_let_rhs
@@ -408,11 +419,11 @@ impl LetExtractor {
 
 #[allow(dead_code)]
 fn get_bin_op_exp(fmt_buffer: String) {
+    use crate::tools::syntax::parse_file_string;
+    use move_command_line_common::files::FileHash;
     use move_compiler::shared::CompilationEnv;
     use move_compiler::Flags;
-    use move_command_line_common::files::FileHash;
     use std::collections::BTreeSet;
-    use crate::tools::syntax::parse_file_string;
     let mut let_extractor = LetExtractor::new(fmt_buffer.clone());
     let mut env = CompilationEnv::new(Flags::testing(), BTreeSet::new());
     let (defs, _) = parse_file_string(&mut env, FileHash::empty(), &fmt_buffer).unwrap();
@@ -454,18 +465,19 @@ fn get_bin_op_exp(fmt_buffer: String) {
 
 #[allow(dead_code)]
 fn get_long_assign(fmt_buffer: String) {
+    use crate::tools::syntax::parse_file_string;
+    use move_command_line_common::files::FileHash;
     use move_compiler::shared::CompilationEnv;
     use move_compiler::Flags;
-    use move_command_line_common::files::FileHash;
     use std::collections::BTreeSet;
-    use crate::tools::syntax::parse_file_string;
     let mut let_extractor = LetExtractor::new(fmt_buffer.clone());
     let mut env = CompilationEnv::new(Flags::testing(), BTreeSet::new());
     let (defs, _) = parse_file_string(&mut env, FileHash::empty(), &fmt_buffer).unwrap();
     let_extractor.preprocess(defs);
     for (idx, _) in let_extractor.let_assign_loc_vec.iter().enumerate() {
         let rhs_exp_loc = &let_extractor.let_assign_rhs_exp[idx].loc;
-        let rhs_exp_str = &let_extractor.source[rhs_exp_loc.start() as usize..rhs_exp_loc.end() as usize];
+        let rhs_exp_str =
+            &let_extractor.source[rhs_exp_loc.start() as usize..rhs_exp_loc.end() as usize];
         if rhs_exp_str.len() > 64 {
             eprintln!("rhs_exp_str: {:?}", rhs_exp_str);
         }

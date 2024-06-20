@@ -444,8 +444,7 @@ spec aptos_framework::coin {
         ensures if (monitor_supply) {
             value == 0
                 && limit == MAX_U128
-                && (parallelizable
-                    == optional_aggregator::is_parallelizable(supply))
+                && (parallelizable == optional_aggregator::is_parallelizable(supply))
         } else {
             option::spec_is_none(coin_info.supply)
         };
@@ -495,14 +494,11 @@ spec aptos_framework::coin {
         aborts_if coin_store_from.coin.value < amount;
 
         ensures account_addr_from != to ==>
-            coin_store_post_from.coin.value
-                == coin_store_from.coin.value - amount;
+            coin_store_post_from.coin.value == coin_store_from.coin.value - amount;
         ensures account_addr_from != to ==>
-            coin_store_post_to.coin.value
-                == coin_store_to.coin.value + amount;
+            coin_store_post_to.coin.value == coin_store_to.coin.value + amount;
         ensures account_addr_from == to ==>
-            coin_store_post_from.coin.value
-                == coin_store_from.coin.value;
+            coin_store_post_from.coin.value == coin_store_from.coin.value;
     }
 
     /// Account is not frozen and sufficient balance.
@@ -537,14 +533,12 @@ spec aptos_framework::coin {
 
     spec is_aggregatable_coin_zero<CoinType>(coin: &AggregatableCoin<CoinType>): bool {
         aborts_if false;
-        ensures result
-            == (aggregator::spec_read(coin.value) == 0);
+        ensures result == (aggregator::spec_read(coin.value) == 0);
     }
 
     spec drain_aggregatable_coin<CoinType>(coin: &mut AggregatableCoin<CoinType>): Coin<CoinType> {
         aborts_if aggregator::spec_read(coin.value) > MAX_U64;
-        ensures result.value
-            == aggregator::spec_aggregator_get_val(old(coin).value);
+        ensures result.value == aggregator::spec_aggregator_get_val(old(coin).value);
     }
 
     spec merge_aggregatable_coin<CoinType>(
