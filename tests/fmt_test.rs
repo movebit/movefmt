@@ -53,7 +53,7 @@ fn test_single_file() {
         .with_env_filter(EnvFilter::from_env("MOVEFMT_LOG"))
         .init();
 
-    test_on_file(Path::new("./tests/bug/input1.move"));
+    test_on_file(Path::new("./tests/issues/issue11/input1.move"));
 }
 
 fn test_on_file(p: impl AsRef<Path>) -> bool {
@@ -185,12 +185,7 @@ fn extract_tokens(content: &str) -> Result<Vec<ExtractToken>, Vec<String>> {
     line_mapping.update(p.to_path_buf(), content);
     fn collect_token_tree(ret: &mut Vec<ExtractToken>, m: &FileLineMapping, t: &TokenTree) {
         match t {
-            TokenTree::SimpleToken {
-                content,
-                pos,
-                tok: _tok,
-                note: _,
-            } => {
+            TokenTree::SimpleToken { content, pos, .. } => {
                 let loc = m
                     .translate(&Path::new(".").to_path_buf(), *pos, *pos)
                     .unwrap();

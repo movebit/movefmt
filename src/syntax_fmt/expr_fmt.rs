@@ -91,9 +91,7 @@ fn get_start_tok(t: &TokenTree) -> Tok {
             note: _,
         } => *tok,
         TokenTree::Nested {
-            elements: _,
-            kind,
-            note: _,
+            elements: _, kind, ..
         } => kind.kind.start_tok(),
     }
 }
@@ -204,12 +202,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
             is_next_tok_nested = true;
             next_tok_nested_kind = kind.kind;
         }
-        TokenTree::SimpleToken {
-            content,
-            pos: _,
-            tok: _,
-            note: _,
-        } => {
+        TokenTree::SimpleToken { content, .. } => {
             next_tok_simple_content = content.to_string();
         }
     }

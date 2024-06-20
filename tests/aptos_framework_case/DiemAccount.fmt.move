@@ -208,9 +208,9 @@ module DiemFramework::DiemAccount {
         // Operational constraint, not a privilege constraint.
         CoreAddresses::assert_diem_root(dr_account);
 
-        create_diem_root_account(copy dummy_auth_key_prefix,);
+        create_diem_root_account(copy dummy_auth_key_prefix);
         create_treasury_compliance_account(
-            dr_account, copy dummy_auth_key_prefix,
+            dr_account, copy dummy_auth_key_prefix
         );
     }
 
@@ -303,7 +303,7 @@ module DiemFramework::DiemAccount {
         // Check that `payee` can accept payments in `Token`
         assert!(
             exists<Balance<Token>>(payee),
-            errors::invalid_argument(EPAYEE_CANT_ACCEPT_CURRENCY_TYPE)
+            errors::invalid_argument(EPAYEE_CANT_ACCEPT_CURRENCY_TYPE),
         );
 
         if (dual_attestation) {
@@ -325,7 +325,7 @@ module DiemFramework::DiemAccount {
                     VASP::parent_address(payee),
                     &borrow_global<AccountOperationsCapability>(@DiemRoot).limits_cap,
                 ),
-                errors::limit_exceeded(EDEPOSIT_EXCEEDS_LIMITS)
+                errors::limit_exceeded(EDEPOSIT_EXCEEDS_LIMITS),
             )
         };
 
@@ -340,7 +340,7 @@ module DiemFramework::DiemAccount {
                 currency_code: Diem::currency_code<Token>(),
                 payer,
                 metadata
-            }
+            },
         );
     }
 
@@ -411,11 +411,11 @@ module DiemFramework::DiemAccount {
 
         ensures event::spec_guid_eq(
             global<DiemAccount>(payee).sent_events,
-            old(global<DiemAccount>(payee).sent_events)
+            old(global<DiemAccount>(payee).sent_events),
         );
         ensures event::spec_guid_eq(
             global<DiemAccount>(payee).received_events,
-            old(global<DiemAccount>(payee).received_events)
+            old(global<DiemAccount>(payee).received_events),
         );
     }
 
@@ -650,7 +650,7 @@ module DiemFramework::DiemAccount {
         assert!(exists_at(payer), errors::not_published(EACCOUNT));
         assert!(
             exists<Balance<Token>>(payer),
-            errors::not_published(EPAYER_DOESNT_HOLD_CURRENCY)
+            errors::not_published(EPAYER_DOESNT_HOLD_CURRENCY),
         );
         let account_balance = borrow_global_mut<Balance<Token>>(payer);
         // Load the payer's account and emit an event to record the withdrawal
@@ -677,11 +677,11 @@ module DiemFramework::DiemAccount {
         );
         ensures event::spec_guid_eq(
             global<DiemAccount>(payer).sent_events,
-            old(global<DiemAccount>(payer).sent_events)
+            old(global<DiemAccount>(payer).sent_events),
         );
         ensures event::spec_guid_eq(
             global<DiemAccount>(payer).received_events,
-            old(global<DiemAccount>(payer).received_events)
+            old(global<DiemAccount>(payer).received_events),
         );
         include WithdrawFromAbortsIf<Token>;
         include WithdrawFromBalanceEnsures<Token> { balance: global<Balance<Token>>(payer) };
@@ -752,19 +752,19 @@ module DiemFramework::DiemAccount {
         );
         ensures event::spec_guid_eq(
             global<DiemAccount>(payer).sent_events,
-            old(global<DiemAccount>(payer).sent_events)
+            old(global<DiemAccount>(payer).sent_events),
         );
         ensures event::spec_guid_eq(
             global<DiemAccount>(payer).received_events,
-            old(global<DiemAccount>(payer).received_events)
+            old(global<DiemAccount>(payer).received_events),
         );
         ensures event::spec_guid_eq(
             global<DiemAccount>(dd_addr).sent_events,
-            old(global<DiemAccount>(dd_addr).sent_events)
+            old(global<DiemAccount>(dd_addr).sent_events),
         );
         ensures event::spec_guid_eq(
             global<DiemAccount>(dd_addr).received_events,
-            old(global<DiemAccount>(dd_addr).received_events)
+            old(global<DiemAccount>(dd_addr).received_events),
         );
         include PreburnAbortsIf<Token>;
         include PreburnEnsures<Token> { dd, payer };
@@ -808,7 +808,7 @@ module DiemFramework::DiemAccount {
         // Abort if we already extracted the unique withdraw capability for this account.
         assert!(
             !delegated_withdraw_capability(sender_addr),
-            errors::invalid_state(EWITHDRAW_CAPABILITY_ALREADY_EXTRACTED)
+            errors::invalid_state(EWITHDRAW_CAPABILITY_ALREADY_EXTRACTED),
         );
         assert!(exists_at(sender_addr), errors::not_published(EACCOUNT));
         let account = borrow_global_mut<DiemAccount>(sender_addr);
@@ -844,7 +844,7 @@ module DiemFramework::DiemAccount {
         // indicating that the withdraw capability is not unique.
         assert!(
             delegated_withdraw_capability(cap.account_address),
-            errors::invalid_state(EWITHDRAW_CAPABILITY_NOT_EXTRACTED)
+            errors::invalid_state(EWITHDRAW_CAPABILITY_NOT_EXTRACTED),
         );
         let account = borrow_global_mut<DiemAccount>(cap.account_address);
         option::fill(&mut account.withdraw_capability, cap)
@@ -948,19 +948,19 @@ module DiemFramework::DiemAccount {
         );
         ensures event::spec_guid_eq(
             global<DiemAccount>(payer).sent_events,
-            old(global<DiemAccount>(payer).sent_events)
+            old(global<DiemAccount>(payer).sent_events),
         );
         ensures event::spec_guid_eq(
             global<DiemAccount>(payer).received_events,
-            old(global<DiemAccount>(payer).received_events)
+            old(global<DiemAccount>(payer).received_events),
         );
         ensures event::spec_guid_eq(
             global<DiemAccount>(payee).sent_events,
-            old(global<DiemAccount>(payee).sent_events)
+            old(global<DiemAccount>(payee).sent_events),
         );
         ensures event::spec_guid_eq(
             global<DiemAccount>(payee).received_events,
-            old(global<DiemAccount>(payee).received_events)
+            old(global<DiemAccount>(payee).received_events),
         );
         include PayFromAbortsIf<Token>;
         include PayFromEnsures<Token> { payer };
@@ -1022,7 +1022,7 @@ module DiemFramework::DiemAccount {
         // Don't allow rotating to clearly invalid key
         assert!(
             vector::length(&new_authentication_key) == 32,
-            errors::invalid_argument(EMALFORMED_AUTHENTICATION_KEY)
+            errors::invalid_argument(EMALFORMED_AUTHENTICATION_KEY),
         );
         sender_account_resource.authentication_key = new_authentication_key;
     }
@@ -1063,7 +1063,7 @@ module DiemFramework::DiemAccount {
         // Abort if we already extracted the unique key rotation capability for this account.
         assert!(
             !delegated_key_rotation_capability(account_address),
-            errors::invalid_state(EKEY_ROTATION_CAPABILITY_ALREADY_EXTRACTED)
+            errors::invalid_state(EKEY_ROTATION_CAPABILITY_ALREADY_EXTRACTED),
         );
         assert!(exists_at(account_address), errors::not_published(EACCOUNT));
         let account = borrow_global_mut<DiemAccount>(account_address);
@@ -1173,11 +1173,11 @@ module DiemFramework::DiemAccount {
         // cannot create an account at the reserved address 0x0
         assert!(
             new_account_addr != @VMReserved,
-            errors::invalid_argument(ECANNOT_CREATE_AT_VM_RESERVED)
+            errors::invalid_argument(ECANNOT_CREATE_AT_VM_RESERVED),
         );
         assert!(
             new_account_addr != @DiemFramework,
-            errors::invalid_argument(ECANNOT_CREATE_AT_CORE_CODE)
+            errors::invalid_argument(ECANNOT_CREATE_AT_CORE_CODE),
         );
 
         // Construct authentication key.
@@ -1189,7 +1189,7 @@ module DiemFramework::DiemAccount {
         // always exist.  This is a sanity check.
         assert!(
             exists<AccountOperationsCapability>(@DiemRoot),
-            errors::not_published(EACCOUNT_OPERATIONS_CAPABILITY)
+            errors::not_published(EACCOUNT_OPERATIONS_CAPABILITY),
         );
         // Emit the CreateAccountEvent
         event::emit_event(
@@ -1204,17 +1204,17 @@ module DiemFramework::DiemAccount {
             DiemAccount {
                 authentication_key,
                 withdraw_capability: option::some(
-                    WithdrawCapability { account_address: new_account_addr }
+                    WithdrawCapability { account_address: new_account_addr },
                 ),
                 key_rotation_capability: option::some(
-                    KeyRotationCapability { account_address: new_account_addr }
+                    KeyRotationCapability { account_address: new_account_addr },
                 ),
                 received_events: event::new_event_handle<ReceivedPaymentEvent>(
                     new_account
                 ),
                 sent_events: event::new_event_handle<SentPaymentEvent>(new_account),
                 sequence_number: 0,
-            }
+            },
         );
     }
 
@@ -1329,18 +1329,18 @@ module DiemFramework::DiemAccount {
 
         assert!(
             !exists<AccountOperationsCapability>(@DiemRoot),
-            errors::already_published(EACCOUNT_OPERATIONS_CAPABILITY)
+            errors::already_published(EACCOUNT_OPERATIONS_CAPABILITY),
         );
         move_to(
             &dr_account,
             AccountOperationsCapability {
                 limits_cap: AccountLimits::grant_mutation_capability(&dr_account),
                 creation_events: event::new_event_handle<CreateAccountEvent>(&dr_account),
-            }
+            },
         );
         assert!(
             !exists<DiemWriteSetManager>(@DiemRoot),
-            errors::already_published(EWRITESET_MANAGER)
+            errors::already_published(EWRITESET_MANAGER),
         );
         move_to(
             &dr_account,
@@ -1348,7 +1348,7 @@ module DiemFramework::DiemAccount {
                 upgrade_events: event::new_event_handle<Self::AdminTransactionEvent>(
                     &dr_account
                 ),
-            }
+            },
         );
         make_account(&dr_account, auth_key_prefix)
     }
@@ -1599,7 +1599,7 @@ module DiemFramework::DiemAccount {
         let new_account = create_signer(new_account_address);
         Roles::new_child_vasp_role(parent, &new_account);
         VASP::publish_child_vasp_credential(
-            parent, &new_account,
+            parent, &new_account
         );
         make_account(&new_account, auth_key_prefix);
         add_currencies_for_account<Token>(&new_account, add_all_currencies);
@@ -1664,7 +1664,7 @@ module DiemFramework::DiemAccount {
     public fun balance<Token>(addr: address): u64 acquires Balance {
         assert!(
             exists<Balance<Token>>(addr),
-            errors::not_published(EPAYER_DOESNT_HOLD_CURRENCY)
+            errors::not_published(EPAYER_DOESNT_HOLD_CURRENCY),
         );
         balance_for(borrow_global<Balance<Token>>(addr))
     }
@@ -1682,12 +1682,12 @@ module DiemFramework::DiemAccount {
         // Check that an account with this role is allowed to hold funds
         assert!(
             Roles::can_hold_balance(account),
-            errors::invalid_argument(EROLE_CANT_STORE_BALANCE)
+            errors::invalid_argument(EROLE_CANT_STORE_BALANCE),
         );
         // aborts if this account already has a balance in `Token`
         assert!(
             !exists<Balance<Token>>(addr),
-            errors::already_published(EADD_EXISTING_CURRENCY)
+            errors::already_published(EADD_EXISTING_CURRENCY),
         );
 
         move_to(account, Balance<Token> { coin: Diem::zero<Token>() })
@@ -1915,11 +1915,11 @@ module DiemFramework::DiemAccount {
     ) acquires DiemAccount, Balance {
         assert!(
             signer::address_of(&sender) == @DiemRoot,
-            errors::invalid_argument(PROLOGUE_EINVALID_WRITESET_SENDER)
+            errors::invalid_argument(PROLOGUE_EINVALID_WRITESET_SENDER),
         );
         assert!(
             Roles::has_diem_root_role(&sender),
-            errors::invalid_argument(PROLOGUE_EINVALID_WRITESET_SENDER)
+            errors::invalid_argument(PROLOGUE_EINVALID_WRITESET_SENDER),
         );
 
         // Currency code don't matter here as it won't be charged anyway. Gas constants are ommitted.
@@ -1981,7 +1981,7 @@ module DiemFramework::DiemAccount {
             let secondary_address = *vector::borrow(&secondary_signer_addresses, i);
             assert!(
                 exists_at(secondary_address),
-                errors::invalid_argument(PROLOGUE_EACCOUNT_DNE)
+                errors::invalid_argument(PROLOGUE_EACCOUNT_DNE),
             );
 
             // Check that for each secondary signer, the provided public key hash is equal to the
@@ -2038,7 +2038,7 @@ module DiemFramework::DiemAccount {
     ) acquires DiemAccount, Balance {
         check_secondary_signers(
             secondary_signer_addresses,
-            secondary_signer_public_key_hashes
+            secondary_signer_public_key_hashes,
         );
         prologue_common<Token>(
             &sender,
@@ -2107,7 +2107,7 @@ module DiemFramework::DiemAccount {
         // [PCA3]: We check whether this account is frozen, if it is no transaction can be sent from it.
         assert!(
             !AccountFreezing::account_is_frozen(transaction_sender),
-            errors::invalid_state(PROLOGUE_EACCOUNT_FROZEN)
+            errors::invalid_state(PROLOGUE_EACCOUNT_FROZEN),
         );
 
         // Load the transaction sender's account
@@ -2132,51 +2132,51 @@ module DiemFramework::DiemAccount {
             // [PCA6]: Check that the gas fee can be paid in this currency
             assert!(
                 TransactionFee::is_coin_initialized<Token>(),
-                errors::invalid_argument(PROLOGUE_EBAD_TRANSACTION_FEE_CURRENCY)
+                errors::invalid_argument(PROLOGUE_EBAD_TRANSACTION_FEE_CURRENCY),
             );
             // [PCA7]: Check that the account has a balance in this currency
             assert!(
                 exists<Balance<Token>>(transaction_sender),
-                errors::invalid_argument(PROLOGUE_ECANT_PAY_GAS_DEPOSIT)
+                errors::invalid_argument(PROLOGUE_ECANT_PAY_GAS_DEPOSIT),
             );
             let balance_amount = balance<Token>(transaction_sender);
             // [PCA8]: Check that the account can cover the maximum transaction fee
             assert!(
                 balance_amount >= max_transaction_fee,
-                errors::invalid_argument(PROLOGUE_ECANT_PAY_GAS_DEPOSIT)
+                errors::invalid_argument(PROLOGUE_ECANT_PAY_GAS_DEPOSIT),
             );
         };
 
         // [PCA9]: Check that the transaction hasn't expired
         assert!(
             DiemTimestamp::now_seconds() < txn_expiration_time_seconds,
-            errors::invalid_argument(PROLOGUE_ETRANSACTION_EXPIRED)
+            errors::invalid_argument(PROLOGUE_ETRANSACTION_EXPIRED),
         );
 
         // [PCA10]: Check that the transaction's sequence number will not overflow.
         assert!(
             (txn_sequence_number as u128) < MAX_U64,
-            errors::limit_exceeded(PROLOGUE_ESEQUENCE_NUMBER_TOO_BIG)
+            errors::limit_exceeded(PROLOGUE_ESEQUENCE_NUMBER_TOO_BIG),
         );
 
         if (CRSN::has_crsn(transaction_sender)) {
             // [PCA13]: If using a sequence nonce check that it's accepted
             assert!(
                 CRSN::check(sender, txn_sequence_number),
-                errors::invalid_argument(PROLOGUE_ESEQ_NONCE_INVALID)
+                errors::invalid_argument(PROLOGUE_ESEQ_NONCE_INVALID),
             );
         } else {
             // [PCA11]: Check that the transaction sequence number is not too old (in the past)
             assert!(
                 txn_sequence_number >= sender_account.sequence_number,
-                errors::invalid_argument(PROLOGUE_ESEQUENCE_NUMBER_TOO_OLD)
+                errors::invalid_argument(PROLOGUE_ESEQUENCE_NUMBER_TOO_OLD),
             );
 
             // [PCA12]: Check that the transaction's sequence number matches the
             // current sequence number. Otherwise sequence number is too new by [PCA11].
             assert!(
                 txn_sequence_number == sender_account.sequence_number,
-                errors::invalid_argument(PROLOGUE_ESEQUENCE_NUMBER_TOO_NEW)
+                errors::invalid_argument(PROLOGUE_ESEQUENCE_NUMBER_TOO_NEW),
             );
 
             // WARNING: No checks should be added here as the sequence number too new check should be the last check run
@@ -2277,7 +2277,7 @@ module DiemFramework::DiemAccount {
         // number representable in a u64. Already checked in [PCA5].
         assert!(
             (txn_gas_price as u128) * (gas_used as u128) <= MAX_U64,
-            errors::limit_exceeded(EGAS)
+            errors::limit_exceeded(EGAS),
         );
         let transaction_fee_amount = txn_gas_price * gas_used;
 
@@ -2290,7 +2290,7 @@ module DiemFramework::DiemAccount {
         // representable range of u64. Already checked in [PCA10].
         assert!(
             sender_account.sequence_number < (MAX_U64 as u64),
-            errors::limit_exceeded(PROLOGUE_ESEQUENCE_NUMBER_TOO_BIG)
+            errors::limit_exceeded(PROLOGUE_ESEQUENCE_NUMBER_TOO_BIG),
         );
 
         if (CRSN::has_crsn(sender)) {
@@ -2304,7 +2304,7 @@ module DiemFramework::DiemAccount {
             // the `sender_account`'s `sequence_number`. Already checked in [PCA12].
             assert!(
                 sender_account.sequence_number == txn_sequence_number,
-                errors::invalid_argument(PROLOGUE_ESEQUENCE_NUMBER_TOO_NEW)
+                errors::invalid_argument(PROLOGUE_ESEQUENCE_NUMBER_TOO_NEW),
             );
         };
 
@@ -2321,7 +2321,7 @@ module DiemFramework::DiemAccount {
             // [EA4; Condition]: Abort if this withdrawal would make the `sender_account`'s balance go negative
             assert!(
                 transaction_fee_amount <= Diem::value(coin),
-                errors::limit_exceeded(PROLOGUE_ECANT_PAY_GAS_DEPOSIT)
+                errors::limit_exceeded(PROLOGUE_ECANT_PAY_GAS_DEPOSIT),
             );
 
             // NB: `withdraw_from_balance` is not used as limits do not apply to this transaction fee
@@ -2406,11 +2406,11 @@ module DiemFramework::DiemAccount {
         // Double check that the sender is the DiemRoot account at the `@DiemRoot`
         assert!(
             signer::address_of(dr_account) == @DiemRoot,
-            errors::invalid_argument(PROLOGUE_EINVALID_WRITESET_SENDER)
+            errors::invalid_argument(PROLOGUE_EINVALID_WRITESET_SENDER),
         );
         assert!(
             Roles::has_diem_root_role(dr_account),
-            errors::invalid_argument(PROLOGUE_EINVALID_WRITESET_SENDER)
+            errors::invalid_argument(PROLOGUE_EINVALID_WRITESET_SENDER),
         );
 
         // Currency code don't matter here as it won't be charged anyway.
@@ -2616,7 +2616,7 @@ module DiemFramework::DiemAccount {
         /// The absence of WithdrawCap is preserved.
         ensures forall addr: address: old(
             !exists<DiemAccount>(addr)
-            || option::is_none(global<DiemAccount>(addr).withdraw_capability)
+            || option::is_none(global<DiemAccount>(addr).withdraw_capability),
         ) ==>
             (
                 !exists<DiemAccount>(addr)

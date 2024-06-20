@@ -12,12 +12,12 @@ module 0x42::LambdaTest1 {
         inline_mul(
             inline_mul(
                 inline_mul(f(b) + 0, inline_mul(1, 2)),
-                inline_mul(f(b) + 1, inline_mul(3, 4))
+                inline_mul(f(b) + 1, inline_mul(3, 4)),
             ),
             iinline_mul(
                 inline_mul(f(b) + 2, inline_mul(5, 6)),
-                inline_mul(f(b) + 3, inline_mul(7, 8))
-            )
+                inline_mul(f(b) + 3, inline_mul(7, 8)),
+            ),
         )
     }
 }

@@ -48,7 +48,7 @@ module aptos_framework::randomness {
         if (!exists<PerBlockRandomness>(@aptos_framework)) {
             move_to(
                 framework,
-                PerBlockRandomness { epoch: 0, round: 0, seed: option::none(), }
+                PerBlockRandomness { epoch: 0, round: 0, seed: option::none(), },
             );
         }
     }
@@ -393,7 +393,7 @@ module aptos_framework::randomness {
                 0x000000000000000000000000000000000000000000000001,
                 0xffffffffffffffffffffffffffffffffffffffffffffffff,
             ),
-            1
+            1,
         );
         assert!(
             0xfffffffffffffffffffffffffffffffffffffffffffffffe
@@ -402,7 +402,7 @@ module aptos_framework::randomness {
                 0xfffffffffffffffffffffffffffffffffffffffffffffffd,
                 0xffffffffffffffffffffffffffffffffffffffffffffffff,
             ),
-            1
+            1,
         );
         assert!(
             0x000000000000000000000000000000000000000000000000
@@ -411,7 +411,7 @@ module aptos_framework::randomness {
                 0x000000000000000000000000000000000000000000000002,
                 0xffffffffffffffffffffffffffffffffffffffffffffffff,
             ),
-            1
+            1,
         );
         assert!(
             0x000000000000000000000000000000000000000000000000
@@ -420,7 +420,7 @@ module aptos_framework::randomness {
                 0xfffffffffffffffffffffffffffffffffffffffffffffffd,
                 0xffffffffffffffffffffffffffffffffffffffffffffffff,
             ),
-            1
+            1,
         );
         assert!(
             0x000000000000000000000000000000000000000000000001
@@ -429,7 +429,7 @@ module aptos_framework::randomness {
                 0x000000000000000000000000000000000000000000000003,
                 0xffffffffffffffffffffffffffffffffffffffffffffffff,
             ),
-            1
+            1,
         );
         assert!(
             0x000000000000000000000000000000000000000000000001
@@ -438,7 +438,7 @@ module aptos_framework::randomness {
                 0xfffffffffffffffffffffffffffffffffffffffffffffffd,
                 0xffffffffffffffffffffffffffffffffffffffffffffffff,
             ),
-            1
+            1,
         );
         assert!(
             0xfffffffffffffffffffffffffffffffffffffffffffffffd
@@ -447,7 +447,7 @@ module aptos_framework::randomness {
                 0xfffffffffffffffffffffffffffffffffffffffffffffffe,
                 0xffffffffffffffffffffffffffffffffffffffffffffffff,
             ),
-            1
+            1,
         );
     }
 

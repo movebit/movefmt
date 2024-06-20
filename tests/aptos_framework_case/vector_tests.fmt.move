@@ -779,7 +779,7 @@ module std::vector_tests {
                 i_s = i_s + i;
                 *e = s;
                 s = s + 1
-            }
+            },
         );
         assert!(i_s == 3, 0);
         assert!(v == vector[2, 3, 4], 0);

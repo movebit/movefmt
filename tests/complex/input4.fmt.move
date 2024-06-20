@@ -48,7 +48,7 @@ module oracle::oracle {
             OracleStore {
                 oracles: table::new(),
                 update_oracle_events: new_event_handle(oracle),
-            }
+            },
         );
     }
 
@@ -80,7 +80,7 @@ module oracle::oracle {
 
         emit_event(
             &mut oracle_store.update_oracle_events,
-            UpdateOracleEvent { feed, adapter, coin_type, }
+            UpdateOracleEvent { feed, adapter, coin_type, },
         );
     }
 

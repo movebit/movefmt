@@ -12,8 +12,8 @@ module test {
             ED25519_SCHEME,
             pk,
             test_signature,
-            test_signature, // xxx
-        );
+            test_signature,
+        ); // xxx
     }
 
     #[test(user = @0x1)]
@@ -25,7 +25,7 @@ module test {
         assert!(resource_addr == get_signer_capability_address(&resource_account_cap), 1);
         assert!(
             borrow_global<Account>(alice_addr).authentication_key11111111111111111 == new_auth_key,
-            0
+            0,
         );
     }
 
@@ -34,7 +34,7 @@ module test {
         let authentication_key = bcs::to_bytes(&new_address);
         assert!(
             vector::length(&authentication_key) == 32,
-            error::invalid_argument(EMALFORMED_AUTHENTICATION_KEY)
+            error::invalid_argument(EMALFORMED_AUTHENTICATION_KEY),
         );
 
         let guid_creation_num = 0;
@@ -59,7 +59,7 @@ module test {
                 key_rotation_events,
                 rotation_capability_offer: CapabilityOffer { for: option::none() },
                 signer_capability_offer: CapabilityOffer { for: option::none() },
-            }
+            },
         );
 
         new_account

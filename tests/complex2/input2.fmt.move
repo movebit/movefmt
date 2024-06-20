@@ -13,7 +13,7 @@ script {
         let framework_signer =
             aptos_governance::get_signer_testnet_only(
                 core_resources,
-                @0000000000000000000000000000000000000000000000000000000000000001
+                @0000000000000000000000000000000000000000000000000000000000000001,
             );
         let code = vector::empty();
         let chunk0 = vector[

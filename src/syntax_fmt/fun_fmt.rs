@@ -583,17 +583,8 @@ pub(crate) fn process_fun_annotation(kind: NestKind, elements: Vec<TokenTree>) -
 
     fn process_token_trees(token: &TokenTree, next_token: Option<&TokenTree>) -> String {
         match token {
-            TokenTree::Nested {
-                elements: _,
-                kind: _,
-                note: _,
-            } => process_nested_token(token),
-            TokenTree::SimpleToken {
-                content: _,
-                pos: _,
-                tok: _,
-                note: _,
-            } => process_simple_token(token, next_token),
+            TokenTree::Nested { .. } => process_nested_token(token),
+            TokenTree::SimpleToken { .. } => process_simple_token(token, next_token),
         }
     }
 

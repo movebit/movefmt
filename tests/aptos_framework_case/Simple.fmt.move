@@ -459,7 +459,7 @@ module 0xABCD::simple {
         if (!exists<EventStore>(owner_address)) {
             move_to<EventStore>(
                 owner,
-                EventStore { simple_events: account::new_event_handle<SimpleEvent>(owner) }
+                EventStore { simple_events: account::new_event_handle<SimpleEvent>(owner) },
             );
         };
         let event_store = borrow_global_mut<EventStore>(owner_address);

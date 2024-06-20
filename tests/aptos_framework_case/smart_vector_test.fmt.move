@@ -60,7 +60,7 @@ module aptos_std::smart_vector_test {
             |x| {
                 let x: &mut u64 = x;
                 *x = *x + 1;
-            }
+            },
         );
         assert!(V::fold(v, 0, |s, x| { s + x }) == 5150, 0);
     }
@@ -84,7 +84,7 @@ module aptos_std::smart_vector_test {
                 let x: &mut u64 = x;
                 assert!(i + 1 == *x, 0);
                 *x = *x + 1;
-            }
+            },
         );
         assert!(V::fold(v, 0, |s, x| { s + x }) == 5150, 0);
     }

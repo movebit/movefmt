@@ -98,7 +98,7 @@ module std::bit_vector {
                 &mut bitvector.bit_field,
                 |elem| {
                     *elem = false;
-                }
+                },
             );
         } else {
             let i = amount;

@@ -260,13 +260,13 @@ module ExperimentalFramework::MultiToken {
                 creator: signer::address_of(account),
                 content_uri: copy content_uri,
                 amount,
-            }
+            },
         );
         let id = guid::id(&guid);
         if (!exists<TokenDataCollection<TokenType>>(signer::address_of(account))) {
             move_to(
                 account,
-                TokenDataCollection { tokens: vector::empty<TokenData<TokenType>>() }
+                TokenDataCollection { tokens: vector::empty<TokenData<TokenType>>() },
             );
         };
         let token_data_collection =
@@ -280,7 +280,7 @@ module ExperimentalFramework::MultiToken {
                 token_id: guid,
                 content_uri,
                 supply: amount
-            }
+            },
         );
         Token { id, balance: amount }
     }

@@ -4,12 +4,12 @@ module 0xc0ffee::m {
         //  test function that not requires line breaks, with many parameters.
         test_func(a, b, c, d, e, f);
 
-        test_func(a, b, c, d, e, f,);
+        test_func(a, b, c, d, e, f);
 
         //  test function that requires line breaks with long name.
         test_func_with_two_long_para(
             the_first_too_long_long_long_long_parameter,
-            the_second_too_long_long_long_long_parameter
+            the_second_too_long_long_long_long_parameter,
         );
 
         //  test function that requires line breaks with long name.many parameters

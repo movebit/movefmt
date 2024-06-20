@@ -159,7 +159,7 @@ module aptos_framework::coin {
         system_addresses::assert_aptos_framework(aptos_framework);
         move_to(
             aptos_framework,
-            SupplyConfig { allow_upgrades: false }
+            SupplyConfig { allow_upgrades: false },
         );
     }
 
@@ -206,7 +206,7 @@ module aptos_framework::coin {
         let amount = aggregator::read(&coin.value);
         assert!(
             amount <= MAX_U64,
-            error::out_of_range(EAGGREGATABLE_COIN_VALUE_TOO_LARGE)
+            error::out_of_range(EAGGREGATABLE_COIN_VALUE_TOO_LARGE),
         );
         spec {
             update aggregate_supply<CoinType> = aggregate_supply<CoinType> - amount;
@@ -340,7 +340,7 @@ module aptos_framework::coin {
         let Coin { value: amount } = coin;
         assert!(
             amount > 0,
-            error::invalid_argument(EZERO_COIN_AMOUNT)
+            error::invalid_argument(EZERO_COIN_AMOUNT),
         );
 
         let maybe_supply =
@@ -390,7 +390,7 @@ module aptos_framework::coin {
             DepositEvent { amount: coin.value },
         );
         event::emit(
-            Deposit<CoinType> { account: account_addr, amount: coin.value }
+            Deposit<CoinType> { account: account_addr, amount: coin.value },
         );
 
         merge(&mut coin_store.coin, coin);
@@ -421,7 +421,7 @@ module aptos_framework::coin {
         let Coin { value } = zero_coin;
         assert!(
             value == 0,
-            error::invalid_argument(EDESTRUCTION_OF_NONZERO_TOKEN)
+            error::invalid_argument(EDESTRUCTION_OF_NONZERO_TOKEN),
         )
     }
 
@@ -431,7 +431,7 @@ module aptos_framework::coin {
     ): Coin<CoinType> {
         assert!(
             coin.value >= amount,
-            error::invalid_argument(EINSUFFICIENT_BALANCE)
+            error::invalid_argument(EINSUFFICIENT_BALANCE),
         );
         spec {
             update supply<CoinType> = supply<CoinType> - amount;
@@ -488,7 +488,7 @@ module aptos_framework::coin {
         // Can only succeed once on-chain governance agreed on the upgrade.
         assert!(
             borrow_global_mut<SupplyConfig>(@aptos_framework).allow_upgrades,
-            error::permission_denied(ECOIN_SUPPLY_UPGRADE_NOT_SUPPORTED)
+            error::permission_denied(ECOIN_SUPPLY_UPGRADE_NOT_SUPPORTED),
         );
 
         let maybe_supply = &mut borrow_global_mut<CoinInfo<CoinType>>(account_addr).supply;
@@ -563,11 +563,11 @@ module aptos_framework::coin {
 
         assert!(
             string::length(&name) <= MAX_COIN_NAME_LENGTH,
-            error::invalid_argument(ECOIN_NAME_TOO_LONG)
+            error::invalid_argument(ECOIN_NAME_TOO_LONG),
         );
         assert!(
             string::length(&symbol) <= MAX_COIN_SYMBOL_LENGTH,
-            error::invalid_argument(ECOIN_SYMBOL_TOO_LONG)
+            error::invalid_argument(ECOIN_SYMBOL_TOO_LONG),
         );
 
         let coin_info = CoinInfo<CoinType> {
@@ -781,7 +781,7 @@ module aptos_framework::coin {
         );
         move_to(
             source,
-            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, }
+            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, },
         );
     }
 
@@ -820,7 +820,7 @@ module aptos_framework::coin {
         );
         assert!(
             *option::borrow(&supply<FakeMoney>()) == 100,
-            6
+            6,
         );
 
         let coin = withdraw<FakeMoney>(&source, 10);
@@ -828,12 +828,12 @@ module aptos_framework::coin {
         burn(coin, &burn_cap);
         assert!(
             *option::borrow(&supply<FakeMoney>()) == 90,
-            8
+            8,
         );
 
         move_to(
             &source,
-            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, }
+            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, },
         );
     }
 
@@ -876,7 +876,7 @@ module aptos_framework::coin {
 
         move_to(
             &source,
-            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, }
+            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, },
         );
     }
 
@@ -895,7 +895,7 @@ module aptos_framework::coin {
 
         move_to(
             &source,
-            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, }
+            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, },
         );
     }
 
@@ -919,7 +919,7 @@ module aptos_framework::coin {
 
         move_to(
             &source,
-            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, }
+            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, },
         );
     }
 
@@ -937,7 +937,7 @@ module aptos_framework::coin {
         );
         assert!(
             *option::borrow(&supply<FakeMoney>()) == 100,
-            1
+            1,
         );
 
         burn_from<FakeMoney>(source_addr, 10, &burn_cap);
@@ -946,12 +946,12 @@ module aptos_framework::coin {
         );
         assert!(
             *option::borrow(&supply<FakeMoney>()) == 90,
-            3
+            3,
         );
 
         move_to(
             &source,
-            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, }
+            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, },
         );
     }
 
@@ -966,7 +966,7 @@ module aptos_framework::coin {
 
         move_to(
             &source,
-            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, }
+            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, },
         );
     }
 
@@ -992,7 +992,7 @@ module aptos_framework::coin {
 
         move_to(
             &source,
-            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, }
+            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, },
         );
     }
 
@@ -1005,7 +1005,7 @@ module aptos_framework::coin {
 
         move_to(
             &source,
-            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, }
+            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, },
         );
     }
 
@@ -1015,7 +1015,7 @@ module aptos_framework::coin {
         // An non registered account is has a frozen coin store by default
         assert!(
             is_coin_store_frozen<FakeMoney>(account_addr),
-            1
+            1,
         );
 
         account::create_account_for_test(account_addr);
@@ -1024,26 +1024,26 @@ module aptos_framework::coin {
 
         assert!(
             !is_coin_store_frozen<FakeMoney>(account_addr),
-            1
+            1,
         );
 
         // freeze account
         freeze_coin_store(account_addr, &freeze_cap);
         assert!(
             is_coin_store_frozen<FakeMoney>(account_addr),
-            1
+            1,
         );
 
         // unfreeze account
         unfreeze_coin_store(account_addr, &freeze_cap);
         assert!(
             !is_coin_store_frozen<FakeMoney>(account_addr),
-            1
+            1,
         );
 
         move_to(
             &account,
-            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, }
+            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, },
         );
     }
 
@@ -1069,7 +1069,7 @@ module aptos_framework::coin {
 
         move_to(
             &account,
-            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, }
+            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, },
         );
     }
 
@@ -1087,7 +1087,7 @@ module aptos_framework::coin {
 
         move_to(
             &account,
-            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, }
+            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, },
         );
     }
 
@@ -1105,7 +1105,7 @@ module aptos_framework::coin {
 
         move_to(
             &account,
-            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, }
+            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, },
         );
     }
 
@@ -1128,7 +1128,7 @@ module aptos_framework::coin {
 
         move_to(
             &account,
-            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, }
+            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, },
         );
     }
 
@@ -1144,7 +1144,7 @@ module aptos_framework::coin {
             );
         move_to(
             account,
-            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, }
+            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, },
         );
     }
 
@@ -1160,7 +1160,7 @@ module aptos_framework::coin {
             );
         move_to(
             account,
-            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, }
+            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, },
         );
     }
 
@@ -1185,7 +1185,7 @@ module aptos_framework::coin {
         // Supply should be parallelizable.
         assert!(
             optional_aggregator::is_parallelizable(supply),
-            0
+            0,
         );
 
         optional_aggregator::add(supply, 100);
@@ -1229,7 +1229,7 @@ module aptos_framework::coin {
         // Supply should be non-parallelizable.
         assert!(
             !optional_aggregator::is_parallelizable(supply),
-            0
+            0,
         );
 
         optional_aggregator::add(supply, 100);
@@ -1256,7 +1256,7 @@ module aptos_framework::coin {
         let supply = option::borrow_mut(maybe_supply);
         assert!(
             !optional_aggregator::is_parallelizable(supply),
-            0
+            0,
         );
         optional_aggregator::add(supply, 100);
 
@@ -1272,7 +1272,7 @@ module aptos_framework::coin {
         let supply = option::borrow_mut(maybe_supply);
         assert!(
             optional_aggregator::is_parallelizable(supply),
-            0
+            0,
         );
         assert!(
             optional_aggregator::read(supply) == 100, 0
@@ -1307,7 +1307,7 @@ module aptos_framework::coin {
 
         move_to(
             framework,
-            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, }
+            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, },
         );
     }
 
@@ -1325,7 +1325,7 @@ module aptos_framework::coin {
         );
         assert!(
             *option::borrow(&supply<FakeMoney>()) == 100,
-            0
+            0,
         );
 
         let aggregatable_coin = initialize_aggregatable_coin<FakeMoney>(&framework);
@@ -1339,7 +1339,7 @@ module aptos_framework::coin {
         let collected_coin = drain_aggregatable_coin(&mut aggregatable_coin);
         assert!(
             is_aggregatable_coin_zero(&aggregatable_coin),
-            0
+            0,
         );
         assert!(value(&collected_coin) == 10, 0);
 
@@ -1349,14 +1349,14 @@ module aptos_framework::coin {
         );
         assert!(
             *option::borrow(&supply<FakeMoney>()) == 100,
-            0
+            0,
         );
 
         burn(collected_coin, &burn_cap);
         destroy_aggregatable_coin_for_test(aggregatable_coin);
         move_to(
             &framework,
-            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, }
+            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, },
         );
     }
 }

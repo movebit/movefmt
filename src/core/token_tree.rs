@@ -171,31 +171,19 @@ impl TokenTree {
     pub fn start_pos(&self) -> u32 {
         match self {
             TokenTree::SimpleToken {
-                content: _,
-                pos,
-                tok: _,
-                note: _,
+                content: _, pos, ..
             } => *pos,
             TokenTree::Nested {
-                elements: _,
-                kind,
-                note: _,
+                elements: _, kind, ..
             } => kind.start_pos,
         }
     }
 
     pub fn end_pos(&self) -> u32 {
         match self {
-            TokenTree::SimpleToken {
-                content,
-                pos,
-                tok: _,
-                note: _,
-            } => pos + (content.len() as u32),
+            TokenTree::SimpleToken { content, pos, .. } => pos + (content.len() as u32),
             TokenTree::Nested {
-                elements: _,
-                kind,
-                note: _,
+                elements: _, kind, ..
             } => kind.end_pos,
         }
     }
@@ -213,17 +201,8 @@ impl TokenTree {
 
     pub fn simple_str(&self) -> Option<&str> {
         match self {
-            TokenTree::SimpleToken {
-                content,
-                pos: _,
-                tok: _,
-                note: _,
-            } => Some(content.as_str()),
-            TokenTree::Nested {
-                elements: _,
-                kind: _,
-                note: _,
-            } => None,
+            TokenTree::SimpleToken { content, .. } => Some(content.as_str()),
+            TokenTree::Nested { .. } => None,
         }
     }
 }
@@ -821,12 +800,7 @@ pub(crate) fn analyze_token_tree_delimiter(
     let mut has_colon = false;
     for t in token_tree.iter() {
         match t {
-            TokenTree::SimpleToken {
-                content,
-                pos: _,
-                tok: _,
-                note: _,
-            } => match content.as_str() {
+            TokenTree::SimpleToken { content, .. } => match content.as_str() {
                 ";" => {
                     d = Some(Delimiter::Semicolon);
                 }

@@ -419,7 +419,7 @@ impl CallExtractor {
         if next_t.is_none() {
             return 0;
         }
-        let next_t_start_pos = get_tok_start_pos(next_t.unwrap());
+        let next_t_start_pos = next_t.unwrap().start_pos();
         for call_loc in self.call_paren_loc_vec.iter() {
             if kind.start_pos > call_loc.start() || call_loc.end() > kind.end_pos {
                 continue;
@@ -541,11 +541,7 @@ impl CallExtractor {
                         bin_op_cnt += 1;
                     }
                 }
-                TokenTree::Nested {
-                    elements: _,
-                    kind: _,
-                    note: _,
-                } => {
+                TokenTree::Nested { .. } => {
                     nested_token_cnt += 1;
                 }
             }
@@ -569,22 +565,6 @@ impl CallExtractor {
             call_str_in_source_trim_multi_space
         );
         true
-    }
-}
-
-fn get_tok_start_pos(t: &TokenTree) -> u32 {
-    match t {
-        TokenTree::SimpleToken {
-            content: _,
-            pos,
-            tok: _,
-            note: _,
-        } => *pos,
-        TokenTree::Nested {
-            elements: _,
-            kind,
-            note: _,
-        } => kind.start_pos,
     }
 }
 

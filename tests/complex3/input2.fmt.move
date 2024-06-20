@@ -31,7 +31,7 @@ module test {
             option::contains(
                 &alice_account_resource.signer_capability_offer.for, &bob_addr
             ),
-            0
+            0,
         );
     }
 
