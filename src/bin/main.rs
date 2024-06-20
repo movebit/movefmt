@@ -286,7 +286,7 @@ fn print_usage_to_stdout(opts: &Options, reason: &str) {
 }
 
 fn print_version() {
-    println!("movefmt v1.0.0");
+    println!("movefmt v1.0.2");
 }
 
 fn determine_operation(matches: &Matches) -> Result<Operation, OperationError> {

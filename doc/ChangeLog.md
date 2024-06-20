@@ -8,12 +8,39 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.0.2">v1.0.2</a><br/>
 <a href="#v1.0.1">v1.0.1</a><br/>
 <a href="#v1.0.0">v1.0.0</a><br/>
 <a href="#v1.0.0.beta">v1.0.0.beta</a><br/>
 </td>
 </tr>
 </table>
+
+
+<a id="v1.0.2"></a>
+
+## 2024-6-20, Version v1.0.2
+
+### Features
+- Fixed a bug about tailing comment when break line on call's last parameter
+- Fixed issue10 and issue11
+- Optimize formatting for long exp
+- Optimize formatting for branch without block
+- Optimize indentation where parameters that are lambda block in function calls
+
+
+### TODO
+- Optimize formatting for complex exp
+- Optimize formatting for big pragmas
+- Optimize skipping code block in more scenarios
+
+### Commits
+* [[`9a32d39`](https://github.com/movebit/movefmt/commit/9a32d397e57a820abe2da65f8d82613a3bdb0250)] - add test case (edy)
+* [[`95cd461`](https://github.com/movebit/movefmt/commit/95cd461309968a3c759fc59c67d2aa5dd999a454)] - fix issue11 for deleting last comma in fun_call with single line (edy)
+* [[`fcdfa8c`](https://github.com/movebit/movefmt/commit/fcdfa8ce5b981b047bf55a72147ef7d1b9241973)] - optimize get_break_mode_begin_nested() (edy)
+* [[`2223c0d`](https://github.com/movebit/movefmt/commit/2223c0d4ec6b65d9b23787dcf2d5b8e80ef70227)] - fix issue10 for fun call (edy)
+* [[`d686c72`](https://github.com/movebit/movefmt/commit/d686c7270313e7ab0cba1f6e26b2445f28c28398)] - optimize formatting for branch without block; optimize let assign with branch (edy)
+* [[`1c68b43`](https://github.com/movebit/movefmt/commit/1c68b43ae2039294bfe765817aedfe5c5c3d9965)] - opimize indent when lambda as a parameter within fun_call (edy)
 
 
 <a id="v1.0.1"></a>
