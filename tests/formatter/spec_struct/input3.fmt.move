@@ -14,7 +14,6 @@ module std::ascii {
     struct String has /*comment*/ copy, drop /*comment*/, store /*comment*/ {
         // comment
         bytes: vector<u8>, // comment
-
     }
 
     spec String {

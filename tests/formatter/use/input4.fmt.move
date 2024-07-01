@@ -3,8 +3,12 @@
 module InlineComment {
     use aptos_std::type_info::{
         // use_item
-        Self, TypeInfo};
-    use aptos_framework::coin::{Self,
+        Self,
+        TypeInfo
+    };
+    use aptos_framework::coin::{
+        Self,
         // use_item
-        Coin};
+        Coin
+    };
 }

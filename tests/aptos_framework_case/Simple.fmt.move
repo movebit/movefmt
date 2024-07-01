@@ -46,11 +46,9 @@ module 0xABCD::simple {
     // No operation, in principle tests everything except computation,
     // though there is a lot happening to get to this point.
     // In a sense compute the cost of an "empty" transaction.
-    public entry fun nop(_s: &signer) {
-    }
+    public entry fun nop(_s: &signer) {}
 
-    public entry fun nop_2_signers(_s1: &signer, _s2: &signer) {
-    }
+    public entry fun nop_2_signers(_s1: &signer, _s2: &signer) {}
 
     public entry fun nop_5_signers(
         _s1: &signer,
@@ -58,8 +56,7 @@ module 0xABCD::simple {
         _s3: &signer,
         _s4: &signer,
         _s5: &signer
-    ) {
-    }
+    ) {}
 
     // Test simple CPU usage. Loop as defined by the input `count`.
     // Not a true test of CPU usage given the number of instructions
@@ -314,7 +311,9 @@ module 0xABCD::simple {
         let (new_len, resource) =
             if (len1 > len2) {
                 (len2 / 2, borrow_global_mut<Resource>(signer::address_of(owner)))
-            } else { (len1 / 2, borrow_global_mut<Resource>(other)) };
+            } else {
+                (len1 / 2, borrow_global_mut<Resource>(other))
+            };
         while (vector::length(&resource.data.data) > new_len) {
             vector::pop_back(&mut resource.data.data);
         }

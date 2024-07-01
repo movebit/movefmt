@@ -526,29 +526,6 @@ impl Format {
             .map(|x| x == Note::StructDefinition)
             .unwrap_or_default();
         let fun_body = note.map(|x| x == Note::FunBody).unwrap_or_default();
-
-        // 20240328 optimize
-        // if it's branch with block, and block had more than one token, need new line
-        if kind.kind == NestKind_::Brace
-            && elements.len() > 1
-            && (self
-                .syntax_extractor
-                .branch_extractor
-                .com_if_else
-                .then_loc_vec
-                .iter()
-                .any(|&x| x.start() == kind.start_pos)
-                || self
-                    .syntax_extractor
-                    .branch_extractor
-                    .com_if_else
-                    .else_loc_vec
-                    .iter()
-                    .any(|&x| x.start() == kind.start_pos))
-        {
-            return (true, None);
-        }
-
         let max_len_when_no_add_line = self.global_cfg.max_width() as f32 * 0.75;
         let nested_blk_str =
             &self.format_context.borrow().content[kind.start_pos as usize..kind.end_pos as usize];
@@ -557,11 +534,14 @@ impl Format {
             .split_whitespace()
             .collect::<Vec<&str>>()
             .join(" ");
-        // let nested_token_len = analyze_token_tree_length(elements, self.global_cfg.max_width());
         let nested_token_len = nested_blk_str_trim_multi_space.len();
 
         if fun_body {
             self.process_fn_header();
+        }
+
+        if elements.is_empty() {
+            return (nested_token_len as f32 > max_len_when_no_add_line, None);
         }
 
         // 20240329 updated
@@ -574,7 +554,7 @@ impl Format {
             delimiter
                 .map(|x| x == Delimiter::Semicolon)
                 .unwrap_or_default()
-                || (stct_def && !elements.is_empty())
+                || stct_def
                 || fun_body
                 || (self.get_cur_line_len() + nested_token_len > self.global_cfg.max_width()
                     && nested_token_len > 8
@@ -587,11 +567,8 @@ impl Format {
             return (true, None);
         }
 
-        let mut first_ele_len = 0;
-        if !elements.is_empty() {
-            first_ele_len =
-                analyze_token_tree_length(&[elements[0].clone()], self.global_cfg.max_width());
-        }
+        let first_ele_len =
+            analyze_token_tree_length(&[elements[0].clone()], self.global_cfg.max_width());
         match kind.kind {
             NestKind_::Type => {
                 // added in 20240112: if type in fun header, not change new line
@@ -631,9 +608,7 @@ impl Format {
                         || nested_and_comma_pair.1 >= 4)
                         && token.token_len() as f32 > max_len_when_no_add_line;
                     new_line_mode |= opt_component_break_mode;
-                } else if self.get_cur_line_len() > self.global_cfg.max_width()
-                    && !elements.is_empty()
-                {
+                } else if self.get_cur_line_len() > self.global_cfg.max_width() {
                     new_line_mode = true;
                 } else {
                     let elements_str = serde_json::to_string(&elements).unwrap_or_default();
@@ -707,10 +682,27 @@ impl Format {
             }
             NestKind_::Brace => {
                 new_line_mode = (has_special_key_for_break_line_in_code_buf(self.last_line())
-                    && nested_blk_str_trim_multi_space.len() > 4)
+                    && nested_token_len > 4)
                     || nested_token_len as f32 > max_len_when_no_add_line
                     || (self.last_line().len() + nested_token_len > self.global_cfg.max_width()
-                        && nested_blk_str_trim_multi_space.len() > 4);
+                        && nested_token_len > 4)
+                    || (contains_comment(nested_blk_str) && nested_blk_str.lines().count() > 1);
+
+                new_line_mode |= (self
+                    .syntax_extractor
+                    .branch_extractor
+                    .com_if_else
+                    .then_loc_vec
+                    .iter()
+                    .any(|&x| x.start() == kind.start_pos)
+                    || self
+                        .syntax_extractor
+                        .branch_extractor
+                        .com_if_else
+                        .else_loc_vec
+                        .iter()
+                        .any(|&x| x.start() == kind.start_pos))
+                    && nested_token_len > 8;
             }
         }
         (new_line_mode, None)
@@ -1044,12 +1036,13 @@ impl Format {
             && Tok::Percent != nested_token_head
             && kind.kind == NestKind_::Brace;
         let b_not_use_brace = Tok::ColonColon != nested_token_head && kind.kind == NestKind_::Brace;
-        let b_add_space_around_brace = b_not_arithmetic_op_brace
-            && b_not_use_brace
-            && !b_new_line_mode
-            && !elements.is_empty();
-
-        return b_add_space_around_brace;
+        let nested_blk_str = &self.format_context.borrow().content
+            [kind.start_pos as usize + 1..kind.end_pos as usize];
+        (elements.is_empty() && contains_comment(nested_blk_str))
+            || (b_not_arithmetic_op_brace
+                && b_not_use_brace
+                && !b_new_line_mode
+                && !elements.is_empty())
     }
 
     fn format_nested_token(&self, nested_token: &TokenTree, next_token: Option<&TokenTree>) {
@@ -1505,11 +1498,7 @@ impl Format {
                     let line_start = this_cmt_start_line;
                     let line_end = self.translate_line(end);
 
-                    if !content.contains(')')
-                        && !content.contains(',')
-                        && !content.contains(';')
-                        && !content.contains('.')
-                    {
+                    if !content.contains(')') && !content.contains(',') && !content.contains(';') {
                         self.push_str(" ");
                     }
                     if line_start != line_end {

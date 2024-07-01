@@ -353,9 +353,8 @@ module aptos_framework::randomness {
     /// Compute `(a + b) % m`, assuming `m >= 1, 0 <= a < m, 0<= b < m`.
     inline fun safe_add_mod(a: u256, b: u256, m: u256): u256 {
         let neg_b = m - b;
-        if (a < neg_b) {
-            a + b
-        } else {
+        if (a < neg_b) { a + b }
+        else {
             a - neg_b
         }
     }
@@ -363,9 +362,8 @@ module aptos_framework::randomness {
     #[verify_only]
     fun safe_add_mod_for_verification(a: u256, b: u256, m: u256): u256 {
         let neg_b = m - b;
-        if (a < neg_b) {
-            a + b
-        } else {
+        if (a < neg_b) { a + b }
+        else {
             a - neg_b
         }
     }
