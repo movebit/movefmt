@@ -390,6 +390,7 @@ dependencies = [
  "annotate-snippets",
  "anyhow",
  "config_proc_macro",
+ "configurations",
  "diff",
  "dirs",
  "getopts",
@@ -408,11 +409,34 @@ dependencies = [
 
 [[package]]
 name = "config_proc_macro"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.60",
+]
+
+[[package]]
+name = "configurations"
+version = "1.6.1"
+dependencies = [
+ "annotate-snippets",
+ "anyhow",
+ "config_proc_macro",
+ "diff",
+ "dirs",
+ "getopts",
+ "ignore",
+ "itertools",
+ "lazy_static",
+ "regex",
+ "serde",
+ "thiserror",
+ "toml 0.7.8",
+ "tracing",
+ "unicode-properties",
+ "unicode-segmentation",
+ "unicode-width",
 ]
 
 [[package]]

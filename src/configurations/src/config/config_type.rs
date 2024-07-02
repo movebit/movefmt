@@ -1,5 +1,3 @@
-use crate::config::options::IgnoreList;
-
 /// Trait for types that can be used in `Config`.
 pub trait ConfigType: Sized {
     /// Returns hint text for use in `Config::print_docs()`. For enum types, this is a
@@ -36,12 +34,6 @@ impl ConfigType for isize {
 impl ConfigType for String {
     fn doc_hint() -> String {
         String::from("<string>")
-    }
-}
-
-impl ConfigType for IgnoreList {
-    fn doc_hint() -> String {
-        String::from("[<string>,..]")
     }
 }
 

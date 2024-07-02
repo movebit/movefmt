@@ -688,7 +688,7 @@ impl Format {
                         && nested_token_len > 4)
                     || (contains_comment(nested_blk_str) && nested_blk_str.lines().count() > 1);
 
-                new_line_mode |= (self
+                if self
                     .syntax_extractor
                     .branch_extractor
                     .com_if_else
@@ -701,8 +701,14 @@ impl Format {
                         .com_if_else
                         .else_loc_vec
                         .iter()
-                        .any(|&x| x.start() == kind.start_pos))
-                    && nested_token_len > 8;
+                        .any(|&x| x.start() == kind.start_pos)
+                {
+                    if self.global_cfg.prefer_one_line_for_short_branch_blk() {
+                        new_line_mode |= nested_token_len > 8;
+                    } else {
+                        new_line_mode |= true;
+                    }
+                }
             }
         }
         (new_line_mode, None)

@@ -4,13 +4,10 @@ use std::io;
 use std::path::PathBuf;
 use thiserror::Error;
 
-pub use configurations::config::{load_config, CliOptions, Config, EmitMode, Verbosity};
+pub use crate::config::{load_config, CliOptions, Config, EmitMode, Verbosity};
 
 #[macro_use]
-pub mod utils;
-pub mod comment;
-pub mod shape;
-pub mod string;
+pub mod config;
 
 /// The various errors that can occur during formatting. Note that not all of
 /// these can currently be propagated to clients.
