@@ -2250,7 +2250,8 @@ module econia::incentives {
         // Assert total amount.
         assert!(
             get_utility_coin_store_balance_test()
-            == MARKET_REGISTRATION_FEE + UNDERWRITER_REGISTRATION_FEE + CUSTODIAN_REGISTRATION_FEE,
+                == MARKET_REGISTRATION_FEE + UNDERWRITER_REGISTRATION_FEE
+                    + CUSTODIAN_REGISTRATION_FEE,
             0,
         );
     }

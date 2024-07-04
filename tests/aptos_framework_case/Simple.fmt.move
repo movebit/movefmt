@@ -272,9 +272,8 @@ module 0xABCD::simple {
                 (data, borrow_global_mut<Resource>(signer::address_of(owner)))
             };
         // copy the biger data into the smaller one
-        while (vector::length(&data) > vector::length(&resource.data.data) || vector::length(
-                &resource.data.data
-            ) < 10000) {
+        while (vector::length(&data) > vector::length(&resource.data.data)
+                || vector::length(&resource.data.data) < 10000) {
             append_data(&mut resource.data.data, &data);
         }
     }

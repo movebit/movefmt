@@ -13,12 +13,10 @@ module std::bit_vector {
         // Find the greatest index in the vector such that all indices less than it are set.
         while ({
                 spec {
-                    invariant index == start_index || index - 1 < vector::length(
-                        bitvector.bit_field
-                    );
-                    invariant forall j in start_index..index: j < vector::length(
-                        bitvector.bit_field
-                    );
+                    invariant index == start_index
+                        || index - 1 < vector::length(bitvector.bit_field);
+                    invariant forall j in start_index..index: j
+                        < vector::length(bitvector.bit_field);
                 };
                 index < bitvector.length
             }) {

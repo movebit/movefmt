@@ -165,9 +165,8 @@ module ExperimentalFramework::MultiToken {
         aborts_if !exists<TokenDataCollection<TokenType>>(addr);
         aborts_if len(token_collection) <= wrapper.index;
         aborts_if item_opt != option::spec_none();
-        ensures get_tokens<TokenType>(addr)[wrapper.index].metadata == option::spec_some(
-            wrapper.metadata
-        );
+        ensures get_tokens<TokenType>(addr)[wrapper.index].metadata
+            == option::spec_some(wrapper.metadata);
     }
 
     /// Finds the index of token with the given id in the gallery.
@@ -290,8 +289,8 @@ module ExperimentalFramework::MultiToken {
         let post post_tokens = get_tokens<TokenType>(addr);
 
         aborts_if !exists<Admin>(ADMIN);
-        aborts_if exists<guid::Generator>(addr) && global<guid::Generator>(addr).counter +
-            1 > MAX_U64;
+        aborts_if exists<guid::Generator>(addr)
+            && global<guid::Generator>(addr).counter + 1 > MAX_U64;
 
         ensures result.balance == amount;
         ensures guid::id_creator_address(result.id) == addr;

@@ -171,9 +171,8 @@ module DiemFramework::PaymentScripts {
             DiemAccount::balance<Currency>(payee)
                 == old(DiemAccount::balance<Currency>(payee)) + amount;
         ensures payer_addr == payee ==>
-            DiemAccount::balance<Currency>(payee) == old(
-                DiemAccount::balance<Currency>(payee)
-            );
+            DiemAccount::balance<Currency>(payee)
+                == old(DiemAccount::balance<Currency>(payee));
 
         aborts_with [check] errors::NOT_PUBLISHED, errors::INVALID_STATE, errors::INVALID_ARGUMENT, errors::LIMIT_EXCEEDED;
 

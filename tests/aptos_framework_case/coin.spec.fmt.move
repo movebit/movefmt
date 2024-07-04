@@ -98,11 +98,10 @@ spec aptos_framework::coin {
     ): bool {
         option::spec_is_some(old_supply) ==>
             optional_aggregator::optional_aggregator_value(
-                    option::spec_borrow(old_supply)
-                )
-                == optional_aggregator::optional_aggregator_value(
-                    option::spec_borrow(supply)
-                )
+                option::spec_borrow(old_supply)
+            ) == optional_aggregator::optional_aggregator_value(
+                option::spec_borrow(supply)
+            )
     }
 
     spec schema TotalSupplyNoChange<CoinType> {
@@ -465,13 +464,13 @@ spec aptos_framework::coin {
         let acc = global<account::Account>(account_addr);
         aborts_if !exists<CoinStore<CoinType>>(account_addr)
             && acc.guid_creation_num + 2 >= account::MAX_GUID_CREATION_NUM;
-        aborts_if !exists<CoinStore<CoinType>>(account_addr) && acc.guid_creation_num + 2
-            > MAX_U64;
+        aborts_if !exists<CoinStore<CoinType>>(account_addr)
+            && acc.guid_creation_num + 2 > MAX_U64;
         /// [high-level-req-5]
-        aborts_if !exists<CoinStore<CoinType>>(account_addr) && !exists<account::Account>(
-            account_addr
-        );
-        aborts_if !exists<CoinStore<CoinType>>(account_addr) && !type_info::spec_is_struct<CoinType>();
+        aborts_if !exists<CoinStore<CoinType>>(account_addr)
+            && !exists<account::Account>(account_addr);
+        aborts_if !exists<CoinStore<CoinType>>(account_addr)
+            && !type_info::spec_is_struct<CoinType>();
         ensures exists<CoinStore<CoinType>>(account_addr);
     }
 
@@ -546,9 +545,8 @@ spec aptos_framework::coin {
     ) {
         let aggr = dst_coin.value;
         let post p_aggr = dst_coin.value;
-        aborts_if aggregator::spec_aggregator_get_val(aggr) + coin.value > aggregator::spec_get_limit(
-            aggr
-        );
+        aborts_if aggregator::spec_aggregator_get_val(aggr) + coin.value
+            > aggregator::spec_get_limit(aggr);
         aborts_if aggregator::spec_aggregator_get_val(aggr) + coin.value > MAX_U128;
         ensures aggregator::spec_aggregator_get_val(aggr) + coin.value
             == aggregator::spec_aggregator_get_val(p_aggr);
@@ -564,10 +562,10 @@ spec aptos_framework::coin {
         aborts_if amount > 0 && !exists<CoinStore<CoinType>>(account_addr);
         aborts_if amount > 0 && coin_store.coin.value < amount;
         aborts_if amount > 0
-            && aggregator::spec_aggregator_get_val(aggr) + amount > aggregator::spec_get_limit(
-                aggr
-            );
-        aborts_if amount > 0 && aggregator::spec_aggregator_get_val(aggr) + amount > MAX_U128;
+            && aggregator::spec_aggregator_get_val(aggr) + amount
+                > aggregator::spec_get_limit(aggr);
+        aborts_if amount > 0
+            && aggregator::spec_aggregator_get_val(aggr) + amount > MAX_U128;
         ensures aggregator::spec_aggregator_get_val(aggr) + amount
             == aggregator::spec_aggregator_get_val(p_aggr);
         ensures coin_store.coin.value - amount == p_coin_store.coin.value;

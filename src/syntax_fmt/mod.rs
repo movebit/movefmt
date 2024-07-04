@@ -7,3 +7,4 @@ pub mod fun_fmt;
 pub mod let_fmt;
 pub mod spec_fmt;
 pub mod use_fmt;
+pub mod bin_op_fmt;

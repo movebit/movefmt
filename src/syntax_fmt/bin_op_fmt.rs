@@ -6,52 +6,33 @@ use crate::core::token_tree::TokenTree;
 use crate::tools::utils::FileLineMappingOneFile;
 use move_compiler::parser::ast::Definition;
 use move_compiler::parser::ast::*;
-use move_compiler::shared::ast_debug;
-use move_ir_types::location::*;
 use std::cell::RefCell;
-use std::collections::HashMap;
 
 #[derive(Debug, Default)]
-pub struct LetExtractor {
+pub struct BinOpExtractor {
     pub bin_op_exp_vec: Vec<Exp>,
-    pub long_bin_op_exp_vec: Vec<Exp>,
-    pub let_assign_loc_vec: Vec<Loc>,
-    pub let_assign_rhs_exp: Vec<Exp>,
-    pub split_bin_op_vec: RefCell<Vec<bool>>,
-    pub break_line_by_let_rhs: RefCell<HashMap<ByteIndex, ByteIndex>>,
+    pub split_bin_op_vec: RefCell<Vec<usize>>,
     pub source: String,
     pub line_mapping: FileLineMappingOneFile,
 }
 
-impl LetExtractor {
+impl BinOpExtractor {
     pub fn new(fmt_buffer: String) -> Self {
-        let mut this_let_extractor = Self {
+        let mut this_bin_op_extractor = Self {
             bin_op_exp_vec: vec![],
-            long_bin_op_exp_vec: vec![],
-            let_assign_loc_vec: vec![],
-            let_assign_rhs_exp: vec![],
             split_bin_op_vec: vec![].into(),
-            break_line_by_let_rhs: HashMap::default().into(),
             source: fmt_buffer.clone(),
             line_mapping: FileLineMappingOneFile::default(),
         };
 
-        this_let_extractor.line_mapping.update(&fmt_buffer);
-        this_let_extractor
+        this_bin_op_extractor.line_mapping.update(&fmt_buffer);
+        this_bin_op_extractor
     }
 
     fn collect_seq_item(&mut self, s: &SequenceItem) {
         match &s.value {
             SequenceItem_::Seq(e) => self.collect_expr(e),
-            SequenceItem_::Bind(b, _, e) => {
-                if b.loc.end() < e.loc.start() {
-                    self.let_assign_loc_vec.push(Loc::new(
-                        b.loc.file_hash(),
-                        b.loc.end(),
-                        e.loc.start(),
-                    ));
-                    self.let_assign_rhs_exp.push(*e.clone());
-                }
+            SequenceItem_::Bind(_, _, e) => {
                 self.collect_expr(e);
             }
             _ => {}
@@ -251,94 +232,41 @@ impl LetExtractor {
     }
 }
 
-impl LetExtractor {
-    fn collect_long_op_exp(&mut self) {
-        self.multi_ampamp_or_pipepipe_exp();
-        for bin_op_exp in self.bin_op_exp_vec.iter() {
-            let bin_op_exp_str = &self.source
-                [bin_op_exp.loc.start() as usize..bin_op_exp.loc.end() as usize]
-                .replace('\n', "")
-                .split_whitespace()
-                .collect::<Vec<&str>>()
-                .join(" ");
-
-            let bin_op_right_is_long = match &bin_op_exp.value {
-                Exp_::BinopExp(_, op, r) => {
-                    let bin_op_right_str =
-                        &self.source[r.loc.start() as usize..r.loc.end() as usize].len();
-                    match op.value {
-                        BinOp_::Implies | BinOp_::Iff => *bin_op_right_str > 16,
-                        // _ => *bin_op_right_str > 64,
-                        _ => false,
-                    }
-                }
-                Exp_::Assign(_, r) => {
-                    self.source[r.loc.start() as usize..r.loc.end() as usize]
-                        .replace('\n', "")
-                        .split_whitespace()
-                        .collect::<Vec<&str>>()
-                        .join(" ")
-                        .len()
-                        > 64
-                }
-                _ => false,
-            };
-
-            if bin_op_exp_str.len() > 64 && bin_op_right_is_long {
-                self.long_bin_op_exp_vec.push(bin_op_exp.clone());
-                self.split_bin_op_vec.borrow_mut().push(false);
-            }
-        }
-    }
-
-    #[allow(unused_assignments)]
-    fn multi_ampamp_or_pipepipe_exp(&mut self) {
-        let mut idx = 0;
-        while idx < self.bin_op_exp_vec.len() {
-            let bin_op_exp = &self.bin_op_exp_vec[idx];
-            let bin_op_exp_str = ast_debug::display(&bin_op_exp.value);
-            if bin_op_exp_str.matches("&&").count() < 2 && bin_op_exp_str.matches("||").count() < 2
-            {
-                idx += 1;
-                continue;
-            }
-
-            if let Exp_::BinopExp(_, end_op, _) = &bin_op_exp.value {
-                if matches!(end_op.value, BinOp_::And | BinOp_::Or) {
-                    self.long_bin_op_exp_vec.push(bin_op_exp.clone());
-                    self.split_bin_op_vec.borrow_mut().push(false);
-                }
-            }
-
-            for nested_continue_ampamp_idx in idx + 1..self.bin_op_exp_vec.len() {
-                let nested_op_exp = &self.bin_op_exp_vec[nested_continue_ampamp_idx];
-                if let Exp_::BinopExp(_, nested_op, _) = &nested_op_exp.value {
-                    if matches!(nested_op.value, BinOp_::And | BinOp_::Or) {
-                        if bin_op_exp.loc.start() <= nested_op_exp.loc.start()
-                            && nested_op_exp.loc.end() <= bin_op_exp.loc.end()
-                        {
-                            idx = nested_continue_ampamp_idx + 1;
-                            self.long_bin_op_exp_vec.push(nested_op_exp.clone());
-                            self.split_bin_op_vec.borrow_mut().push(false);
-                        }
-                    }
-                }
-            }
-            idx += 1;
-        }
-    }
-}
-
-impl LetExtractor {
+impl BinOpExtractor {
     pub(crate) fn preprocess(&mut self, module_defs: Vec<Definition>) {
         for d in module_defs.iter() {
             self.collect_definition(d);
         }
-        self.collect_long_op_exp();
     }
 
-    pub(crate) fn is_long_bin_op(&self, token: TokenTree) -> bool {
-        for bin_op_exp in self.long_bin_op_exp_vec.iter() {
+    pub(crate) fn get_bin_op_right_part_len(&self, token: TokenTree) -> (usize, usize) {
+        for (idx, bin_op_exp) in self.bin_op_exp_vec.iter().enumerate() {
+            if let Exp_::BinopExp(_, m, r) = &bin_op_exp.value {
+                if token.end_pos() == m.loc.end() {
+                    // let r_exp_str = ast_debug::display(&r.value);
+                    // if r_exp_str.contains("(")
+                    // || r_exp_str.contains("{") {
+                    //     return (idx, 0);
+                    // }
+                    return (idx, self.source[r.loc.start() as usize..r.loc.end() as usize]
+                        .replace('\n', "")
+                        .split_whitespace()
+                        .collect::<Vec<&str>>()
+                        .join(" ")
+                        .len());
+                }
+            }
+        }
+        (0, 0)
+    }
+
+    pub(crate) fn record_long_op(&self, idx: usize) {
+        self.split_bin_op_vec.borrow_mut().push(idx);
+    }
+
+    pub(crate) fn need_split_long_bin_op_exp(&self, token: TokenTree) -> bool {
+        for idx in self.split_bin_op_vec.borrow().iter() {
+            let bin_op_exp = &self.bin_op_exp_vec[*idx];
             if let Exp_::BinopExp(_, m, _) = &bin_op_exp.value {
                 if token.end_pos() == m.loc.end() {
                     return true;
@@ -348,41 +276,12 @@ impl LetExtractor {
         false
     }
 
-    pub(crate) fn is_long_assign(&self, token: TokenTree) -> bool {
-        for (idx, let_assign) in self.let_assign_loc_vec.iter().enumerate() {
-            if let_assign.start() <= token.end_pos() && token.end_pos() <= let_assign.end() {
-                let rhs_exp_loc = &self.let_assign_rhs_exp[idx].loc;
-                let rhs_exp_str =
-                    &self.source[rhs_exp_loc.start() as usize..rhs_exp_loc.end() as usize];
-                let is_long_rhs = rhs_exp_str.len() > 64;
-                if is_long_rhs {
-                    self.break_line_by_let_rhs
-                        .borrow_mut()
-                        .insert(rhs_exp_loc.end(), token.end_pos());
-                }
-                return is_long_rhs;
-            }
-        }
-        false
-    }
-
-    pub(crate) fn need_split_long_bin_op_exp(&self, token: TokenTree) -> bool {
-        for (idx, bin_op_exp) in self.long_bin_op_exp_vec.iter().enumerate() {
-            if let Exp_::BinopExp(_, m, _) = &bin_op_exp.value {
-                if token.end_pos() == m.loc.end() && !self.split_bin_op_vec.borrow_mut()[idx] {
-                    self.split_bin_op_vec.borrow_mut()[idx] = true;
-                    return true;
-                }
-            }
-        }
-        false
-    }
-
     pub(crate) fn is_long_bin_op_exp_end(&self, token: TokenTree) -> usize {
         let mut inc_depth_cnt = 0;
-        for (idx, bin_op_exp) in self.long_bin_op_exp_vec.iter().enumerate() {
+        for idx in self.split_bin_op_vec.borrow().iter() {
+            let bin_op_exp = &self.bin_op_exp_vec[*idx];
             if let Exp_::BinopExp(_, _, r) = &bin_op_exp.value {
-                if token.end_pos() == r.loc.end() && self.split_bin_op_vec.borrow()[idx] {
+                if token.end_pos() == r.loc.end() {
                     inc_depth_cnt += 1;
                 }
             }
@@ -390,31 +289,12 @@ impl LetExtractor {
         inc_depth_cnt
     }
 
-    pub(crate) fn need_split_long_let_assign_rhs(&self, token: TokenTree) -> bool {
-        for long_let_rhs_pos in self.break_line_by_let_rhs.borrow().iter() {
-            if token.end_pos() == *long_let_rhs_pos.1 {
-                return true;
-            }
-        }
-        false
-    }
-
-    pub(crate) fn is_long_let_assign_rhs_end(&self, token: TokenTree) -> usize {
-        let mut inc_depth_cnt = 0;
-        for long_let_rhs_pos in self.break_line_by_let_rhs.borrow().iter() {
-            if token.end_pos() == *long_let_rhs_pos.0 {
-                inc_depth_cnt += 1;
-            }
-        }
-        inc_depth_cnt
-    }
-
     pub(crate) fn need_inc_depth_by_long_op(&self, token: TokenTree) -> bool {
-        self.need_split_long_bin_op_exp(token.clone()) || self.need_split_long_let_assign_rhs(token)
+        self.need_split_long_bin_op_exp(token.clone())
     }
 
     pub(crate) fn need_dec_depth_by_long_op(&self, token: TokenTree) -> usize {
-        self.is_long_bin_op_exp_end(token.clone()) + self.is_long_let_assign_rhs_end(token)
+        self.is_long_bin_op_exp_end(token.clone())
     }
 }
 
@@ -425,13 +305,13 @@ fn get_bin_op_exp(fmt_buffer: String) {
     use move_compiler::shared::CompilationEnv;
     use move_compiler::Flags;
     use std::collections::BTreeSet;
-    let mut let_extractor = LetExtractor::new(fmt_buffer.clone());
+    let mut bin_op_extractor = BinOpExtractor::new(fmt_buffer.clone());
     let mut env = CompilationEnv::new(Flags::testing(), BTreeSet::new());
     let (defs, _) = parse_file_string(&mut env, FileHash::empty(), &fmt_buffer).unwrap();
-    let_extractor.preprocess(defs);
-    for bin_op_exp in let_extractor.bin_op_exp_vec.iter() {
+    bin_op_extractor.preprocess(defs);
+    for bin_op_exp in bin_op_extractor.bin_op_exp_vec.iter() {
         let bin_op_exp_str =
-            &let_extractor.source[bin_op_exp.loc.start() as usize..bin_op_exp.loc.end() as usize];
+            &bin_op_extractor.source[bin_op_exp.loc.start() as usize..bin_op_exp.loc.end() as usize];
         if bin_op_exp_str.len() < 64 {
             continue;
         }
@@ -441,15 +321,15 @@ fn get_bin_op_exp(fmt_buffer: String) {
         if let Exp_::BinopExp(l, m, r) = &bin_op_exp.value {
             eprintln!(
                 "bin_op_exp LLL = {:?}",
-                &let_extractor.source[l.loc.start() as usize..l.loc.end() as usize]
+                &bin_op_extractor.source[l.loc.start() as usize..l.loc.end() as usize]
             );
             eprintln!(
                 "bin_op_exp MMM= {:?}",
-                &let_extractor.source[m.loc.start() as usize..m.loc.end() as usize]
+                &bin_op_extractor.source[m.loc.start() as usize..m.loc.end() as usize]
             );
             eprintln!(
                 "bin_op_exp RRR = {:?}",
-                &let_extractor.source[r.loc.start() as usize..r.loc.end() as usize]
+                &bin_op_extractor.source[r.loc.start() as usize..r.loc.end() as usize]
             );
         }
 
@@ -457,26 +337,6 @@ fn get_bin_op_exp(fmt_buffer: String) {
     }
 }
 
-#[allow(dead_code)]
-fn get_long_assign(fmt_buffer: String) {
-    use crate::tools::syntax::parse_file_string;
-    use move_command_line_common::files::FileHash;
-    use move_compiler::shared::CompilationEnv;
-    use move_compiler::Flags;
-    use std::collections::BTreeSet;
-    let mut let_extractor = LetExtractor::new(fmt_buffer.clone());
-    let mut env = CompilationEnv::new(Flags::testing(), BTreeSet::new());
-    let (defs, _) = parse_file_string(&mut env, FileHash::empty(), &fmt_buffer).unwrap();
-    let_extractor.preprocess(defs);
-    for (idx, _) in let_extractor.let_assign_loc_vec.iter().enumerate() {
-        let rhs_exp_loc = &let_extractor.let_assign_rhs_exp[idx].loc;
-        let rhs_exp_str =
-            &let_extractor.source[rhs_exp_loc.start() as usize..rhs_exp_loc.end() as usize];
-        if rhs_exp_str.len() > 64 {
-            eprintln!("rhs_exp_str: {:?}", rhs_exp_str);
-        }
-    }
-}
 
 #[test]
 fn test_get_bin_op_exp() {
@@ -508,23 +368,6 @@ fn test_get_bin_op_exp() {
                     b3) && name != spec_utf8(b4) && name != spec_utf8(b5) && name
                     != spec_utf8(b6) && !string::spec_internal_check_utf8(
                     b7);
-            }
-        }
-"
-        .to_string());
-}
-
-#[test]
-fn test_get_long_assign() {
-    get_long_assign(
-        "
-        module test {            
-            fun test() {
-                let key_rotation_events = event::new_event_handle<KeyRotationEvent>(
-                    guid_for_rotation
-                );
-
-                let key_rotation_events = event::new_event_handle<KeyRotationEvent>(guid_for_rotation);
             }
         }
 "

@@ -24,7 +24,8 @@ module test {
         let resource_addr = signer::address_of(&resource_account);
         assert!(resource_addr == get_signer_capability_address(&resource_account_cap), 1);
         assert!(
-            borrow_global<Account>(alice_addr).authentication_key11111111111111111 == new_auth_key,
+            borrow_global<Account>(alice_addr).authentication_key11111111111111111
+                == new_auth_key,
             0,
         );
     }
