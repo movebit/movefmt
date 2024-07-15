@@ -19,10 +19,20 @@ use std::path::{Path, PathBuf};
 use thiserror::Error;
 use tracing_subscriber::EnvFilter;
 
+extern crate colored;
+use colored::Colorize;
+
 fn main() {
     tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_env("MOVEFMT_LOG"))
+        .with_env_filter(
+            EnvFilter::try_from_env("MOVEFMT_LOG").unwrap_or_else(|_| EnvFilter::new("warn")),
+        )
         .init();
+    tracing::warn!("{}", "
+            Currently movefmt is still in the beta testing phase.
+            The formatting results of the beta version may be incompatible with the official release version.
+        ".yellow()
+    );
     let opts = make_opts();
 
     let exit_code = match execute(&opts) {
