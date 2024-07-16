@@ -409,8 +409,6 @@ struct GetOptsOptions {
     config_path: Option<PathBuf>,
     emit_mode: Option<EmitMode>,
     inline_config: HashMap<String, String>,
-    src_file_path: Option<PathBuf>,
-    src_dir_path: Option<PathBuf>,
 }
 
 impl GetOptsOptions {
@@ -419,8 +417,6 @@ impl GetOptsOptions {
             quiet: matches.opt_present("quiet"),
             verbose: matches.opt_present("verbose"),
             config_path: matches.opt_str("config-path").map(PathBuf::from),
-            src_file_path: matches.opt_str("file-path").map(PathBuf::from),
-            src_dir_path: matches.opt_str("dir-path").map(PathBuf::from),
             ..Default::default()
         };
         if options.verbose && options.quiet {
