@@ -105,7 +105,7 @@ eg:
 `movefmt --emit="new_files" --dir-path=/absolute/path/to/your/sources`
 
 ### 8.example
-Format two move files, separated by spaces.
+#### case1: Format two move files, separated by spaces.
 ```bash
 edy@edydeMBP-4 movefmt % export MOVEFMT_LOG=movefmt=WARN
 edy@edydeMBP-4 movefmt % movefmt -v tests/issues/issue2/input1.move tests/issues/issue3/input1.move
@@ -115,4 +115,38 @@ Using movefmt local config file /Users/edy/workspace/movebit/movefmt/movefmt.tom
 Using movefmt local config file /Users/edy/workspace/movebit/movefmt/movefmt.toml for /Users/edy/workspace/movebit/movefmt/tests/issues/issue3/input1.move
 Spent 0.000 secs in the parsing phase, and 0.001 secs in the formatting phase
 edy@edydeMBP-4 movefmt % 
+```
+
+#### case2: Format with option --file-path or --dir-path
+```bash
+edy@edydeMBP-4 movefmt % movefmt --emit="new_files" --file-path=tests/complex4/input1.move -v
+2024-07-16T09:31:14.237365Z  WARN movefmt: 
+            Currently movefmt is still in the beta testing phase.
+            The formatting results of the beta version may be incompatible with the official release version.
+        
+options = GetOptsOptions { quiet: false, verbose: true, config_path: None, emit_mode: Some(NewFiles), inline_config: {}, src_file_path: Some("tests/complex4/input1.move"), src_dir_path: None }
+Using movefmt local config file /Users/edy/workspace/movebit/movefmt/movefmt.toml for tests/complex4/input1.move
+Formatting tests/complex4/input1.move
+Spent 0.001 secs in the parsing phase, and 0.001 secs in the formatting phase
+1 files successfully formatted
+edy@edydeMBP-4 movefmt %
+
+
+edy@edydeMBP-4 movefmt %
+edy@edydeMBP-4 movefmt % movefmt --emit="new_files" --dir-path=tests -v
+2024-07-16T09:31:34.969202Z  WARN movefmt: 
+            Currently movefmt is still in the beta testing phase.
+            The formatting results of the beta version may be incompatible with the official release version.
+        
+options = GetOptsOptions { quiet: false, verbose: true, config_path: None, emit_mode: Some(NewFiles), inline_config: {}, src_file_path: None, src_dir_path: Some("tests") }
+Using movefmt local config file /Users/edy/workspace/movebit/movefmt/movefmt.toml for tests/complex/input1.move
+Formatting tests/complex/input1.move
+Spent 0.000 secs in the parsing phase, and 0.000 secs in the formatting phase
+# ...
+Formatting tests/issues/issue1/input2.move
+Spent 0.000 secs in the parsing phase, and 0.000 secs in the formatting phase
+1 files skipped because of parse failed
+126 files successfully formatted
+edy@edydeMBP-4 movefmt % 
+
 ```
