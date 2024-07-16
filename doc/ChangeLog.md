@@ -8,6 +8,7 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.0.3">v1.0.3</a><br/>
 <a href="#v1.0.2">v1.0.2</a><br/>
 <a href="#v1.0.1">v1.0.1</a><br/>
 <a href="#v1.0.0">v1.0.0</a><br/>
@@ -15,6 +16,30 @@
 </td>
 </tr>
 </table>
+
+
+<a id="v1.0.3"></a>
+
+## 2024-7-16, Version v1.0.3
+
+### Features
+- Fixed a bug about branch statement block contains comments
+- Optimize formatting for complex exp
+- Add config.option[prefer_one_line_for_short_branch_blk] and cli.option{--file-path, --dir-path}
+
+### TODO
+- Optimize skipping code block in more scenarios
+- Optimize issues{#9, #13, #14, #16, #19, #20, #21}
+
+### Commits
+* [[`6e163fc`](https://github.com/movebit/movefmt/commit/6e163fceb493d46d358787f10fdfa87ea60715f3)] - optimize main.rs (qpzmV)
+* [[`dfd5705`](https://github.com/movebit/movefmt/commit/dfd57058f524d47d2e3083c7e07fce829793e575)] - Update how_to_use.md (qpzmV)
+* [[`0d15592`](https://github.com/movebit/movefmt/commit/0d1559215128552b104348e0ed74648803556b07)] - add option: --file-path, --dir-path (edy)
+* [[`72950e3`](https://github.com/movebit/movefmt/commit/72950e32ebc6f33e52cc197641ab2d838a63faef)] - Add warn msg, currently in beta testing version (qpzmV)
+* [[`4657588`](https://github.com/movebit/movefmt/commit/4657588a1f8aa026798635e7da37ce9fc44ef983)] - Update Cargo.toml (qpzmV)
+* [[`ca29595`](https://github.com/movebit/movefmt/commit/ca29595713e54d0635bac3a3eb4add2277d83fa9)] - fixed #issue17: Optimize the formatting logic of complex expression (edy)
+* [[`85a727d`](https://github.com/movebit/movefmt/commit/85a727d6ecac301228f9ff1d58adea98d56f003c)] - support option[prefer_one_line_for_short_branch_blk] in the movefmt.toml (edy)
+* [[`3181b03`](https://github.com/movebit/movefmt/commit/3181b037e97a7c27879f3ef831773d8251c77de0)] - fixed bug[#issue15]: branch statement block contains comments (edy)
 
 
 <a id="v1.0.2"></a>
@@ -27,7 +52,6 @@
 - Optimize formatting for long exp
 - Optimize formatting for branch without block
 - Optimize indentation where parameters that are lambda block in function calls
-
 
 ### TODO
 - Optimize formatting for complex exp
