@@ -92,8 +92,19 @@ eg:
 
 `movefmt --config max_width="90",indent_size="4" -v --emit="stdout" /path/to/your/file_name.move`
 
+### 6.--file-path
+Format the full path of the specified Move file.
+eg:
 
-### 6.example
+`movefmt --emit="new_files" --file-path=/absolute/path/to/your/input1.move`
+
+### 7.--dir-path
+Format all Move files in the specified directory.
+eg:
+
+`movefmt --emit="new_files" --dir-path=/absolute/path/to/your/sources`
+
+### 8.example
 Format two move files, separated by spaces.
 ```bash
 edy@edydeMBP-4 movefmt % export MOVEFMT_LOG=movefmt=WARN

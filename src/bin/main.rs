@@ -115,7 +115,18 @@ fn make_opts() -> Options {
         "Set options from command line. These settings take priority over .movefmt.toml",
         "[key1=val1,key2=val2...]",
     );
-
+    opts.optopt(
+        "",
+        "file-path",
+        "Format the full path of the specified Move file",
+        "[Absolute path of the specified Move file]",
+    );
+    opts.optopt(
+        "",
+        "dir-path",
+        "Format all Move files in the specified directory",
+        "[Absolute path of specified directory]",
+    );
     opts.optflag("v", "verbose", "Print verbose output");
     opts.optflag("q", "quiet", "Print less output");
     opts.optflag("V", "version", "Show version information");
@@ -333,6 +344,32 @@ fn determine_operation(matches: &Matches) -> Result<Operation, OperationError> {
         })
         .collect();
 
+    if matches.opt_present("file-path") {
+        if let Some(move_file_path) = matches.opt_str("file-path") {
+            files.push(move_file_path.into());
+        }
+    }
+
+    if matches.opt_present("dir-path") {
+        if let Some(move_dir_path) = matches.opt_str("dir-path") {
+            for x in walkdir::WalkDir::new(PathBuf::from(move_dir_path)) {
+                let x = match x {
+                    Ok(x) => x,
+                    Err(_) => {
+                        break;
+                    }
+                };
+                if x.file_type().is_file()
+                    && x.file_name().to_str().unwrap().ends_with(".move")
+                    && !x.file_name().to_str().unwrap().contains(".fmt")
+                    && !x.file_name().to_str().unwrap().contains(".out")
+                {
+                    files.push(x.clone().into_path());
+                }
+            }
+        }
+    }
+
     if files.is_empty() {
         eprintln!("no file argument is supplied, movefmt runs on current directory by default, \nformatting all .move files within it......");
         eprintln!(
@@ -372,20 +409,24 @@ struct GetOptsOptions {
     config_path: Option<PathBuf>,
     emit_mode: Option<EmitMode>,
     inline_config: HashMap<String, String>,
+    src_file_path: Option<PathBuf>,
+    src_dir_path: Option<PathBuf>,
 }
 
 impl GetOptsOptions {
     pub fn from_matches(matches: &Matches) -> Result<GetOptsOptions> {
         let mut options = GetOptsOptions {
-            verbose: matches.opt_present("verbose"),
             quiet: matches.opt_present("quiet"),
+            verbose: matches.opt_present("verbose"),
+            config_path: matches.opt_str("config-path").map(PathBuf::from),
+            src_file_path: matches.opt_str("file-path").map(PathBuf::from),
+            src_dir_path: matches.opt_str("dir-path").map(PathBuf::from),
             ..Default::default()
         };
         if options.verbose && options.quiet {
             return Err(format_err!("Can't use both `--verbose` and `--quiet`"));
         }
 
-        options.config_path = matches.opt_str("config-path").map(PathBuf::from);
         if let Some(ref emit_str) = matches.opt_str("emit") {
             options.emit_mode = Some(emit_mode_from_emit_str(emit_str)?);
         }
