@@ -213,7 +213,12 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
         }
         (_, TokType::MathSign) => true,
         (TokType::Less, _) => is_bin_current,
-        (_, TokType::Amp) => is_bin_next,
+        (TokType::Alphabet, TokType::Amp) => {
+            if is_bin_next {
+                return true;
+            }
+            matches!(curr_end_tok, Tok::Return | Tok::If | Tok::Else)
+        }
         (TokType::Amp, _) => is_bin_current,
         (_, TokType::Star) => {
             if is_bin_next {
@@ -227,7 +232,14 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                 Tok::NumValue | Tok::NumTypedValue | Tok::Acquires | Tok::Identifier | Tok::Star
             ) || matches!(
                 curr_end_tok,
-                Tok::RParen | Tok::Comma | Tok::Slash | Tok::Pipe | Tok::PipePipe
+                Tok::RParen
+                    | Tok::Comma
+                    | Tok::Slash
+                    | Tok::Pipe
+                    | Tok::PipePipe
+                    | Tok::Return
+                    | Tok::If
+                    | Tok::Else
             )
         }
 
