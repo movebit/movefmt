@@ -309,7 +309,8 @@ module DiemFramework::DiemAccount {
             DualAttestation::assert_payment_ok<Token>(
                 payer,
                 payee,
-                deposit_value, copy metadata,
+                deposit_value,
+                copy metadata,
                 metadata_signature,
             );
         };

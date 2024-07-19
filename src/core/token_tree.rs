@@ -192,6 +192,34 @@ impl TokenTree {
         self.end_pos() - self.start_pos()
     }
 
+    pub fn get_start_tok(&self) -> Tok {
+        match self {
+            TokenTree::SimpleToken {
+                content: _,
+                pos: _,
+                tok,
+                ..
+            } => *tok,
+            TokenTree::Nested {
+                elements: _, kind, ..
+            } => kind.kind.start_tok(),
+        }
+    }
+
+    pub fn get_end_tok(&self) -> Tok {
+        match self {
+            TokenTree::SimpleToken {
+                content: _,
+                pos: _,
+                tok,
+                ..
+            } => *tok,
+            TokenTree::Nested {
+                elements: _, kind, ..
+            } => kind.kind.end_tok(),
+        }
+    }
+
     pub fn is_pound(&self) -> bool {
         match self {
             TokenTree::SimpleToken { tok, .. } => *tok == Tok::NumSign,

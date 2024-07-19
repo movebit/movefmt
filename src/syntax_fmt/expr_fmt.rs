@@ -2,7 +2,8 @@
 // Copyright (c) The BitsLab.MoveBit Contributors
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::core::token_tree::{NestKind_, Note, TokenTree};
+// use crate::core::token_tree::{NestKind_, Note, TokenTree};
+use crate::core::token_tree::*;
 use move_compiler::parser::lexer::Tok;
 
 pub enum TokType {
@@ -81,37 +82,6 @@ impl From<Tok> for TokType {
         }
     }
 }
-
-fn get_start_tok(t: &TokenTree) -> Tok {
-    match t {
-        TokenTree::SimpleToken {
-            content: _,
-            pos: _,
-            tok,
-            note: _,
-        } => *tok,
-        TokenTree::Nested {
-            elements: _, kind, ..
-        } => kind.kind.start_tok(),
-    }
-}
-
-fn get_end_tok(t: &TokenTree) -> Tok {
-    match t {
-        TokenTree::SimpleToken {
-            content: _,
-            pos: _,
-            tok,
-            note: _,
-        } => *tok,
-        TokenTree::Nested {
-            elements: _,
-            kind,
-            note: _,
-        } => kind.kind.end_tok(),
-    }
-}
-
 fn is_to_or_except(token: &Option<&TokenTree>) -> bool {
     match token {
         None => false,
@@ -177,9 +147,9 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
 
     let is_to_execpt = is_to_or_except(&Some(current)) || is_to_or_except(&next);
 
-    let curr_start_tok = get_start_tok(current);
-    let curr_end_tok = get_end_tok(current);
-    let next_start_tok = get_start_tok(next_token_tree);
+    let curr_start_tok = current.get_start_tok();
+    let curr_end_tok = current.get_end_tok();
+    let next_start_tok = next_token_tree.get_start_tok();
 
     if Tok::Greater == curr_end_tok {
         if let TokType::Alphabet = TokType::from(next_start_tok) {
