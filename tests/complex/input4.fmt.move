@@ -75,7 +75,11 @@ module oracle::oracle {
             oracle.feed = feed;
             oracle.adapter = adapter;
         } else {
-            table::add(&mut oracle_store.oracles, coin_type, Oracle { feed, adapter });
+            table::add(
+                &mut oracle_store.oracles,
+                coin_type,
+                Oracle { feed, adapter },
+            );
         };
 
         emit_event(

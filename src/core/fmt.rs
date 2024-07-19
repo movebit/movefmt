@@ -244,6 +244,10 @@ impl Format {
         &self,
         current: &TokenTree,
         next: Option<&TokenTree>,
+        next_tok: Tok,
+        index: usize,
+        kind: &NestKind,
+        elements: &[TokenTree],
     ) -> bool {
         if matches!(current.simple_str().unwrap_or_default(), "==>" | "<==>") {
             let next_token_start_pos = next.unwrap().start_pos();
@@ -256,6 +260,30 @@ impl Format {
             {
                 return true;
             }
+        }
+
+        // updated in 20240607: fix https://github.com/movebit/movefmt/issues/7
+        if current.simple_str().unwrap_or_default() == "="
+            && next.unwrap().simple_str().unwrap_or_default() != "vector"
+            && next_tok != Tok::LBrace
+            && self
+                .syntax_extractor
+                .call_extractor
+                .component_is_complex_blk(
+                    self.global_cfg.clone(),
+                    kind,
+                    elements,
+                    index as i64,
+                    self.get_cur_line_len(),
+                )
+                != 2
+            && self.syntax_extractor.let_extractor.is_long_assign(
+                current.clone(),
+                self.global_cfg.clone(),
+                self.last_line().len() + 2,
+            )
+        {
+            return true;
         }
         false
     }
@@ -276,7 +304,7 @@ impl Format {
         }
         if matches!(
             next_token,
-            Tok::EqualEqualGreater | Tok::LessEqualEqualGreater | Tok::Identifier
+            Tok::EqualEqualGreater | Tok::LessEqualEqualGreater | Tok::Identifier | Tok::Equal
         ) {
             return false;
         }
@@ -284,6 +312,22 @@ impl Format {
         if len_plus_cur_token > self.global_cfg.max_width() {
             return false;
         }
+
+        if let TokenTree::Nested { elements, .. } = current {
+            let delimiter = analyze_token_tree_delimiter(elements).0;
+            let cur_nested_break_mode = self.get_break_mode_begin_nested(current, delimiter);
+            if cur_nested_break_mode.0 || cur_nested_break_mode.1 == Some(true) {
+                return false;
+            }
+            for nested_nested_in_current_tree in elements {
+                if let TokenTree::Nested { elements: _ele, kind: tmp_kind, .. } = nested_nested_in_current_tree {
+                    if nested_nested_in_current_tree.token_len() > 32 && tmp_kind.kind == NestKind_::Brace {
+                        return false;
+                    }
+                }
+            }
+        };
+
         if next_token != Tok::Identifier {
             let r_exp_len_tuple = self
                 .syntax_extractor
@@ -292,13 +336,11 @@ impl Format {
             if r_exp_len_tuple == (0, 0) {
                 return false;
             }
-            if next_token == Tok::AmpAmp {
-                tracing::debug!(
-                    "self.last_line().len() = {:?}, r_exp_len_tuple = {:?}",
-                    self.last_line().len(),
-                    r_exp_len_tuple
-                );
-            }
+            tracing::debug!(
+                "self.last_line().len() = {:?}, r_exp_len_tuple = {:?}",
+                self.last_line().len(),
+                r_exp_len_tuple
+            );
             if len_plus_cur_token + r_exp_len_tuple.1 > self.global_cfg.max_width() {
                 self.syntax_extractor
                     .bin_op_extractor
@@ -395,7 +437,6 @@ impl Format {
         } else {
             self.get_new_line_mode_for_each_token_in_nested(kind, t, next_t)
         };
-        new_line |= self.check_cur_token_is_long_bin_op(t, next_t);
 
         // comma in fun resource access specifier not change new line
         if d == t_str && d.is_some() {
@@ -488,36 +529,10 @@ impl Format {
             }
         }
 
+        new_line |=
+            self.check_cur_token_is_long_bin_op(t, next_t, next_token, index, kind, &elements);
         if !new_line && next_t.is_some() {
-            let next_token_start_pos = next_t.unwrap().start_pos();
-            if self.translate_line(next_token_start_pos) != self.translate_line(t.end_pos())
-                && next_token != Tok::If
-            {
-                return new_line;
-            }
             if self.check_next_token_is_long_bin_op(t, next_t, next_token) {
-                return true;
-            }
-            // updated in 20240607: fix https://github.com/movebit/movefmt/issues/7
-            if t.simple_str().unwrap_or_default() == "="
-                && next_t.unwrap().simple_str().unwrap_or_default() != "vector"
-                && next_token != Tok::LBrace
-                && self
-                    .syntax_extractor
-                    .call_extractor
-                    .component_is_complex_blk(
-                        self.global_cfg.clone(),
-                        kind,
-                        elements,
-                        index as i64,
-                        self.get_cur_line_len(),
-                    )
-                    != 2
-                && self
-                    .syntax_extractor
-                    .let_extractor
-                    .is_long_assign(t.clone())
-            {
                 return true;
             }
         }
@@ -625,7 +640,7 @@ impl Format {
             }
             NestKind_::ParentTheses => {
                 let nested_and_comma_pair = expr_fmt::get_nested_and_comma_num(elements);
-                let mut opt_component_break_mode = nested_token_len >= self.global_cfg.max_width();
+                let mut opt_component_break_mode = nested_token_len + 4 >= self.global_cfg.max_width();
                 if matches!(
                     self.format_context.borrow().pre_tok_tree.get_end_tok(),
                     Tok::If | Tok::While

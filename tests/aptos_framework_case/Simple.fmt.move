@@ -433,13 +433,13 @@ module 0xABCD::simple {
         if (!exists<TableStore>(owner_address)) {
             move_to<TableStore>(owner, TableStore { table_entries: table::new() })
         };
-        let table_entries = &mut borrow_global_mut<TableStore>(owner_address).table_entries;
+        let table_entries =
+            &mut borrow_global_mut<TableStore>(owner_address).table_entries;
 
         while (count > 0) {
             count = count - 1;
-            let table_entry = table::borrow_mut_with_default(
-                table_entries, offset + count, 0
-            );
+            let table_entry =
+                table::borrow_mut_with_default(table_entries, offset + count, 0);
             *table_entry = *table_entry + 1;
         }
     }

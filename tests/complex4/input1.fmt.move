@@ -6,14 +6,14 @@ module test_spec_forall {
         invariant max_gas <= MAX_U64 / BASIS_POINT_DENOMINATION;
         /// Invariant 3: The x-coordinate increases monotonically and the y-coordinate increasing strictly monotonically,
         /// that is, the gas-curve is a monotonically increasing function.
-        invariant (len(points) > 0 ==> points[0].x > 0) && (
-            len(points) > 0 ==>
-            points[len(points) - 1].x < BASIS_POINT_DENOMINATION
-        ) && (
-            forall i in 0..len(points) - 1: (
-                points[i].x < points[i + 1].x
-                && points[i].y <= points[i + 1].y
-            )
-        );
+        invariant (len(points) > 0 ==> points[0].x > 0)
+            && (len(points) > 0 ==>
+                    points[len(points) - 1].x < BASIS_POINT_DENOMINATION)
+            && (
+                forall i in 0..len(points) - 1: (
+                    points[i].x < points[i + 1].x
+                    && points[i].y <= points[i + 1].y
+                )
+            );
     }
 }

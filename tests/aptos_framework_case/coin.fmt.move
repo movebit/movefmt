@@ -344,9 +344,7 @@ module aptos_framework::coin {
         );
 
         let maybe_supply =
-            &mut borrow_global_mut<CoinInfo<CoinType>>(
-                coin_address<CoinType>()
-            ).supply;
+            &mut borrow_global_mut<CoinInfo<CoinType>>(coin_address<CoinType>()).supply;
         if (option::is_some(maybe_supply)) {
             let supply = option::borrow_mut(maybe_supply);
             optional_aggregator::sub(supply, (amount as u128));
@@ -583,7 +581,9 @@ module aptos_framework::coin {
         move_to(account, coin_info);
 
         (
-            BurnCapability<CoinType> {}, FreezeCapability<CoinType> {}, MintCapability<CoinType> {}
+            BurnCapability<CoinType> {},
+            FreezeCapability<CoinType> {},
+            MintCapability<CoinType> {}
         )
     }
 
@@ -616,9 +616,7 @@ module aptos_framework::coin {
         };
 
         let maybe_supply =
-            &mut borrow_global_mut<CoinInfo<CoinType>>(
-                coin_address<CoinType>()
-            ).supply;
+            &mut borrow_global_mut<CoinInfo<CoinType>>(coin_address<CoinType>()).supply;
         if (option::is_some(maybe_supply)) {
             let supply = option::borrow_mut(maybe_supply);
             spec {
@@ -695,9 +693,7 @@ module aptos_framework::coin {
             &mut coin_store.withdraw_events,
             WithdrawEvent { amount },
         );
-        event::emit(
-            Withdraw<CoinType> { account: account_addr, amount }
-        );
+        event::emit(Withdraw<CoinType> { account: account_addr, amount });
 
         extract(&mut coin_store.coin, amount)
     }
@@ -1179,9 +1175,7 @@ module aptos_framework::coin {
         initialize_with_aggregator(&framework);
 
         let maybe_supply =
-            &mut borrow_global_mut<CoinInfo<FakeMoney>>(
-                coin_address<FakeMoney>()
-            ).supply;
+            &mut borrow_global_mut<CoinInfo<FakeMoney>>(coin_address<FakeMoney>()).supply;
         let supply = option::borrow_mut(maybe_supply);
 
         // Supply should be parallelizable.
@@ -1205,9 +1199,7 @@ module aptos_framework::coin {
         initialize_with_aggregator(&framework);
 
         let maybe_supply =
-            &mut borrow_global_mut<CoinInfo<FakeMoney>>(
-                coin_address<FakeMoney>()
-            ).supply;
+            &mut borrow_global_mut<CoinInfo<FakeMoney>>(coin_address<FakeMoney>()).supply;
         let supply = option::borrow_mut(maybe_supply);
 
         optional_aggregator::add(supply, MAX_U128);
@@ -1223,9 +1215,7 @@ module aptos_framework::coin {
         initialize_with_integer(&framework);
 
         let maybe_supply =
-            &mut borrow_global_mut<CoinInfo<FakeMoney>>(
-                coin_address<FakeMoney>()
-            ).supply;
+            &mut borrow_global_mut<CoinInfo<FakeMoney>>(coin_address<FakeMoney>()).supply;
         let supply = option::borrow_mut(maybe_supply);
 
         // Supply should be non-parallelizable.
@@ -1252,9 +1242,7 @@ module aptos_framework::coin {
 
         // Ensure we have a non-parellelizable non-zero supply.
         let maybe_supply =
-            &mut borrow_global_mut<CoinInfo<FakeMoney>>(
-                coin_address<FakeMoney>()
-            ).supply;
+            &mut borrow_global_mut<CoinInfo<FakeMoney>>(coin_address<FakeMoney>()).supply;
         let supply = option::borrow_mut(maybe_supply);
         assert!(
             !optional_aggregator::is_parallelizable(supply),
@@ -1268,9 +1256,7 @@ module aptos_framework::coin {
 
         // Check supply again.
         let maybe_supply =
-            &mut borrow_global_mut<CoinInfo<FakeMoney>>(
-                coin_address<FakeMoney>()
-            ).supply;
+            &mut borrow_global_mut<CoinInfo<FakeMoney>>(coin_address<FakeMoney>()).supply;
         let supply = option::borrow_mut(maybe_supply);
         assert!(
             optional_aggregator::is_parallelizable(supply),

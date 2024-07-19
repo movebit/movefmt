@@ -6,7 +6,8 @@ module TestFunFormat {
         if (!exists<UtilityCoinStore<CoinType>>(address_of(fee_account)))
             // Move to the fee account an initialized one.
             move_to<UtilityCoinStore<CoinType>>(
-                fee_account, UtilityCoinStore { coins: coin::zero<CoinType>() }
+                fee_account,
+                UtilityCoinStore { coins: coin::zero<CoinType>() },
             );
     }
 }

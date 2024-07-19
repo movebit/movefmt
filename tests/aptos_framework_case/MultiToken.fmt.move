@@ -150,8 +150,7 @@ module ExperimentalFramework::MultiToken {
         wrapper: TokenDataWrapper<TokenType>
     ) acquires TokenDataCollection {
         let TokenDataWrapper { origin, index, metadata } = wrapper;
-        let tokens =
-            &mut borrow_global_mut<TokenDataCollection<TokenType>>(origin).tokens;
+        let tokens = &mut borrow_global_mut<TokenDataCollection<TokenType>>(origin).tokens;
         assert!(vector::length(tokens) > index, EINDEX_EXCEEDS_LENGTH);
         let item_opt = &mut vector::borrow_mut(tokens, index).metadata;
         assert!(option::is_none(item_opt), ETOKEN_PRESENT);
@@ -196,7 +195,8 @@ module ExperimentalFramework::MultiToken {
         let post res_id = option::borrow(result);
         ensures is_in_tokens(gallery, id) <==>
             (option::is_some(result) && res_id == min_token_idx);
-        ensures result == option::spec_none() <==> !is_in_tokens(gallery, id);
+        ensures result == option::spec_none() <==>
+            !is_in_tokens(gallery, id);
     }
 
     /// Join two multi tokens and return a multi token with the combined value of the two.
@@ -236,7 +236,8 @@ module ExperimentalFramework::MultiToken {
     public fun initialize_multi_token(account: signer) {
         assert!(signer::address_of(&account) == ADMIN, ENOT_ADMIN);
         move_to(
-            &account, Admin { mint_events: event::new_event_handle<MintEvent>(&account), }
+            &account,
+            Admin { mint_events: event::new_event_handle<MintEvent>(&account), },
         )
     }
 

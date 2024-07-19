@@ -4,8 +4,8 @@
 
 use crate::core::token_tree::TokenTree;
 use crate::tools::utils::FileLineMappingOneFile;
-use move_compiler::parser::ast::Definition;
 use move_compiler::parser::ast::*;
+use move_compiler::shared::ast_debug;
 use std::cell::RefCell;
 
 #[derive(Debug, Default)]
@@ -150,7 +150,6 @@ impl BinOpExtractor {
                 es.iter().for_each(|e| self.collect_expr(e));
             }
             Exp_::Assign(l, r) => {
-                self.bin_op_exp_vec.push(e.clone());
                 self.collect_expr(l.as_ref());
                 self.collect_expr(r.as_ref());
             }
@@ -243,17 +242,8 @@ impl BinOpExtractor {
         for (idx, bin_op_exp) in self.bin_op_exp_vec.iter().enumerate() {
             if let Exp_::BinopExp(_, m, r) = &bin_op_exp.value {
                 if token.end_pos() == m.loc.end() {
-                    // let r_exp_str = ast_debug::display(&r.value);
-                    // if r_exp_str.contains("(")
-                    // || r_exp_str.contains("{") {
-                    //     return (idx, 0);
-                    // }
-                    return (idx, self.source[r.loc.start() as usize..r.loc.end() as usize]
-                        .replace('\n', "")
-                        .split_whitespace()
-                        .collect::<Vec<&str>>()
-                        .join(" ")
-                        .len());
+                    tracing::debug!("r.value = {:?}", ast_debug::display(&r.value));
+                    return (idx, ast_debug::display(&r.value).len())
                 }
             }
         }

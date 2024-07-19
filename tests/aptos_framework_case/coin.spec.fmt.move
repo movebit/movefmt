@@ -81,14 +81,14 @@ spec aptos_framework::coin {
             spec_fun_supply_tracked<CoinType>(
                 supply<CoinType> + aggregate_supply<CoinType>,
                 global<CoinInfo<CoinType>>(
-                    type_info::type_of<CoinType>().account_address,
+                    type_info::type_of<CoinType>().account_address
                 ).supply,
             ),
         ) ==>
             spec_fun_supply_tracked<CoinType>(
                 supply<CoinType> + aggregate_supply<CoinType>,
                 global<CoinInfo<CoinType>>(
-                    type_info::type_of<CoinType>().account_address,
+                    type_info::type_of<CoinType>().account_address
                 ).supply,
             );
     }
@@ -172,9 +172,7 @@ spec aptos_framework::coin {
     }
 
     spec fun get_coin_supply_opt<CoinType>(): Option<OptionalAggregator> {
-        global<CoinInfo<CoinType>>(
-            type_info::type_of<CoinType>().account_address
-        ).supply
+        global<CoinInfo<CoinType>>(type_info::type_of<CoinType>().account_address).supply
     }
 
     spec schema CoinSubAbortsIf<CoinType> {

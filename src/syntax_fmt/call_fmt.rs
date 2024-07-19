@@ -5,8 +5,8 @@
 use crate::core::token_tree::*;
 use crate::tools::utils::FileLineMappingOneFile;
 use commentfmt::Config;
-use move_compiler::parser::ast::Definition;
 use move_compiler::parser::ast::*;
+use move_compiler::parser::lexer::Tok;
 use move_ir_types::location::*;
 
 #[derive(Debug, Default)]
@@ -494,6 +494,43 @@ impl CallExtractor {
     }
 }
 
+pub(crate) fn parse_nested_token_nums(
+    elements: &[TokenTree],
+    simple_token_cnt: &mut i32,
+    comma_cnt: &mut i32,
+    bin_op_cnt: &mut i32,
+    nested_token_cnt: &mut i32,
+) {
+    for ele in elements {
+        match ele {
+            TokenTree::SimpleToken {
+                content: _,
+                pos: _,
+                tok,
+                note,
+            } => {
+                *simple_token_cnt += 1;
+                if *tok == Tok::Comma {
+                    *comma_cnt += 1;
+                }
+                if note.map(|x| x == Note::BinaryOP).unwrap_or_default() {
+                    *bin_op_cnt += 1;
+                }
+            }
+            TokenTree::Nested { elements, .. } => {
+                parse_nested_token_nums(
+                    elements,
+                    simple_token_cnt,
+                    comma_cnt,
+                    bin_op_cnt,
+                    nested_token_cnt,
+                );
+                *nested_token_cnt += 1;
+            }
+        }
+    }
+}
+
 impl CallExtractor {
     pub(crate) fn get_call_component_split_mode(
         &self,
@@ -502,7 +539,6 @@ impl CallExtractor {
         elements: &[TokenTree],
         cur_ret_last_len: usize,
     ) -> bool {
-        use move_compiler::parser::lexer::Tok;
         if kind.kind != NestKind_::ParentTheses {
             return false;
         }
@@ -516,8 +552,8 @@ impl CallExtractor {
             .replace('\n', "")
             .split_whitespace()
             .collect::<Vec<&str>>()
-            .join(" ");
-        let len2 = cur_ret_last_len + call_str_in_source_trim_multi_space.len();
+            .join("");
+        let len2 = cur_ret_last_len + call_str_in_source_trim_multi_space.len() + 4;
         tracing::debug!("len2 = {}", len2);
 
         let line_cnt = call_str_in_source.matches("\n").count();
@@ -525,32 +561,17 @@ impl CallExtractor {
         let mut nested_token_cnt = 0;
         let mut comma_cnt = 0;
         let mut bin_op_cnt = 0;
-        for ele in elements {
-            match *ele {
-                TokenTree::SimpleToken {
-                    content: _,
-                    pos: _,
-                    tok,
-                    note,
-                } => {
-                    simple_token_cnt += 1;
-                    if tok == Tok::Comma {
-                        comma_cnt += 1;
-                    }
-                    if note.map(|x| x == Note::BinaryOP).unwrap_or_default() {
-                        bin_op_cnt += 1;
-                    }
-                }
-                TokenTree::Nested { .. } => {
-                    nested_token_cnt += 1;
-                }
-            }
-        }
-
+        parse_nested_token_nums(
+            elements,
+            &mut simple_token_cnt,
+            &mut comma_cnt,
+            &mut bin_op_cnt,
+            &mut nested_token_cnt,
+        );
         tracing::debug!("nested_token_cnt = {}, comma_cnt = {}, bin_op_cnt = {}, line_cnt = {}, simple_token_cnt = {}", 
             nested_token_cnt, comma_cnt, bin_op_cnt, line_cnt, simple_token_cnt);
         if len2 < config.max_width()
-            && nested_token_cnt < 2
+            && nested_token_cnt <= 2
             && comma_cnt < 3
             && bin_op_cnt < 2
             && line_cnt <= 2

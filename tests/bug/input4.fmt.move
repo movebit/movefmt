@@ -19,10 +19,11 @@ script {
             assert!(arg1 == from_bcs::to_bool(*vector::borrow(&store.args, 1)), 12);
             // Check that the type argument names are correct and matched to `type_info::type_name`.
             assert!(
-                store.type_arg_names == vector[
-                    type_info::type_name<T1>(),
-                    type_info::type_name<T2>(),
-                    type_info::type_name<T3>()],
+                store.type_arg_names
+                    == vector[
+                        type_info::type_name<T1>(),
+                        type_info::type_name<T2>(),
+                        type_info::type_name<T3>()],
                 13,
             );
         }

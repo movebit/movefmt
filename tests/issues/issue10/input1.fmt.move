@@ -18,9 +18,8 @@ module test {
 
     #[test(user = @0x1)]
     public entry fun test_create_resource_account(user: signer) acquires Account {
-        let (resource_account, resource_account_cap) = create_resource_account(
-            &user, x"01"
-        );
+        let (resource_account, resource_account_cap) =
+            create_resource_account(&user, x"01");
         let resource_addr = signer::address_of(&resource_account);
         assert!(resource_addr == get_signer_capability_address(&resource_account_cap), 1);
         assert!(
@@ -41,14 +40,12 @@ module test {
         let guid_creation_num = 0;
 
         let guid_for_coin = guid::create(new_address, &mut guid_creation_num);
-        let coin_register_events = event::new_event_handle<CoinRegisterEvent>(
-            guid_for_coin
-        );
+        let coin_register_events =
+            event::new_event_handle<CoinRegisterEvent>(guid_for_coin);
 
         let guid_for_rotation = guid::create(new_address, &mut guid_creation_num);
-        let key_rotation_events = event::new_event_handle<KeyRotationEvent>(
-            guid_for_rotation
-        );
+        let key_rotation_events =
+            event::new_event_handle<KeyRotationEvent>(guid_for_rotation);
 
         move_to(
             &new_account,

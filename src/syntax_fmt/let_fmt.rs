@@ -255,39 +255,20 @@ impl LetExtractor {
     fn collect_long_op_exp(&mut self) {
         self.multi_ampamp_or_pipepipe_exp();
         for bin_op_exp in self.bin_op_exp_vec.iter() {
-            let bin_op_exp_str = &self.source
-                [bin_op_exp.loc.start() as usize..bin_op_exp.loc.end() as usize]
-                .replace('\n', "")
-                .split_whitespace()
-                .collect::<Vec<&str>>()
-                .join(" ");
-
-            let bin_op_right_is_long = match &bin_op_exp.value {
+            match &bin_op_exp.value {
                 Exp_::BinopExp(_, op, r) => {
-                    let bin_op_right_str =
-                        &self.source[r.loc.start() as usize..r.loc.end() as usize].len();
                     match op.value {
-                        BinOp_::Implies | BinOp_::Iff => *bin_op_right_str > 16,
-                        // _ => *bin_op_right_str > 64,
-                        _ => false,
+                        BinOp_::Implies | BinOp_::Iff => {
+                            if ast_debug::display(&bin_op_exp.value).len() > 48 && ast_debug::display(&r.value).len() > 16 {
+                                self.long_bin_op_exp_vec.push(bin_op_exp.clone());
+                                self.split_bin_op_vec.borrow_mut().push(false);
+                            }
+                        }
+                        _ => {}
                     }
                 }
-                Exp_::Assign(_, r) => {
-                    self.source[r.loc.start() as usize..r.loc.end() as usize]
-                        .replace('\n', "")
-                        .split_whitespace()
-                        .collect::<Vec<&str>>()
-                        .join(" ")
-                        .len()
-                        > 64
-                }
-                _ => false,
+                _ => {}
             };
-
-            if bin_op_exp_str.len() > 64 && bin_op_right_is_long {
-                self.long_bin_op_exp_vec.push(bin_op_exp.clone());
-                self.split_bin_op_vec.borrow_mut().push(false);
-            }
         }
     }
 
@@ -348,13 +329,24 @@ impl LetExtractor {
         false
     }
 
-    pub(crate) fn is_long_assign(&self, token: TokenTree) -> bool {
+    pub(crate) fn is_long_assign(
+        &self,
+        token: TokenTree,
+        config: commentfmt::Config,
+        cur_ret_last_len: usize,
+    ) -> bool {
         for (idx, let_assign) in self.let_assign_loc_vec.iter().enumerate() {
             if let_assign.start() <= token.end_pos() && token.end_pos() <= let_assign.end() {
                 let rhs_exp_loc = &self.let_assign_rhs_exp[idx].loc;
-                let rhs_exp_str =
-                    &self.source[rhs_exp_loc.start() as usize..rhs_exp_loc.end() as usize];
-                let is_long_rhs = rhs_exp_str.len() > 64;
+                let is_long_rhs = self.source
+                    [rhs_exp_loc.start() as usize..rhs_exp_loc.end() as usize]
+                    .replace('\n', "")
+                    .split_whitespace()
+                    .collect::<Vec<&str>>()
+                    .join("")
+                    .len()
+                    + cur_ret_last_len
+                    >= config.max_width();
                 if is_long_rhs {
                     self.break_line_by_let_rhs
                         .borrow_mut()
