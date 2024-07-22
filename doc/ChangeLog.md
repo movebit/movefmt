@@ -23,7 +23,7 @@
 ## 2024-7-16, Version v1.0.3
 
 ### Features
-- Fixed a bug about branch statement block contains comments
+- Fixed 3 bugs
 - Optimize formatting for complex exp
 - Add config.option[prefer_one_line_for_short_branch_blk] and cli.option{--file-path, --dir-path}
 
@@ -32,6 +32,8 @@
 - Optimize issues{#9, #13, #14, #16, #19, #20, #21}
 
 ### Commits
+* [[`78d285a`](https://github.com/movebit/movefmt/commit/78d285a19153c5688bbd2751ff6d9d8bcbf83e8d)] - fix bug: add space when next_token is '*' or '&' (edy)
+* [[`1a7c922`](https://github.com/movebit/movefmt/commit/1a7c922e013518a3baef97aab0059aec7858cfbf)] - fix bug: line break error when variable name same with ability (edy)
 * [[`6e163fc`](https://github.com/movebit/movefmt/commit/6e163fceb493d46d358787f10fdfa87ea60715f3)] - optimize main.rs (qpzmV)
 * [[`dfd5705`](https://github.com/movebit/movefmt/commit/dfd57058f524d47d2e3083c7e07fce829793e575)] - Update how_to_use.md (qpzmV)
 * [[`0d15592`](https://github.com/movebit/movefmt/commit/0d1559215128552b104348e0ed74648803556b07)] - add option: --file-path, --dir-path (edy)
