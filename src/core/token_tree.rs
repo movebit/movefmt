@@ -3,13 +3,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use core::panic;
-use std::cmp::Ordering;
-use std::collections::HashSet;
-
+use move_command_line_common::files::FileHash;
 use move_compiler::parser::ast::Definition;
 use move_compiler::parser::ast::*;
 use move_compiler::parser::lexer::{Lexer, Tok};
 use move_compiler::shared::Identifier;
+use std::cmp::Ordering;
+use std::collections::HashSet;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, serde::Serialize)]
 pub enum NestKind_ {
@@ -167,19 +167,56 @@ impl TokenTree {
             } => *note,
         }
     }
-    pub fn end_pos(&self) -> u32 {
+
+    pub fn start_pos(&self) -> u32 {
         match self {
             TokenTree::SimpleToken {
-                content,
-                pos,
-                tok: _,
-                note: _,
-            } => pos + (content.len() as u32),
+                content: _, pos, ..
+            } => *pos,
             TokenTree::Nested {
-                elements: _,
-                kind,
-                note: _,
+                elements: _, kind, ..
+            } => kind.start_pos,
+        }
+    }
+
+    pub fn end_pos(&self) -> u32 {
+        match self {
+            TokenTree::SimpleToken { content, pos, .. } => pos + (content.len() as u32),
+            TokenTree::Nested {
+                elements: _, kind, ..
             } => kind.end_pos,
+        }
+    }
+
+    pub fn token_len(&self) -> u32 {
+        self.end_pos() - self.start_pos()
+    }
+
+    pub fn get_start_tok(&self) -> Tok {
+        match self {
+            TokenTree::SimpleToken {
+                content: _,
+                pos: _,
+                tok,
+                ..
+            } => *tok,
+            TokenTree::Nested {
+                elements: _, kind, ..
+            } => kind.kind.start_tok(),
+        }
+    }
+
+    pub fn get_end_tok(&self) -> Tok {
+        match self {
+            TokenTree::SimpleToken {
+                content: _,
+                pos: _,
+                tok,
+                ..
+            } => *tok,
+            TokenTree::Nested {
+                elements: _, kind, ..
+            } => kind.kind.end_tok(),
         }
     }
 
@@ -192,17 +229,8 @@ impl TokenTree {
 
     pub fn simple_str(&self) -> Option<&str> {
         match self {
-            TokenTree::SimpleToken {
-                content,
-                pos: _,
-                tok: _,
-                note: _,
-            } => Some(content.as_str()),
-            TokenTree::Nested {
-                elements: _,
-                kind: _,
-                note: _,
-            } => None,
+            TokenTree::SimpleToken { content, .. } => Some(content.as_str()),
+            TokenTree::Nested { .. } => None,
         }
     }
 }
@@ -217,10 +245,11 @@ pub struct Parser<'a> {
     fun_body: HashSet<u32>, // start pos.
     apple_name: HashSet<u32>,
     address_module: Vec<(u32, u32)>,
+    source: String,
 }
 
 impl<'a> Parser<'a> {
-    pub fn new(lexer: Lexer<'a>, defs: &'a Vec<Definition>) -> Self {
+    pub fn new(lexer: Lexer<'a>, defs: &'a Vec<Definition>, source: String) -> Self {
         let mut x = Self {
             lexer,
             defs,
@@ -231,6 +260,7 @@ impl<'a> Parser<'a> {
             fun_body: Default::default(),
             apple_name: Default::default(),
             address_module: vec![],
+            source,
         };
         x.collect_various_information();
         x
@@ -318,9 +348,10 @@ impl<'a> Parser<'a> {
         if self.fun_body.contains(&start) {
             note = Some(Note::FunBody);
         }
-        for (addr, modname) in self.address_module.clone() {
-            if addr < start && start < modname {
+        for (idx, (addr, modname)) in self.address_module.iter().enumerate() {
+            if *addr < start && start < *modname {
                 note = Some(Note::ModuleAddress);
+                self.address_module.remove(idx);
                 break;
             }
         }
@@ -462,21 +493,41 @@ impl<'a> Parser<'a> {
                 Exp_::Copy(_) => {}
                 Exp_::Name(name, tys) => {
                     if tys.is_some() {
-                        p.type_lambda_pair.push((name.loc.end(), e.loc.end()));
+                        if name.loc.end() > e.loc.end() {
+                            tracing::debug!("name loc end > exp loc end: {:?}", e);
+                        } else {
+                            p.type_lambda_pair.push((name.loc.end(), e.loc.end()));
+                        }
                     }
                 }
                 Exp_::Call(name, _, _tys, es) => {
-                    p.type_lambda_pair.push((name.loc.end(), es.loc.start()));
+                    if name.loc.end() > es.loc.start() {
+                        tracing::debug!("name loc end > exp loc end: {:?}", e);
+                        tracing::debug!(
+                            "code spniet: {:?}",
+                            &p.source[es.loc.start() as usize..name.loc.end() as usize]
+                        );
+                    } else {
+                        p.type_lambda_pair.push((name.loc.end(), es.loc.start()));
+                    }
                     es.value.iter().for_each(|e| collect_expr(p, e));
                 }
                 Exp_::Pack(name, _tys, es) => {
-                    if let Some(e) = es.get(0) {
-                        p.type_lambda_pair.push((name.loc.end(), e.0.loc().start()));
+                    if let Some(e) = es.first() {
+                        if name.loc.end() > e.0.loc().start() {
+                            tracing::debug!("name loc end > exp loc end: {:?}", e);
+                        } else {
+                            p.type_lambda_pair.push((name.loc.end(), e.0.loc().start()));
+                        }
                     }
                     es.iter().for_each(|e| collect_expr(p, &e.1));
                 }
                 Exp_::Vector(name_loc, _tys, es) => {
-                    p.type_lambda_pair.push((name_loc.end(), es.loc.start()));
+                    if name_loc.end() > es.loc.start() {
+                        tracing::debug!("name loc end > exp loc end: {:?}", e);
+                    } else {
+                        p.type_lambda_pair.push((name_loc.end(), es.loc.start()));
+                    }
                     es.value.iter().for_each(|e| collect_expr(p, e));
                 }
                 Exp_::IfElse(c, then_, eles_) => {
@@ -597,7 +648,10 @@ impl<'a> Parser<'a> {
                         p.type_lambda_pair
                             .push((name.0.loc.end(), signature.return_type.loc.end()));
                         match &body.value {
-                            FunctionBody_::Defined(s) => collect_seq(p, s),
+                            FunctionBody_::Defined(s) => {
+                                p.fun_body.insert(body.loc.start());
+                                collect_seq(p, s)
+                            }
                             FunctionBody_::Native => {}
                         }
                     }
@@ -653,21 +707,15 @@ impl<'a> Parser<'a> {
         }
 
         fn collect_function(p: &mut Parser, d: &Function) {
-            p.type_lambda_pair.push((
-                d.name.0.loc.start(),
-                match &d.body.value {
-                    FunctionBody_::Defined(_x) => d.body.loc.start(),
-                    FunctionBody_::Native => d.loc.end(),
-                },
-            ));
-
-            match &d.body.value {
+            let second = match &d.body.value {
                 FunctionBody_::Defined(s) => {
                     p.fun_body.insert(d.body.loc.start());
                     collect_seq(p, s);
+                    d.body.loc.start()
                 }
-                FunctionBody_::Native => {}
-            }
+                FunctionBody_::Native => d.loc.end(),
+            };
+            p.type_lambda_pair.push((d.name.0.loc.start(), second));
         }
 
         fn collect_ty(p: &mut Parser, ty: &Type) {
@@ -703,6 +751,102 @@ pub(crate) fn analyze_token_tree_length(token_tree: &[TokenTree], max: usize) ->
         }
     }
     ret
+}
+
+pub(crate) fn get_code_buf_len(code_buffer: String) -> usize {
+    let mut tokens_len = 0;
+    let mut special_key = false;
+    let mut lexer = Lexer::new(&code_buffer, FileHash::empty());
+    lexer.advance().unwrap();
+    while lexer.peek() != Tok::EOF {
+        tokens_len += lexer.content().len();
+        if !special_key {
+            special_key = matches!(
+                lexer.peek(),
+                Tok::If
+                    | Tok::Module
+                    | Tok::Script
+                    | Tok::Struct
+                    | Tok::Fun
+                    | Tok::Public
+                    | Tok::Inline
+                    | Tok::Spec
+                    | Tok::LBrace
+            );
+        }
+        if lexer.advance().is_err() {
+            break;
+        }
+    }
+
+    if special_key {
+        if tokens_len == code_buffer.len() {
+            tokens_len - 1
+        } else {
+            tokens_len
+        }
+    } else {
+        code_buffer.len()
+    }
+}
+
+pub(crate) fn has_special_key_for_break_line_in_code_buf(code_buffer: String) -> bool {
+    let mut lexer = Lexer::new(&code_buffer, FileHash::empty());
+    lexer.advance().unwrap();
+    const FOR_IDENT: &str = "for";
+    let mut pre_tok = Tok::EOF;
+    let mut pre_tok_pos = 0;
+    while lexer.peek() != Tok::EOF {
+        if matches!(
+            lexer.peek(),
+            Tok::Module | Tok::Script | Tok::Loop | Tok::Spec
+        ) {
+            return true;
+        }
+
+        let pre_lexer_str = &code_buffer[pre_tok_pos..lexer.previous_end_loc()];
+        if lexer.peek() == Tok::LParen && pre_tok == Tok::Identifier && pre_lexer_str == FOR_IDENT {
+            return true;
+        }
+        pre_tok = lexer.peek();
+        pre_tok_pos = lexer.start_loc();
+        if lexer.advance().is_err() {
+            break;
+        }
+    }
+    false
+}
+
+/// analyzer a `Nested` token tree.
+pub(crate) fn analyze_token_tree_delimiter(
+    token_tree: &[TokenTree],
+) -> (
+    Option<Delimiter>, // if this is a `Delimiter::Semicolon` we can know this is a function body or etc.
+    bool,              // has a `:`
+) {
+    let mut d = None;
+    let mut has_colon = false;
+    for t in token_tree.iter() {
+        match t {
+            TokenTree::SimpleToken { content, .. } => match content.as_str() {
+                ";" => {
+                    d = Some(Delimiter::Semicolon);
+                }
+                "," => {
+                    if d.is_none() {
+                        // Somehow `;` has high priority.
+                        d = Some(Delimiter::Comma);
+                    }
+                }
+                ":" => {
+                    has_colon = true;
+                }
+                _ => {}
+            },
+            TokenTree::Nested { .. } => {}
+        }
+    }
+    (d, has_colon)
 }
 
 // ===================================================================================================
@@ -777,7 +921,6 @@ impl CommentExtrator {
                     content: String::from_utf8(comment.clone()).unwrap(),
                 });
                 comment.clear();
-
                 if state == ExtratorCommentState::InlineComment {
                     if depth == 0 {
                         state = ExtratorCommentState::Init;
@@ -829,6 +972,9 @@ impl CommentExtrator {
                     } else if depth == 0 {
                         state = ExtratorCommentState::Init;
                     } else {
+                        // fix bug in 20240424: there are '/' in block comment
+                        comment.push(SLASH);
+                        comment.push(*c);
                         state = ExtratorCommentState::BlockComment;
                     }
                 }
@@ -845,7 +991,14 @@ impl CommentExtrator {
                     if *c == SLASH {
                         comment.push(STAR);
                         comment.push(SLASH);
-                        make_comment!();
+                        // optimize code in 20240424: support nested block comment like:
+                        // /* layer1 /* layer2 */ */
+                        if depth <= 1 {
+                            make_comment!();
+                        } else {
+                            depth -= 1;
+                            state = ExtratorCommentState::BlockComment;
+                        }
                     } else if *c == STAR {
                         comment.push(STAR);
                     } else {
@@ -894,7 +1047,6 @@ impl CommentExtrator {
 #[cfg(test)]
 mod comment_test {
     use crate::tools::syntax::parse_file_string;
-    use move_command_line_common::files::FileHash;
     use move_compiler::{shared::CompilationEnv, Flags};
     use std::collections::BTreeSet;
 
@@ -911,11 +1063,13 @@ mod comment_test {
         let mut env = CompilationEnv::new(Flags::testing(), attrs);
         let (defs, _) = parse_file_string(&mut env, filehash, content).unwrap();
         let lexer = Lexer::new(content, filehash);
-        let parse = Parser::new(lexer, &defs);
+        let parse = Parser::new(lexer, &defs, content.to_string());
         let token_tree = parse.parse_tokens();
         let s = serde_json::to_string(&token_tree).unwrap();
         // check this using some online json tool.
-        tracing::info!("json:{}", s);
+        eprintln!("json:{:?}", s);
+        let and_op_num = s.matches("\"content\":\",\"").count() as u32;
+        eprintln!("and_op_num:{}", and_op_num);
     }
 
     #[test]

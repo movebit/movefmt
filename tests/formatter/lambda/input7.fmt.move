@@ -17,18 +17,15 @@ module 0x42::LambdaTest2 {
     use std::vector;
 
     public inline fun inline_apply2(g: |u64| u64, c: u64): u64 {
-
         LambdaTest1::inline_apply1(
             |z| {
                 let a: u64 = LambdaTest1::inline_mul(z, 1);
                 let b: u64 = LambdaTest1::inline_mul(
-                    c,
-                    LambdaTest1::inline_apply(|x| x, 2)
+                    c, LambdaTest1::inline_apply(|x| x, 2)
                 );
                 g(a + b)
             },
-
-            3
+            3,
         ) + 4
 
     }

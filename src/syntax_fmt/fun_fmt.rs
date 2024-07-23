@@ -11,14 +11,17 @@ use move_command_line_common::files::FileHash;
 use move_compiler::parser::ast::Definition;
 use move_compiler::parser::ast::*;
 use move_compiler::parser::lexer::{Lexer, Tok};
-use move_compiler::shared::CompilationEnv;
+use move_compiler::shared::ast_debug;
+use move_compiler::shared::{CompilationEnv, Identifier};
 use move_compiler::Flags;
 use move_ir_types::location::*;
 use std::collections::BTreeSet;
 
 #[derive(Debug, Default)]
 pub struct FunExtractor {
+    pub attributes: Vec<Vec<Attributes>>,
     pub loc_vec: Vec<Loc>,
+    pub para_span_vec: Vec<Loc>,
     pub ret_ty_loc_vec: Vec<Loc>,
     pub body_loc_vec: Vec<Loc>,
     pub loc_line_vec: Vec<(u32, u32)>,
@@ -30,7 +33,9 @@ pub struct FunExtractor {
 impl FunExtractor {
     pub fn new(fmt_buffer: String) -> Self {
         let mut this_fun_extractor = Self {
+            attributes: vec![],
             loc_vec: vec![],
+            para_span_vec: vec![],
             ret_ty_loc_vec: vec![],
             body_loc_vec: vec![],
             loc_line_vec: vec![],
@@ -40,16 +45,6 @@ impl FunExtractor {
         };
 
         this_fun_extractor.line_mapping.update(&fmt_buffer);
-        let attrs: BTreeSet<String> = BTreeSet::new();
-        let mut env = CompilationEnv::new(Flags::testing(), attrs);
-        let filehash = FileHash::empty();
-        let (defs, _) = parse_file_string(&mut env, filehash, &fmt_buffer).unwrap();
-
-        for d in defs.iter() {
-            this_fun_extractor.cur_module_id += 1;
-            this_fun_extractor.collect_definition(d);
-        }
-
         this_fun_extractor
     }
 
@@ -68,7 +63,21 @@ impl FunExtractor {
                     .unwrap()
                     .start
                     .line;
+                let attributes: Vec<Attributes> = d.attributes.clone();
+                self.attributes.push(attributes);
                 self.loc_vec.push(d.loc);
+
+                if d.signature.parameters.is_empty() {
+                    self.para_span_vec.push(Loc::new(FileHash::empty(), 0, 0));
+                } else {
+                    let first_para_loc = d.signature.parameters.first().unwrap().0.loc();
+                    let last_para_loc = d.signature.parameters.last().unwrap().0.loc();
+                    self.para_span_vec.push(Loc::new(
+                        first_para_loc.file_hash(),
+                        first_para_loc.start(),
+                        last_para_loc.end(),
+                    ));
+                }
 
                 if let Type_::Unit = d.signature.return_type.value {
                     self.ret_ty_loc_vec.push(Loc::new(FileHash::empty(), 0, 0));
@@ -124,6 +133,13 @@ fn get_space_cnt_before_line_str(s: &str) -> usize {
 }
 
 impl FunExtractor {
+    pub(crate) fn preprocess(&mut self, module_defs: Vec<Definition>) {
+        for d in module_defs.iter() {
+            self.cur_module_id += 1;
+            self.collect_definition(d);
+        }
+    }
+
     pub(crate) fn is_generic_ty_in_fun_header(&self, kind: &NestKind) -> bool {
         let loc_vec = &self.loc_vec;
         let body_loc_vec = &self.body_loc_vec;
@@ -152,6 +168,63 @@ impl FunExtractor {
 
         false
     }
+    pub(crate) fn is_parameter_paren_in_fun_header(&self, kind: &NestKind) -> bool {
+        if kind.kind != NestKind_::ParentTheses {
+            return false;
+        }
+        for para_span in &self.para_span_vec {
+            if kind.start_pos <= para_span.start() && para_span.end() <= kind.end_pos {
+                return true;
+            }
+        }
+        false
+    }
+
+    pub(crate) fn should_skip_this_fun_body(&self, kind: &NestKind) -> bool {
+        let loc_vec = &self.loc_vec;
+        let body_loc_vec = &self.body_loc_vec;
+
+        let len = loc_vec.len();
+        let mut left = 0;
+        let mut right = len;
+
+        while left < right {
+            if kind.end_pos < loc_vec[left].start() || kind.start_pos > loc_vec[right - 1].end() {
+                return false;
+            }
+
+            let mid = left + (right - left) / 2;
+            let mid_loc = loc_vec[mid];
+            let mid_body_loc = body_loc_vec[mid];
+
+            if kind.start_pos == mid_body_loc.start() && kind.end_pos + 1 == mid_body_loc.end() {
+                for attribute in &self.attributes[mid] {
+                    // ast_debug::print(&attribute.value);
+                    let attribute_str = ast_debug::display(&attribute.value);
+                    if attribute_str.contains("#[fmt::skip]") {
+                        tracing::trace!("{:?}", attribute_str);
+                        return true;
+                    }
+                }
+                return false;
+            } else if mid_loc.start() < kind.start_pos {
+                left = mid + 1;
+            } else {
+                right = mid;
+            }
+        }
+
+        false
+    }
+}
+
+fn get_defs(fmt_buffer: String) -> Vec<Definition> {
+    let attrs: BTreeSet<String> = BTreeSet::new();
+    let mut env = CompilationEnv::new(Flags::testing(), attrs);
+    let filehash = FileHash::empty();
+    parse_file_string(&mut env, filehash, &fmt_buffer)
+        .unwrap()
+        .0
 }
 
 pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &str) -> String {
@@ -169,7 +242,9 @@ pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &str) -> Str
             (lexer.start_loc() + lexer.content().len()) as u32,
             lexer.content().to_string(),
         ));
-        lexer.advance().unwrap();
+        if lexer.advance().is_err() {
+            break;
+        }
     }
 
     // let tokens: Vec<&str> = specifier.split(' ').collect();
@@ -325,7 +400,8 @@ pub(crate) fn process_block_comment_before_fun_header(
 ) -> String {
     let buf = fmt_buffer.clone();
     let mut result = fmt_buffer.clone();
-    let fun_extractor = FunExtractor::new(fmt_buffer.clone());
+    let mut fun_extractor = FunExtractor::new(fmt_buffer.clone());
+    fun_extractor.preprocess(get_defs(fmt_buffer.clone()));
     let mut insert_char_nums = 0;
     for (fun_idx, (fun_start_line, _)) in fun_extractor.loc_line_vec.iter().enumerate() {
         let fun_header_str =
@@ -350,7 +426,8 @@ pub(crate) fn process_block_comment_before_fun_header(
 pub(crate) fn process_fun_header_too_long(fmt_buffer: String, config: Config) -> String {
     let buf = fmt_buffer.clone();
     let mut result = fmt_buffer.clone();
-    let fun_extractor = FunExtractor::new(fmt_buffer.clone());
+    let mut fun_extractor = FunExtractor::new(fmt_buffer.clone());
+    fun_extractor.preprocess(get_defs(fmt_buffer.clone()));
     let mut insert_char_nums = 0;
     let mut fun_idx = 0;
     for fun_loc in fun_extractor.loc_vec.iter() {
@@ -430,7 +507,8 @@ pub(crate) fn process_fun_ret_ty(fmt_buffer: String, config: Config) -> String {
     // : u64 {}
     let buf = fmt_buffer.clone();
     let mut result = fmt_buffer.clone();
-    let fun_extractor = FunExtractor::new(fmt_buffer.clone());
+    let mut fun_extractor = FunExtractor::new(fmt_buffer.clone());
+    fun_extractor.preprocess(get_defs(fmt_buffer.clone()));
     let mut insert_char_nums = 0;
     let mut fun_idx = 0;
     for fun_loc in fun_extractor.loc_vec.iter() {
@@ -505,17 +583,8 @@ pub(crate) fn process_fun_annotation(kind: NestKind, elements: Vec<TokenTree>) -
 
     fn process_token_trees(token: &TokenTree, next_token: Option<&TokenTree>) -> String {
         match token {
-            TokenTree::Nested {
-                elements: _,
-                kind: _,
-                note: _,
-            } => process_nested_token(token),
-            TokenTree::SimpleToken {
-                content: _,
-                pos: _,
-                tok: _,
-                note: _,
-            } => process_simple_token(token, next_token),
+            TokenTree::Nested { .. } => process_nested_token(token),
+            TokenTree::SimpleToken { .. } => process_simple_token(token, next_token),
         }
     }
 
@@ -538,31 +607,36 @@ pub fn fmt_fun(fmt_buffer: String, config: Config) -> String {
     result
 }
 
+#[allow(dead_code)]
+fn get_fun_attributes(fmt_buffer: String) {
+    // let buf = fmt_buffer.clone();
+    // let mut result = fmt_buffer.clone();
+    let fun_extractor = FunExtractor::new(fmt_buffer.clone());
+    for attributes in fun_extractor.attributes {
+        for attribute in attributes {
+            // ast_debug::print(&attribute.value);
+            let attribute_str = ast_debug::display(&attribute.value);
+            eprintln!("{:?}", attribute_str);
+        }
+    }
+}
+
 #[test]
 fn test_rewrite_fun_header_1() {
-    fun_header_specifier_fmt("acquires *(make_up_address(x))", &"    ".to_string());
-    fun_header_specifier_fmt("!reads *(0x42), *(0x43)", &"    ".to_string());
-    fun_header_specifier_fmt(": u32 !reads *(0x42), *(0x43)", &"    ".to_string());
-    fun_header_specifier_fmt(": /*(bool, bool)*/ (bool, bool) ", &"    ".to_string());
+    fun_header_specifier_fmt("acquires *(make_up_address(x))", "    ");
+    fun_header_specifier_fmt("!reads *(0x42), *(0x43)", "    ");
+    fun_header_specifier_fmt(": u32 !reads *(0x42), *(0x43)", "    ");
+    fun_header_specifier_fmt(": /*(bool, bool)*/ (bool, bool) ", "    ");
 }
 
 #[test]
 fn test_rewrite_fun_header_2() {
-    fun_header_specifier_fmt(
-        ": u64 /* acquires comment1 */ acquires SomeStruct ",
-        &"    ".to_string(),
-    );
-    fun_header_specifier_fmt(
-        ": u64 acquires SomeStruct/* acquires comment2 */ ",
-        &"    ".to_string(),
-    );
+    fun_header_specifier_fmt(": u64 /* acquires comment1 */ acquires SomeStruct ", "    ");
+    fun_header_specifier_fmt(": u64 acquires SomeStruct/* acquires comment2 */ ", "    ");
     fun_header_specifier_fmt(": u64 /* acquires comment3 */ acquires /* acquires comment4 */ SomeStruct /* acquires comment5 */", 
-        &"    ".to_string());
-    fun_header_specifier_fmt(
-        "acquires R reads R writes T, S reads G<u64> ",
-        &"    ".to_string(),
-    );
-    fun_header_specifier_fmt("fun f11() !reads *(0x42) ", &"    ".to_string());
+        "    ");
+    fun_header_specifier_fmt("acquires R reads R writes T, S reads G<u64> ", "    ");
+    fun_header_specifier_fmt("fun f11() !reads *(0x42) ", "    ");
 }
 
 #[test]
@@ -574,7 +648,7 @@ fn test_rewrite_fun_header_3() {
         acquires // acquires comment2
         IncentiveParameters 
     ",
-        &"    ".to_string(),
+        "    ",
     );
 }
 
@@ -656,5 +730,29 @@ module 0x42::LambdaTest1 {
 "
         .to_string(),
         Config::default(),
+    );
+}
+
+#[test]
+fn test_get_fun_attributes() {
+    get_fun_attributes(
+        "
+module 0x42::LambdaTest1 {  
+    #[test]
+    #[test(user = @0x1)]
+    #[fmt::skip]
+    #[test(bob = @0x345)]
+    #[expected_failure(abort_code = 0x10007, location = Self)]
+    /** Public inline function */  
+    #[expected_failure(abort_code = 0x8000f, location = Self)]
+    public inline fun inline_mul(/** Input parameter a */ a: u64,   
+                                 /** Input parameter b */ b: u64)   
+    /** Returns a u64 value */ : u64 {  
+        /** Multiply a and b */  
+        a * b  
+    }  
+}
+"
+        .to_string(),
     );
 }

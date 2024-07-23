@@ -4,7 +4,7 @@ use regex::Regex;
 use unicode_properties::{GeneralCategory, UnicodeGeneralCategory};
 use unicode_segmentation::UnicodeSegmentation;
 
-use crate::config::Config;
+use configurations::config::Config;
 use crate::shape::Shape;
 use crate::utils::{unicode_str_width, wrap_str};
 

@@ -2,8 +2,8 @@
 // Copyright (c) The BitsLab.MoveBit Contributors
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::core::token_tree::{analyze_token_tree_length, NestKind, NestKind_, Note, TokenTree};
-use commentfmt::Config;
+// use crate::core::token_tree::{NestKind_, Note, TokenTree};
+use crate::core::token_tree::*;
 use move_compiler::parser::lexer::Tok;
 
 pub enum TokType {
@@ -82,39 +82,6 @@ impl From<Tok> for TokType {
         }
     }
 }
-
-fn get_start_tok(t: &TokenTree) -> Tok {
-    match t {
-        TokenTree::SimpleToken {
-            content: _,
-            pos: _,
-            tok,
-            note: _,
-        } => *tok,
-        TokenTree::Nested {
-            elements: _,
-            kind,
-            note: _,
-        } => kind.kind.start_tok(),
-    }
-}
-
-fn get_end_tok(t: &TokenTree) -> Tok {
-    match t {
-        TokenTree::SimpleToken {
-            content: _,
-            pos: _,
-            tok,
-            note: _,
-        } => *tok,
-        TokenTree::Nested {
-            elements: _,
-            kind,
-            note: _,
-        } => kind.kind.end_tok(),
-    }
-}
-
 fn is_to_or_except(token: &Option<&TokenTree>) -> bool {
     match token {
         None => false,
@@ -125,7 +92,7 @@ fn is_to_or_except(token: &Option<&TokenTree>) -> bool {
     }
 }
 
-fn get_nested_and_comma_num(elements: &Vec<TokenTree>) -> (usize, usize) {
+pub(crate) fn get_nested_and_comma_num(elements: &[TokenTree]) -> (usize, usize) {
     let mut result = (0, 0);
     for ele in elements {
         if let TokenTree::Nested {
@@ -180,9 +147,9 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
 
     let is_to_execpt = is_to_or_except(&Some(current)) || is_to_or_except(&next);
 
-    let curr_start_tok = get_start_tok(current);
-    let curr_end_tok = get_end_tok(current);
-    let next_start_tok = get_start_tok(next_token_tree);
+    let curr_start_tok = current.get_start_tok();
+    let curr_end_tok = current.get_end_tok();
+    let next_start_tok = next_token_tree.get_start_tok();
 
     if Tok::Greater == curr_end_tok {
         if let TokType::Alphabet = TokType::from(next_start_tok) {
@@ -194,60 +161,49 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
     }
 
     let mut is_next_tok_nested = false;
-    let mut next_tok_nested_eles_len = 0;
     let mut next_tok_nested_kind = NestKind_::Brace;
     let mut next_tok_simple_content = "".to_string();
     match next_token_tree {
         TokenTree::Nested {
-            elements,
+            elements: _,
             kind,
             note: _,
         } => {
             is_next_tok_nested = true;
-            next_tok_nested_eles_len = elements.len();
             next_tok_nested_kind = kind.kind;
         }
-        TokenTree::SimpleToken {
-            content,
-            pos: _,
-            tok: _,
-            note: _,
-        } => {
+        TokenTree::SimpleToken { content, .. } => {
             next_tok_simple_content = content.to_string();
         }
     }
 
     match (TokType::from(curr_start_tok), TokType::from(next_start_tok)) {
-        (TokType::Alphabet, TokType::Alphabet) => true,
+        (
+            TokType::Alphabet,
+            TokType::Alphabet | TokType::String | TokType::Number | TokType::AtSign,
+        ) => true,
         (TokType::MathSign, _) => true,
         (TokType::Sign, TokType::Alphabet) => Tok::Exclaim != curr_end_tok,
         (TokType::Sign, TokType::Number) => true,
         (TokType::Sign, TokType::String | TokType::AtSign | TokType::Amp | TokType::AmpMut) => {
-            let mut result = false;
             if !is_next_tok_nested && Tok::ByteStringValue == next_start_tok {
-                result = true;
+                return true;
             }
 
             if Tok::Comma == curr_start_tok
-                && (Tok::AtSign == next_start_tok
-                    || Tok::Amp == next_start_tok
-                    || Tok::AmpMut == next_start_tok)
+                && matches!(next_start_tok, Tok::AtSign | Tok::Amp | Tok::AmpMut)
             {
-                result = true;
-                tracing::debug!(
-                    "after Comma, result = {}, next_start_tok = {:?}",
-                    result,
-                    next_start_tok
-                );
+                return true;
             }
-            result
+            // eg: (exp) & ...
+            if Tok::RParen == curr_end_tok && Tok::Amp == next_start_tok {
+                return true;
+            }
+            false
         }
-        (TokType::Alphabet, TokType::String) => true,
         (TokType::Number, TokType::Alphabet) => true,
         (_, TokType::AmpMut) => true,
         (TokType::Colon, _) => true,
-        (TokType::Alphabet, TokType::Number) => true,
-
         (_, TokType::Less) => is_bin_next,
         (TokType::Alphabet, TokType::MathSign) => {
             if next_tok_simple_content.contains('>') {
@@ -256,57 +212,60 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
             true
         }
         (_, TokType::MathSign) => true,
-        (TokType::Less, TokType::Alphabet) => is_bin_current,
-        (TokType::Less, _) => false,
-
-        (_, TokType::Amp) => is_bin_next,
-        (_, TokType::Star) => {
-            let result = if is_bin_next || is_apply_next {
-                is_to_execpt
-            } else {
-                false
-            };
-            result
-                || Tok::NumValue == curr_start_tok
-                || Tok::NumTypedValue == curr_start_tok
-                || Tok::Acquires == curr_start_tok
-                || Tok::Identifier == curr_start_tok
-                || Tok::RParen == curr_end_tok
-                || Tok::Comma == curr_end_tok
-        }
-
-        (TokType::Star, _) => {
+        (TokType::Less, _) => is_bin_current,
+        (TokType::Alphabet, TokType::Amp) => {
             if is_bin_next {
                 return true;
             }
-            if is_next_tok_nested && Tok::LParen == next_start_tok {
-                return next_tok_nested_eles_len > 2;
+            matches!(curr_end_tok, Tok::Return | Tok::If | Tok::Else)
+        }
+        (TokType::Amp, _) => is_bin_current,
+        (_, TokType::Star) => {
+            if is_bin_next {
+                return true;
+            }
+            if is_apply_next {
+                return is_to_execpt;
+            }
+            matches!(
+                curr_start_tok,
+                Tok::NumValue | Tok::NumTypedValue | Tok::Acquires | Tok::Identifier | Tok::Star
+            ) || matches!(
+                curr_end_tok,
+                Tok::RParen
+                    | Tok::Comma
+                    | Tok::Slash
+                    | Tok::Pipe
+                    | Tok::PipePipe
+                    | Tok::Return
+                    | Tok::If
+                    | Tok::Else
+            )
+        }
+
+        (TokType::Star, _) => {
+            if is_bin_current || is_bin_next {
+                return true;
             }
 
             if is_apply_current {
                 is_to_execpt
             } else {
-                let mut result = false;
                 if is_next_tok_nested && next_tok_nested_kind == NestKind_::Brace {
-                    result = true;
+                    return true;
                 }
                 if !is_next_tok_nested {
-                    if Tok::NumValue == next_start_tok
-                        || Tok::NumTypedValue == next_start_tok
-                        || Tok::LParen == next_start_tok
-                    {
-                        result = true;
+                    if matches!(
+                        next_start_tok,
+                        Tok::NumValue | Tok::NumTypedValue | Tok::LParen
+                    ) {
+                        return true;
                     }
-                    if Tok::Identifier == next_start_tok {
-                        if next_tok_simple_content.contains("vector") {
-                            result = false;
-                        } else if is_bin_current {
-                            result = true;
-                        }
+                    if next_tok_simple_content == "vector" {
+                        return false;
                     }
                 }
-
-                result
+                return false;
             }
         }
 
@@ -314,41 +273,59 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
         (TokType::Alphabet | TokType::Number | TokType::Sign, TokType::Sign) => {
             let mut result = false;
             if is_next_tok_nested && Tok::LBrace == next_start_tok {
-                result = true;
+                return true;
             }
-            if !is_next_tok_nested
-                && (Tok::Slash == next_start_tok || Tok::LBrace == next_start_tok)
-            {
-                result = true;
+            if !is_next_tok_nested && Tok::Slash == next_start_tok {
+                return true;
             }
 
-            if Tok::Let == curr_start_tok
-                || Tok::Slash == curr_start_tok
-                || Tok::If == curr_start_tok
-                || Tok::Else == curr_start_tok
-                || Tok::While == curr_start_tok
-            {
-                result = true;
+            if matches!(
+                curr_start_tok,
+                Tok::Let | Tok::Slash | Tok::If | Tok::Else | Tok::While | Tok::Comma | Tok::Return
+            ) {
+                return true;
             }
-
             if next_start_tok == Tok::Exclaim {
                 result = matches!(TokType::from(curr_start_tok), TokType::Alphabet)
                     || Tok::RParen == curr_end_tok;
             }
 
             if let Some(content) = current.simple_str() {
-                if content == "aborts_if" || content == "ensures" || content == "include" {
-                    result = true;
+                if matches!(
+                    content,
+                    "aborts_if"
+                        | "ensures"
+                        | "include"
+                        | "pragma"
+                        | "invariant"
+                        | "succeeds_if"
+                        | "aborts_with"
+                        | "modifies"
+                        | "emits"
+                        | "requires"
+                        | "apply"
+                        | "global"
+                ) {
+                    return true;
                 }
                 if content == "assert" && next_start_tok == Tok::Exclaim {
                     result = false;
                 }
+
+                // added in 20240430: support for loop
+                // optimize in 20240510: and in(special identifier)
+                if matches!(content, "for" | "in") && next_start_tok == Tok::LParen {
+                    return true;
+                }
             }
 
             if Tok::RParen == curr_end_tok && next_start_tok == Tok::LParen {
-                result = true;
+                return true;
             }
 
+            if Tok::Pipe == next_start_tok && next_start_tok != Tok::LParen {
+                return true;
+            }
             // tracing::debug!("result = {}, next_start_tok = {:?}", result, next_start_tok);
             result
         }
@@ -356,6 +333,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
     }
 }
 
+/*
 pub(crate) fn judge_simple_paren_expr(
     kind: &NestKind,
     elements: &Vec<TokenTree>,
@@ -371,18 +349,19 @@ pub(crate) fn judge_simple_paren_expr(
             elements[0].simple_str(),
             paren_num
         );
-        if paren_num.0 > 2 || paren_num.1 > 4 {
+        if (paren_num.0 > 4 || paren_num.1 > 4) && analyze_token_tree_length(elements, config.max_width() / 2) >= 32 {
             return false;
         }
-        if paren_num.0 >= 1 && paren_num.1 >= 4 {
-            return false;
-        }
-        if analyze_token_tree_length(elements, config.max_width() / 2) >= config.max_width() - 55 {
-            return false;
-        }
+        // if paren_num.0 >= 1 && paren_num.1 >= 4 {
+        //     return false;
+        // }
+        // if analyze_token_tree_length(elements, config.max_width() / 2) >= config.max_width() - 55 {
+        //     return false;
+        // }
     }
     true
 }
+ */
 
 pub(crate) fn process_link_access(elements: &[TokenTree], idx: usize) -> (usize, usize) {
     tracing::debug!("process_link_access >>");
@@ -405,4 +384,55 @@ pub(crate) fn process_link_access(elements: &[TokenTree], idx: usize) -> (usize,
         index
     );
     (continue_dot_cnt, index - 2)
+}
+
+pub(crate) fn need_break_cur_line_when_trim_blank_lines(current: &Tok, next: &Tok) -> bool {
+    !matches!(
+        (current, next),
+        (
+            Tok::Script
+                | Tok::Module
+                | Tok::Struct
+                | Tok::Fun
+                | Tok::Spec
+                | Tok::Const
+                | Tok::Friend
+                | Tok::If
+                | Tok::Inline
+                | Tok::Public
+                | Tok::Use
+                | Tok::While
+                | Tok::Native
+                | Tok::NumSign
+                | Tok::Exclaim
+                | Tok::ExclaimEqual
+                | Tok::Percent
+                | Tok::Star
+                | Tok::Plus
+                | Tok::Minus
+                | Tok::Period
+                | Tok::PeriodPeriod
+                | Tok::Slash
+                | Tok::Comma
+                | Tok::Colon
+                | Tok::ColonColon
+                | Tok::Less
+                | Tok::LessEqual
+                | Tok::LessLess
+                | Tok::Equal
+                | Tok::Greater
+                | Tok::GreaterEqual
+                | Tok::GreaterGreater
+                | Tok::Acquires
+                | Tok::As
+                | Tok::Invariant
+                | Tok::EqualEqual,
+            _
+        ) | (
+            Tok::AtSign | Tok::Amp,
+            Tok::NumValue | Tok::Identifier | Tok::LParen
+        ) | (Tok::RBrace, Tok::RBrace)
+            | (Tok::LBrace, Tok::Module | Tok::Identifier)
+            | (Tok::Identifier, Tok::Identifier)
+    )
 }

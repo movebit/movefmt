@@ -22,5 +22,6 @@ unicode-segmentation = "1.9"
 unicode-width = "0.1"
 unicode-properties = { version = "0.1", default-features = false, features = ["general-category"] }
 
-config_proc_macro = { version = "0.3", path = "config_proc_macro" }
+config_proc_macro = { version = "0.3", path = "../configurations/config_proc_macro" }
+configurations = { path = "../configurations" }
 

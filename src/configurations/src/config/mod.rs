@@ -26,9 +26,12 @@ create_config! {
     indent_size: usize, 4, true, "Indent size";
     hard_tabs: bool, false, true, "Use tab characters for indentation, spaces for alignment";
     tab_spaces: usize, 4, true, "Number of spaces per tab";
-    emit_mode: EmitMode, EmitMode::Files, true,
+    emit_mode: EmitMode, EmitMode::Overwrite, true,
         "What emit Mode to use when none is supplied";
     verbose: Verbosity, Verbosity::Normal, true, "How much to information to emit to the user";
+    prefer_one_line_for_short_branch_blk: bool, true, true, "Prefer one line for short branch block";
+    prefer_one_line_for_short_call_para_list: bool, true, true, "Prefer one line for short parameters list in function call";
+    prefer_one_line_for_short_fn_header_para_list: bool, true, true, "Prefer one line for short parameters list in fun header";
 }
 
 #[derive(Error, Debug)]

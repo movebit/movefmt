@@ -4,12 +4,11 @@ use std::io;
 use std::path::PathBuf;
 use thiserror::Error;
 
-pub use crate::config::{load_config, CliOptions, Config, Edition, EmitMode, Verbosity};
+pub use configurations::config::{load_config, CliOptions, Config, EmitMode, Verbosity};
 
 #[macro_use]
 pub mod utils;
 pub mod comment;
-pub mod config;
 pub mod shape;
 pub mod string;
 

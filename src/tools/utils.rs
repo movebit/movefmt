@@ -93,7 +93,13 @@ impl FileLineMapping {
         let vec = self.m.get(filepath)?;
         let too_big = vec.last().map(|x| *x <= end_index).unwrap_or(false);
         if too_big {
-            return None;
+            return Some(FileRange {
+                path: filepath.clone(),
+                line_start: *vec.last().unwrap(),
+                col_start: 0,
+                line_end: *vec.last().unwrap(),
+                col_end: 0,
+            });
         }
         fn search(vec: &[ByteIndex], byte_index: ByteIndex) -> (u32, u32) {
             let mut index = bisection::bisect_left(vec, &byte_index);

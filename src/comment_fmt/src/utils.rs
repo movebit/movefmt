@@ -1,6 +1,6 @@
 use unicode_width::UnicodeWidthStr;
 use crate::comment::{filter_normal_code, FullCodeCharKind, LineClasses};
-use crate::config::Config;
+use configurations::config::Config;
 use crate::shape::{Indent, Shape};
 
 #[inline]

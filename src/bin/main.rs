@@ -19,10 +19,20 @@ use std::path::{Path, PathBuf};
 use thiserror::Error;
 use tracing_subscriber::EnvFilter;
 
+extern crate colored;
+use colored::Colorize;
+
 fn main() {
     tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_env("MOVEFMT_LOG"))
+        .with_env_filter(
+            EnvFilter::try_from_env("MOVEFMT_LOG").unwrap_or_else(|_| EnvFilter::new("warn")),
+        )
         .init();
+    tracing::warn!("{}", "
+            Currently movefmt is still in the beta testing phase.
+            The formatting results of the beta version may be incompatible with the official release version.
+        ".yellow()
+    );
     let opts = make_opts();
 
     let exit_code = match execute(&opts) {
@@ -84,7 +94,7 @@ enum HelpOp {
 
 fn make_opts() -> Options {
     let mut opts = Options::new();
-    let emit_opts = "[files|new_files|stdout|check_diff]";
+    let emit_opts = "[overwrite|new_file|stdout|diff]";
 
     opts.optopt("", "emit", "What data to emit and how", emit_opts);
     opts.optopt(
@@ -105,7 +115,18 @@ fn make_opts() -> Options {
         "Set options from command line. These settings take priority over .movefmt.toml",
         "[key1=val1,key2=val2...]",
     );
-
+    opts.optopt(
+        "",
+        "file-path",
+        "Format the full path of the specified Move file",
+        "[Absolute path of the specified Move file]",
+    );
+    opts.optopt(
+        "",
+        "dir-path",
+        "Format all Move files in the specified directory",
+        "[Absolute path of specified directory]",
+    );
     opts.optflag("v", "verbose", "Print verbose output");
     opts.optflag("q", "quiet", "Print less output");
     opts.optflag("V", "version", "Show version information");
@@ -166,6 +187,8 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
     eprintln!("options = {:?}", options);
     let (config, config_path) = load_config(None, Some(options.clone()))?;
     let mut use_config = config.clone();
+    let mut success_cnt = 0;
+    let mut skips_cnt = 0;
     tracing::info!(
         "config.[verbose, indent] = [{:?}, {:?}], {:?}",
         config.verbose(),
@@ -212,18 +235,22 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
         }
 
         let content_origin = std::fs::read_to_string(file.as_path()).unwrap();
+        if use_config.verbose() == Verbosity::Verbose {
+            println!("Formatting {}", file.display());
+        }
         match format_entry(content_origin.clone(), use_config.clone()) {
             Ok(formatted_text) => {
+                success_cnt += 1;
                 let emit_mode = if let Some(op_emit) = options.emit_mode {
                     op_emit
                 } else {
                     use_config.emit_mode()
                 };
                 match emit_mode {
-                    EmitMode::NewFiles => {
+                    EmitMode::NewFile => {
                         std::fs::write(mk_result_filepath(&file.to_path_buf()), formatted_text)?
                     }
-                    EmitMode::Files => {
+                    EmitMode::Overwrite => {
                         std::fs::write(&file, formatted_text)?;
                     }
                     EmitMode::Stdout => {
@@ -240,11 +267,31 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
                     }
                 }
             }
-            Err(_) => {
-                // https://github.com/movebit/movefmt/issues/2
-                tracing::error!("file '{:?}' skipped because of parse not ok", file);
+            Err(diags) => {
+                skips_cnt += 1;
+                let mut files_source_text: move_compiler::diagnostics::FilesSourceText =
+                    HashMap::new();
+                files_source_text.insert(
+                    move_command_line_common::files::FileHash::empty(),
+                    (file.display().to_string().into(), content_origin.clone()),
+                );
+                let diags_buf = move_compiler::diagnostics::report_diagnostics_to_color_buffer(
+                    &files_source_text,
+                    diags,
+                );
+                if std::io::stdout().write_all(&diags_buf).is_err() {
+                    // Cannot output compiler diagnostics;
+                    // https://github.com/movebit/movefmt/issues/2
+                    eprintln!("file '{:?}' skipped because of parse not ok", file);
+                }
             }
         }
+    }
+    if skips_cnt > 0 {
+        eprintln!("{:?} files skipped because of parse failed", skips_cnt);
+    }
+    if success_cnt > 0 {
+        println!("{:?} files successfully formatted", success_cnt);
     }
     Ok(0)
 }
@@ -260,7 +307,7 @@ fn print_usage_to_stdout(opts: &Options, reason: &str) {
 }
 
 fn print_version() {
-    println!("movefmt v1.0.0");
+    println!("movefmt v1.0.3");
 }
 
 fn determine_operation(matches: &Matches) -> Result<Operation, OperationError> {
@@ -288,7 +335,7 @@ fn determine_operation(matches: &Matches) -> Result<Operation, OperationError> {
         return Ok(Operation::Version);
     }
 
-    let files: Vec<_> = free_matches
+    let mut files: Vec<_> = free_matches
         .map(|s| {
             let p = PathBuf::from(s);
             // we will do comparison later, so here tries to canonicalize first
@@ -297,9 +344,58 @@ fn determine_operation(matches: &Matches) -> Result<Operation, OperationError> {
         })
         .collect();
 
+    if matches.opt_present("file-path") {
+        if let Some(move_file_path) = matches.opt_str("file-path") {
+            files.push(move_file_path.into());
+        }
+    }
+
+    if matches.opt_present("dir-path") {
+        if let Some(move_dir_path) = matches.opt_str("dir-path") {
+            for x in walkdir::WalkDir::new(PathBuf::from(move_dir_path)) {
+                let x = match x {
+                    Ok(x) => x,
+                    Err(_) => {
+                        break;
+                    }
+                };
+                if x.file_type().is_file()
+                    && x.file_name().to_str().unwrap().ends_with(".move")
+                    && !x.file_name().to_str().unwrap().contains(".fmt")
+                    && !x.file_name().to_str().unwrap().contains(".out")
+                {
+                    files.push(x.clone().into_path());
+                }
+            }
+        }
+    }
+
     if files.is_empty() {
-        eprintln!("no file argument is supplied \n-------------------------------------\n");
-        return Ok(Operation::Help(HelpOp::None));
+        eprintln!("no file argument is supplied, movefmt runs on current directory by default, \nformatting all .move files within it......");
+        eprintln!(
+            "\n----------------------------------------------------------------------------\n"
+        );
+        if let Ok(current_dir) = std::env::current_dir() {
+            println!("Current directory: {:?}", current_dir.display());
+            for x in walkdir::WalkDir::new(current_dir) {
+                let x = match x {
+                    Ok(x) => x,
+                    Err(_) => {
+                        break;
+                    }
+                };
+                if x.file_type().is_file()
+                    && x.file_name().to_str().unwrap().ends_with(".move")
+                    && !x.file_name().to_str().unwrap().contains(".fmt")
+                    && !x.file_name().to_str().unwrap().contains(".out")
+                {
+                    files.push(x.clone().into_path());
+                }
+            }
+        } else {
+            eprintln!("Failed to get the current directory.");
+            return Ok(Operation::Help(HelpOp::None));
+        }
     }
 
     Ok(Operation::Format { files })
@@ -318,15 +414,15 @@ struct GetOptsOptions {
 impl GetOptsOptions {
     pub fn from_matches(matches: &Matches) -> Result<GetOptsOptions> {
         let mut options = GetOptsOptions {
-            verbose: matches.opt_present("verbose"),
             quiet: matches.opt_present("quiet"),
+            verbose: matches.opt_present("verbose"),
+            config_path: matches.opt_str("config-path").map(PathBuf::from),
             ..Default::default()
         };
         if options.verbose && options.quiet {
             return Err(format_err!("Can't use both `--verbose` and `--quiet`"));
         }
 
-        options.config_path = matches.opt_str("config-path").map(PathBuf::from);
         if let Some(ref emit_str) = matches.opt_str("emit") {
             options.emit_mode = Some(emit_mode_from_emit_str(emit_str)?);
         }
@@ -381,10 +477,10 @@ impl CliOptions for GetOptsOptions {
 
 fn emit_mode_from_emit_str(emit_str: &str) -> Result<EmitMode> {
     match emit_str {
-        "files" => Ok(EmitMode::Files),
-        "new_files" => Ok(EmitMode::NewFiles),
+        "overwrite" => Ok(EmitMode::Overwrite),
+        "new_file" => Ok(EmitMode::NewFile),
         "stdout" => Ok(EmitMode::Stdout),
-        "check_diff" => Ok(EmitMode::Diff),
+        "diff" => Ok(EmitMode::Diff),
         _ => Err(format_err!("Invalid value for `--emit`")),
     }
 }

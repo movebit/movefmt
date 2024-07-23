@@ -53,7 +53,7 @@ fn test_single_file() {
         .with_env_filter(EnvFilter::from_env("MOVEFMT_LOG"))
         .init();
 
-    test_on_file(Path::new("./tests/complex/input4.move"));
+    test_on_file(Path::new("./tests/issues/issue11/input1.move"));
 }
 
 fn test_on_file(p: impl AsRef<Path>) -> bool {
@@ -179,27 +179,24 @@ fn extract_tokens(content: &str) -> Result<Vec<ExtractToken>, Vec<String>> {
     };
     let lexer = Lexer::new(content, filehash);
     let mut ret = Vec::new();
-    let parse = movefmt::core::token_tree::Parser::new(lexer, &defs);
+    let parse = movefmt::core::token_tree::Parser::new(lexer, &defs, content.to_string());
     let token_tree = parse.parse_tokens();
     let mut line_mapping = FileLineMapping::default();
     line_mapping.update(p.to_path_buf(), content);
     fn collect_token_tree(ret: &mut Vec<ExtractToken>, m: &FileLineMapping, t: &TokenTree) {
         match t {
-            TokenTree::SimpleToken {
-                content,
-                pos,
-                tok: _tok,
-                note: _,
-            } => {
+            TokenTree::SimpleToken { content, pos, .. } => {
                 let loc = m
                     .translate(&Path::new(".").to_path_buf(), *pos, *pos)
                     .unwrap();
 
-                ret.push(ExtractToken {
-                    content: content.clone(),
-                    line: loc.line_start,
-                    col: loc.col_start,
-                });
+                if content != "," {
+                    ret.push(ExtractToken {
+                        content: content.clone(),
+                        line: loc.line_start,
+                        col: loc.col_start,
+                    });
+                }
             }
             TokenTree::Nested {
                 elements,
@@ -246,12 +243,19 @@ fn test_dir() {
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_env("MOVEFMT_LOG"))
         .init();
-    eprintln!("formated {} files", scan_dir("./tests/complex"));
-    eprintln!(
-        "formated {} files",
-        scan_dir("./tests/aptos_framework_case")
-    );
-    eprintln!("formated {} files", scan_dir("./tests/issues"));
+
+    let mut num: usize = 0;
+    num += scan_dir("./tests/complex");
+    num += scan_dir("./tests/complex2");
+    num += scan_dir("./tests/complex3");
+    num += scan_dir("./tests/complex4");
+    num += scan_dir("./tests/aptos_framework_case");
+    num += scan_dir("./tests/issues");
+    num += scan_dir("./tests/comment");
+    num += scan_dir("./tests/break_line");
+    num += scan_dir("./tests/new_syntax");
+    num += scan_dir("./tests/bug");
+    eprintln!("formated {} files", num);
 }
 
 #[test]

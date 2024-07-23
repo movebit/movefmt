@@ -10,8 +10,7 @@ module std::bcs {
 
     // ==============================
     // Module Specification
-    spec module {
-    } // switch to module documentation context
+    spec module {} // switch to module documentation context
 
     spec module {
         /// Native function which is defined in the prover's prelude.

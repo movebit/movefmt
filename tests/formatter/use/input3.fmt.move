@@ -2,8 +2,12 @@
 
 module BlockComment {
     use aptos_std::type_info::{
-        /* use_item before */ Self, TypeInfo};
-    use aptos_framework::coin::{Self,
-        /* use_item before */ Coin};
+        /* use_item before */ Self,
+        TypeInfo
+    };
+    use aptos_framework::coin::{
+        Self,
+        /* use_item before */ Coin
+    };
 
 }

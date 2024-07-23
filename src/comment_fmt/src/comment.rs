@@ -2,7 +2,7 @@ use std::{self, borrow::Cow, iter};
 use itertools::{multipeek, MultiPeek};
 use lazy_static::lazy_static;
 use regex::Regex;
-use crate::config::Config;
+use configurations::config::Config;
 use crate::shape::{Indent, Shape};
 use crate::string::{rewrite_string, StringFormat};
 use crate::utils::{
@@ -1452,7 +1452,6 @@ fn main() {
             indent,
             offset: 0,
         };
-        // let shape = Shape::legacy(80, IndentStyle::Block, WidthHeuristics::contextual(0, 0));
         let config = &Config::default();
         // let is_doc_comment = false;
 

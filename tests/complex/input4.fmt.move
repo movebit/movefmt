@@ -1,16 +1,13 @@
 module oracle::oracle {
     use std::error;
-    use std::signer::{ address_of };
+    use std::signer::{address_of};
     use aptos_std::table::{Self, Table};
     use aptos_std::type_info::{TypeInfo, type_of};
-    use aptos_framework::account::{ new_event_handle };
+    use aptos_framework::account::{new_event_handle};
     use aptos_framework::event::{emit_event, EventHandle};
 
     use switchboard::aggregator::{Self as switchboard_aggregator};
-    use switchboard::math::{
-        Self as switchboard_math,
-        SwitchboardDecimal
-    };
+    use switchboard::math::{Self as switchboard_math, SwitchboardDecimal};
 
     struct Oracle has store {
         feed: address,
@@ -40,7 +37,7 @@ module oracle::oracle {
     // const ADAPTER_PYTH: u8 = 2;
 
     public fun switchboard_adapter(): u8 {
-         ADAPTER_SWITCHBOARD
+        ADAPTER_SWITCHBOARD
     }
 
     // Functions
@@ -51,16 +48,13 @@ module oracle::oracle {
             OracleStore {
                 oracles: table::new(),
                 update_oracle_events: new_event_handle(oracle),
-            }
+            },
         );
     }
 
     fun assert_feed_adapter(feed: address, adapter: u8) {
         if (adapter == ADAPTER_SWITCHBOARD) {
-            assert!(
-                switchboard_aggregator::exist(feed),
-                error::not_found(E_BAD_FEED)
-            );
+            assert!(switchboard_aggregator::exist(feed), error::not_found(E_BAD_FEED));
             // } else if (adapter == ADAPTER_PYTH) {
         } else {
             abort error::not_found(E_BAD_FEED)
@@ -68,37 +62,29 @@ module oracle::oracle {
     }
 
     public entry fun update_oracle<CoinType>(
-        oracle: &signer,
-        feed: address,
-        adapter: u8
+        oracle: &signer, feed: address, adapter: u8
     ) acquires OracleStore {
-        assert!(
-            address_of(oracle) == @oracle,
-            error::unauthenticated(E_BAD_SIGNER)
-        );
+        assert!(address_of(oracle) == @oracle, error::unauthenticated(E_BAD_SIGNER));
         assert_feed_adapter(feed, adapter);
 
         let oracle_store = borrow_global_mut<OracleStore>(@oracle);
         let coin_type = type_of<CoinType>();
 
         if (table::contains(&oracle_store.oracles, coin_type)) {
-            let oracle = table::borrow_mut(
-                &mut oracle_store.oracles,
-                coin_type
-            );
+            let oracle = table::borrow_mut(&mut oracle_store.oracles, coin_type);
             oracle.feed = feed;
             oracle.adapter = adapter;
         } else {
             table::add(
                 &mut oracle_store.oracles,
                 coin_type,
-                Oracle {feed, adapter}
+                Oracle { feed, adapter },
             );
         };
 
         emit_event(
             &mut oracle_store.update_oracle_events,
-            UpdateOracleEvent {feed, adapter, coin_type,}
+            UpdateOracleEvent { feed, adapter, coin_type, },
         );
     }
 
@@ -130,18 +116,9 @@ module oracle::oracle {
 
     fun decimal_to_u64(decimal: SwitchboardDecimal): u64 {
         let (value, dec, neg) = switchboard_math::unpack(decimal);
-        assert!(
-            !neg,
-            error::out_of_range(E_BAD_PRICE)
-        );
-        assert!(
-            dec <= 9,
-            error::out_of_range(E_BAD_PRICE)
-        );
-        assert!(
-            value > 0,
-            error::out_of_range(E_BAD_PRICE)
-        );
+        assert!(!neg, error::out_of_range(E_BAD_PRICE));
+        assert!(dec <= 9, error::out_of_range(E_BAD_PRICE));
+        assert!(value > 0, error::out_of_range(E_BAD_PRICE));
         (value * base(9 - dec) as u64)
     }
 
