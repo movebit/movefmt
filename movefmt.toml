@@ -2,6 +2,6 @@ max_width = 90
 indent_size = 4
 hard_tabs = false
 tab_spaces = 4
-emit_mode = "NewFiles"
+emit_mode = "NewFile"
 verbose = "Normal"
 prefer_one_line_for_short_branch_blk = true

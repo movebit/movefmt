@@ -21,20 +21,20 @@
 ### 2.--emit
 ```rust
 pub enum EmitMode {
-    Files,
-    NewFiles,
+    Overwrite,
+    NewFile,
     Stdout,
     Diff,
 }
 ```
 
-2.1 overwrite the source file by (--emit "files")
+2.1 overwrite the source file by (--emit "overwrite")
 
-`movefmt --emit "files" /path/to/your/file_name1.move /path/to/your/file_name2.move`
+`movefmt --emit "overwrite" /path/to/your/file_name1.move /path/to/your/file_name2.move`
 
-2.2 generate a new file named "xxx.fmt.out" by (--emit "new_files")
+2.2 generate a new file named "xxx.fmt.out" by (--emit "new_file")
 
-`movefmt --emit "new_files" /path/to/your/file_name1.move /path/to/your/file_name2.move`
+`movefmt --emit "new_file" /path/to/your/file_name1.move /path/to/your/file_name2.move`
 
 2.3 print formatted content to stdout
  
@@ -42,7 +42,7 @@ pub enum EmitMode {
 
 2.4 check diff between origin source file and formatted content
  
- `movefmt -v --emit="check_diff" /path/to/your/file_name.move`
+ `movefmt -v --emit="diff" /path/to/your/file_name.move`
 
 
 ### 3.--config-path
@@ -62,7 +62,7 @@ max_width = 90
 indent_size = 4
 hard_tabs = false
 tab_spaces = 4
-emit_mode = "Files"
+emit_mode = "Overwrite"
 verbose = "Normal"
 ```
 
@@ -83,7 +83,7 @@ max_width = 90
 indent_size = 4
 hard_tabs = false
 tab_spaces = 2
-emit_mode = "NewFiles"
+emit_mode = "NewFile"
 verbose = "Normal"
 ```
 
@@ -96,13 +96,13 @@ eg:
 Format the full path of the specified Move file.
 eg:
 
-`movefmt --emit="new_files" --file-path=/absolute/path/to/your/input1.move`
+`movefmt --emit="new_file" --file-path=/absolute/path/to/your/input1.move`
 
 ### 7.--dir-path
 Format all Move files in the specified directory.
 eg:
 
-`movefmt --emit="new_files" --dir-path=/absolute/path/to/your/sources`
+`movefmt --emit="new_file" --dir-path=/absolute/path/to/your/sources`
 
 ### 8.example
 #### case1: Format two move files, separated by spaces.
@@ -119,12 +119,12 @@ edy@edydeMBP-4 movefmt %
 
 #### case2: Format with option --file-path or --dir-path
 ```bash
-edy@edydeMBP-4 movefmt % movefmt --emit="new_files" --file-path=tests/complex4/input1.move -v
+edy@edydeMBP-4 movefmt % movefmt --emit="new_file" --file-path=tests/complex4/input1.move -v
 2024-07-16T09:31:14.237365Z  WARN movefmt: 
             Currently movefmt is still in the beta testing phase.
             The formatting results of the beta version may be incompatible with the official release version.
         
-options = GetOptsOptions { quiet: false, verbose: true, config_path: None, emit_mode: Some(NewFiles), inline_config: {}, src_file_path: Some("tests/complex4/input1.move"), src_dir_path: None }
+options = GetOptsOptions { quiet: false, verbose: true, config_path: None, emit_mode: Some(NewFile), inline_config: {}, src_file_path: Some("tests/complex4/input1.move"), src_dir_path: None }
 Using movefmt local config file /Users/edy/workspace/movebit/movefmt/movefmt.toml for tests/complex4/input1.move
 Formatting tests/complex4/input1.move
 Spent 0.001 secs in the parsing phase, and 0.001 secs in the formatting phase
@@ -133,12 +133,12 @@ edy@edydeMBP-4 movefmt %
 
 
 edy@edydeMBP-4 movefmt %
-edy@edydeMBP-4 movefmt % movefmt --emit="new_files" --dir-path=tests -v
+edy@edydeMBP-4 movefmt % movefmt --emit="new_file" --dir-path=tests -v
 2024-07-16T09:31:34.969202Z  WARN movefmt: 
             Currently movefmt is still in the beta testing phase.
             The formatting results of the beta version may be incompatible with the official release version.
         
-options = GetOptsOptions { quiet: false, verbose: true, config_path: None, emit_mode: Some(NewFiles), inline_config: {}, src_file_path: None, src_dir_path: Some("tests") }
+options = GetOptsOptions { quiet: false, verbose: true, config_path: None, emit_mode: Some(NewFile), inline_config: {}, src_file_path: None, src_dir_path: Some("tests") }
 Using movefmt local config file /Users/edy/workspace/movebit/movefmt/movefmt.toml for tests/complex/input1.move
 Formatting tests/complex/input1.move
 Spent 0.000 secs in the parsing phase, and 0.000 secs in the formatting phase

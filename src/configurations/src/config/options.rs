@@ -6,10 +6,10 @@ use crate::config::Config;
 /// option.
 #[config_type]
 pub enum EmitMode {
-    /// Emits to files.
-    Files,
+    /// Overwrite the source file
+    Overwrite,
     /// Emits to new files, eg: xxx.fmt.move.
-    NewFiles,
+    NewFile,
     /// Writes the output to stdout.
     Stdout,
     /// Checks if a diff can be generated. If so, movefmt outputs a diff and
@@ -32,7 +32,7 @@ pub enum Verbosity {
 
 impl Default for EmitMode {
     fn default() -> EmitMode {
-        EmitMode::Files
+        EmitMode::Overwrite
     }
 }
 

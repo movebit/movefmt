@@ -94,7 +94,7 @@ enum HelpOp {
 
 fn make_opts() -> Options {
     let mut opts = Options::new();
-    let emit_opts = "[files|new_files|stdout|check_diff]";
+    let emit_opts = "[overwrite|new_file|stdout|diff]";
 
     opts.optopt("", "emit", "What data to emit and how", emit_opts);
     opts.optopt(
@@ -247,10 +247,10 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
                     use_config.emit_mode()
                 };
                 match emit_mode {
-                    EmitMode::NewFiles => {
+                    EmitMode::NewFile => {
                         std::fs::write(mk_result_filepath(&file.to_path_buf()), formatted_text)?
                     }
-                    EmitMode::Files => {
+                    EmitMode::Overwrite => {
                         std::fs::write(&file, formatted_text)?;
                     }
                     EmitMode::Stdout => {
@@ -477,10 +477,10 @@ impl CliOptions for GetOptsOptions {
 
 fn emit_mode_from_emit_str(emit_str: &str) -> Result<EmitMode> {
     match emit_str {
-        "files" => Ok(EmitMode::Files),
-        "new_files" => Ok(EmitMode::NewFiles),
+        "overwrite" => Ok(EmitMode::Overwrite),
+        "new_file" => Ok(EmitMode::NewFile),
         "stdout" => Ok(EmitMode::Stdout),
-        "check_diff" => Ok(EmitMode::Diff),
+        "diff" => Ok(EmitMode::Diff),
         _ => Err(format_err!("Invalid value for `--emit`")),
     }
 }
