@@ -23,9 +23,10 @@
 ## 2024-7-16, Version v1.0.3
 
 ### Features
-- Fixed 3 bugs
+- Fixed 3 bugs and issues{#15, #17, #18}
 - Optimize formatting for complex exp
 - Add config.option[prefer_one_line_for_short_branch_blk] and cli.option{--file-path, --dir-path}
+- Update EmitMode
 
 ### TODO
 - Optimize skipping code block in more scenarios
