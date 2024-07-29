@@ -91,6 +91,8 @@ verbose = "Normal"
 eg:
 
 `movefmt --config max_width="90",indent_size="4" -v --emit="stdout" /path/to/your/file_name.move`
+or
+`movefmt --emit=diff --config=indent_size=2,max_width=20 /path/to/your/file_name.move`
 
 ### 6.--file-path
 Format the full path of the specified Move file.

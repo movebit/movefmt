@@ -38,7 +38,7 @@ fn main() {
     let exit_code = match execute(&opts) {
         Ok(code) => code,
         Err(e) => {
-            tracing::info!("{e:#}");
+            tracing::error!("{e:#}");
             1
         }
     };
