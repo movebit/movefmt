@@ -602,7 +602,11 @@ impl Format {
         }
 
         if elements.is_empty() {
-            return (nested_token_len as f32 > max_len_when_no_add_line, None);
+            return (
+                nested_token_len as f32 > max_len_when_no_add_line
+                    || (contains_comment(nested_blk_str) && nested_blk_str.lines().count() > 1),
+                None,
+            );
         }
 
         // 20240329 updated
@@ -733,6 +737,11 @@ impl Format {
                     new_line_mode |= is_plus_nested_over_width;
                     // 20240619: remove `first_para_is_complex_blk`
                 }
+                if !new_line_mode {
+                    if contains_comment(&nested_blk_str) && nested_blk_str.find("//").is_some() {
+                        new_line_mode = true;
+                    }
+                }
                 return (new_line_mode, Some(opt_component_break_mode));
             }
             NestKind_::Bracket => {
@@ -795,8 +804,15 @@ impl Format {
         self.format_token_trees_internal(&kind.start_token_tree(), None, b_new_line_mode);
 
         // step2 -- paired effect with step6
-        if b_add_indent {
+        if b_add_indent && b_new_line_mode {
             self.inc_depth();
+        }
+        if b_new_line_mode && !elements.is_empty() {
+            tracing::debug!(
+                "top_half_after_kind_start -- add a new line before {:?}; b_add_indent = {:?}",
+                elements.first().unwrap().simple_str(),
+                b_add_indent
+            );
         }
 
         // step3
@@ -831,10 +847,9 @@ impl Format {
             self.ret.clone().into_inner().lines().count() < ret_copy.lines().count();
 
         // step6 -- paired effect with step2
-        if b_add_indent {
+        if b_add_indent && b_new_line_mode {
             self.dec_depth();
         }
-
         // step7
         if b_new_line_mode || had_rm_added_new_line {
             tracing::debug!(
@@ -1154,15 +1169,6 @@ impl Format {
             return;
         }
 
-        if b_new_line_mode && !elements.is_empty() {
-            tracing::debug!(
-                "nested_token_head = [{:?}], add a new line before {:?}; opt_component_break_mode = {:?}; b_add_indent = {:?};",
-                nested_token_head,
-                elements.first().unwrap().simple_str(),
-                opt_component_break_mode,
-                b_add_indent
-            );
-        }
         let b_add_space_around_brace =
             self.judge_add_space_around_brace(nested_token, b_new_line_mode);
 

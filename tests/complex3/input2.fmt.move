@@ -43,14 +43,14 @@ module test {
             let len = vector::length(&bitvector.bit_field);
             let i = 0;
             while ({
-                    spec {
-                        invariant len == bitvector.length;
-                        invariant forall k in 0..i: !bitvector.bit_field[k];
-                        invariant forall k in i..bitvector.length: bitvector.bit_field[k]
-                            == old(bitvector).bit_field[k];
-                    };
-                    i < len
-                }) {
+                spec {
+                    invariant len == bitvector.length;
+                    invariant forall k in 0..i: !bitvector.bit_field[k];
+                    invariant forall k in i..bitvector.length: bitvector.bit_field[k]
+                        == old(bitvector).bit_field[k];
+                };
+                i < len
+            }) {
                 let elem = vector::borrow_mut(&mut bitvector.bit_field, i);
                 *elem = false;
                 i = i + 1;
@@ -59,19 +59,18 @@ module test {
             let i = amount;
 
             while ({
-                    spec {
-                        invariant i >= amount;
-                        invariant bitvector.length == old(bitvector).length;
-                        invariant forall j in amount..i: old(bitvector).bit_field[j]
-                            == bitvector.bit_field[j - amount];
-                        invariant forall j in (i - amount)..bitvector.length: old(
-                            bitvector
-                        ).bit_field[j] == bitvector.bit_field[j];
-                        invariant forall k in 0..i - amount: bitvector.bit_field[k]
-                            == old(bitvector).bit_field[k + amount];
-                    };
-                    i < bitvector.length
-                }) {
+                spec {
+                    invariant i >= amount;
+                    invariant bitvector.length == old(bitvector).length;
+                    invariant forall j in amount..i: old(bitvector).bit_field[j]
+                        == bitvector.bit_field[j - amount];
+                    invariant forall j in (i - amount)..bitvector.length: old(bitvector).bit_field[j] ==
+                         bitvector.bit_field[j];
+                    invariant forall k in 0..i - amount: bitvector.bit_field[k]
+                        == old(bitvector).bit_field[k + amount];
+                };
+                i < bitvector.length
+            }) {
                 if (is_index_set(bitvector, i)) set(bitvector, i - amount)
                 else unset(bitvector, i - amount);
                 i = i + 1;
@@ -80,14 +79,14 @@ module test {
             i = bitvector.length - amount;
 
             while ({
-                    spec {
-                        invariant forall j in bitvector.length - amount..i: !bitvector.bit_field[j];
-                        invariant forall k in 0..bitvector.length - amount: bitvector.bit_field[k] ==
-                             old(bitvector).bit_field[k + amount];
-                        invariant i >= bitvector.length - amount;
-                    };
-                    i < bitvector.length
-                }) {
+                spec {
+                    invariant forall j in bitvector.length - amount..i: !bitvector.bit_field[j];
+                    invariant forall k in 0..bitvector.length - amount: bitvector.bit_field[k] ==
+                         old(bitvector).bit_field[k + amount];
+                    invariant i >= bitvector.length - amount;
+                };
+                i < bitvector.length
+            }) {
                 unset(bitvector, i);
                 i = i + 1;
             }

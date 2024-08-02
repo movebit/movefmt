@@ -175,13 +175,13 @@ module ExperimentalFramework::MultiToken {
         let i = 0;
         let len1 = vector::length(gallery);
         while ({
-                spec {
-                    invariant i >= 0;
-                    invariant i <= len(gallery);
-                    invariant forall k in 0..i: gallery[k].token_id.id != id;
-                };
-                (i < len1)
-            }) {
+            spec {
+                invariant i >= 0;
+                invariant i <= len(gallery);
+                invariant forall k in 0..i: gallery[k].token_id.id != id;
+            };
+            (i < len1)
+        }) {
             if (guid::eq_id(&vector::borrow(gallery, i).token_id, id)) {
                 return option::some(i)
             };

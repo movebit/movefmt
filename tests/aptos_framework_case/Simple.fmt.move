@@ -85,9 +85,9 @@ module 0xABCD::simple {
 
             // can never be true
             if (a > b
-                && b > c
-                && c > d
-                && d > a) {
+            && b > c
+            && c > d
+            && d > a) {
                 count = count + 1;
             }
         }
@@ -273,7 +273,7 @@ module 0xABCD::simple {
             };
         // copy the biger data into the smaller one
         while (vector::length(&data) > vector::length(&resource.data.data)
-                || vector::length(&resource.data.data) < 10000) {
+            || vector::length(&resource.data.data) < 10000) {
             append_data(&mut resource.data.data, &data);
         }
     }

@@ -8,7 +8,7 @@ module test_spec_forall {
         /// that is, the gas-curve is a monotonically increasing function.
         invariant (len(points) > 0 ==> points[0].x > 0)
             && (len(points) > 0 ==>
-                    points[len(points) - 1].x < BASIS_POINT_DENOMINATION)
+                points[len(points) - 1].x < BASIS_POINT_DENOMINATION)
             && (
                 forall i in 0..len(points) - 1: (
                     points[i].x < points[i + 1].x
