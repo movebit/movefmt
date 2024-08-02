@@ -938,7 +938,6 @@ impl CommentExtrator {
                 }
             };
         }
-        // tracing::info!("xxxx:{}", content.len());
         while index <= last_index {
             let c = content.get(index).unwrap();
             // tracing::info!(

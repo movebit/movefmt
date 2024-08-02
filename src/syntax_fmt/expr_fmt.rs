@@ -326,7 +326,6 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
             if Tok::Pipe == next_start_tok && next_start_tok != Tok::LParen {
                 return true;
             }
-            // tracing::debug!("result = {}, next_start_tok = {:?}", result, next_start_tok);
             result
         }
         _ => false,
@@ -364,7 +363,7 @@ pub(crate) fn judge_simple_paren_expr(
  */
 
 pub(crate) fn process_link_access(elements: &[TokenTree], idx: usize) -> (usize, usize) {
-    tracing::debug!("process_link_access >>");
+    tracing::trace!("process_link_access >>");
     if idx >= elements.len() - 1 {
         return (0, 0);
     }
@@ -378,7 +377,7 @@ pub(crate) fn process_link_access(elements: &[TokenTree], idx: usize) -> (usize,
         continue_dot_cnt += 1;
         index += 2;
     }
-    tracing::debug!(
+    tracing::trace!(
         "process_link_access << (continue_dot_cnt, index) = ({}, {})",
         continue_dot_cnt,
         index

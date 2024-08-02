@@ -23,7 +23,8 @@ script {
                     == vector[
                         type_info::type_name<T1>(),
                         type_info::type_name<T2>(),
-                        type_info::type_name<T3>()],
+                        type_info::type_name<T3>()
+                    ],
                 13,
             );
         }

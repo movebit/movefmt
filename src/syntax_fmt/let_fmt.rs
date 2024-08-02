@@ -256,17 +256,17 @@ impl LetExtractor {
         self.multi_ampamp_or_pipepipe_exp();
         for bin_op_exp in self.bin_op_exp_vec.iter() {
             match &bin_op_exp.value {
-                Exp_::BinopExp(_, op, r) => {
-                    match op.value {
-                        BinOp_::Implies | BinOp_::Iff => {
-                            if ast_debug::display(&bin_op_exp.value).len() > 48 && ast_debug::display(&r.value).len() > 16 {
-                                self.long_bin_op_exp_vec.push(bin_op_exp.clone());
-                                self.split_bin_op_vec.borrow_mut().push(false);
-                            }
+                Exp_::BinopExp(_, op, r) => match op.value {
+                    BinOp_::Implies | BinOp_::Iff => {
+                        if ast_debug::display(&bin_op_exp.value).len() > 48
+                            && ast_debug::display(&r.value).len() > 16
+                        {
+                            self.long_bin_op_exp_vec.push(bin_op_exp.clone());
+                            self.split_bin_op_vec.borrow_mut().push(false);
                         }
-                        _ => {}
                     }
-                }
+                    _ => {}
+                },
                 _ => {}
             };
         }

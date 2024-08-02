@@ -116,7 +116,6 @@ impl CallExtractor {
         match &e.value {
             Exp_::Call(name, _, _tys, es) => {
                 if name.loc.end() > es.loc.start() {
-                    // tracing::debug!("name loc end > exp loc end: {:?}", e);
                     // self.receiver_style_call_exp_vec.push(e.clone());
                     if judge_link_call_exp(e).0 {
                         self.link_call_exp_vec.push(e.clone());

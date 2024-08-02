@@ -108,7 +108,6 @@ impl SpecExtractor {
     }
 
     fn collect_spec(&mut self, spec_block: &SpecBlock) {
-        // tracing::debug!("collect_spec spec_block = {:?}", spec_block);
         self.blk_loc_vec.push(spec_block.loc);
 
         if let SpecBlockTarget_::Member(member_name, Some(signature)) =
@@ -146,7 +145,6 @@ impl SpecExtractor {
         }
 
         for m in spec_block.value.members.iter() {
-            // tracing::debug!("collect_spec spec_block.value.member = {:?}", m);
             if let SpecBlockMember_::Function {
                 uninterpreted: _,
                 name,
@@ -262,7 +260,6 @@ pub fn add_blank_row_in_two_blocks(fmt_buffer: String) -> String {
                 let trimed_prefix = the_row_after_blk1_end.trim_start();
                 if !trimed_prefix.is_empty() {
                     // there are code or comment located in line(blk1_end_line + 1)
-                    // tracing::debug!("trimed_prefix = {:?}", trimed_prefix);
                     true
                 } else {
                     false
@@ -278,7 +275,6 @@ pub fn add_blank_row_in_two_blocks(fmt_buffer: String) -> String {
         }
     }
 
-    // tracing::debug!("result = {}", result);
     result
 }
 
@@ -288,7 +284,6 @@ pub fn process_block_comment_before_spec_header(fmt_buffer: String, config: Conf
     let spec_extractor = SpecExtractor::new(fmt_buffer.clone());
     let mut insert_char_nums = 0;
     for (fun_idx, (fun_start_line, _)) in spec_extractor.spec_fn_loc_line_vec.iter().enumerate() {
-        // tracing::debug!("fun header is {:?}", );
         let fun_header_str =
             get_nth_line(buf.as_str(), *fun_start_line as usize).unwrap_or_default();
         let filehash = FileHash::empty();
@@ -316,7 +311,6 @@ pub fn process_spec_fn_header_too_long(fmt_buffer: String, config: Config) -> St
     let mut insert_char_nums = 0;
     let mut fun_idx = 0;
     for fun_loc in spec_extractor.spec_fn_loc_vec.iter() {
-        // tracing::debug!("spec_fun_loc = {:?}", fun_loc);
         let ret_ty_loc = spec_extractor.spec_fn_ret_ty_loc_vec[fun_idx];
         if ret_ty_loc.start() < fun_loc.start() {
             // this fun return void

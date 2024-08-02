@@ -243,7 +243,7 @@ impl BinOpExtractor {
             if let Exp_::BinopExp(_, m, r) = &bin_op_exp.value {
                 if token.end_pos() == m.loc.end() {
                     tracing::debug!("r.value = {:?}", ast_debug::display(&r.value));
-                    return (idx, ast_debug::display(&r.value).len())
+                    return (idx, ast_debug::display(&r.value).len());
                 }
             }
         }
@@ -300,8 +300,8 @@ fn get_bin_op_exp(fmt_buffer: String) {
     let (defs, _) = parse_file_string(&mut env, FileHash::empty(), &fmt_buffer).unwrap();
     bin_op_extractor.preprocess(defs);
     for bin_op_exp in bin_op_extractor.bin_op_exp_vec.iter() {
-        let bin_op_exp_str =
-            &bin_op_extractor.source[bin_op_exp.loc.start() as usize..bin_op_exp.loc.end() as usize];
+        let bin_op_exp_str = &bin_op_extractor.source
+            [bin_op_exp.loc.start() as usize..bin_op_exp.loc.end() as usize];
         if bin_op_exp_str.len() < 64 {
             continue;
         }
@@ -326,7 +326,6 @@ fn get_bin_op_exp(fmt_buffer: String) {
         eprintln!(" ******************************************************** <<\n\n\n");
     }
 }
-
 
 #[test]
 fn test_get_bin_op_exp() {

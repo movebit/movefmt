@@ -1536,7 +1536,8 @@ module econia::incentives {
             vector[FEE_SHARE_DIVISOR_3, TIER_ACTIVATION_FEE_3, WITHDRAWAL_FEE_3],
             vector[FEE_SHARE_DIVISOR_4, TIER_ACTIVATION_FEE_4, WITHDRAWAL_FEE_4],
             vector[FEE_SHARE_DIVISOR_5, TIER_ACTIVATION_FEE_5, WITHDRAWAL_FEE_5],
-            vector[FEE_SHARE_DIVISOR_6, TIER_ACTIVATION_FEE_6, WITHDRAWAL_FEE_6]];
+            vector[FEE_SHARE_DIVISOR_6, TIER_ACTIVATION_FEE_6, WITHDRAWAL_FEE_6]
+        ];
         // Set incentive parameters for the first time.
         set_incentive_parameters<AptosCoin>(
             econia,
@@ -2132,7 +2133,8 @@ module econia::incentives {
         // Vectorize fee store tier parameters.
         let integrator_fee_store_tiers = vector[
             vector[FEE_SHARE_DIVISOR_0, TIER_ACTIVATION_FEE_0, WITHDRAWAL_FEE_0],
-            vector[FEE_SHARE_DIVISOR_1, TIER_ACTIVATION_FEE_1, WITHDRAWAL_FEE_1]];
+            vector[FEE_SHARE_DIVISOR_1, TIER_ACTIVATION_FEE_1, WITHDRAWAL_FEE_1]
+        ];
         // Initialize incentives with mock utility coin.
         set_incentive_parameters<UC>(
             &econia,
@@ -2451,7 +2453,8 @@ module econia::incentives {
             vector[fee_share_divisor_3, tier_activation_fee_3, withdrawal_fee_3],
             vector[fee_share_divisor_4, tier_activation_fee_4, withdrawal_fee_4],
             vector[fee_share_divisor_5, tier_activation_fee_5, withdrawal_fee_5],
-            vector[fee_share_divisor_6, tier_activation_fee_6, withdrawal_fee_6]];
+            vector[fee_share_divisor_6, tier_activation_fee_6, withdrawal_fee_6]
+        ];
         // Update incentives.
         update_incentives<QC>(
             econia,

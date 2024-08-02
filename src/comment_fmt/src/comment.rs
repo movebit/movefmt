@@ -1,14 +1,11 @@
-use std::{self, borrow::Cow, iter};
+use crate::shape::{Indent, Shape};
+use crate::string::{rewrite_string, StringFormat};
+use crate::utils::{count_newlines, last_line_width, trim_left_preserve_layout, unicode_str_width};
+use configurations::config::Config;
 use itertools::{multipeek, MultiPeek};
 use lazy_static::lazy_static;
 use regex::Regex;
-use configurations::config::Config;
-use crate::shape::{Indent, Shape};
-use crate::string::{rewrite_string, StringFormat};
-use crate::utils::{
-    count_newlines, last_line_width, trim_left_preserve_layout,
-    unicode_str_width,
-};
+use std::{self, borrow::Cow, iter};
 
 lazy_static! {
     /// A regex matching reference doc links.
@@ -251,28 +248,25 @@ fn identify_comment(
     };
 
     let (first_group, rest) = orig.split_at(first_group_ending);
-    let rewritten_first_group =
-        if has_bare_lines && style.is_block_comment() {
-            trim_left_preserve_layout(first_group, shape.indent, config)?
-        } else if !(
-                // `format_code_in_doc_comments` should only take effect on doc comments,
-                // so we only consider it when this comment block is a doc comment block.
-                is_doc_comment
-            )
-        {
-            light_rewrite_comment(first_group, shape.indent, config, is_doc_comment)
-        } else {
-            rewrite_comment_inner(
-                first_group,
-                block_style,
-                style,
-                shape,
-                config,
-                is_doc_comment || style.is_doc_comment(),
-            )?
-        };
+    let rewritten_first_group = if has_bare_lines && style.is_block_comment() {
+        trim_left_preserve_layout(first_group, shape.indent, config)?
+    } else if !(
+        // `format_code_in_doc_comments` should only take effect on doc comments,
+        // so we only consider it when this comment block is a doc comment block.
+        is_doc_comment
+    ) {
+        light_rewrite_comment(first_group, shape.indent, config, is_doc_comment)
+    } else {
+        rewrite_comment_inner(
+            first_group,
+            block_style,
+            style,
+            shape,
+            config,
+            is_doc_comment || style.is_doc_comment(),
+        )?
+    };
     if rest.is_empty() {
-        // tracing::info!("rewritten_first_group = \n{}", rewritten_first_group);
         Some(rewritten_first_group)
     } else {
         identify_comment(
@@ -283,19 +277,18 @@ fn identify_comment(
             is_doc_comment,
         )
         .map(|rest_str| {
-            let ret_cmt_str = 
-                format!(
-                    "{}\n{}{}{}",
-                    rewritten_first_group,
-                    // insert back the blank line
-                    if has_bare_lines && style.is_line_comment() {
-                        "\n"
-                    } else {
-                        ""
-                    },
-                    shape.indent.to_string(config),
-                    rest_str
-                );
+            let ret_cmt_str = format!(
+                "{}\n{}{}{}",
+                rewritten_first_group,
+                // insert back the blank line
+                if has_bare_lines && style.is_line_comment() {
+                    "\n"
+                } else {
+                    ""
+                },
+                shape.indent.to_string(config),
+                rest_str
+            );
             tracing::info!("ret_cmt_str = {}", ret_cmt_str);
             ret_cmt_str
         })
@@ -435,7 +428,7 @@ impl<'a> CommentRewrite<'a> {
         let is_last = i == num_newlines;
         if self.code_block_attr.is_some() {
             self.code_block_buffer
-            .push_str(&hide_sharp_behind_comment(line));
+                .push_str(&hide_sharp_behind_comment(line));
             self.code_block_buffer.push('\n');
             return false;
         }
@@ -562,10 +555,7 @@ fn rewrite_comment_inner(
         .map(|s| left_trim_comment_line(s, &style))
         .map(|(line, has_leading_whitespace)| {
             if orig.starts_with("/*") && line_breaks == 0 {
-                (
-                    line.trim_start(),
-                    has_leading_whitespace,
-                )
+                (line.trim_start(), has_leading_whitespace)
             } else {
                 (line, has_leading_whitespace)
             }

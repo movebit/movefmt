@@ -231,7 +231,7 @@ pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &str) -> Str
     use std::collections::HashSet;
     let mut specifier_str_set: HashSet<String> = HashSet::new();
 
-    tracing::debug!("fun_specifier_str = {}", specifier);
+    tracing::trace!("fun_specifier_str = {}", specifier);
 
     let mut fun_specifiers_code = vec![];
     let mut lexer = Lexer::new(specifier, FileHash::empty());
@@ -303,7 +303,6 @@ pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &str) -> Str
                 }
 
                 if this_token_is_comment {
-                    // tracing::debug!("intern> this token is comment -- {}",  item_j);
                     chain.push(item_j.to_string());
                     continue;
                 }
@@ -317,7 +316,6 @@ pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &str) -> Str
                     break;
                 } else {
                     let judge_new_line = &specifier[old_last_substr_len..*last_substr_len];
-                    // tracing::debug!("judge_new_line = {:?}", judge_new_line);
                     if judge_new_line.contains('\n') {
                         chain.push("\n".to_string());
                         let tmp_indent_str = " ".to_string().repeat(
@@ -329,7 +327,6 @@ pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &str) -> Str
                     chain.push(item_j.to_string());
                 }
             }
-            // tracing::debug!("intern> chain[{:?}] -- {:?}", i, chain);
             chain
         };
 
@@ -339,11 +336,8 @@ pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &str) -> Str
             // if this token's pos not comment
             for token_idx in 0..fun_specifiers_code.len() {
                 let token = &fun_specifiers_code[token_idx];
-                // tracing::debug!("iter_specifier = {}, specifier_set = {}", iter_specifier, specifier_set);
-                // tracing::debug!("token.0 = {}, idx = {}, last_substr_len = {}", token.0, idx, last_substr_len);
                 if token.0 == (idx + last_substr_len) as u32 {
                     this_token_is_comment = false;
-                    // tracing::debug!("token.0 = {} === idx + last_substr_len = {}", token.0, idx + last_substr_len);
                     fun_specifiers_code.remove(token_idx);
                     break;
                 }
@@ -352,7 +346,6 @@ pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &str) -> Str
         }
 
         if this_token_is_comment {
-            // tracing::debug!("extern> this token is comment -- {}",  specifier_set);
             continue;
         }
 
@@ -377,7 +370,6 @@ pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &str) -> Str
             }
         }
 
-        // tracing::debug!("<< for loop end, last_substr_len = {}, specifier.len = {}", last_substr_len, specifier.len());
         if last_substr_len == specifier.len() {
             break;
         }
@@ -387,7 +379,6 @@ pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &str) -> Str
     if found_specifier {
         ret_str.push_str(fun_specifier_fmted_str.as_str());
         ret_str.push(' ');
-        // tracing::debug!("fun_specifier_fmted_str = --------------{}", ret_str);
     } else {
         ret_str = specifier.to_string();
     }
@@ -532,12 +523,9 @@ pub(crate) fn process_fun_ret_ty(fmt_buffer: String, config: Config) -> String {
                 continue;
             }
 
-            // tracing::debug!("fun_header_str = {:?}, ret_ty_str = {:?}", fun_header_str, ret_ty_str);
             let indent1 = get_space_cnt_before_line_str(fun_header_str);
             let indent2 = get_space_cnt_before_line_str(ret_ty_str);
-            // tracing::debug!("indent1 = {}, indent2 = {}", indent1, indent2);
             if indent1 == indent2 {
-                // tracing::debug!("fun_header_str = \n{:?}", &buf[0..(ret_ty_loc.start() as usize - ret_ty_str.len())]);
                 result.insert_str(
                     ret_ty_loc.start() as usize - ret_ty_str.len() + insert_char_nums,
                     " ".to_string().repeat(config.indent_size()).as_str(),
@@ -546,10 +534,10 @@ pub(crate) fn process_fun_ret_ty(fmt_buffer: String, config: Config) -> String {
             }
         }
     }
-    // tracing::debug!("result = \n{}", result);
     result
 }
 
+#[allow(dead_code)]
 pub(crate) fn process_fun_annotation(kind: NestKind, elements: Vec<TokenTree>) -> String {
     fn process_simple_token(token: &TokenTree, next_token: Option<&TokenTree>) -> String {
         let mut fmt_result_str = "".to_string();
