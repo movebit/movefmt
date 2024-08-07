@@ -550,12 +550,7 @@ pub(crate) fn process_fun_annotation(kind: NestKind, elements: Vec<TokenTree>) -
 
     fn process_nested_token(nested_token_tree: &TokenTree) -> String {
         let mut fmt_result_str = "".to_string();
-        if let TokenTree::Nested {
-            elements,
-            kind,
-            note: _,
-        } = nested_token_tree
-        {
+        if let TokenTree::Nested { elements, kind, .. } = nested_token_tree {
             fmt_result_str.push_str(kind.start_token_tree().simple_str().unwrap_or_default());
             let mut internal_token_idx = 0;
             while internal_token_idx < elements.len() {
@@ -581,6 +576,7 @@ pub(crate) fn process_fun_annotation(kind: NestKind, elements: Vec<TokenTree>) -
             elements,
             kind,
             note: None,
+            need_inc_depth: false,
         });
         tracing::debug!("fmt_result_str = {}", fmt_result_str);
         return fmt_result_str;

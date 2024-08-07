@@ -198,11 +198,7 @@ fn extract_tokens(content: &str) -> Result<Vec<ExtractToken>, Vec<String>> {
                     });
                 }
             }
-            TokenTree::Nested {
-                elements,
-                kind,
-                note: _,
-            } => {
+            TokenTree::Nested { elements, kind, .. } => {
                 let start_loc = m
                     .translate(
                         &Path::new(".").to_path_buf(),

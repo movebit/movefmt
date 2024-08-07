@@ -23,8 +23,6 @@ use std::cell::RefCell;
 use std::collections::BTreeSet;
 use std::result::Result::*;
 
-const BREAK_LINE_FOR_LOGIC_OP_NUM: u32 = 2;
-
 pub struct FormatContext {
     pub content: String,
     pub pre_simple_token: TokenTree,
@@ -184,12 +182,7 @@ impl Format {
 
     fn is_long_nested_token(current: &TokenTree) -> (bool, usize) {
         let (mut result, mut elements_len) = (false, 0);
-        if let TokenTree::Nested {
-            elements,
-            kind,
-            note: _,
-        } = current
-        {
+        if let TokenTree::Nested { elements, kind, .. } = current {
             result = matches!(kind.kind, NestKind_::Brace | NestKind_::ParentTheses)
                 && analyze_token_tree_length(elements, 64) > 32;
             elements_len = elements.len();
@@ -373,12 +366,7 @@ impl Format {
         let b_judge_next_token = Self::check_next_token_canbe_break_in_nested(next);
 
         // special case for `}}`
-        if let TokenTree::Nested {
-            elements: _,
-            kind,
-            note: _,
-        } = current
-        {
+        if let TokenTree::Nested { kind, .. } = current {
             if kind.kind == NestKind_::Brace
                 && kind_outer.kind == NestKind_::Brace
                 && b_judge_next_token
@@ -508,34 +496,6 @@ impl Format {
             next_token = next_tok;
         }
 
-        // added in 20240430: check expression with (&&, ||, ...)
-        if kind.kind == NestKind_::ParentTheses {
-            let elements_str = serde_json::to_string(&elements).unwrap_or_default();
-            let and_op_num = elements_str.matches("&&").count() as u32;
-            let or_op_num = elements_str.matches("||").count() as u32;
-            let mut b_need_check_logic_op = false;
-            if and_op_num > BREAK_LINE_FOR_LOGIC_OP_NUM
-                || or_op_num > BREAK_LINE_FOR_LOGIC_OP_NUM
-                || and_op_num + or_op_num > BREAK_LINE_FOR_LOGIC_OP_NUM
-            {
-                b_need_check_logic_op = true;
-            }
-
-            let elements_len = analyze_token_tree_length(elements, 100);
-            let elements_limit = 75;
-            if (and_op_num == BREAK_LINE_FOR_LOGIC_OP_NUM
-                || or_op_num == BREAK_LINE_FOR_LOGIC_OP_NUM
-                || and_op_num + or_op_num == BREAK_LINE_FOR_LOGIC_OP_NUM)
-                && elements_len > elements_limit
-            {
-                b_need_check_logic_op = true;
-            }
-
-            if b_need_check_logic_op && matches!(next_token, Tok::PipePipe | Tok::AmpAmp) {
-                new_line = true;
-            }
-        }
-
         new_line |=
             self.check_cur_token_is_long_bin_op(t, next_t, next_token, index, kind, &elements);
         if !new_line && next_t.is_some() {
@@ -579,6 +539,7 @@ impl Format {
             elements,
             kind,
             note,
+            need_inc_depth: _,
         } = token
         else {
             return (false, None);
@@ -908,12 +869,7 @@ impl Format {
         pound_sign: &mut Option<usize>,
         need_add_comma_after_last_ele: bool,
     ) {
-        let TokenTree::Nested {
-            elements,
-            kind: _,
-            note: _,
-        } = nested_token
-        else {
+        let TokenTree::Nested { elements, .. } = nested_token else {
             return;
         };
         let token = elements.get(internal_token_idx).unwrap();
@@ -958,12 +914,7 @@ impl Format {
         has_colon: bool,
         component_break_mode: bool,
     ) {
-        let TokenTree::Nested {
-            elements,
-            kind,
-            note: _,
-        } = nested_token
-        else {
+        let TokenTree::Nested { elements, kind, .. } = nested_token else {
             return;
         };
         let old_kind = self.format_context.borrow_mut().cur_nested_kind;
@@ -984,27 +935,27 @@ impl Format {
                 component_break_mode,
             );
 
-            if kind.kind == NestKind_::ParentTheses {
-                new_line |= self
-                    .syntax_extractor
-                    .call_extractor
-                    .should_call_component_split(
-                        self.global_cfg.clone(),
-                        kind,
-                        elements,
-                        internal_token_idx,
-                        self.get_cur_line_len(),
-                    );
+            let is_call = kind.kind == NestKind_::ParentTheses
+                && self.syntax_extractor.call_extractor.paren_in_call(kind);
+            if is_call {
+                new_line |= component_break_mode
+                    && self
+                        .syntax_extractor
+                        .call_extractor
+                        .should_call_component_split(
+                            self.global_cfg.clone(),
+                            kind,
+                            elements,
+                            internal_token_idx,
+                            self.get_cur_line_len(),
+                        );
             }
 
             // This code determines whether a comma should be added after the last argument in a function call
             // if the arguments are split across multiple lines.
             // Add a comment if the last argument needs to be on a new line and there is no comma after the last argument.
             let mut need_add_comma_after_last_ele = false;
-            if internal_token_idx == len - 1
-                && kind.kind == NestKind_::ParentTheses
-                && self.syntax_extractor.call_extractor.paren_in_call(kind)
-            {
+            if internal_token_idx == len - 1 && is_call {
                 if component_break_mode
                     && elements
                         .get(internal_token_idx)
@@ -1098,12 +1049,7 @@ impl Format {
         nested_token: &TokenTree,
         b_new_line_mode: bool,
     ) -> bool {
-        let TokenTree::Nested {
-            elements,
-            kind,
-            note: _,
-        } = nested_token
-        else {
+        let TokenTree::Nested { elements, kind, .. } = nested_token else {
             return true;
         };
         let nested_token_head = self.format_context.borrow().pre_simple_token.get_end_tok();
@@ -1136,6 +1082,7 @@ impl Format {
             elements,
             kind,
             note,
+            need_inc_depth: _,
         } = nested_token
         else {
             return;
@@ -1436,13 +1383,13 @@ impl Format {
         next_token: Option<&TokenTree>,
         new_line_after: bool,
     ) {
-        if new_line_after
-            && next_token.is_some()
-            && self
-                .syntax_extractor
-                .bin_op_extractor
-                .need_inc_depth_by_long_op(next_token.unwrap().clone())
-        // && self.format_context.borrow().cur_nested_kind.kind != NestKind_::ParentTheses
+        if !new_line_after || next_token.is_none() {
+            return;
+        }
+        if self
+            .syntax_extractor
+            .bin_op_extractor
+            .need_inc_depth_by_long_op(next_token.unwrap().clone())
         {
             tracing::debug!(
                 "bin_op_extractor.need_inc_depth_by_long_op({:?})",
@@ -1451,12 +1398,10 @@ impl Format {
             self.inc_depth();
         }
 
-        if new_line_after
-            && next_token.is_some()
-            && self
-                .syntax_extractor
-                .let_extractor
-                .need_inc_depth_by_long_op(next_token.unwrap().clone())
+        if self
+            .syntax_extractor
+            .let_extractor
+            .need_inc_depth_by_long_op(next_token.unwrap().clone())
             && self.format_context.borrow().cur_nested_kind.kind != NestKind_::ParentTheses
         {
             self.inc_depth();
@@ -1469,17 +1414,17 @@ impl Format {
         next_token: Option<&TokenTree>,
         new_line_after: bool,
     ) {
-        if new_line_after
-            && next_token.is_some()
-            && (self
+        if !new_line_after || next_token.is_none() {
+            return;
+        }
+        if self
+            .syntax_extractor
+            .bin_op_extractor
+            .need_inc_depth_by_long_op(token.clone())
+            || self
                 .syntax_extractor
                 .bin_op_extractor
-                .need_inc_depth_by_long_op(token.clone())
-                || self
-                    .syntax_extractor
-                    .bin_op_extractor
-                    .need_inc_depth_by_long_op(next_token.unwrap().clone()))
-        // && self.format_context.borrow().cur_nested_kind.kind != NestKind_::ParentTheses
+                .need_inc_depth_by_long_op(next_token.unwrap().clone())
         {
             tracing::debug!(
                 "bin_op_extractor.need_inc_depth_by_long_op22({:?})",
@@ -1488,17 +1433,14 @@ impl Format {
             self.inc_depth();
         }
 
-        // updated in 20240517: add condition `ParentTheses | Brace`
-        if new_line_after
-            && next_token.is_some()
-            && (self
+        if (self
+            .syntax_extractor
+            .let_extractor
+            .need_inc_depth_by_long_op(token.clone())
+            || self
                 .syntax_extractor
                 .let_extractor
-                .need_inc_depth_by_long_op(token.clone())
-                || self
-                    .syntax_extractor
-                    .let_extractor
-                    .need_inc_depth_by_long_op(next_token.unwrap().clone()))
+                .need_inc_depth_by_long_op(next_token.unwrap().clone()))
             && self.format_context.borrow().cur_nested_kind.kind != NestKind_::ParentTheses
         {
             self.inc_depth();
@@ -1547,11 +1489,7 @@ impl Format {
         new_line_after: bool,
     ) {
         match token {
-            TokenTree::Nested {
-                elements: _,
-                kind: _,
-                note: _,
-            } => {
+            TokenTree::Nested { .. } => {
                 self.need_inc_depth_when_cur_is_nested(next_token, new_line_after);
                 self.format_nested_token(token, next_token);
             }

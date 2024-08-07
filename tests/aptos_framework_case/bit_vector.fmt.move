@@ -94,8 +94,7 @@ module std::bit_vector {
     /// bitvector's length the bitvector will be zeroed out.
     public fun shift_left(bitvector: &mut BitVector, amount: u64) {
         if (amount >= bitvector.length) {
-            vector::for_each_mut(&mut bitvector.bit_field,
-            |elem| {
+            vector::for_each_mut(&mut bitvector.bit_field, |elem| {
                 *elem = false;
             });
         } else {

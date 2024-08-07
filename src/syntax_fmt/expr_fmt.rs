@@ -97,8 +97,7 @@ pub(crate) fn get_nested_and_comma_num(elements: &[TokenTree]) -> (usize, usize)
     for ele in elements {
         if let TokenTree::Nested {
             elements: recursive_elements,
-            kind: _,
-            note: _,
+            ..
         } = ele
         {
             let recursive_result = get_nested_and_comma_num(recursive_elements);
@@ -164,11 +163,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
     let mut next_tok_nested_kind = NestKind_::Brace;
     let mut next_tok_simple_content = "".to_string();
     match next_token_tree {
-        TokenTree::Nested {
-            elements: _,
-            kind,
-            note: _,
-        } => {
+        TokenTree::Nested { kind, .. } => {
             is_next_tok_nested = true;
             next_tok_nested_kind = kind.kind;
         }

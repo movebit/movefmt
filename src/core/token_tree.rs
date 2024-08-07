@@ -30,6 +30,7 @@ pub struct NestKind {
     pub kind: NestKind_,
     pub start_pos: u32,
     pub end_pos: u32,
+    // need_inc_depth: bool,
 }
 
 impl NestKind {
@@ -115,6 +116,7 @@ pub enum TokenTree {
         kind: NestKind,
         #[serde(skip_serializing)]
         note: Option<Note>,
+        need_inc_depth: bool,
     },
 }
 
@@ -154,17 +156,8 @@ impl Default for TokenTree {
 impl TokenTree {
     pub fn get_note(&self) -> Option<Note> {
         match self {
-            TokenTree::SimpleToken {
-                content: _,
-                pos: _,
-                tok: _,
-                note,
-            } => *note,
-            TokenTree::Nested {
-                elements: _,
-                kind: _,
-                note,
-            } => *note,
+            TokenTree::SimpleToken { note, .. } => *note,
+            TokenTree::Nested { note, .. } => *note,
         }
     }
 
@@ -194,29 +187,15 @@ impl TokenTree {
 
     pub fn get_start_tok(&self) -> Tok {
         match self {
-            TokenTree::SimpleToken {
-                content: _,
-                pos: _,
-                tok,
-                ..
-            } => *tok,
-            TokenTree::Nested {
-                elements: _, kind, ..
-            } => kind.kind.start_tok(),
+            TokenTree::SimpleToken { tok, .. } => *tok,
+            TokenTree::Nested { kind, .. } => kind.kind.start_tok(),
         }
     }
 
     pub fn get_end_tok(&self) -> Tok {
         match self {
-            TokenTree::SimpleToken {
-                content: _,
-                pos: _,
-                tok,
-                ..
-            } => *tok,
-            TokenTree::Nested {
-                elements: _, kind, ..
-            } => kind.kind.end_tok(),
+            TokenTree::SimpleToken { tok, .. } => *tok,
+            TokenTree::Nested { kind, .. } => kind.kind.end_tok(),
         }
     }
 
@@ -387,6 +366,7 @@ impl<'a> Parser<'a> {
                 end_pos: end,
             },
             note,
+            need_inc_depth: false,
         }
     }
 }

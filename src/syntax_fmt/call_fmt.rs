@@ -449,14 +449,14 @@ impl CallExtractor {
         if let TokenTree::Nested {
             elements: _lambda_ele,
             kind: next_kind,
-            note: _,
+            ..
         } = next_t.unwrap()
         {
             if next_kind.kind == NestKind_::Lambda && next_next_t.is_some() {
                 if let TokenTree::Nested {
                     elements: lambda_brace_ele,
                     kind: next_next_kind,
-                    note: _,
+                    ..
                 } = next_next_t.unwrap()
                 {
                     if next_next_kind.kind == NestKind_::Brace {
