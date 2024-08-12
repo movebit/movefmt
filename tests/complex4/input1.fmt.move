@@ -12,7 +12,7 @@ module test_spec_forall {
             && (
                 forall i in 0..len(points) - 1: (
                     points[i].x < points[i + 1].x
-                    && points[i].y <= points[i + 1].y
+                        && points[i].y <= points[i + 1].y
                 )
             );
     }

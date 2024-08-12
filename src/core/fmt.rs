@@ -539,7 +539,6 @@ impl Format {
             elements,
             kind,
             note,
-            need_inc_depth: _,
         } = token
         else {
             return (false, None);
@@ -1082,7 +1081,6 @@ impl Format {
             elements,
             kind,
             note,
-            need_inc_depth: _,
         } = nested_token
         else {
             return;
@@ -1396,13 +1394,13 @@ impl Format {
                 next_token.unwrap().simple_str()
             );
             self.inc_depth();
+            return;
         }
 
         if self
             .syntax_extractor
             .let_extractor
             .need_inc_depth_by_long_op(next_token.unwrap().clone())
-            && self.format_context.borrow().cur_nested_kind.kind != NestKind_::ParentTheses
         {
             self.inc_depth();
         }
@@ -1431,17 +1429,17 @@ impl Format {
                 next_token.unwrap().simple_str()
             );
             self.inc_depth();
+            return;
         }
 
-        if (self
+        if self
             .syntax_extractor
             .let_extractor
             .need_inc_depth_by_long_op(token.clone())
             || self
                 .syntax_extractor
                 .let_extractor
-                .need_inc_depth_by_long_op(next_token.unwrap().clone()))
-            && self.format_context.borrow().cur_nested_kind.kind != NestKind_::ParentTheses
+                .need_inc_depth_by_long_op(next_token.unwrap().clone())
         {
             self.inc_depth();
         }
@@ -1462,13 +1460,12 @@ impl Format {
         let mut nested_break_line_depth = self
             .syntax_extractor
             .bin_op_extractor
-            .need_dec_depth_by_long_op(token.clone());
-        if self.format_context.borrow().cur_nested_kind.kind != NestKind_::ParentTheses {
-            nested_break_line_depth += self
+            .need_dec_depth_by_long_op(token.clone())
+            + self
                 .syntax_extractor
                 .let_extractor
                 .need_dec_depth_by_long_op(token.clone());
-        }
+
         if nested_break_line_depth > 0 {
             tracing::debug!(
                 "nested_break_line_depth[{:?}] = [{:?}]",
@@ -1490,8 +1487,8 @@ impl Format {
     ) {
         match token {
             TokenTree::Nested { .. } => {
-                self.need_inc_depth_when_cur_is_nested(next_token, new_line_after);
                 self.format_nested_token(token, next_token);
+                self.need_inc_depth_when_cur_is_nested(next_token, new_line_after);
             }
             TokenTree::SimpleToken { .. } => {
                 self.need_inc_depth_when_cur_is_simple(token, next_token, new_line_after);

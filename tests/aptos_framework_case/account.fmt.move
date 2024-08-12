@@ -204,8 +204,8 @@ module aptos_framework::account {
         // NOTE: @core_resources gets created via a `create_account` call, so we do not include it below.
         assert!(
             new_address != @vm_reserved
-            && new_address != @aptos_framework
-            && new_address != @aptos_token,
+                && new_address != @aptos_framework
+                && new_address != @aptos_token,
             error::invalid_argument(ECANNOT_RESERVED_ADDRESS),
         );
 
@@ -814,15 +814,15 @@ module aptos_framework::account {
         : (signer, SignerCapability) {
         assert!(
             addr == @0x1
-            || addr == @0x2
-            || addr == @0x3
-            || addr == @0x4
-            || addr == @0x5
-            || addr == @0x6
-            || addr == @0x7
-            || addr == @0x8
-            || addr == @0x9
-            || addr == @0xa,
+                || addr == @0x2
+                || addr == @0x3
+                || addr == @0x4
+                || addr == @0x5
+                || addr == @0x6
+                || addr == @0x7
+                || addr == @0x8
+                || addr == @0x9
+                || addr == @0xa,
             error::permission_denied(ENO_VALID_FRAMEWORK_RESERVED_ADDRESS),
         );
         let signer = create_account_unchecked(addr);

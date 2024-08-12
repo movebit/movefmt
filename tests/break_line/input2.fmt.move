@@ -4,29 +4,29 @@ script {
         : (signer, SignerCapability) {
         assert!(
             addr == @0x1
-            || addr == @0x2
-            || addr == @0x3
-            || addr == @0x4
-            || addr == @0x5
-            || addr == @0x6
-            || addr == @0x7
-            || addr == @0x8
-            || addr == @0x9
-            || addr == @0xa,
+                || addr == @0x2
+                || addr == @0x3
+                || addr == @0x4
+                || addr == @0x5
+                || addr == @0x6
+                || addr == @0x7
+                || addr == @0x8
+                || addr == @0x9
+                || addr == @0xa,
             error::permission_denied(ENO_VALID_FRAMEWORK_RESERVED_ADDRESS),
         );
 
         assert!(
             addr == @0x1
-            || addr == @0x2
-            || addr == @0x3
-            || addr == @0x4
-            || addr == @0x5
-            || addr == @0x6
-            || addr == @0x7
-            || addr == @0x8
-            || addr == @0x9
-            || addr == @0xa,
+                || addr == @0x2
+                || addr == @0x3
+                || addr == @0x4
+                || addr == @0x5
+                || addr == @0x6
+                || addr == @0x7
+                || addr == @0x8
+                || addr == @0x9
+                || addr == @0xa,
             error::permission_denied(ENO_VALID_FRAMEWORK_RESERVED_ADDRESS),
         );
 

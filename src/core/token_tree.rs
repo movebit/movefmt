@@ -30,7 +30,6 @@ pub struct NestKind {
     pub kind: NestKind_,
     pub start_pos: u32,
     pub end_pos: u32,
-    // need_inc_depth: bool,
 }
 
 impl NestKind {
@@ -116,7 +115,6 @@ pub enum TokenTree {
         kind: NestKind,
         #[serde(skip_serializing)]
         note: Option<Note>,
-        need_inc_depth: bool,
     },
 }
 
@@ -366,7 +364,6 @@ impl<'a> Parser<'a> {
                 end_pos: end,
             },
             note,
-            need_inc_depth: false,
         }
     }
 }

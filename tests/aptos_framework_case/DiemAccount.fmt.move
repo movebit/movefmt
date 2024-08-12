@@ -2573,10 +2573,10 @@ module DiemFramework::DiemAccount {
         /// The absence of KeyRotationCap is preserved.
         ensures forall addr: address: old(
             !exists<DiemAccount>(addr)
-            || !spec_has_key_rotation_cap(addr)
+                || !spec_has_key_rotation_cap(addr)
         ) ==>
             (!exists<DiemAccount>(addr)
-            || !spec_has_key_rotation_cap(addr));
+                || !spec_has_key_rotation_cap(addr));
     }
 
     /// ## Withdraw Capability
@@ -2607,11 +2607,11 @@ module DiemFramework::DiemAccount {
         /// The absence of WithdrawCap is preserved.
         ensures forall addr: address: old(
             !exists<DiemAccount>(addr)
-            || option::is_none(global<DiemAccount>(addr).withdraw_capability),
+                || option::is_none(global<DiemAccount>(addr).withdraw_capability),
         ) ==>
             (
                 !exists<DiemAccount>(addr)
-                || option::is_none(global<DiemAccount>(addr).withdraw_capability)
+                    || option::is_none(global<DiemAccount>(addr).withdraw_capability)
             );
     }
 

@@ -576,7 +576,6 @@ pub(crate) fn process_fun_annotation(kind: NestKind, elements: Vec<TokenTree>) -
             elements,
             kind,
             note: None,
-            need_inc_depth: false,
         });
         tracing::debug!("fmt_result_str = {}", fmt_result_str);
         return fmt_result_str;

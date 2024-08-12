@@ -85,9 +85,9 @@ module 0xABCD::simple {
 
             // can never be true
             if (a > b
-            && b > c
-            && c > d
-            && d > a) {
+                && b > c
+                && c > d
+                && d > a) {
                 count = count + 1;
             }
         }
