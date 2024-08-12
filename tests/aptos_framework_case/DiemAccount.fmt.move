@@ -705,9 +705,8 @@ module DiemFramework::DiemAccount {
         cap: WithdrawCapability;
         /// Can only withdraw from the balances of cap.account_address [[H19]][PERMISSION].
         ensures forall addr: address where old(exists<Balance<Token>>(addr))
-            && addr != cap.account_address: balance<Token>(addr) == old(
-            balance<Token>(addr)
-        );
+            && addr != cap.account_address:
+            balance<Token>(addr) == old(balance<Token>(addr));
     }
 
     spec schema WithdrawFromEmits<Token> {
@@ -1048,8 +1047,9 @@ module DiemFramework::DiemAccount {
         cap: KeyRotationCapability;
         /// Can only rotate the authentication_key of cap.account_address [[H18]][PERMISSION].
         ensures forall addr: address where addr != cap.account_address
-            && old(exists_at(addr)): global<DiemAccount>(addr).authentication_key
-            == old(global<DiemAccount>(addr).authentication_key);
+            && old(exists_at(addr)):
+            global<DiemAccount>(addr).authentication_key
+                == old(global<DiemAccount>(addr).authentication_key);
     }
 
     /// Return a unique capability granting permission to rotate the sender's authentication key
@@ -1965,8 +1965,9 @@ module DiemFramework::DiemAccount {
         while ({
             spec {
                 invariant forall j in 0..i: exists_at(secondary_signer_addresses[j]);
-                invariant forall j in 0..i: secondary_signer_public_key_hashes[j]
-                    == global<DiemAccount>(secondary_signer_addresses[j]).authentication_key;
+                invariant forall j in 0..i:
+                    secondary_signer_public_key_hashes[j]
+                        == global<DiemAccount>(secondary_signer_addresses[j]).authentication_key;
             };
             (i < num_secondary_signers)
         }) {
@@ -1997,11 +1998,11 @@ module DiemFramework::DiemAccount {
 
         include CheckSecondarySignersAbortsIf;
         let num_secondary_signers = len(secondary_signer_addresses);
-        ensures forall j in 0..num_secondary_signers: exists_at(
-            secondary_signer_addresses[j]
-        );
-        ensures forall j in 0..num_secondary_signers: secondary_signer_public_key_hashes[j] ==
-             global<DiemAccount>(secondary_signer_addresses[j]).authentication_key;
+        ensures forall j in 0..num_secondary_signers:
+            exists_at(secondary_signer_addresses[j]);
+        ensures forall j in 0..num_secondary_signers:
+            secondary_signer_public_key_hashes[j]
+                == global<DiemAccount>(secondary_signer_addresses[j]).authentication_key;
     }
 
     spec schema CheckSecondarySignersAbortsIf {
@@ -2009,11 +2010,11 @@ module DiemFramework::DiemAccount {
         secondary_signer_public_key_hashes: vector<vector<u8>>;
         let num_secondary_signers = len(secondary_signer_addresses);
         aborts_if len(secondary_signer_public_key_hashes) != num_secondary_signers with errors::INVALID_ARGUMENT;
-        aborts_if exists i in 0..num_secondary_signers: !exists_at(
-            secondary_signer_addresses[i]
-        ) with errors::INVALID_ARGUMENT;
-        aborts_if exists i in 0..num_secondary_signers: secondary_signer_public_key_hashes[i]
-            != global<DiemAccount>(secondary_signer_addresses[i]).authentication_key with errors::INVALID_ARGUMENT;
+        aborts_if exists i in 0..num_secondary_signers:
+            !exists_at(secondary_signer_addresses[i]) with errors::INVALID_ARGUMENT;
+        aborts_if exists i in 0..num_secondary_signers:
+            secondary_signer_public_key_hashes[i]
+                != global<DiemAccount>(secondary_signer_addresses[i]).authentication_key with errors::INVALID_ARGUMENT;
     }
 
     /// The prologue for multi-agent user transactions
@@ -2558,9 +2559,10 @@ module DiemFramework::DiemAccount {
 
         /// Every account holds either no key rotation capability (because KeyRotationCapability has been delegated)
         /// or the key rotation capability for addr itself [[H18]][PERMISSION].
-        invariant forall addr: address where exists_at(addr): delegated_key_rotation_capability(
-            addr
-        ) || spec_holds_own_key_rotation_cap(addr);
+        invariant forall addr: address where exists_at(addr):
+            delegated_key_rotation_capability(addr) || spec_holds_own_key_rotation_cap(
+                addr
+            );
     }
 
     spec schema EnsuresHasKeyRotationCap {
@@ -2571,12 +2573,11 @@ module DiemFramework::DiemAccount {
 
     spec schema PreserveKeyRotationCapAbsence {
         /// The absence of KeyRotationCap is preserved.
-        ensures forall addr: address: old(
-            !exists<DiemAccount>(addr)
-                || !spec_has_key_rotation_cap(addr)
-        ) ==>
-            (!exists<DiemAccount>(addr)
-                || !spec_has_key_rotation_cap(addr));
+        ensures forall addr: address:
+            old(!exists<DiemAccount>(addr)
+                || !spec_has_key_rotation_cap(addr)) ==>
+                (!exists<DiemAccount>(addr)
+                    || !spec_has_key_rotation_cap(addr));
     }
 
     /// ## Withdraw Capability
@@ -2592,9 +2593,9 @@ module DiemFramework::DiemAccount {
 
         /// Every account holds either no withdraw capability (because withdraw cap has been delegated)
         /// or the withdraw capability for addr itself [[H19]][PERMISSION].
-        invariant forall addr: address where exists_at(addr): spec_holds_delegated_withdraw_capability(
-            addr
-        ) || spec_holds_own_withdraw_cap(addr);
+        invariant forall addr: address where exists_at(addr):
+            spec_holds_delegated_withdraw_capability(addr)
+                || spec_holds_own_withdraw_cap(addr);
     }
 
     spec schema EnsuresWithdrawCap {
@@ -2605,14 +2606,15 @@ module DiemFramework::DiemAccount {
 
     spec schema PreserveWithdrawCapAbsence {
         /// The absence of WithdrawCap is preserved.
-        ensures forall addr: address: old(
-            !exists<DiemAccount>(addr)
-                || option::is_none(global<DiemAccount>(addr).withdraw_capability),
-        ) ==>
-            (
+        ensures forall addr: address:
+            old(
                 !exists<DiemAccount>(addr)
-                    || option::is_none(global<DiemAccount>(addr).withdraw_capability)
-            );
+                    || option::is_none(global<DiemAccount>(addr).withdraw_capability),
+            ) ==>
+                (
+                    !exists<DiemAccount>(addr)
+                        || option::is_none(global<DiemAccount>(addr).withdraw_capability)
+                );
     }
 
     /// ## Authentication Key
@@ -2623,8 +2625,9 @@ module DiemFramework::DiemAccount {
     }
 
     spec schema AuthenticationKeyRemainsSame {
-        ensures forall addr: address where old(exists_at(addr)): global<DiemAccount>(addr)
-            .authentication_key == old(global<DiemAccount>(addr).authentication_key);
+        ensures forall addr: address where old(exists_at(addr)):
+            global<DiemAccount>(addr).authentication_key
+                == old(global<DiemAccount>(addr).authentication_key);
     }
 
     /// ## Balance
@@ -2635,9 +2638,9 @@ module DiemFramework::DiemAccount {
     }
 
     spec schema BalanceNotDecrease<Token> {
-        ensures forall addr: address where old(exists<Balance<Token>>(addr)): global<Balance<Token>>(
-            addr
-        ).coin.value >= old(global<Balance<Token>>(addr).coin.value);
+        ensures forall addr: address where old(exists<Balance<Token>>(addr)):
+            global<Balance<Token>>(addr).coin.value
+                >= old(global<Balance<Token>>(addr).coin.value);
     }
 
     /// # Persistence of Resources
@@ -2672,9 +2675,8 @@ module DiemFramework::DiemAccount {
     spec module {
 
         /// An address has a published account iff it has a published RoleId
-        invariant [suspendable] forall addr: address: exists_at(addr) <==> exists<Roles::RoleId>(
-            addr
-        );
+        invariant [suspendable] forall addr: address:
+            exists_at(addr) <==> exists<Roles::RoleId>(addr);
 
         // Every address with a published account has a publish event handle generator
         // >TODO: When commented in, odd things happen.
@@ -2684,27 +2686,24 @@ module DiemFramework::DiemAccount {
         // invariant forall addr: address where exists_at(addr): exists<Event::EventHandleGenerator>(addr);
 
         /// There is a published AccountOperationsCapability iff there is an account and it's at Diem root address
-        invariant [suspendable] forall addr: address: exists<AccountOperationsCapability>(
-            addr
-        ) <==>
-            (addr == @DiemRoot && exists_at(addr));
+        invariant [suspendable] forall addr: address:
+            exists<AccountOperationsCapability>(addr) <==>
+                (addr == @DiemRoot && exists_at(addr));
 
         /// An account has a WriteSetManager iff if it is Diem root
-        invariant [suspendable] forall addr: address: exists<DiemWriteSetManager>(addr) <==>
-
-            (addr == @DiemRoot && exists_at(addr));
+        invariant [suspendable] forall addr: address:
+            exists<DiemWriteSetManager>(addr) <==>
+                (addr == @DiemRoot && exists_at(addr));
 
         /// There is a VASPDomainManager at an address iff the address is a diem treasury compliance account
-        invariant [suspendable] forall addr: address: exists<VASPDomain::VASPDomainManager>(
-            addr
-        ) <==>
-            Roles::spec_has_treasury_compliance_role_addr(addr);
+        invariant [suspendable] forall addr: address:
+            exists<VASPDomain::VASPDomainManager>(addr) <==>
+                Roles::spec_has_treasury_compliance_role_addr(addr);
 
         /// There is a VASPDomains at an address iff the address is a Diem treasury compliance account
-        invariant [suspendable] forall addr: address: exists<VASPDomain::VASPDomains>(
-            addr
-        ) <==>
-            Roles::spec_has_parent_VASP_role_addr(addr);
+        invariant [suspendable] forall addr: address:
+            exists<VASPDomain::VASPDomains>(addr) <==>
+                Roles::spec_has_parent_VASP_role_addr(addr);
 
         /// Account has a balance only iff it is parent or child VASP or a designated dealer
         /// > Note: It would be better to make this generic over all existing and future coins, but that
@@ -2713,38 +2712,37 @@ module DiemFramework::DiemAccount {
         // have token type that is not XDX or XUS !!
         //  invariant [suspendable] forall addr: address:
         // (exists<Balance<XUS>>(addr) || exists<Balance<XDX>>(addr)) <==> Roles::spec_can_hold_balance_addr(addr);
-        invariant forall addr: address: (
-            exists<Balance<XUS>>(addr) || exists<Balance<XDX>>(addr)
-        ) ==>
-            Roles::spec_can_hold_balance_addr(addr);
+        invariant forall addr: address:
+            (exists<Balance<XUS>>(addr) || exists<Balance<XDX>>(addr)) ==>
+                Roles::spec_can_hold_balance_addr(addr);
 
         ///  There is a `DesignatedDealer::Dealer` published at `addr` iff the `addr` has a
         /// `Roles::DesignatedDealer` role.
-        invariant [suspendable] forall addr: address: exists<DesignatedDealer::Dealer>(
-            addr
-        ) <==>
-            Roles::spec_has_designated_dealer_role_addr(addr);
+        invariant [suspendable] forall addr: address:
+            exists<DesignatedDealer::Dealer>(addr) <==>
+                Roles::spec_has_designated_dealer_role_addr(addr);
 
         /// There is a DualAttestation credential iff account has designated dealer or parent VASP role
-        invariant [suspendable] forall addr: address: exists<DualAttestation::Credential>(
-            addr
-        ) <==>
-            (
-                Roles::spec_has_designated_dealer_role_addr(addr)
-                    || Roles::spec_has_parent_VASP_role_addr(addr)
-            );
+        invariant [suspendable] forall addr: address:
+            exists<DualAttestation::Credential>(addr) <==>
+                (
+                    Roles::spec_has_designated_dealer_role_addr(addr)
+                        || Roles::spec_has_parent_VASP_role_addr(addr)
+                );
 
         /// An address has an account iff there is a published FreezingBit struct
-        invariant [suspendable] forall addr: address: exists_at(addr) <==>
-            exists<AccountFreezing::FreezingBit>(addr);
+        invariant [suspendable] forall addr: address:
+            exists_at(addr) <==>
+                exists<AccountFreezing::FreezingBit>(addr);
 
         // This invariant is redundant with the previous invariant, but weaker.
         // But it holds throughout make_account, and is useful to prove that the
         // "move_to" that publishes the account will never abort.
         // TODO: This is too clever.  Should modify code to an assert or requires at
         // beginning of make_account that account does not already exist.
-        invariant [suspendable] forall addr: address: exists_at(addr) ==>
-            exists<AccountFreezing::FreezingBit>(addr);
+        invariant [suspendable] forall addr: address:
+            exists_at(addr) ==>
+                exists<AccountFreezing::FreezingBit>(addr);
 
         /// Balances can only be published at addresses where an account exists
         /// >TODO: I think this is redundant with previous invariants. exists_at <==> Role, and
@@ -2754,32 +2752,32 @@ module DiemFramework::DiemAccount {
         ): exists_at(addr);
 
         /// Account has SlidingNonce only if it's Diem Root or Treasury Compliance
-        invariant [suspendable] forall addr: address: exists<SlidingNonce::SlidingNonce>(
-            addr
-        ) <==>
-            (
-                Roles::spec_has_diem_root_role_addr(addr)
-                    || Roles::spec_has_treasury_compliance_role_addr(addr)
-            );
+        invariant [suspendable] forall addr: address:
+            exists<SlidingNonce::SlidingNonce>(addr) <==>
+                (
+                    Roles::spec_has_diem_root_role_addr(addr)
+                        || Roles::spec_has_treasury_compliance_role_addr(addr)
+                );
 
         /// Address has a ValidatorConfig iff it is a Validator address
-        invariant [suspendable] forall addr: address: ValidatorConfig::exists_config(addr) <==>
-
-            Roles::spec_has_validator_role_addr(addr);
+        invariant [suspendable] forall addr: address:
+            ValidatorConfig::exists_config(addr) <==>
+                Roles::spec_has_validator_role_addr(addr);
 
         /// Address has a ValidatorOperatorConfig iff it is a ValidatorOperator address
-        invariant [suspendable] forall addr: address: ValidatorOperatorConfig::has_validator_operator_config(
-            addr
-        ) <==>
-            Roles::spec_has_validator_operator_role_addr(addr);
+        invariant [suspendable] forall addr: address:
+            ValidatorOperatorConfig::has_validator_operator_config(addr) <==>
+                Roles::spec_has_validator_operator_role_addr(addr);
 
         /// Address has a parent VASP credential iff it has a parent VASP role
-        invariant [suspendable] forall addr: address: VASP::is_parent(addr) <==>
-            Roles::spec_has_parent_VASP_role_addr(addr);
+        invariant [suspendable] forall addr: address:
+            VASP::is_parent(addr) <==>
+                Roles::spec_has_parent_VASP_role_addr(addr);
 
         /// Address has a child VASP credential iff it has a child VASP role
-        invariant [suspendable] forall addr: address: VASP::is_child(addr) <==>
-            Roles::spec_has_child_VASP_role_addr(addr);
+        invariant [suspendable] forall addr: address:
+            VASP::is_child(addr) <==>
+                Roles::spec_has_child_VASP_role_addr(addr);
     }
 
     /// # Helper Functions and Schemas

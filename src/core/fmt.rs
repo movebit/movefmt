@@ -8,6 +8,7 @@ use crate::syntax_fmt::branch_fmt::BranchExtractor;
 use crate::syntax_fmt::call_fmt::CallExtractor;
 use crate::syntax_fmt::fun_fmt::FunExtractor;
 use crate::syntax_fmt::let_fmt::LetExtractor;
+use crate::syntax_fmt::quant_fmt::QuantExtractor;
 use crate::syntax_fmt::{big_block_fmt, expr_fmt, fun_fmt, spec_fmt};
 use crate::tools::syntax::{self, parse_file_string};
 use crate::tools::utils::{FileLineMappingOneFile, Timer};
@@ -49,6 +50,7 @@ pub struct SyntaxExtractor {
     pub call_extractor: CallExtractor,
     pub let_extractor: LetExtractor,
     pub bin_op_extractor: BinOpExtractor,
+    pub quant_extractor: QuantExtractor,
 }
 
 pub struct Format {
@@ -82,6 +84,7 @@ impl Format {
             call_extractor: CallExtractor::new(content.to_string()),
             let_extractor: LetExtractor::new(content.to_string()),
             bin_op_extractor: BinOpExtractor::new(content.to_string()),
+            quant_extractor: QuantExtractor::new(content.to_string()),
         };
         Self {
             comments_index: Default::default(),
@@ -118,6 +121,9 @@ impl Format {
         self.syntax_extractor.let_extractor.preprocess(defs.clone());
         self.syntax_extractor
             .bin_op_extractor
+            .preprocess(defs.clone());
+        self.syntax_extractor
+            .quant_extractor
             .preprocess(defs.clone());
         Ok("parse ok".to_string())
     }
@@ -351,6 +357,34 @@ impl Format {
         false
     }
 
+    fn check_next_token_is_quant_body(
+        &self,
+        current: &TokenTree,
+        next_t: Option<&TokenTree>,
+    ) -> bool {
+        if current.get_end_tok() == Tok::Colon {
+            let (quant_exp_idx, quant_body_len) = self
+                .syntax_extractor
+                .quant_extractor
+                .get_quant_body_len(next_t.unwrap().clone());
+            if quant_body_len < 8 {
+                return false;
+            }
+
+            let len_plus_cur_token = self.last_line().len() + current.token_len() as usize + 2;
+            if len_plus_cur_token > self.global_cfg.max_width() {
+                return false;
+            }
+            if len_plus_cur_token + quant_body_len > self.global_cfg.max_width() {
+                self.syntax_extractor
+                    .quant_extractor
+                    .record_long_quant_exp(quant_exp_idx);
+                return true;
+            }
+        }
+        false
+    }
+
     fn check_new_line_mode_for_each_token_in_nested(
         &self,
         kind_outer: &NestKind,
@@ -500,6 +534,9 @@ impl Format {
             self.check_cur_token_is_long_bin_op(t, next_t, next_token, index, kind, &elements);
         if !new_line && next_t.is_some() {
             if self.check_next_token_is_long_bin_op(t, next_t, next_token) {
+                return true;
+            }
+            if self.check_next_token_is_quant_body(t, next_t) {
                 return true;
             }
         }
@@ -1445,6 +1482,15 @@ impl Format {
                 .need_inc_depth_by_long_op(next_token.unwrap().clone())
         {
             self.inc_depth();
+            return;
+        }
+
+        if self
+            .syntax_extractor
+            .quant_extractor
+            .need_inc_depth_by_long_quant_exp(next_token.unwrap().clone())
+        {
+            self.inc_depth();
         }
     }
 
@@ -1467,7 +1513,11 @@ impl Format {
             + self
                 .syntax_extractor
                 .let_extractor
-                .need_dec_depth_by_long_op(token.clone());
+                .need_dec_depth_by_long_op(token.clone())
+            + self
+                .syntax_extractor
+                .quant_extractor
+                .need_dec_depth_by_long_quant_exp(token.clone());
 
         if nested_break_line_depth > 0 {
             tracing::debug!(

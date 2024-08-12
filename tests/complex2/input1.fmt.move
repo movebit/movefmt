@@ -15,8 +15,8 @@ module std::bit_vector {
             spec {
                 invariant index == start_index
                     || index - 1 < vector::length(bitvector.bit_field);
-                invariant forall j in start_index..index: j
-                    < vector::length(bitvector.bit_field);
+                invariant forall j in start_index..index:
+                    j < vector::length(bitvector.bit_field);
             };
             index < bitvector.length
         }) {

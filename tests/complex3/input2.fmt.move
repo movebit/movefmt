@@ -46,8 +46,8 @@ module test {
                 spec {
                     invariant len == bitvector.length;
                     invariant forall k in 0..i: !bitvector.bit_field[k];
-                    invariant forall k in i..bitvector.length: bitvector.bit_field[k]
-                        == old(bitvector).bit_field[k];
+                    invariant forall k in i..bitvector.length:
+                        bitvector.bit_field[k] == old(bitvector).bit_field[k];
                 };
                 i < len
             }) {
@@ -62,12 +62,12 @@ module test {
                 spec {
                     invariant i >= amount;
                     invariant bitvector.length == old(bitvector).length;
-                    invariant forall j in amount..i: old(bitvector).bit_field[j]
-                        == bitvector.bit_field[j - amount];
-                    invariant forall j in (i - amount)..bitvector.length: old(bitvector).bit_field[j] ==
-                         bitvector.bit_field[j];
-                    invariant forall k in 0..i - amount: bitvector.bit_field[k]
-                        == old(bitvector).bit_field[k + amount];
+                    invariant forall j in amount..i:
+                        old(bitvector).bit_field[j] == bitvector.bit_field[j - amount];
+                    invariant forall j in (i - amount)..bitvector.length:
+                        old(bitvector).bit_field[j] == bitvector.bit_field[j];
+                    invariant forall k in 0..i - amount:
+                        bitvector.bit_field[k] == old(bitvector).bit_field[k + amount];
                 };
                 i < bitvector.length
             }) {
@@ -80,9 +80,10 @@ module test {
 
             while ({
                 spec {
-                    invariant forall j in bitvector.length - amount..i: !bitvector.bit_field[j];
-                    invariant forall k in 0..bitvector.length - amount: bitvector.bit_field[k] ==
-                         old(bitvector).bit_field[k + amount];
+                    invariant forall j in bitvector.length - amount..i:
+                        !bitvector.bit_field[j];
+                    invariant forall k in 0..bitvector.length - amount:
+                        bitvector.bit_field[k] == old(bitvector).bit_field[k + amount];
                     invariant i >= bitvector.length - amount;
                 };
                 i < bitvector.length

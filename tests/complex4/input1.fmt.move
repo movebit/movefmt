@@ -10,10 +10,9 @@ module test_spec_forall {
             && (len(points) > 0 ==>
                 points[len(points) - 1].x < BASIS_POINT_DENOMINATION)
             && (
-                forall i in 0..len(points) - 1: (
-                    points[i].x < points[i + 1].x
-                        && points[i].y <= points[i + 1].y
-                )
+                forall i in 0..len(points) - 1:
+                    (points[i].x < points[i + 1].x
+                        && points[i].y <= points[i + 1].y)
             );
     }
 }
