@@ -258,7 +258,7 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
                     }
                     EmitMode::Diff => {
                         let compare =
-                            make_diff(&formatted_text, &content_origin, DIFF_CONTEXT_SIZE);
+                            make_diff(&content_origin, &formatted_text, DIFF_CONTEXT_SIZE);
                         if !compare.is_empty() {
                             let mut failures = HashMap::new();
                             failures.insert(file.to_owned(), compare);
