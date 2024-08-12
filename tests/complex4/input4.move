@@ -8,7 +8,7 @@ module test_big_pragmas {
         aptos = @0x1,
         foundation = @0xf01d
     )]
-    #[test(creator = @0xcafe, minter = @0xface)]
+    #[test(creator = @0xcafe, minter = @0xface, master_minter = @0xbab, denylister = @0xcade)]
     fun test() {}
 
 }

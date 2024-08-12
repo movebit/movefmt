@@ -609,6 +609,9 @@ impl Format {
                     && first_ele_len > 8;
             }
             NestKind_::ParentTheses => {
+                if elements.len() == 1 && elements[0].simple_str().is_none() {
+                    return (false, None);
+                }
                 let nested_and_comma_pair = expr_fmt::get_nested_and_comma_num(elements);
                 let mut opt_component_break_mode =
                     nested_token_len + 4 >= self.global_cfg.max_width();

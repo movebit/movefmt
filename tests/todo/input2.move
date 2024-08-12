@@ -1,14 +1,21 @@
-module test_big_pragmas {
-    #[test(
-        router = @router,
-        aptos_names = @aptos_names,
-        aptos_names_v2_1 = @aptos_names_v2_1,
-        user1 = @0x077,
-        user2 = @0x266f,
-        aptos = @0x1,
-        foundation = @0xf01d
-    )]
-    #[test(creator = @0xcafe, minter = @0xface, master_minter = @0xbab, denylister = @0xcade)]
-    fun test() {}
+module bcs_stream {
+    public fun deserialize_u256(stream: &mut BCSStream): u256 {
+        let res =
+            (*vector::borrow(data, cur) as u256)
+                |((*vector::borrow(data, cur + 28) as u256) << 224)
+                |((*vector::borrow(data, cur + 29) as u256) << 232) |(
+                (*vector::borrow(data, cur + 30) as u256) << 240
+            ) |((*vector::borrow(data, cur + 31) as u256) << 248);
+    }
 
+    inline fun get_hero(
+        creator: &address, collection: &String, name: &String
+    ): (Object<Hero>, &Hero) {
+        let token_address = token::create_token_address(creator, collection, name);
+        (
+            object::address_to_object<Hero>(token_address), borrow_global<Hero>(
+                token_address
+            )
+        )
+    }
 }
