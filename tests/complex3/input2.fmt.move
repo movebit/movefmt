@@ -140,7 +140,8 @@ module test {
             offerer_account_resource.authentication_key
         );
         aborts_if table::spec_contains(address_map, curr_auth_key)
-            && table::spec_get(address_map, curr_auth_key) != rotation_cap_offerer_address;
+            && table::spec_get(address_map, curr_auth_key)
+                != rotation_cap_offerer_address;
 
         aborts_if !from_bcs::deserializable<address>(new_auth_key_vector);
         let new_auth_key = from_bcs::deserialize<address>(new_auth_key_vector);

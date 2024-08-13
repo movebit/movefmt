@@ -298,8 +298,16 @@ impl BranchExtractor {
     ) -> bool {
         for then_loc in &self.com_if_else.then_loc_vec {
             if then_loc.start() == then_start_pos {
-                let has_added = cur_line.len() as u32 + then_loc.end() - then_loc.start()
-                    > config.max_width() as u32;
+                let then_body_str =
+                    &self.source[then_loc.start() as usize..then_loc.end() as usize];
+                let then_body_str_trim_multi_space = then_body_str
+                    .replace('\n', "")
+                    .split_whitespace()
+                    .collect::<Vec<&str>>()
+                    .join("");
+
+                let has_added =
+                    cur_line.len() + then_body_str_trim_multi_space.len() > config.max_width();
 
                 let new_line_cnt = if self
                     .added_new_line_branch
@@ -327,8 +335,16 @@ impl BranchExtractor {
     ) -> bool {
         for (else_loc_idx, else_loc) in self.com_if_else.else_loc_vec.iter().enumerate() {
             if else_loc.start() == else_start_pos {
-                let mut has_added = cur_line.len() as u32 + else_loc.end() - else_loc.start()
-                    > config.max_width() as u32;
+                let else_body_str =
+                    &self.source[else_loc.start() as usize..else_loc.end() as usize];
+                let else_body_str_trim_multi_space = else_body_str
+                    .replace('\n', "")
+                    .split_whitespace()
+                    .collect::<Vec<&str>>()
+                    .join("");
+
+                let mut has_added =
+                    cur_line.len() + else_body_str_trim_multi_space.len() + 4 >= config.max_width();
                 if !has_added && else_loc_idx + 1 < self.com_if_else.else_loc_vec.len() {
                     has_added = self
                         .get_loc_range(self.com_if_else.else_loc_vec[else_loc_idx + 1])
@@ -413,6 +429,28 @@ impl BranchExtractor {
         for else_loc in self.com_if_else.else_loc_vec.iter() {
             if else_loc.start() < pos && pos < else_loc.end() {
                 return true;
+            }
+        }
+        false
+    }
+
+    pub fn else_branch_too_long(
+        &self,
+        cur_line: String,
+        branch_start_pos: ByteIndex,
+        config: Config,
+    ) -> bool {
+        for (_, else_loc) in self.com_if_else.else_loc_vec.iter().enumerate() {
+            if else_loc.start() == branch_start_pos {
+                let else_body_str =
+                    &self.source[else_loc.start() as usize..else_loc.end() as usize];
+                let else_body_str_trim_multi_space = else_body_str
+                    .replace('\n', "")
+                    .split_whitespace()
+                    .collect::<Vec<&str>>()
+                    .join("");
+
+                return cur_line.len() + else_body_str_trim_multi_space.len() + 16 >= config.max_width();
             }
         }
         false

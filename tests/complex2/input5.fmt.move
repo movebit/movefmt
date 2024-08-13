@@ -53,7 +53,8 @@ module OneToOneMarket {
             let pool = borrow_global<Pool<Out>>(@0xB055);
             Token::value(&pool.coin)
         };
-        if (max_output < available_output) max_output else available_output
+        if (max_output < available_output) max_output
+        else available_output
 
     }
 

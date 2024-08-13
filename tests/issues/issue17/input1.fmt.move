@@ -31,7 +31,8 @@ module test {
 
     spec schema UpdateAuthKeyAndOriginatingAddressTableAbortsIf {
         let stake_balance_0 = stake_pool_res.active.value
-            + stake_pool_res.pending_active.value + stake_pool_res.pending_inactive.value;
+            + stake_pool_res.pending_active.value
+            + stake_pool_res.pending_inactive.value;
         let stake_balance_1 = stake_pool_res.active.value
             + stake_pool_res.pending_inactive.value;
 

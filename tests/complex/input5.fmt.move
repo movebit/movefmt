@@ -1332,7 +1332,8 @@ module econia::incentives {
         // Calculate maximum quote coins to match.
         let max_quote_match = numerator / denominator;
         // Return corrected sell overflow match amount if needed,
-        if (max_quote_match > (HI_64 as u128)) HI_64 else (max_quote_match as u64) // Else max quote match amount.
+        if (max_quote_match > (HI_64 as u128)) HI_64
+        else (max_quote_match as u64) // Else max quote match amount.
     }
 
     /// Deposit `coins` of `UtilityCoinType`, verifying that the proper
@@ -1924,7 +1925,8 @@ module econia::incentives {
         );
         // Assert integrator fee store parameters vector not too long.
         assert!(
-            vector::length(integrator_fee_store_tiers_ref) <= MAX_INTEGRATOR_FEE_STORE_TIERS,
+            vector::length(integrator_fee_store_tiers_ref)
+                <= MAX_INTEGRATOR_FEE_STORE_TIERS,
             E_TOO_MANY_TIERS,
         );
     }
@@ -1955,9 +1957,10 @@ module econia::incentives {
         let fee_coins_ref_mut =
             tablist::borrow_mut(econia_fee_store_map_ref_mut, market_id);
         // If flagged to extract all, extract all and return.
-        if (all) coin::extract_all(fee_coins_ref_mut) else
-            // Else extract specified amount and return.
-            coin::extract(fee_coins_ref_mut, amount)
+        if (all) coin::extract_all(fee_coins_ref_mut)
+        else
+        // Else extract specified amount and return.
+        coin::extract(fee_coins_ref_mut, amount)
     }
 
     /// Wrapped call to `withdraw_econia_fees_internal()`, for
@@ -2006,9 +2009,10 @@ module econia::incentives {
                 fee_account_address
             ).coins;
         // If flagged to extract all, extract all and return.
-        if (all) coin::extract_all(utility_coins_ref_mut) else
-            // Else extract specified amount and return.
-            coin::extract(utility_coins_ref_mut, amount)
+        if (all) coin::extract_all(utility_coins_ref_mut)
+        else
+        // Else extract specified amount and return.
+        coin::extract(utility_coins_ref_mut, amount)
     }
 
     /// Wrapped call to `withdraw_utility_coins_internal()`, for

@@ -142,7 +142,8 @@ module ExperimentalFramework::MultiToken {
                 index: min_token_idx,
                 metadata: option::borrow(token_collection[min_token_idx].metadata)
             };
-        ensures get_tokens<TokenType>(addr)[min_token_idx].metadata == option::spec_none();
+        ensures get_tokens<TokenType>(addr)[min_token_idx].metadata
+            == option::spec_none();
     }
 
     /// Restore the token in the wrapper back into global storage under original address.

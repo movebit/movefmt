@@ -9,7 +9,6 @@ use move_compiler::parser::ast::*;
 use move_compiler::shared::ast_debug;
 use std::cell::RefCell;
 
-
 #[derive(Debug, Default)]
 pub struct QuantExtractor {
     pub quant_exp_vec: Vec<Exp>,

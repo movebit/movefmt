@@ -1504,7 +1504,8 @@ module DiemFramework::DiemAccount {
         aborts_if exists<DesignatedDealer::Dealer>(new_account_address) with errors::ALREADY_PUBLISHED;
         include if (add_all_currencies)
             DesignatedDealer::AddCurrencyAbortsIf<XUS> { dd_addr: new_account_address }
-        else DesignatedDealer::AddCurrencyAbortsIf<CoinType> { dd_addr: new_account_address };
+        else
+            DesignatedDealer::AddCurrencyAbortsIf<CoinType> { dd_addr: new_account_address };
         include AddCurrencyForAccountAbortsIf<CoinType> { addr: new_account_address };
         include MakeAccountAbortsIf { addr: new_account_address };
     }
@@ -1708,9 +1709,8 @@ module DiemFramework::DiemAccount {
         addr: address;
         /// This publishes a `Balance<Currency>` to the caller's account
         ensures exists<Balance<Token>>(addr);
-        ensures global<Balance<Token>>(addr) == Balance<Token> {
-            coin: Diem<Token> { value: 0 }
-        };
+        ensures global<Balance<Token>>(addr)
+            == Balance<Token> { coin: Diem<Token> { value: 0 } };
     }
 
     // #[test_only] TODO: uncomment once unit tests are fully migrated
@@ -2204,9 +2204,11 @@ module DiemFramework::DiemAccount {
         /// [PCA5] Covered: L69 (Match 5)
         aborts_if max_transaction_fee > MAX_U64 with errors::INVALID_ARGUMENT;
         /// [PCA6] Covered: L69 (Match 5)
-        aborts_if max_transaction_fee > 0 && !TransactionFee::is_coin_initialized<Token>() with errors::INVALID_ARGUMENT;
+        aborts_if max_transaction_fee > 0
+            && !TransactionFee::is_coin_initialized<Token>() with errors::INVALID_ARGUMENT;
         /// [PCA7] Covered: L69 (Match 5)
-        aborts_if max_transaction_fee > 0 && !exists<Balance<Token>>(transaction_sender) with errors::INVALID_ARGUMENT;
+        aborts_if max_transaction_fee > 0
+            && !exists<Balance<Token>>(transaction_sender) with errors::INVALID_ARGUMENT;
         /// [PCA8] Covered: L69 (Match 5)
         aborts_if max_transaction_fee > 0
             && balance<Token>(transaction_sender) < max_transaction_fee with errors::INVALID_ARGUMENT;
@@ -2354,8 +2356,8 @@ module DiemFramework::DiemAccount {
         /// [PCA7]
         aborts_if (transaction_fee_amount > 0) && !exists<Balance<Token>>(sender);
         /// [EA4; Condition]
-        aborts_if (transaction_fee_amount > 0) && transaction_fee_amount
-            > Diem::value(coin) with errors::LIMIT_EXCEEDED;
+        aborts_if (transaction_fee_amount > 0)
+            && transaction_fee_amount > Diem::value(coin) with errors::LIMIT_EXCEEDED;
         include (transaction_fee_amount > 0) ==>
             TransactionFee::PayFeeAbortsIf<Token> {
                 coin: Diem<Token> { value: transaction_fee_amount }
@@ -2560,9 +2562,8 @@ module DiemFramework::DiemAccount {
         /// Every account holds either no key rotation capability (because KeyRotationCapability has been delegated)
         /// or the key rotation capability for addr itself [[H18]][PERMISSION].
         invariant forall addr: address where exists_at(addr):
-            delegated_key_rotation_capability(addr) || spec_holds_own_key_rotation_cap(
-                addr
-            );
+            delegated_key_rotation_capability(addr)
+                || spec_holds_own_key_rotation_cap(addr);
     }
 
     spec schema EnsuresHasKeyRotationCap {
@@ -2835,9 +2836,8 @@ module DiemFramework::DiemAccount {
 
         /// Returns true of the account holds a delegated withdraw capability.
         fun spec_holds_delegated_withdraw_capability(addr: address): bool {
-            exists_at(addr) && option::is_none(
-                global<DiemAccount>(addr).withdraw_capability
-            )
+            exists_at(addr)
+                && option::is_none(global<DiemAccount>(addr).withdraw_capability)
         }
     }
 

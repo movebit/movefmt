@@ -4,7 +4,8 @@ module test {
     ) {
         // Assert integrator fee store parameters vector not too long.
         assert!(
-            vector::length(integrator_fee_store_tiers_ref) <= MAX_INTEGRATOR_FEE_STORE_TIERS,
+            vector::length(integrator_fee_store_tiers_ref)
+                <= MAX_INTEGRATOR_FEE_STORE_TIERS,
             E_TOO_MANY_TIERS,
         );
     }
