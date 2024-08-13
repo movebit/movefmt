@@ -280,6 +280,11 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
             ) {
                 return true;
             }
+
+            if curr_start_tok == Tok::Pipe && matches!(next_start_tok, Tok::LParen | Tok::LBrace) {
+                return true;
+            }
+
             if next_start_tok == Tok::Exclaim {
                 result = matches!(TokType::from(curr_start_tok), TokType::Alphabet)
                     || Tok::RParen == curr_end_tok;
@@ -326,36 +331,6 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
         _ => false,
     }
 }
-
-/*
-pub(crate) fn judge_simple_paren_expr(
-    kind: &NestKind,
-    elements: &Vec<TokenTree>,
-    config: Config,
-) -> bool {
-    if elements.is_empty() {
-        return true;
-    };
-    if NestKind_::ParentTheses == kind.kind {
-        let paren_num = get_nested_and_comma_num(elements);
-        tracing::debug!(
-            "elements[0] = {:?}, paren_num = {:?}",
-            elements[0].simple_str(),
-            paren_num
-        );
-        if (paren_num.0 > 4 || paren_num.1 > 4) && analyze_token_tree_length(elements, config.max_width() / 2) >= 32 {
-            return false;
-        }
-        // if paren_num.0 >= 1 && paren_num.1 >= 4 {
-        //     return false;
-        // }
-        // if analyze_token_tree_length(elements, config.max_width() / 2) >= config.max_width() - 55 {
-        //     return false;
-        // }
-    }
-    true
-}
- */
 
 pub(crate) fn process_link_access(elements: &[TokenTree], idx: usize) -> (usize, usize) {
     tracing::trace!("process_link_access >>");
