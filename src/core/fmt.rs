@@ -723,19 +723,21 @@ impl Format {
                                 == Tok::Identifier;
                     }
 
+                    if elements[0].simple_str().is_some() {
+                        let is_plus_nested_over_width = self.get_cur_line_len() + nested_token_len
+                            > self.global_cfg.max_width()
+                            && nested_token_len > 8;
+                        let is_nested_len_too_large =
+                            nested_token_len as f32 > 2.0 * max_len_when_no_add_line;
+
+                        new_line_mode |= is_nested_len_too_large;
+                        new_line_mode |= is_plus_nested_over_width;
+                    }
                     let is_plus_first_ele_over_width = self.get_cur_line_len() + first_ele_len
                         > self.global_cfg.max_width()
                         && first_ele_len > 8;
-                    let is_plus_nested_over_width = self.get_cur_line_len() + nested_token_len
-                        > self.global_cfg.max_width()
-                        && nested_token_len > 8;
-                    let is_nested_len_too_large =
-                        nested_token_len as f32 > 2.0 * max_len_when_no_add_line;
 
                     new_line_mode |= is_plus_first_ele_over_width;
-                    new_line_mode |= is_nested_len_too_large;
-                    new_line_mode |= is_plus_nested_over_width;
-                    // 20240619: remove `first_para_is_complex_blk`
                 }
                 if !new_line_mode {
                     if contains_comment(&nested_blk_str) && nested_blk_str.find("//").is_some() {

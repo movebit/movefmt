@@ -25,10 +25,8 @@ module test {
                     * cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
                 - dddddddddddd / eeeeeeeeeeee;
 
-        (
-            (int2bv((((1 as u8) << ((feature % (8 as u64)) as u64)) as u8)) as u8)
-                & features[feature / 8] as u8
-        ) > (0 as u8) && (feature / 8) < len(features)
+        ((int2bv((((1 as u8) << ((feature % (8 as u64)) as u64)) as u8)) as u8)
+            & features[feature / 8] as u8) > (0 as u8) && (feature / 8) < len(features)
     }
 
     spec schema UpdateAuthKeyAndOriginatingAddressTableAbortsIf {
