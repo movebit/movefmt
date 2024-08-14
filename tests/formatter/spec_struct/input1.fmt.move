@@ -16,7 +16,7 @@ module std::ascii {
     /// characters you should use the `all_characters_printable` predicate
     /// defined in this module.
     struct String has copy, drop, store {
-        bytes: vector<u8>,
+        bytes: vector<u8>
     }
 
     spec String {

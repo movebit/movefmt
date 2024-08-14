@@ -9,7 +9,7 @@ module 0xc0ffee::m {
         //  test function that requires line breaks with long name.
         test_func_with_two_long_para(
             the_first_too_long_long_long_long_parameter,
-            the_second_too_long_long_long_long_parameter,
+            the_second_too_long_long_long_long_parameter
         );
 
         //  test function that requires line breaks with long name.many parameters
@@ -28,7 +28,7 @@ module 0xc0ffee::m {
             para3,
             para1,
             para2,
-            para3,
+            para3
         );
     }
 }

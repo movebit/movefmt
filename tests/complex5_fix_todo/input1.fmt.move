@@ -17,7 +17,7 @@ module test_complex_exp {
             spec_proposal_expiration > locked_until
                 || timestamp::spec_now_seconds() > spec_proposal_expiration
         );
-        let record_key = RecordKey { stake_pool, proposal_id, };
+        let record_key = RecordKey { stake_pool, proposal_id };
         let entirely_voted = spec_has_entirely_voted(stake_pool, proposal_id, record_key);
         aborts_if !remain_zero_1_cond && !exists<VotingRecords>(@aptos_framework);
         include !remain_zero_1_cond && !entirely_voted ==>

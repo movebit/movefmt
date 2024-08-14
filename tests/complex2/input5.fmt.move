@@ -3,7 +3,7 @@ module Token {
 
     struct Coin<AssetType: copy + drop> has store {
         type: AssetType,
-        value: u64,
+        value: u64
     }
 
     // control the minting/creation in the defining module of `ATy`
@@ -23,19 +23,19 @@ module OneToOneMarket {
     use 0x2::Token;
 
     struct Pool<AssetType: copy + drop> has key {
-        coin: Token::Coin<AssetType>,
+        coin: Token::Coin<AssetType>
     }
 
     struct DepositRecord<phantom InputAsset: copy + drop, phantom OutputAsset: copy + drop> has key {
-        record: u64,
+        record: u64
     }
 
     struct BorrowRecord<phantom InputAsset: copy + drop, phantom OutputAsset: copy + drop> has key {
-        record: u64,
+        record: u64
     }
 
     struct Price<phantom InputAsset: copy + drop, phantom OutputAsset: copy + drop> has key {
-        price: u64,
+        price: u64
     }
 
     fun max_borrow_amount<In: copy + drop + store, Out: copy + drop + store>(
@@ -76,7 +76,7 @@ module ToddNickels {
     struct T has copy, drop, store {}
 
     struct Wallet has key {
-        nickels: Token::Coin<T>,
+        nickels: Token::Coin<T>
     }
 
     public fun init(account: &signer) {

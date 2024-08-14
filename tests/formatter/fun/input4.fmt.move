@@ -1,7 +1,7 @@
 module TestFunFormat {
 
     struct SomeOtherStruct has drop {
-        some_field: u64,
+        some_field: u64
     }
 
     public fun multi_arg(p1: u64, p2: u64): /* test comment locate before return type */ u64 {
@@ -13,7 +13,7 @@ module TestFunFormat {
     }
 
     struct SomeStruct has key, drop, store {
-        some_field: u64,
+        some_field: u64
     }
 
     fun acq(addr: address): u64 /* test comment locate before acquires */ acquires SomeStruct {

@@ -450,7 +450,8 @@ impl BranchExtractor {
                     .collect::<Vec<&str>>()
                     .join("");
 
-                return cur_line.len() + else_body_str_trim_multi_space.len() + 16 >= config.max_width();
+                return cur_line.len() + else_body_str_trim_multi_space.len() + 16
+                    >= config.max_width();
             }
         }
         false

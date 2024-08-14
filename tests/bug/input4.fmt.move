@@ -25,7 +25,7 @@ script {
                         type_info::type_name<T2>(),
                         type_info::type_name<T3>()
                     ],
-                13,
+                13
             );
         }
     }

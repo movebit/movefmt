@@ -13,7 +13,7 @@ module test {
         let challenge = SignerCapabilityOfferProofChallengeV2 {
             sequence_number: borrow_global<Account>(alice_addr).sequence_number,
             source_address: alice_addr,
-            recipient_address: bob_addr,
+            recipient_address: bob_addr
         };
 
         let alice_signer_capability_offer_sig = ed25519::sign_struct(&alice_sk, challenge);
@@ -23,7 +23,7 @@ module test {
             ed25519::signature_to_bytes(&alice_signer_capability_offer_sig),
             0,
             alice_pk_bytes,
-            bob_addr,
+            bob_addr
         );
 
         let alice_account_resource = borrow_global_mut<Account>(alice_addr);
@@ -31,7 +31,7 @@ module test {
             option::contains(
                 &alice_account_resource.signer_capability_offer.for, &bob_addr
             ),
-            0,
+            0
         );
     }
 
@@ -115,7 +115,7 @@ module test {
             sequence_number: global<Account>(delegate_address).sequence_number,
             originator: rotation_cap_offerer_address,
             current_auth_key: curr_auth_key,
-            new_public_key: new_public_key_bytes,
+            new_public_key: new_public_key_bytes
         };
         /// [high-level-req-6.2]
         aborts_if !option::spec_contains(
@@ -126,7 +126,7 @@ module test {
             scheme: new_scheme,
             public_key_bytes: new_public_key_bytes,
             signature: cap_update_table,
-            challenge,
+            challenge
         };
 
         let new_auth_key_vector = spec_assert_valid_rotation_proof_signature_and_get_auth_key(
@@ -150,7 +150,7 @@ module test {
             && table::spec_contains(address_map, new_auth_key);
         include UpdateAuthKeyAndOriginatingAddressTableAbortsIf {
             originating_addr: rotation_cap_offerer_address,
-            account_resource: offerer_account_resource,
+            account_resource: offerer_account_resource
         };
 
         let post auth_key = global<Account>(rotation_cap_offerer_address).authentication_key;

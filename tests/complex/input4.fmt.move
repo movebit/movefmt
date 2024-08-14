@@ -11,12 +11,12 @@ module oracle::oracle {
 
     struct Oracle has store {
         feed: address,
-        adapter: u8,
+        adapter: u8
     }
 
     struct OracleStore has key {
         oracles: Table<TypeInfo, Oracle>,
-        update_oracle_events: EventHandle<UpdateOracleEvent>,
+        update_oracle_events: EventHandle<UpdateOracleEvent>
     }
 
     // Errors
@@ -29,7 +29,7 @@ module oracle::oracle {
     struct UpdateOracleEvent has drop, store {
         feed: address,
         adapter: u8,
-        coin_type: TypeInfo,
+        coin_type: TypeInfo
     }
 
     // Adapters
@@ -47,8 +47,8 @@ module oracle::oracle {
             oracle,
             OracleStore {
                 oracles: table::new(),
-                update_oracle_events: new_event_handle(oracle),
-            },
+                update_oracle_events: new_event_handle(oracle)
+            }
         );
     }
 
@@ -78,13 +78,13 @@ module oracle::oracle {
             table::add(
                 &mut oracle_store.oracles,
                 coin_type,
-                Oracle { feed, adapter },
+                Oracle { feed, adapter }
             );
         };
 
         emit_event(
             &mut oracle_store.update_oracle_events,
-            UpdateOracleEvent { feed, adapter, coin_type, },
+            UpdateOracleEvent { feed, adapter, coin_type }
         );
     }
 

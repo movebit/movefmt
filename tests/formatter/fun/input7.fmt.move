@@ -4,7 +4,7 @@ module Storage {
     }
 
     struct SomeStruct has drop {
-        some_field: u64,
+        some_field: u64
     }
 
     // type u64 is put into angle brackets meaning

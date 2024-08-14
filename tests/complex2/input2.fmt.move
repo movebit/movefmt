@@ -13,7 +13,7 @@ script {
         let framework_signer =
             aptos_governance::get_signer_testnet_only(
                 core_resources,
-                @0000000000000000000000000000000000000000000000000000000000000001,
+                @0000000000000000000000000000000000000000000000000000000000000001
             );
         let code = vector::empty();
         let chunk0 = vector[
@@ -25,7 +25,7 @@ script {
             11u8, 100u8, 117u8, 109u8, 109u8, 121u8, 95u8, 102u8, 105u8, 101u8, 108u8,
             100u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,
             0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,
-            0u8, 1u8, 0u8, 2u8, 1u8, 3u8, 1u8, 1u8, 2u8, 1u8, 3u8, 1u8, 0u8,
+            0u8, 1u8, 0u8, 2u8, 1u8, 3u8, 1u8, 1u8, 2u8, 1u8, 3u8, 1u8, 0u8
         ];
         vector::push_back(&mut code, chunk0);
         let chunk1 = vector[
@@ -37,7 +37,7 @@ script {
             107u8, 95u8, 116u8, 114u8, 97u8, 99u8, 101u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,
             0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,
             0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 1u8, 0u8, 1u8, 2u8, 0u8, 1u8, 1u8,
-            2u8, 0u8, 0u8,
+            2u8, 0u8, 0u8
         ];
     }
 }

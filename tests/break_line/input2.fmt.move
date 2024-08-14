@@ -13,7 +13,7 @@ script {
                 || addr == @0x8
                 || addr == @0x9
                 || addr == @0xa,
-            error::permission_denied(ENO_VALID_FRAMEWORK_RESERVED_ADDRESS),
+            error::permission_denied(ENO_VALID_FRAMEWORK_RESERVED_ADDRESS)
         );
 
         assert!(
@@ -27,7 +27,7 @@ script {
                 || addr == @0x8
                 || addr == @0x9
                 || addr == @0xa,
-            error::permission_denied(ENO_VALID_FRAMEWORK_RESERVED_ADDRESS),
+            error::permission_denied(ENO_VALID_FRAMEWORK_RESERVED_ADDRESS)
         );
 
         let signer = create_account_unchecked(addr);

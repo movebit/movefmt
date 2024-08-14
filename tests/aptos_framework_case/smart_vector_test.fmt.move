@@ -57,7 +57,7 @@ module aptos_std::smart_vector_test {
             |x| {
                 let x: &mut u64 = x;
                 *x = *x + 1;
-            },
+            }
         );
         assert!(V::fold(v, 0, |s, x| { s + x }) == 5150, 0);
     }
@@ -80,7 +80,7 @@ module aptos_std::smart_vector_test {
                 let x: &mut u64 = x;
                 assert!(i + 1 == *x, 0);
                 *x = *x + 1;
-            },
+            }
         );
         assert!(V::fold(v, 0, |s, x| { s + x }) == 5150, 0);
     }
@@ -96,7 +96,7 @@ module aptos_std::smart_vector_test {
                 assert!(i + 1 == x, 0);
                 i = i + 1;
                 s + x
-            },
+            }
         );
         assert!(sum == 5050, 0);
     }
@@ -112,7 +112,7 @@ module aptos_std::smart_vector_test {
                 assert!(i == 100 - x, i);
                 i = i + 1;
                 s + x
-            },
+            }
         );
         assert!(sum == 5050, 0);
     }
@@ -157,7 +157,7 @@ module aptos_std::smart_vector_test {
                 let e1: u64 = e1;
                 let e2: u64 = e2;
                 s = s + e1 / e2
-            },
+            }
         );
         assert!(s == 100, 0);
     }
@@ -176,7 +176,7 @@ module aptos_std::smart_vector_test {
                 let e1: u64 = e1;
                 let e2: u64 = e2;
                 s = s + e1 / e2
-            },
+            }
         );
     }
 
@@ -215,7 +215,7 @@ module aptos_std::smart_vector_test {
                 let e2: &mut u64 = e2;
                 *e1 = *e1 + 1;
                 *e2 = *e2 - 1;
-            },
+            }
         );
         V::zip_ref(&v1, &v2, |e1, e2| assert!(*e1 == *e2 + 2, 0));
         V::destroy(v1);

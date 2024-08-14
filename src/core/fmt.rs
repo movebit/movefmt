@@ -640,7 +640,7 @@ impl Format {
                 let header_str = &self.format_context.borrow().content
                     [token.start_pos() as usize..token.end_pos() as usize];
                 if header_str.matches("\n").count() > 2 {
-                    opt_component_break_mode |= nested_and_comma_pair.1 >= 3;
+                    opt_component_break_mode |= nested_and_comma_pair.1 > 2;
                     new_line_mode = true;
                 }
 
@@ -649,14 +649,14 @@ impl Format {
                     (self.get_cur_line_len() + nested_token_len) as f32 > max_len_when_no_add_line;
 
                 opt_component_break_mode |= (nested_and_comma_pair.0 >= 4
-                    || nested_and_comma_pair.1 >= 4)
+                    || nested_and_comma_pair.1 > 2)
                     && token.token_len() as f32 > max_len_when_no_add_line;
                 new_line_mode |= opt_component_break_mode;
             } else if self.get_cur_line_len() > self.global_cfg.max_width() {
                 new_line_mode = true;
             } else {
                 let elements_str = serde_json::to_string(&elements).unwrap_or_default();
-                let has_multi_para = elements_str.matches("\"content\":\",\"").count() >= 4;
+                let has_multi_para = elements_str.matches("\"content\":\",\"").count() > 2;
                 let is_in_fun_call = self.syntax_extractor.call_extractor.paren_in_call(kind);
                 if is_in_fun_call {
                     if self
@@ -966,7 +966,6 @@ impl Format {
         pound_sign_new_line: bool,
         new_line: bool,
         pound_sign: &mut Option<usize>,
-        need_add_comma_after_last_ele: bool,
     ) {
         let TokenTree::Nested { elements, .. } = nested_token else {
             return;
@@ -975,9 +974,6 @@ impl Format {
         let next_t = elements.get(internal_token_idx + 1);
 
         self.format_token_trees_internal(token, next_t, pound_sign_new_line || new_line);
-        if need_add_comma_after_last_ele {
-            self.push_str(",");
-        }
 
         if pound_sign_new_line {
             tracing::debug!("in loop<TokenTree::Nested> pound_sign_new_line = true");
@@ -1050,33 +1046,16 @@ impl Format {
                         );
             }
 
-            // This code determines whether a comma should be added after the last argument in a function call
-            // if the arguments are split across multiple lines.
-            // Add a comment if the last argument needs to be on a new line and there is no comma after the last argument.
-            let mut need_add_comma_after_last_ele = false;
-            if internal_token_idx == len - 1 && is_call {
-                if component_break_mode
-                    && elements
-                        .get(internal_token_idx)
-                        .unwrap()
-                        .simple_str()
-                        .unwrap_or_default()
-                        != ","
-                {
-                    need_add_comma_after_last_ele = true;
-                }
-
-                if !component_break_mode
-                    && elements
-                        .get(internal_token_idx)
-                        .unwrap()
-                        .simple_str()
-                        .unwrap_or_default()
-                        == ","
-                {
-                    internal_token_idx += 1;
-                    continue;
-                }
+            if internal_token_idx == len - 1
+                && elements
+                    .get(internal_token_idx)
+                    .unwrap()
+                    .simple_str()
+                    .unwrap_or_default()
+                    == ","
+            {
+                internal_token_idx += 1;
+                continue;
             }
 
             if elements.get(internal_token_idx).unwrap().is_pound() {
@@ -1120,7 +1099,6 @@ impl Format {
                             false,
                             is_dot_new_line,
                             &mut pound_sign,
-                            need_add_comma_after_last_ele,
                         );
                         internal_token_idx += 1;
                     }
@@ -1135,7 +1113,6 @@ impl Format {
                 pound_sign_new_line,
                 new_line,
                 &mut pound_sign,
-                need_add_comma_after_last_ele,
             );
             internal_token_idx += 1;
         }

@@ -82,14 +82,14 @@ spec aptos_framework::coin {
                 supply<CoinType> + aggregate_supply<CoinType>,
                 global<CoinInfo<CoinType>>(
                     type_info::type_of<CoinType>().account_address
-                ).supply,
-            ),
+                ).supply
+            )
         ) ==>
             spec_fun_supply_tracked<CoinType>(
                 supply<CoinType> + aggregate_supply<CoinType>,
                 global<CoinInfo<CoinType>>(
                     type_info::type_of<CoinType>().account_address
-                ).supply,
+                ).supply
             );
     }
 
@@ -233,7 +233,7 @@ spec aptos_framework::coin {
         };
     }
 
-    spec burn<CoinType>(coin: Coin<CoinType>, _cap: &BurnCapability<CoinType>,) {
+    spec burn<CoinType>(coin: Coin<CoinType>, _cap: &BurnCapability<CoinType>) {
         let addr = type_info::type_of<CoinType>().account_address;
         modifies global<CoinInfo<CoinType>>(addr);
         include AbortsIfNotExistCoinInfo<CoinType>;
@@ -243,7 +243,7 @@ spec aptos_framework::coin {
     }
 
     spec burn_from<CoinType>(
-        account_addr: address, amount: u64, burn_cap: &BurnCapability<CoinType>,
+        account_addr: address, amount: u64, burn_cap: &BurnCapability<CoinType>
     ) {
         let addr = type_info::type_of<CoinType>().account_address;
         let coin_store = global<CoinStore<CoinType>>(account_addr);
@@ -317,7 +317,7 @@ spec aptos_framework::coin {
     }
 
     spec freeze_coin_store<CoinType>(
-        account_addr: address, _freeze_cap: &FreezeCapability<CoinType>,
+        account_addr: address, _freeze_cap: &FreezeCapability<CoinType>
     ) {
         pragma opaque;
         modifies global<CoinStore<CoinType>>(account_addr);
@@ -328,7 +328,7 @@ spec aptos_framework::coin {
     }
 
     spec unfreeze_coin_store<CoinType>(
-        account_addr: address, _freeze_cap: &FreezeCapability<CoinType>,
+        account_addr: address, _freeze_cap: &FreezeCapability<CoinType>
     ) {
         pragma opaque;
         modifies global<CoinStore<CoinType>>(account_addr);
@@ -385,7 +385,7 @@ spec aptos_framework::coin {
         name: string::String,
         symbol: string::String,
         decimals: u8,
-        monitor_supply: bool,
+        monitor_supply: bool
     ): (BurnCapability<CoinType>, FreezeCapability<CoinType>, MintCapability<CoinType>) {
         use aptos_framework::aggregator_factory;
         let addr = signer::address_of(account);
@@ -419,7 +419,7 @@ spec aptos_framework::coin {
         symbol: string::String,
         decimals: u8,
         monitor_supply: bool,
-        parallelizable: bool,
+        parallelizable: bool
     ): (BurnCapability<CoinType>, FreezeCapability<CoinType>, MintCapability<CoinType>) {
         include InitializeInternalSchema<CoinType> {
             name: name.bytes,
@@ -475,7 +475,7 @@ spec aptos_framework::coin {
     /// `from` and `to` account not frozen.
     /// `from` and `to` not the same address.
     /// `from` account sufficient balance.
-    spec transfer<CoinType>(from: &signer, to: address, amount: u64,) {
+    spec transfer<CoinType>(from: &signer, to: address, amount: u64) {
         let account_addr_from = signer::address_of(from);
         let coin_store_from = global<CoinStore<CoinType>>(account_addr_from);
         let post coin_store_post_from = global<CoinStore<CoinType>>(account_addr_from);
@@ -499,7 +499,7 @@ spec aptos_framework::coin {
     }
 
     /// Account is not frozen and sufficient balance.
-    spec withdraw<CoinType>(account: &signer, amount: u64,): Coin<CoinType> {
+    spec withdraw<CoinType>(account: &signer, amount: u64): Coin<CoinType> {
         include WithdrawAbortsIf<CoinType>;
         modifies global<CoinStore<CoinType>>(account_addr);
         let account_addr = signer::address_of(account);

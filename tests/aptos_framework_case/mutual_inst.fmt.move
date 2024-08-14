@@ -3,7 +3,7 @@ module S {
     struct Storage<X: store, Y: store> has key {
         x: X,
         y: Y,
-        v: u8,
+        v: u8
     }
 
     // F1: <concrete, concrete>

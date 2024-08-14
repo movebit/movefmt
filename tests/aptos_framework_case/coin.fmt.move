@@ -73,7 +73,7 @@ module aptos_framework::coin {
     /// Main structure representing a coin/token in an account's custody.
     struct Coin<phantom CoinType> has store {
         /// Amount of coin this address has.
-        value: u64,
+        value: u64
     }
 
     /// Represents a coin with aggregator as its value. This allows to update
@@ -81,7 +81,7 @@ module aptos_framework::coin {
     /// used for gas fees distribution by Aptos Framework (0x1).
     struct AggregatableCoin<phantom CoinType> has store {
         /// Amount of aggregatable coin this address has.
-        value: Aggregator,
+        value: Aggregator
     }
 
     /// Maximum possible aggregatable coin value.
@@ -93,7 +93,7 @@ module aptos_framework::coin {
         coin: Coin<CoinType>,
         frozen: bool,
         deposit_events: EventHandle<DepositEvent>,
-        withdraw_events: EventHandle<WithdrawEvent>,
+        withdraw_events: EventHandle<WithdrawEvent>
     }
 
     /// Maximum possible coin supply.
@@ -102,7 +102,7 @@ module aptos_framework::coin {
     /// Configuration that controls the behavior of total coin supply. If the field
     /// is set, coin creators are allowed to upgrade to parallelizable implementations.
     struct SupplyConfig has key {
-        allow_upgrades: bool,
+        allow_upgrades: bool
     }
 
     /// Information about a specific coin type. Stored on the creator of the coin's account.
@@ -116,29 +116,29 @@ module aptos_framework::coin {
         /// be displayed to a user as `5.05` (`505 / 10 ** 2`).
         decimals: u8,
         /// Amount of this coin type in existence.
-        supply: Option<OptionalAggregator>,
+        supply: Option<OptionalAggregator>
     }
 
     /// Event emitted when some amount of a coin is deposited into an account.
     struct DepositEvent has drop, store {
-        amount: u64,
+        amount: u64
     }
 
     #[event]
     struct Deposit<phantom CoinType> has drop, store {
         account: address,
-        amount: u64,
+        amount: u64
     }
 
     /// Event emitted when some amount of a coin is withdrawn from an account.
     struct WithdrawEvent has drop, store {
-        amount: u64,
+        amount: u64
     }
 
     #[event]
     struct Withdraw<phantom CoinType> has drop, store {
         account: address,
-        amount: u64,
+        amount: u64
     }
 
     /// Capability required to mint coins.
@@ -159,7 +159,7 @@ module aptos_framework::coin {
         system_addresses::assert_aptos_framework(aptos_framework);
         move_to(
             aptos_framework,
-            SupplyConfig { allow_upgrades: false },
+            SupplyConfig { allow_upgrades: false }
         );
     }
 
@@ -184,7 +184,7 @@ module aptos_framework::coin {
         aptos_framework: &signer
     ): AggregatableCoin<CoinType> {
         let aggregator = aggregator_factory::create_aggregator(aptos_framework, MAX_U64);
-        AggregatableCoin<CoinType> { value: aggregator, }
+        AggregatableCoin<CoinType> { value: aggregator }
     }
 
     /// Returns true if the value of aggregatable coin is zero.
@@ -206,7 +206,7 @@ module aptos_framework::coin {
         let amount = aggregator::read(&coin.value);
         assert!(
             amount <= MAX_U64,
-            error::out_of_range(EAGGREGATABLE_COIN_VALUE_TOO_LARGE),
+            error::out_of_range(EAGGREGATABLE_COIN_VALUE_TOO_LARGE)
         );
         spec {
             update aggregate_supply<CoinType> = aggregate_supply<CoinType> - amount;
@@ -215,7 +215,7 @@ module aptos_framework::coin {
         spec {
             update supply<CoinType> = supply<CoinType> + amount;
         };
-        Coin<CoinType> { value: (amount as u64), }
+        Coin<CoinType> { value: (amount as u64) }
     }
 
     /// Merges `coin` into aggregatable coin (`dst_coin`).
@@ -237,7 +237,7 @@ module aptos_framework::coin {
     public(friend) fun collect_into_aggregatable_coin<CoinType>(
         account_addr: address,
         amount: u64,
-        dst_coin: &mut AggregatableCoin<CoinType>,
+        dst_coin: &mut AggregatableCoin<CoinType>
     ) acquires CoinStore {
         // Skip collecting if amount is zero.
         if (amount == 0) { return };
@@ -262,7 +262,7 @@ module aptos_framework::coin {
     public fun balance<CoinType>(owner: address): u64 acquires CoinStore {
         assert!(
             is_account_registered<CoinType>(owner),
-            error::not_found(ECOIN_STORE_NOT_PUBLISHED),
+            error::not_found(ECOIN_STORE_NOT_PUBLISHED)
         );
         borrow_global<CoinStore<CoinType>>(owner).coin.value
     }
@@ -332,7 +332,7 @@ module aptos_framework::coin {
     /// Burn `coin` with capability.
     /// The capability `_cap` should be passed as a reference to `BurnCapability<CoinType>`.
     public fun burn<CoinType>(
-        coin: Coin<CoinType>, _cap: &BurnCapability<CoinType>,
+        coin: Coin<CoinType>, _cap: &BurnCapability<CoinType>
     ) acquires CoinInfo {
         spec {
             update supply<CoinType> = supply<CoinType> - coin.value;
@@ -340,7 +340,7 @@ module aptos_framework::coin {
         let Coin { value: amount } = coin;
         assert!(
             amount > 0,
-            error::invalid_argument(EZERO_COIN_AMOUNT),
+            error::invalid_argument(EZERO_COIN_AMOUNT)
         );
 
         let maybe_supply =
@@ -359,7 +359,7 @@ module aptos_framework::coin {
     public fun burn_from<CoinType>(
         account_addr: address,
         amount: u64,
-        burn_cap: &BurnCapability<CoinType>,
+        burn_cap: &BurnCapability<CoinType>
     ) acquires CoinInfo, CoinStore {
         // Skip burning if amount is zero. This shouldn't error out as it's called as part of transaction fee burning.
         if (amount == 0) { return };
@@ -375,20 +375,20 @@ module aptos_framework::coin {
     ) acquires CoinStore {
         assert!(
             is_account_registered<CoinType>(account_addr),
-            error::not_found(ECOIN_STORE_NOT_PUBLISHED),
+            error::not_found(ECOIN_STORE_NOT_PUBLISHED)
         );
 
         let coin_store = borrow_global_mut<CoinStore<CoinType>>(account_addr);
         assert!(
             !coin_store.frozen,
-            error::permission_denied(EFROZEN),
+            error::permission_denied(EFROZEN)
         );
         event::emit_event<DepositEvent>(
             &mut coin_store.deposit_events,
-            DepositEvent { amount: coin.value },
+            DepositEvent { amount: coin.value }
         );
         event::emit(
-            Deposit<CoinType> { account: account_addr, amount: coin.value },
+            Deposit<CoinType> { account: account_addr, amount: coin.value }
         );
 
         merge(&mut coin_store.coin, coin);
@@ -401,7 +401,7 @@ module aptos_framework::coin {
     ) acquires CoinStore {
         assert!(
             is_account_registered<CoinType>(account_addr),
-            error::not_found(ECOIN_STORE_NOT_PUBLISHED),
+            error::not_found(ECOIN_STORE_NOT_PUBLISHED)
         );
 
         let coin_store = borrow_global_mut<CoinStore<CoinType>>(account_addr);
@@ -419,7 +419,7 @@ module aptos_framework::coin {
         let Coin { value } = zero_coin;
         assert!(
             value == 0,
-            error::invalid_argument(EDESTRUCTION_OF_NONZERO_TOKEN),
+            error::invalid_argument(EDESTRUCTION_OF_NONZERO_TOKEN)
         )
     }
 
@@ -429,7 +429,7 @@ module aptos_framework::coin {
     ): Coin<CoinType> {
         assert!(
             coin.value >= amount,
-            error::invalid_argument(EINSUFFICIENT_BALANCE),
+            error::invalid_argument(EINSUFFICIENT_BALANCE)
         );
         spec {
             update supply<CoinType> = supply<CoinType> - amount;
@@ -457,7 +457,7 @@ module aptos_framework::coin {
     #[legacy_entry_fun]
     /// Freeze a CoinStore to prevent transfers
     public entry fun freeze_coin_store<CoinType>(
-        account_addr: address, _freeze_cap: &FreezeCapability<CoinType>,
+        account_addr: address, _freeze_cap: &FreezeCapability<CoinType>
     ) acquires CoinStore {
         let coin_store = borrow_global_mut<CoinStore<CoinType>>(account_addr);
         coin_store.frozen = true;
@@ -466,7 +466,7 @@ module aptos_framework::coin {
     #[legacy_entry_fun]
     /// Unfreeze a CoinStore to allow transfers
     public entry fun unfreeze_coin_store<CoinType>(
-        account_addr: address, _freeze_cap: &FreezeCapability<CoinType>,
+        account_addr: address, _freeze_cap: &FreezeCapability<CoinType>
     ) acquires CoinStore {
         let coin_store = borrow_global_mut<CoinStore<CoinType>>(account_addr);
         coin_store.frozen = false;
@@ -480,13 +480,13 @@ module aptos_framework::coin {
         // Only coin creators can upgrade total supply.
         assert!(
             coin_address<CoinType>() == account_addr,
-            error::invalid_argument(ECOIN_INFO_ADDRESS_MISMATCH),
+            error::invalid_argument(ECOIN_INFO_ADDRESS_MISMATCH)
         );
 
         // Can only succeed once on-chain governance agreed on the upgrade.
         assert!(
             borrow_global_mut<SupplyConfig>(@aptos_framework).allow_upgrades,
-            error::permission_denied(ECOIN_SUPPLY_UPGRADE_NOT_SUPPORTED),
+            error::permission_denied(ECOIN_SUPPLY_UPGRADE_NOT_SUPPORTED)
         );
 
         let maybe_supply = &mut borrow_global_mut<CoinInfo<CoinType>>(account_addr).supply;
@@ -508,7 +508,7 @@ module aptos_framework::coin {
         name: string::String,
         symbol: string::String,
         decimals: u8,
-        monitor_supply: bool,
+        monitor_supply: bool
     ): (BurnCapability<CoinType>, FreezeCapability<CoinType>, MintCapability<CoinType>) {
         initialize_internal(
             account,
@@ -516,7 +516,7 @@ module aptos_framework::coin {
             symbol,
             decimals,
             monitor_supply,
-            false,
+            false
         )
     }
 
@@ -526,7 +526,7 @@ module aptos_framework::coin {
         name: string::String,
         symbol: string::String,
         decimals: u8,
-        monitor_supply: bool,
+        monitor_supply: bool
     ): (BurnCapability<CoinType>, FreezeCapability<CoinType>, MintCapability<CoinType>) {
         system_addresses::assert_aptos_framework(account);
         initialize_internal(
@@ -535,7 +535,7 @@ module aptos_framework::coin {
             symbol,
             decimals,
             monitor_supply,
-            true,
+            true
         )
     }
 
@@ -545,27 +545,27 @@ module aptos_framework::coin {
         symbol: string::String,
         decimals: u8,
         monitor_supply: bool,
-        parallelizable: bool,
+        parallelizable: bool
     ): (BurnCapability<CoinType>, FreezeCapability<CoinType>, MintCapability<CoinType>) {
         let account_addr = signer::address_of(account);
 
         assert!(
             coin_address<CoinType>() == account_addr,
-            error::invalid_argument(ECOIN_INFO_ADDRESS_MISMATCH),
+            error::invalid_argument(ECOIN_INFO_ADDRESS_MISMATCH)
         );
 
         assert!(
             !exists<CoinInfo<CoinType>>(account_addr),
-            error::already_exists(ECOIN_INFO_ALREADY_PUBLISHED),
+            error::already_exists(ECOIN_INFO_ALREADY_PUBLISHED)
         );
 
         assert!(
             string::length(&name) <= MAX_COIN_NAME_LENGTH,
-            error::invalid_argument(ECOIN_NAME_TOO_LONG),
+            error::invalid_argument(ECOIN_NAME_TOO_LONG)
         );
         assert!(
             string::length(&symbol) <= MAX_COIN_SYMBOL_LENGTH,
-            error::invalid_argument(ECOIN_SYMBOL_TOO_LONG),
+            error::invalid_argument(ECOIN_SYMBOL_TOO_LONG)
         );
 
         let coin_info = CoinInfo<CoinType> {
@@ -576,7 +576,7 @@ module aptos_framework::coin {
                 option::some(optional_aggregator::new(MAX_U128, parallelizable))
             } else {
                 option::none()
-            },
+            }
         };
         move_to(account, coin_info);
 
@@ -609,7 +609,7 @@ module aptos_framework::coin {
     /// The capability `_cap` should be passed as reference to `MintCapability<CoinType>`.
     /// Returns minted `Coin`.
     public fun mint<CoinType>(
-        amount: u64, _cap: &MintCapability<CoinType>,
+        amount: u64, _cap: &MintCapability<CoinType>
     ): Coin<CoinType> acquires CoinInfo {
         if (amount == 0) {
             return Coin<CoinType> { value: 0 }
@@ -655,7 +655,7 @@ module aptos_framework::coin {
             coin: Coin { value: 0 },
             frozen: false,
             deposit_events: account::new_event_handle<DepositEvent>(account),
-            withdraw_events: account::new_event_handle<WithdrawEvent>(account),
+            withdraw_events: account::new_event_handle<WithdrawEvent>(account)
         };
         move_to(account, coin_store);
     }
@@ -664,7 +664,7 @@ module aptos_framework::coin {
     public entry fun transfer<CoinType>(
         from: &signer,
         to: address,
-        amount: u64,
+        amount: u64
     ) acquires CoinStore {
         let coin = withdraw<CoinType>(from, amount);
         deposit(to, coin);
@@ -676,22 +676,22 @@ module aptos_framework::coin {
     }
 
     /// Withdraw specified `amount` of coin `CoinType` from the signing account.
-    public fun withdraw<CoinType>(account: &signer, amount: u64,): Coin<CoinType> acquires CoinStore {
+    public fun withdraw<CoinType>(account: &signer, amount: u64): Coin<CoinType> acquires CoinStore {
         let account_addr = signer::address_of(account);
         assert!(
             is_account_registered<CoinType>(account_addr),
-            error::not_found(ECOIN_STORE_NOT_PUBLISHED),
+            error::not_found(ECOIN_STORE_NOT_PUBLISHED)
         );
 
         let coin_store = borrow_global_mut<CoinStore<CoinType>>(account_addr);
         assert!(
             !coin_store.frozen,
-            error::permission_denied(EFROZEN),
+            error::permission_denied(EFROZEN)
         );
 
         event::emit_event<WithdrawEvent>(
             &mut coin_store.withdraw_events,
-            WithdrawEvent { amount },
+            WithdrawEvent { amount }
         );
         event::emit(Withdraw<CoinType> { account: account_addr, amount });
 
@@ -734,14 +734,14 @@ module aptos_framework::coin {
     struct FakeMoneyCapabilities has key {
         burn_cap: BurnCapability<FakeMoney>,
         freeze_cap: FreezeCapability<FakeMoney>,
-        mint_cap: MintCapability<FakeMoney>,
+        mint_cap: MintCapability<FakeMoney>
     }
 
     #[test_only]
     fun initialize_fake_money(
         account: &signer,
         decimals: u8,
-        monitor_supply: bool,
+        monitor_supply: bool
     ): (BurnCapability<FakeMoney>, FreezeCapability<FakeMoney>, MintCapability<FakeMoney>) {
         aggregator_factory::initialize_aggregator_factory_for_test(account);
         initialize<FakeMoney>(
@@ -749,7 +749,7 @@ module aptos_framework::coin {
             string::utf8(b"Fake money"),
             string::utf8(b"FMD"),
             decimals,
-            monitor_supply,
+            monitor_supply
         )
     }
 
@@ -757,7 +757,7 @@ module aptos_framework::coin {
     fun initialize_and_register_fake_money(
         account: &signer,
         decimals: u8,
-        monitor_supply: bool,
+        monitor_supply: bool
     ): (BurnCapability<FakeMoney>, FreezeCapability<FakeMoney>, MintCapability<FakeMoney>) {
         let (burn_cap, freeze_cap, mint_cap) =
             initialize_fake_money(account, decimals, monitor_supply);
@@ -779,12 +779,12 @@ module aptos_framework::coin {
         );
         move_to(
             source,
-            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, },
+            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap }
         );
     }
 
     #[test(source = @0x1, destination = @0x2)]
-    public entry fun end_to_end(source: signer, destination: signer,) acquires CoinInfo, CoinStore {
+    public entry fun end_to_end(source: signer, destination: signer) acquires CoinInfo, CoinStore {
         let source_addr = signer::address_of(&source);
         account::create_account_for_test(source_addr);
         let destination_addr = signer::address_of(&destination);
@@ -818,7 +818,7 @@ module aptos_framework::coin {
         );
         assert!(
             *option::borrow(&supply<FakeMoney>()) == 100,
-            6,
+            6
         );
 
         let coin = withdraw<FakeMoney>(&source, 10);
@@ -826,18 +826,18 @@ module aptos_framework::coin {
         burn(coin, &burn_cap);
         assert!(
             *option::borrow(&supply<FakeMoney>()) == 90,
-            8,
+            8
         );
 
         move_to(
             &source,
-            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, },
+            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap }
         );
     }
 
     #[test(source = @0x1, destination = @0x2)]
     public entry fun end_to_end_no_supply(
-        source: signer, destination: signer,
+        source: signer, destination: signer
     ) acquires CoinInfo, CoinStore {
         let source_addr = signer::address_of(&source);
         account::create_account_for_test(source_addr);
@@ -874,7 +874,7 @@ module aptos_framework::coin {
 
         move_to(
             &source,
-            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, },
+            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap }
         );
     }
 
@@ -888,18 +888,18 @@ module aptos_framework::coin {
                 string::utf8(b"Fake money"),
                 string::utf8(b"FMD"),
                 1,
-                true,
+                true
             );
 
         move_to(
             &source,
-            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, },
+            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap }
         );
     }
 
     #[test(source = @0x1, destination = @0x2)]
     #[expected_failure(abort_code = 0x60005, location = Self)]
-    public entry fun fail_transfer(source: signer, destination: signer,) acquires CoinInfo, CoinStore {
+    public entry fun fail_transfer(source: signer, destination: signer) acquires CoinInfo, CoinStore {
         let source_addr = signer::address_of(&source);
         account::create_account_for_test(source_addr);
         let destination_addr = signer::address_of(&destination);
@@ -917,12 +917,12 @@ module aptos_framework::coin {
 
         move_to(
             &source,
-            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, },
+            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap }
         );
     }
 
     #[test(source = @0x1, destination = @0x2)]
-    public entry fun test_burn_from_with_capability(source: signer,) acquires CoinInfo, CoinStore {
+    public entry fun test_burn_from_with_capability(source: signer) acquires CoinInfo, CoinStore {
         let source_addr = signer::address_of(&source);
         account::create_account_for_test(source_addr);
         let (burn_cap, freeze_cap, mint_cap) =
@@ -935,7 +935,7 @@ module aptos_framework::coin {
         );
         assert!(
             *option::borrow(&supply<FakeMoney>()) == 100,
-            1,
+            1
         );
 
         burn_from<FakeMoney>(source_addr, 10, &burn_cap);
@@ -944,18 +944,18 @@ module aptos_framework::coin {
         );
         assert!(
             *option::borrow(&supply<FakeMoney>()) == 90,
-            3,
+            3
         );
 
         move_to(
             &source,
-            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, },
+            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap }
         );
     }
 
     #[test(source = @0x1)]
     #[expected_failure(abort_code = 0x10007, location = Self)]
-    public fun test_destroy_non_zero(source: signer,) acquires CoinInfo {
+    public fun test_destroy_non_zero(source: signer) acquires CoinInfo {
         account::create_account_for_test(signer::address_of(&source));
         let (burn_cap, freeze_cap, mint_cap) =
             initialize_and_register_fake_money(&source, 1, true);
@@ -964,12 +964,12 @@ module aptos_framework::coin {
 
         move_to(
             &source,
-            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, },
+            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap }
         );
     }
 
     #[test(source = @0x1)]
-    public entry fun test_extract(source: signer,) acquires CoinInfo, CoinStore {
+    public entry fun test_extract(source: signer) acquires CoinInfo, CoinStore {
         let source_addr = signer::address_of(&source);
         account::create_account_for_test(source_addr);
         let (burn_cap, freeze_cap, mint_cap) =
@@ -990,7 +990,7 @@ module aptos_framework::coin {
 
         move_to(
             &source,
-            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, },
+            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap }
         );
     }
 
@@ -1003,7 +1003,7 @@ module aptos_framework::coin {
 
         move_to(
             &source,
-            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, },
+            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap }
         );
     }
 
@@ -1013,7 +1013,7 @@ module aptos_framework::coin {
         // An non registered account is has a frozen coin store by default
         assert!(
             is_coin_store_frozen<FakeMoney>(account_addr),
-            1,
+            1
         );
 
         account::create_account_for_test(account_addr);
@@ -1022,26 +1022,26 @@ module aptos_framework::coin {
 
         assert!(
             !is_coin_store_frozen<FakeMoney>(account_addr),
-            1,
+            1
         );
 
         // freeze account
         freeze_coin_store(account_addr, &freeze_cap);
         assert!(
             is_coin_store_frozen<FakeMoney>(account_addr),
-            1,
+            1
         );
 
         // unfreeze account
         unfreeze_coin_store(account_addr, &freeze_cap);
         assert!(
             !is_coin_store_frozen<FakeMoney>(account_addr),
-            1,
+            1
         );
 
         move_to(
             &account,
-            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, },
+            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap }
         );
     }
 
@@ -1067,7 +1067,7 @@ module aptos_framework::coin {
 
         move_to(
             &account,
-            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, },
+            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap }
         );
     }
 
@@ -1085,7 +1085,7 @@ module aptos_framework::coin {
 
         move_to(
             &account,
-            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, },
+            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap }
         );
     }
 
@@ -1103,7 +1103,7 @@ module aptos_framework::coin {
 
         move_to(
             &account,
-            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, },
+            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap }
         );
     }
 
@@ -1126,7 +1126,7 @@ module aptos_framework::coin {
 
         move_to(
             &account,
-            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, },
+            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap }
         );
     }
 
@@ -1138,11 +1138,11 @@ module aptos_framework::coin {
                 string::utf8(b"Fake money"),
                 string::utf8(b"FMD"),
                 1,
-                true,
+                true
             );
         move_to(
             account,
-            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, },
+            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap }
         );
     }
 
@@ -1154,11 +1154,11 @@ module aptos_framework::coin {
                 string::utf8(b"Fake money"),
                 string::utf8(b"FMD"),
                 1,
-                true,
+                true
             );
         move_to(
             account,
-            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, },
+            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap }
         );
     }
 
@@ -1181,7 +1181,7 @@ module aptos_framework::coin {
         // Supply should be parallelizable.
         assert!(
             optional_aggregator::is_parallelizable(supply),
-            0,
+            0
         );
 
         optional_aggregator::add(supply, 100);
@@ -1221,7 +1221,7 @@ module aptos_framework::coin {
         // Supply should be non-parallelizable.
         assert!(
             !optional_aggregator::is_parallelizable(supply),
-            0,
+            0
         );
 
         optional_aggregator::add(supply, 100);
@@ -1246,7 +1246,7 @@ module aptos_framework::coin {
         let supply = option::borrow_mut(maybe_supply);
         assert!(
             !optional_aggregator::is_parallelizable(supply),
-            0,
+            0
         );
         optional_aggregator::add(supply, 100);
 
@@ -1260,7 +1260,7 @@ module aptos_framework::coin {
         let supply = option::borrow_mut(maybe_supply);
         assert!(
             optional_aggregator::is_parallelizable(supply),
-            0,
+            0
         );
         assert!(
             optional_aggregator::read(supply) == 100, 0
@@ -1295,12 +1295,12 @@ module aptos_framework::coin {
 
         move_to(
             framework,
-            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, },
+            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap }
         );
     }
 
     #[test(framework = @aptos_framework)]
-    public entry fun test_collect_from_and_drain(framework: signer,) acquires CoinInfo, CoinStore {
+    public entry fun test_collect_from_and_drain(framework: signer) acquires CoinInfo, CoinStore {
         let framework_addr = signer::address_of(&framework);
         account::create_account_for_test(framework_addr);
         let (burn_cap, freeze_cap, mint_cap) =
@@ -1313,21 +1313,21 @@ module aptos_framework::coin {
         );
         assert!(
             *option::borrow(&supply<FakeMoney>()) == 100,
-            0,
+            0
         );
 
         let aggregatable_coin = initialize_aggregatable_coin<FakeMoney>(&framework);
         collect_into_aggregatable_coin<FakeMoney>(
             framework_addr,
             10,
-            &mut aggregatable_coin,
+            &mut aggregatable_coin
         );
 
         // Check that aggregatable coin has the right amount.
         let collected_coin = drain_aggregatable_coin(&mut aggregatable_coin);
         assert!(
             is_aggregatable_coin_zero(&aggregatable_coin),
-            0,
+            0
         );
         assert!(value(&collected_coin) == 10, 0);
 
@@ -1337,14 +1337,14 @@ module aptos_framework::coin {
         );
         assert!(
             *option::borrow(&supply<FakeMoney>()) == 100,
-            0,
+            0
         );
 
         burn(collected_coin, &burn_cap);
         destroy_aggregatable_coin_for_test(aggregatable_coin);
         move_to(
             &framework,
-            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap, },
+            FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap }
         );
     }
 }

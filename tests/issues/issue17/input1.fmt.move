@@ -11,12 +11,12 @@ module test {
         assert!(
             coin::balance<AptosCoin>(shareholder_1_address)
                 == shareholder_1_bal + pending_distribution / 4,
-            0,
+            0
         );
         assert!(
             coin::balance<AptosCoin>(shareholder_2_address)
                 == shareholder_2_bal + pending_distribution * 3 / 4,
-            1,
+            1
         );
 
         let xxxxxxxxxxxxxxxxxxxxxxxxxxxx =

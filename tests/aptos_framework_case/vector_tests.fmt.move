@@ -715,7 +715,7 @@ module std::vector_tests {
                 let e2: &mut u64 = e2;
                 *e1 = *e1 + 1;
                 *e2 = *e2 + 10;
-            },
+            }
         );
         assert!(v1 == vector[2, 3, 4], 0);
         assert!(v2 == vector[20, 30, 40], 0);
@@ -776,7 +776,7 @@ module std::vector_tests {
                 i_s = i_s + i;
                 *e = s;
                 s = s + 1
-            },
+            }
         );
         assert!(i_s == 3, 0);
         assert!(v == vector[2, 3, 4], 0);

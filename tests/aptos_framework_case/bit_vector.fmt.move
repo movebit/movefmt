@@ -16,7 +16,7 @@ module std::bit_vector {
 
     struct BitVector has copy, drop, store {
         length: u64,
-        bit_field: vector<bool>,
+        bit_field: vector<bool>
     }
 
     public fun new(length: u64): BitVector {
@@ -39,7 +39,7 @@ module std::bit_vector {
             assert len(bit_field) == length;
         };
 
-        BitVector { length, bit_field, }
+        BitVector { length, bit_field }
     }
 
     spec new {

@@ -123,7 +123,7 @@ module DiemFramework::PaymentScripts {
         payer: signer,
         payee: signer,
         amount: u64,
-        metadata: vector<u8>,
+        metadata: vector<u8>
     ) {
         let payer_withdrawal_cap = DiemAccount::extract_withdraw_capability(&payer);
         DiemAccount::pay_by_signers<Currency>(

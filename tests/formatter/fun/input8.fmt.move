@@ -1,7 +1,7 @@
 module TestFunFormat {
 
     struct SomeOtherStruct has drop {
-        some_field: u64,
+        some_field: u64
     }
 
     // test case: many blank lines between functions.

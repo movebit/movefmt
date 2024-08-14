@@ -31,7 +31,7 @@ module test {
             update_and_borrow_mut_delegator_vote_delegation(
                 borrow_global<DelegationPool>(pool_address),
                 borrow_global_mut<GovernanceRecords>(pool_address),
-                delegator_address,
+                delegator_address
             );
 
         (
