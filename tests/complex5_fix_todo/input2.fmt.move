@@ -21,6 +21,6 @@ module bcs_stream {
     spec foo {
         ensures result
             == (((((1 as u64) & (0 as u64)) as u64) | (((1 as u64) & (1 as u64)) as u64) as u64)
-            | (((1 as u64) ^(2 as u64)) as u64) as u64);
+            | (((1 as u64) ^ (2 as u64)) as u64) as u64);
     }
 }

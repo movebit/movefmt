@@ -281,7 +281,9 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                 return true;
             }
 
-            if curr_start_tok == Tok::Pipe && matches!(next_start_tok, Tok::LParen | Tok::LBrace) {
+            if matches!(curr_start_tok, Tok::Amp | Tok::Pipe | Tok::Caret)
+                && matches!(next_start_tok, Tok::LParen | Tok::LBrace)
+            {
                 return true;
             }
 
