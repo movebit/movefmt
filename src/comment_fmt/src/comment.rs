@@ -1134,62 +1134,6 @@ impl<'a> Iterator for LineClasses<'a> {
     }
 }
 
-struct UngroupedCommentCodeSlices<'a> {
-    slice: &'a str,
-    iter: iter::Peekable<CharClasses<std::str::CharIndices<'a>>>,
-}
-
-// impl<'a> UngroupedCommentCodeSlices<'a> {
-//     fn new(code: &'a str) -> UngroupedCommentCodeSlices<'a> {
-//         UngroupedCommentCodeSlices {
-//             slice: code,
-//             iter: CharClasses::new(code.char_indices()).peekable(),
-//         }
-//     }
-// }
-
-impl<'a> Iterator for UngroupedCommentCodeSlices<'a> {
-    type Item = (CodeCharKind, usize, &'a str);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let (kind, (start_idx, _)) = self.iter.next()?;
-        match kind {
-            FullCodeCharKind::Normal | FullCodeCharKind::InString => {
-                // Consume all the Normal code
-                while let Some(&(char_kind, _)) = self.iter.peek() {
-                    if char_kind.is_comment() {
-                        break;
-                    }
-                    let _ = self.iter.next();
-                }
-            }
-            FullCodeCharKind::StartComment => {
-                // Consume the whole comment
-                loop {
-                    match self.iter.next() {
-                        Some((kind, ..)) if kind.inside_comment() => continue,
-                        _ => break,
-                    }
-                }
-            }
-            _ => panic!(),
-        }
-        let slice = match self.iter.peek() {
-            Some(&(_, (end_idx, _))) => &self.slice[start_idx..end_idx],
-            None => &self.slice[start_idx..],
-        };
-        Some((
-            if kind.is_comment() {
-                CodeCharKind::Comment
-            } else {
-                CodeCharKind::Normal
-            },
-            start_idx,
-            slice,
-        ))
-    }
-}
-
 pub struct CommentCodeSlices<'a> {
     slice: &'a str,
     last_slice_kind: CodeCharKind,
@@ -1282,71 +1226,6 @@ pub fn filter_normal_code(code: &str) -> String {
     }
     buffer
 }
-
-/// Iterator over the 'payload' characters of a comment.
-/// It skips whitespace, comment start/end marks, and '*' at the beginning of lines.
-/// The comment must be one comment, ie not more than one start mark (no multiple line comments,
-/// for example).
-struct CommentReducer<'a> {
-    is_block: bool,
-    at_start_line: bool,
-    iter: std::str::Chars<'a>,
-}
-
-// impl<'a> CommentReducer<'a> {
-//     fn new(comment: &'a str) -> CommentReducer<'a> {
-//         let is_block = comment.starts_with("/*");
-//         let comment = remove_comment_header(comment);
-//         CommentReducer {
-//             is_block,
-//             // There are no supplementary '*' on the first line.
-//             at_start_line: false,
-//             iter: comment.chars(),
-//         }
-//     }
-// }
-
-impl<'a> Iterator for CommentReducer<'a> {
-    type Item = char;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            let mut c = self.iter.next()?;
-            if self.is_block && self.at_start_line {
-                while c.is_whitespace() {
-                    c = self.iter.next()?;
-                }
-                // Ignore leading '*'.
-                if c == '*' {
-                    c = self.iter.next()?;
-                }
-            } else if c == '\n' {
-                self.at_start_line = true;
-            }
-            if !c.is_whitespace() {
-                return Some(c);
-            }
-        }
-    }
-}
-
-// fn remove_comment_header(comment: &str) -> &str {
-//     if comment.starts_with("///") || comment.starts_with("//!") {
-//         &comment[3..]
-//     } else if let Some(stripped) = comment.strip_prefix("//") {
-//         stripped
-//     } else if (comment.starts_with("/**") && !comment.starts_with("/**/"))
-//         || comment.starts_with("/*!")
-//     {
-//         &comment[3..comment.len() - 2]
-//     } else {
-//         assert!(
-//             comment.starts_with("/*"),
-//             "string '{comment}' is not a comment"
-//         );
-//         &comment[2..comment.len() - 2]
-//     }
-// }
 
 #[cfg(test)]
 mod test {

@@ -278,7 +278,9 @@ impl LetExtractor {
         while idx < self.bin_op_exp_vec.len() {
             let bin_op_exp = &self.bin_op_exp_vec[idx];
             let bin_op_exp_str = ast_debug::display(&bin_op_exp.value);
-            if bin_op_exp_str.matches("&&").count() < 2 && bin_op_exp_str.matches("||").count() < 2
+            if (bin_op_exp_str.matches("&&").count() < 2
+                && bin_op_exp_str.matches("||").count() < 2)
+                || bin_op_exp_str.len() < 64
             {
                 idx += 1;
                 continue;

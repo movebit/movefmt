@@ -367,15 +367,11 @@ CommentExtrator:
 
 9. `LineClasses`: 一个迭代器,用于遍历字符串中的功能代码和注释部分,返回每行的字符类型.
 
-10. `UngroupedCommentCodeSlices`: 一个迭代器,用于遍历注释中的代码片段,将其分开.
+10. `CommentCodeSlices`: 一个迭代器,用于在字符串中迭代出功能部分和注释部分的子串.
 
-11. `CommentCodeSlices`: 一个迭代器,用于在字符串中迭代出功能部分和注释部分的子串.
+11. `filter_normal_code(code: &str) -> String`: 过滤掉给定代码字符串中的注释,返回只包含功能代码的字符串.
 
-12. `filter_normal_code(code: &str) -> String`: 过滤掉给定代码字符串中的注释,返回只包含功能代码的字符串.
-
-13. `CommentReducer`: 一个迭代器,用于遍历注释中的有效字符.
-
-14. `consume_same_line_comments`: 处理同一行里的多个注释.
+12. `consume_same_line_comments`: 处理同一行里的多个注释.
 
 
 ### TokenTree

@@ -1956,7 +1956,8 @@ module DiemFramework::DiemAccount {
 
         // Number of public key hashes must match the number of secondary signers.
         assert!(
-            vector::length(&secondary_signer_public_key_hashes) == num_secondary_signers,
+            vector::length(&secondary_signer_public_key_hashes)
+                == num_secondary_signers,
             errors::invalid_argument(PROLOGUE_ESECONDARY_KEYS_ADDRESSES_COUNT_MISMATCH),
         );
 

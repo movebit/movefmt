@@ -2239,9 +2239,8 @@ module econia::incentives {
         );
         // Calculate expected return.
         let max_quote_match_expected =
-            ((taker_fee_divisor as u128) * ((max_quote_delta_user - 1) as u128)) / (
-                (taker_fee_divisor - 1) as u128
-            );
+            ((taker_fee_divisor as u128) * ((max_quote_delta_user - 1) as u128))
+                / ((taker_fee_divisor - 1) as u128);
         // Assert expected return below max possible u64.
         assert!(max_quote_match_expected < (HI_64 as u128), 0);
         // Assert expected return.

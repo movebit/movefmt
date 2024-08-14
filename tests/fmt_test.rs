@@ -245,6 +245,7 @@ fn test_dir() {
     num += scan_dir("./tests/complex2");
     num += scan_dir("./tests/complex3");
     num += scan_dir("./tests/complex4");
+    num += scan_dir("./tests/complex5_fix_todo");
     num += scan_dir("./tests/aptos_framework_case");
     num += scan_dir("./tests/issues");
     num += scan_dir("./tests/comment");

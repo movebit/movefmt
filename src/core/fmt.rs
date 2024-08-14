@@ -74,6 +74,33 @@ pub struct FormatConfig {
     pub indent_size: usize,
 }
 
+fn is_bin_op(op_token: Tok) -> bool {
+    matches!(
+        op_token,
+        Tok::EqualEqual
+            | Tok::ExclaimEqual
+            | Tok::Less
+            | Tok::Greater
+            | Tok::LessEqual
+            | Tok::GreaterEqual
+            | Tok::PipePipe
+            | Tok::AmpAmp
+            | Tok::Caret
+            | Tok::Pipe
+            | Tok::Amp
+            | Tok::LessLess
+            | Tok::GreaterGreater
+            | Tok::Plus
+            | Tok::Minus
+            | Tok::Star
+            | Tok::Slash
+            | Tok::Percent
+            | Tok::PeriodPeriod
+            | Tok::EqualEqualGreater
+            | Tok::LessEqualEqualGreater
+    )
+}
+
 impl Format {
     fn new(global_cfg: Config, content: &str, format_context: FormatContext) -> Self {
         let ce: CommentExtrator = CommentExtrator::new(content).unwrap();
@@ -308,7 +335,9 @@ impl Format {
         ) {
             return false;
         }
-        let len_plus_cur_token = self.last_line().len() + current.token_len() as usize + 2;
+        let current_token_len =
+            analyze_token_tree_length(&[current.clone()], self.global_cfg.max_width());
+        let len_plus_cur_token = self.last_line().len() + current_token_len + 2;
         if len_plus_cur_token > self.global_cfg.max_width() {
             return false;
         }
@@ -335,12 +364,12 @@ impl Format {
             }
         };
 
-        if next_token != Tok::Identifier {
+        if is_bin_op(next_token) {
             let r_exp_len_tuple = self
                 .syntax_extractor
                 .bin_op_extractor
                 .get_bin_op_right_part_len(next_t.unwrap().clone());
-            if r_exp_len_tuple == (0, 0) {
+            if r_exp_len_tuple.0 == 0 && r_exp_len_tuple.1 < 8 {
                 return false;
             }
             tracing::trace!(
@@ -1843,12 +1872,11 @@ impl Format {
         if next
             .and_then(|x| match x {
                 TokenTree::SimpleToken { .. } => None,
-                TokenTree::Nested {
-                    elements: _, kind, ..
-                } => Some(kind.kind == NestKind_::Type),
+                TokenTree::Nested { kind, .. } => Some(kind.kind == NestKind_::Type),
             })
             .unwrap_or_default()
         {
+            // not break for generic <Type>
             return false;
         }
         let is_bin = note.map(|x| x == Note::BinaryOP).unwrap_or_default();
@@ -1869,6 +1897,8 @@ impl Format {
             | Tok::LessEqualEqualGreater
             | Tok::GreaterEqual
             | Tok::GreaterGreater
+            | Tok::Pipe
+            | Tok::PipePipe
             | Tok::NumValue
             | Tok::NumTypedValue => true,
             _ => false,

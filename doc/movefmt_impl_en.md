@@ -364,15 +364,11 @@ Upon completion of this process, the entire collection of found comments along w
 
 9.`LineClasses`: An iterator to traverse functional code and comment parts in the string, returning the character type of each line.
 
-10.`UngroupedCommentCodeSlices`: An iterator to traverse code snippets within comments, separating them from each other.
+10.`CommentCodeSlices`: An iterator to iterate over substrings of functional parts and comment parts within a string.
 
-11.`CommentCodeSlices`: An iterator to iterate over substrings of functional parts and comment parts within a string.
+11.`filter_normal_code(code: &str) -> String`: Filter out comments from the given code string and return a string containing only functional code.
 
-12.`filter_normal_code(code: &str) -> String`: Filter out comments from the given code string and return a string containing only functional code.
-
-13.`CommentReducer`: An iterator to traverse valid characters within comments.
-
-14.`consume_same_line_comments`: process multi comments in same line.
+12.`consume_same_line_comments`: process multi comments in same line.
 
 ### TokenTree
 Simplify the AST into a much simpler tree type, which we refer to as TokenTree.
