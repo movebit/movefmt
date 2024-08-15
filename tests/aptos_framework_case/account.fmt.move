@@ -779,8 +779,8 @@ module aptos_framework::account {
     /// yet to execute any transactions and that the `Account::signer_capability_offer::for` is none. The probability of a
     /// collision where someone has legitimately produced a private key that maps to a resource account address is less
     /// than `(1/2)^(256)`.
-    public fun create_resource_account(source: &signer, seed: vector<u8>)
-        : (signer, SignerCapability) acquires Account {
+    public fun create_resource_account(source: &signer, seed: vector<u8>):
+        (signer, SignerCapability) acquires Account {
         let resource_addr = create_resource_address(&signer::address_of(source), seed);
         let resource =
             if (exists_at(resource_addr)) {
@@ -810,8 +810,8 @@ module aptos_framework::account {
     }
 
     /// create the account for system reserved addresses
-    public(friend) fun create_framework_reserved_account(addr: address)
-        : (signer, SignerCapability) {
+    public(friend) fun create_framework_reserved_account(addr: address):
+        (signer, SignerCapability) {
         assert!(
             addr == @0x1
                 || addr == @0x2

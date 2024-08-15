@@ -49,47 +49,42 @@ impl FunExtractor {
     }
 
     fn collect_function(&mut self, d: &Function) {
-        match &d.body.value {
-            FunctionBody_::Defined(..) => {
-                let start_line = self
-                    .line_mapping
-                    .translate(d.loc.start(), d.loc.start())
-                    .unwrap()
-                    .start
-                    .line;
-                let end_line = self
-                    .line_mapping
-                    .translate(d.loc.end(), d.loc.end())
-                    .unwrap()
-                    .start
-                    .line;
-                let attributes: Vec<Attributes> = d.attributes.clone();
-                self.attributes.push(attributes);
-                self.loc_vec.push(d.loc);
+        let start_line = self
+            .line_mapping
+            .translate(d.loc.start(), d.loc.start())
+            .unwrap()
+            .start
+            .line;
+        let end_line = self
+            .line_mapping
+            .translate(d.loc.end(), d.loc.end())
+            .unwrap()
+            .start
+            .line;
+        let attributes: Vec<Attributes> = d.attributes.clone();
+        self.attributes.push(attributes);
+        self.loc_vec.push(d.loc);
 
-                if d.signature.parameters.is_empty() {
-                    self.para_span_vec.push(Loc::new(FileHash::empty(), 0, 0));
-                } else {
-                    let first_para_loc = d.signature.parameters.first().unwrap().0.loc();
-                    let last_para_loc = d.signature.parameters.last().unwrap().0.loc();
-                    self.para_span_vec.push(Loc::new(
-                        first_para_loc.file_hash(),
-                        first_para_loc.start(),
-                        last_para_loc.end(),
-                    ));
-                }
-
-                if let Type_::Unit = d.signature.return_type.value {
-                    self.ret_ty_loc_vec.push(Loc::new(FileHash::empty(), 0, 0));
-                } else {
-                    self.ret_ty_loc_vec.push(d.signature.return_type.loc);
-                }
-                self.body_loc_vec.push(d.body.loc);
-                self.loc_line_vec.push((start_line, end_line));
-                self.belong_module_for_fn.push(self.cur_module_id);
-            }
-            FunctionBody_::Native => {}
+        if d.signature.parameters.is_empty() {
+            self.para_span_vec.push(Loc::new(FileHash::empty(), 0, 0));
+        } else {
+            let first_para_loc = d.signature.parameters.first().unwrap().0.loc();
+            let last_para_loc = d.signature.parameters.last().unwrap().0.loc();
+            self.para_span_vec.push(Loc::new(
+                first_para_loc.file_hash(),
+                first_para_loc.start(),
+                last_para_loc.end(),
+            ));
         }
+
+        if let Type_::Unit = d.signature.return_type.value {
+            self.ret_ty_loc_vec.push(Loc::new(FileHash::empty(), 0, 0));
+        } else {
+            self.ret_ty_loc_vec.push(d.signature.return_type.loc);
+        }
+        self.body_loc_vec.push(d.body.loc);
+        self.loc_line_vec.push((start_line, end_line));
+        self.belong_module_for_fn.push(self.cur_module_id);
     }
 
     fn collect_module(&mut self, d: &ModuleDefinition) {
@@ -168,6 +163,7 @@ impl FunExtractor {
 
         false
     }
+
     pub(crate) fn is_parameter_paren_in_fun_header(&self, kind: &NestKind) -> bool {
         if kind.kind != NestKind_::ParentTheses {
             return false;
@@ -451,7 +447,7 @@ pub(crate) fn process_fun_header_too_long(fmt_buffer: String, config: Config) ->
         lexer.advance().unwrap();
         while lexer.peek() != Tok::EOF {
             if lexer.peek() == Tok::Colon {
-                insert_loc = lexer.start_loc();
+                insert_loc = lexer.start_loc() + 1;
             }
             lexer.advance().unwrap();
         }
@@ -477,7 +473,7 @@ pub(crate) fn process_fun_header_too_long(fmt_buffer: String, config: Config) ->
             if let Some(indent) = fun_header_str.find(trimed_header_prefix) {
                 insert_str.push_str(
                     " ".to_string()
-                        .repeat(indent + config.indent_size())
+                        .repeat(indent + config.indent_size() - 1)
                         .as_str(),
                 );
             }
