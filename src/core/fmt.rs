@@ -627,30 +627,33 @@ impl Format {
             let mut opt_component_break_mode = nested_token_len
                 + self.depth.get() * self.local_cfg.indent_size
                 >= self.global_cfg.max_width();
+
+            let maybe_in_fun_header = self
+                .syntax_extractor
+                .fun_extractor
+                .is_parameter_paren_in_fun_header(kind);
             if matches!(
                 self.format_context.borrow().pre_simple_token.get_end_tok(),
                 Tok::If | Tok::While
             ) {
                 new_line_mode = false;
-            } else if self
-                .syntax_extractor
-                .fun_extractor
-                .is_parameter_paren_in_fun_header(kind)
-            {
-                let header_str = &self.format_context.borrow().content
-                    [token.start_pos() as usize..token.end_pos() as usize];
-                if header_str.matches("\n").count() > 2 {
-                    opt_component_break_mode |= nested_and_comma_pair.1 > 2;
-                    new_line_mode = true;
-                }
-
+            } else if maybe_in_fun_header.0 {
+                new_line_mode |= maybe_in_fun_header.1 > self.global_cfg.max_width();
                 // Reserve 25% space for return ty and specifier
                 new_line_mode |=
                     (self.get_cur_line_len() + nested_token_len) as f32 > max_len_when_no_add_line;
 
-                opt_component_break_mode |= (nested_and_comma_pair.0 >= 4
-                    || nested_and_comma_pair.1 > 2)
-                    && token.token_len() as f32 > max_len_when_no_add_line;
+                if self
+                    .global_cfg
+                    .prefer_one_line_for_short_fn_header_para_list()
+                {
+                    opt_component_break_mode |= (nested_and_comma_pair.0 >= 4
+                        || nested_and_comma_pair.1 > 2)
+                        && token.token_len() as f32 > max_len_when_no_add_line;
+                } else {
+                    opt_component_break_mode |= nested_and_comma_pair.1 > 1;
+                }
+
                 new_line_mode |= opt_component_break_mode;
             } else if self.get_cur_line_len() > self.global_cfg.max_width() {
                 new_line_mode = true;

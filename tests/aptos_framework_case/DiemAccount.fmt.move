@@ -1053,7 +1053,9 @@ module DiemFramework::DiemAccount {
     }
 
     /// Return a unique capability granting permission to rotate the sender's authentication key
-    public fun extract_key_rotation_capability(account: &signer): KeyRotationCapability acquires DiemAccount {
+    public fun extract_key_rotation_capability(
+        account: &signer
+    ): KeyRotationCapability acquires DiemAccount {
         let account_address = signer::address_of(account);
         // Abort if we already extracted the unique key rotation capability for this account.
         assert!(
@@ -1313,7 +1315,9 @@ module DiemFramework::DiemAccount {
     /// Creates the diem root account (during genesis). Publishes the Diem root role,
     /// Publishes a SlidingNonce resource, sets up event generator, publishes
     /// AccountOperationsCapability, WriteSetManager, and finally makes the account.
-    fun create_diem_root_account(auth_key_prefix: vector<u8>) acquires AccountOperationsCapability {
+    fun create_diem_root_account(
+        auth_key_prefix: vector<u8>
+    ) acquires AccountOperationsCapability {
         DiemTimestamp::assert_genesis();
         let dr_account = create_signer(@DiemRoot);
         CoreAddresses::assert_diem_root(&dr_account);

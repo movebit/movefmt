@@ -779,8 +779,9 @@ module aptos_framework::account {
     /// yet to execute any transactions and that the `Account::signer_capability_offer::for` is none. The probability of a
     /// collision where someone has legitimately produced a private key that maps to a resource account address is less
     /// than `(1/2)^(256)`.
-    public fun create_resource_account(source: &signer, seed: vector<u8>):
-        (signer, SignerCapability) acquires Account {
+    public fun create_resource_account(
+        source: &signer, seed: vector<u8>
+    ): (signer, SignerCapability) acquires Account {
         let resource_addr = create_resource_address(&signer::address_of(source), seed);
         let resource =
             if (exists_at(resource_addr)) {
@@ -1073,9 +1074,7 @@ module aptos_framework::account {
 
     #[test_only]
     /// Update address `addr` to have `s` as its sequence number
-    public fun set_sequence_number(
-        addr: address, s: u64
-    ) acquires Account {
+    public fun set_sequence_number(addr: address, s: u64) acquires Account {
         borrow_global_mut<Account>(addr).sequence_number = s;
     }
 

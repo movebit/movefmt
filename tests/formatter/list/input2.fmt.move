@@ -11,7 +11,9 @@ module econia::incentives {
     use std::vector;
 
     /** Initialize the module */
-    fun init_module(/** A reference to the signer */ econia: &signer) acquires /** The incentive parameters */ IncentiveParameters {
+    fun init_module(
+        /** A reference to the signer */ econia: &signer
+    ) acquires /** The incentive parameters */ IncentiveParameters {
         /** Vectorize fee store tier parameters */
         let integrator_fee_store_tiers = vector[
             /** Tier 0 parameters */ vector[

@@ -115,8 +115,9 @@ module ExperimentalFramework::MultiToken {
     }
 
     /// Extract the MultiToken data of the given token into a hot potato wrapper.
-    public fun extract_token<TokenType: store>(nft: &Token<TokenType>):
-        TokenDataWrapper<TokenType> acquires TokenDataCollection {
+    public fun extract_token<TokenType: store>(
+        nft: &Token<TokenType>
+    ): TokenDataWrapper<TokenType> acquires TokenDataCollection {
         let owner_addr = guid::id_creator_address(&nft.id);
         let tokens =
             &mut borrow_global_mut<TokenDataCollection<TokenType>>(owner_addr).tokens;

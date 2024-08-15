@@ -26,8 +26,7 @@ pub struct FunExtractor {
     pub body_loc_vec: Vec<Loc>,
     pub loc_line_vec: Vec<(u32, u32)>,
     pub line_mapping: FileLineMappingOneFile,
-    pub belong_module_for_fn: Vec<u32>,
-    pub cur_module_id: u32,
+    pub source: String,
 }
 
 impl FunExtractor {
@@ -40,8 +39,7 @@ impl FunExtractor {
             body_loc_vec: vec![],
             loc_line_vec: vec![],
             line_mapping: FileLineMappingOneFile::default(),
-            belong_module_for_fn: vec![],
-            cur_module_id: 0,
+            source: fmt_buffer.clone(),
         };
 
         this_fun_extractor.line_mapping.update(&fmt_buffer);
@@ -84,7 +82,6 @@ impl FunExtractor {
         }
         self.body_loc_vec.push(d.body.loc);
         self.loc_line_vec.push((start_line, end_line));
-        self.belong_module_for_fn.push(self.cur_module_id);
     }
 
     fn collect_module(&mut self, d: &ModuleDefinition) {
@@ -130,7 +127,6 @@ fn get_space_cnt_before_line_str(s: &str) -> usize {
 impl FunExtractor {
     pub(crate) fn preprocess(&mut self, module_defs: Vec<Definition>) {
         for d in module_defs.iter() {
-            self.cur_module_id += 1;
             self.collect_definition(d);
         }
     }
@@ -164,16 +160,30 @@ impl FunExtractor {
         false
     }
 
-    pub(crate) fn is_parameter_paren_in_fun_header(&self, kind: &NestKind) -> bool {
+    pub(crate) fn is_parameter_paren_in_fun_header(&self, kind: &NestKind) -> (bool, usize) {
         if kind.kind != NestKind_::ParentTheses {
-            return false;
+            return (false, 0);
         }
-        for para_span in &self.para_span_vec {
+        for (i, para_span) in self.para_span_vec.iter().enumerate() {
             if kind.start_pos <= para_span.start() && para_span.end() <= kind.end_pos {
-                return true;
+                let header_str = if self.body_loc_vec[i].end() - self.body_loc_vec[i].start() == 0 {
+                    // no function body
+                    &self.source[self.loc_vec[i].start() as usize..self.loc_vec[i].end() as usize]
+                } else {
+                    &self.source
+                        [self.loc_vec[i].start() as usize..self.body_loc_vec[i].start() as usize]
+                };
+
+                let fun_header_len = header_str
+                    .replace('\n', "")
+                    .split_whitespace()
+                    .collect::<Vec<&str>>()
+                    .join("")
+                    .len();
+                return (true, fun_header_len);
             }
         }
-        false
+        (false, 0)
     }
 
     pub(crate) fn should_skip_this_fun_body(&self, kind: &NestKind) -> bool {

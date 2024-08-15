@@ -2285,7 +2285,9 @@ module econia::incentives {
 
     #[test(econia = @econia)]
     /// Verify deposit and withdrawal of utility coins.
-    fun test_deposit_withdraw_utility_coins(econia: &signer) acquires IncentiveParameters, UtilityCoinStore {
+    fun test_deposit_withdraw_utility_coins(
+        econia: &signer
+    ) acquires IncentiveParameters, UtilityCoinStore {
         init_test(); // Initialize incentives.
         // Deposit utility coins.
         deposit_utility_coins(assets::mint_test<UC>(100));
@@ -3096,7 +3098,9 @@ module econia::incentives {
     #[test(account = @user)]
     #[expected_failure(abort_code = E_NOT_ECONIA)]
     /// Verify failure for account is not Econia.
-    fun test_withdraw_utility_coins_all_not_econia(account: &signer): coin::Coin<UC> acquires UtilityCoinStore {
+    fun test_withdraw_utility_coins_all_not_econia(
+        account: &signer
+    ): coin::Coin<UC> acquires UtilityCoinStore {
         // Attempt invalid invocation.
         withdraw_utility_coins_all<UC>(account)
     }
@@ -3104,7 +3108,9 @@ module econia::incentives {
     #[test(account = @user)]
     #[expected_failure(abort_code = E_NOT_ECONIA)]
     /// Verify failure for account is not Econia.
-    fun test_withdraw_utility_coins_not_econia(account: &signer): coin::Coin<UC> acquires UtilityCoinStore {
+    fun test_withdraw_utility_coins_not_econia(
+        account: &signer
+    ): coin::Coin<UC> acquires UtilityCoinStore {
         // Attempt invalid invocation.
         withdraw_utility_coins<UC>(account, 1234)
     }
