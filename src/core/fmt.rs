@@ -9,13 +9,15 @@ use crate::syntax_fmt::call_fmt::CallExtractor;
 use crate::syntax_fmt::fun_fmt::FunExtractor;
 use crate::syntax_fmt::let_fmt::LetExtractor;
 use crate::syntax_fmt::quant_fmt::QuantExtractor;
+use crate::syntax_fmt::skip_fmt::{SkipExtractor, SkipType};
 use crate::syntax_fmt::{big_block_fmt, expr_fmt, fun_fmt, spec_fmt};
 use crate::tools::syntax::{self, parse_file_string};
-use crate::tools::utils::{FileLineMappingOneFile, Timer};
+use crate::tools::utils::*;
 use commentfmt::comment::contains_comment;
 use commentfmt::{Config, Verbosity};
 use move_command_line_common::files::FileHash;
 use move_compiler::diagnostics::Diagnostics;
+use move_compiler::parser::ast::*;
 use move_compiler::parser::lexer::{Lexer, Tok};
 use move_compiler::shared::CompilationEnv;
 use move_compiler::Flags;
@@ -52,6 +54,7 @@ pub struct SyntaxExtractor {
     pub let_extractor: LetExtractor,
     pub bin_op_extractor: BinOpExtractor,
     pub quant_extractor: QuantExtractor,
+    pub skip_extractor: SkipExtractor,
 }
 
 pub struct Format {
@@ -101,6 +104,16 @@ fn is_bin_op(op_token: Tok) -> bool {
     )
 }
 
+#[allow(dead_code)]
+fn global_tuning_on_module_body(module_body: String, config: Config) -> String {
+    let mut ret_module_body = fun_fmt::fmt_fun(module_body.clone(), config.clone());
+    if module_body.contains("spec ") {
+        ret_module_body = spec_fmt::fmt_spec(ret_module_body.clone(), config.clone());
+    }
+    ret_module_body = big_block_fmt::fmt_big_block(ret_module_body);
+    return remove_trailing_whitespaces_util(ret_module_body.clone());
+}
+
 impl Format {
     fn new(global_cfg: Config, content: &str, format_context: FormatContext) -> Self {
         let ce: CommentExtrator = CommentExtrator::new(content).unwrap();
@@ -113,6 +126,7 @@ impl Format {
             let_extractor: LetExtractor::new(content.to_string()),
             bin_op_extractor: BinOpExtractor::new(content.to_string()),
             quant_extractor: QuantExtractor::new(content.to_string()),
+            skip_extractor: SkipExtractor::new(content.to_string()),
         };
         Self {
             comments_index: Default::default(),
@@ -153,6 +167,9 @@ impl Format {
         self.syntax_extractor
             .quant_extractor
             .preprocess(defs.clone());
+        self.syntax_extractor
+            .skip_extractor
+            .preprocess(defs.clone());
         Ok("parse ok".to_string())
     }
 
@@ -162,7 +179,6 @@ impl Format {
         tracing::debug!("post_process -- fmt_fun");
         *self.ret.borrow_mut() =
             fun_fmt::fmt_fun(self.ret.clone().into_inner(), self.global_cfg.clone());
-        tracing::debug!("post_process -- split_if_else_in_let_block");
         if self.ret.clone().into_inner().contains("spec ") {
             *self.ret.borrow_mut() =
                 spec_fmt::fmt_spec(self.ret.clone().into_inner(), self.global_cfg.clone());
@@ -190,26 +206,128 @@ impl Format {
                 pound_sign = Some(index);
             }
             let new_line = pound_sign.map(|x| (x + 1) == index).unwrap_or_default();
+
+            let mut return_cp_buf = self.ret.clone().into_inner();
+            let mut nested_ele_vec = vec![];
+            let mut nested_kind = NestKind {
+                kind: NestKind_::Type,
+                start_pos: 0,
+                end_pos: 0,
+            };
+            let mut is_module_block = false;
+            let mut is_address_block = false;
+            if let TokenTree::Nested { elements, kind, .. } = t {
+                nested_ele_vec = elements.clone();
+                nested_kind = *kind;
+                is_module_block = self.syntax_extractor.skip_extractor.is_module_block(kind);
+            }
+            if is_module_block {
+                *self.ret.borrow_mut() = "module fmt".to_string();
+            } else if nested_kind.kind == NestKind_::Brace {
+                for i in 0..nested_ele_vec.len() {
+                    let ele_str = nested_ele_vec[i].simple_str().unwrap_or_default();
+                    if !matches!(ele_str, "#" | "" | "module") || i > 16 {
+                        break;
+                    }
+                    if nested_ele_vec[i].simple_str().unwrap_or_default() == "module" {
+                        is_address_block= true;
+                        break;
+                    }
+                }
+                if is_address_block {
+                    *self.ret.borrow_mut() = "address fmt".to_string();
+                }
+            }
             self.format_token_trees_internal(t, self.token_tree.get(index + 1), new_line);
             if new_line {
                 self.new_line(Some(t.end_pos()));
                 pound_sign = None;
             }
             // top level
-            match t {
-                TokenTree::SimpleToken { .. } => {}
-                TokenTree::Nested {
-                    elements: _, kind, ..
-                } => {
-                    if kind.kind == NestKind_::Brace {
-                        self.new_line(Some(t.end_pos()));
-                        self.post_process();
+            if is_module_block {
+                self.new_line(Some(t.end_pos()));
+                if !self
+                    .syntax_extractor
+                    .skip_extractor
+                    .has_skipped_module_body(&nested_kind)
+                {
+                    // self.post_process();
+                    *self.ret.borrow_mut() = global_tuning_on_module_body(
+                        self.ret.clone().into_inner(),
+                        self.global_cfg.clone(),
+                    );
+                    *self.ret.borrow_mut() = process_last_empty_line_util(self.ret.clone().into_inner());
+                }
+                let module_body_buf = self.ret.clone().into_inner();
+                return_cp_buf.push_str(&module_body_buf["module fmt".to_string().len()..]);
+                *self.ret.borrow_mut() = return_cp_buf;
+            } else if is_address_block {
+                // cur_is_address_block
+                self.new_line(Some(t.end_pos()));
+                // self.ret just one address_block, that's also current address_block
+                let corse_ret_buf = self.ret.clone().into_inner();
+                let mut env = CompilationEnv::new(Flags::testing(), BTreeSet::new());
+                let def_vec = parse_file_string(&mut env, FileHash::empty(), &corse_ret_buf)
+                    .unwrap_or_default()
+                    .0;
+
+                let mut last_mod_end_loc = 0;
+                let mut fine_ret_buf = "".to_string();
+                let mut module_idx = 0;
+                for i in 0..nested_ele_vec.len() {
+                    // for every module_block in address_block
+                    if let TokenTree::Nested { kind, .. } = nested_ele_vec[i] {
+                        is_module_block =
+                            self.syntax_extractor.skip_extractor.is_module_block(&kind);
+                        let need_global_tuning_on_module_body = !self
+                            .syntax_extractor
+                            .skip_extractor
+                            .has_skipped_module_body(&nested_kind);
+
+                        if is_module_block && need_global_tuning_on_module_body {
+                            if let Some(Definition::Address(address_def)) = def_vec.first() {
+                                let mod_def = address_def.modules[module_idx].clone();
+                                let tuning_mod_body = global_tuning_on_module_body(
+                                    corse_ret_buf
+                                        [mod_def.loc.start() as usize..mod_def.loc.end() as usize]
+                                        .to_string(),
+                                    self.global_cfg.clone(),
+                                );
+                                fine_ret_buf.push_str(
+                                    &corse_ret_buf[last_mod_end_loc..mod_def.loc.start() as usize],
+                                );
+                                fine_ret_buf.push_str(&tuning_mod_body);
+                                last_mod_end_loc = mod_def.loc.end() as usize;
+                            }
+                            module_idx += 1;
+                        }
                     }
                 }
+                if last_mod_end_loc == 0 {
+                    fine_ret_buf = corse_ret_buf.clone();
+                }
+                if last_mod_end_loc < corse_ret_buf.clone().len() {
+                    fine_ret_buf.push_str(
+                        &corse_ret_buf[last_mod_end_loc..corse_ret_buf.len()],
+                    );
+                }
+
+                tracing::debug!("return_cp_buf = {:?}", return_cp_buf);
+                tracing::debug!("fine_ret_buf = {:?}", &fine_ret_buf["address fmt".to_string().len()..]);
+                return_cp_buf.push_str(&fine_ret_buf["address fmt".to_string().len()..]);
+                *self.ret.borrow_mut() = return_cp_buf.clone();
+            } else if nested_kind.kind == NestKind_::Brace {
+                // is script
+                self.new_line(Some(t.end_pos()));
+                tracing::debug!("33 return_cp_buf = {:?}", return_cp_buf);
+                tracing::debug!("33 self.ret = {:?}", &self.ret);
+                self.post_process();
             }
+
             index += 1;
         }
         self.add_comments(u32::MAX, "end_of_move_file".to_string());
+        self.remove_trailing_whitespaces();
         self.process_last_empty_line();
         self.ret.into_inner()
     }
@@ -232,9 +350,9 @@ impl Format {
                 tok,
                 ..
             } => (*tok, content.clone()),
-            TokenTree::Nested {
-                elements: _, kind, ..
-            } => (kind.kind.start_tok(), kind.kind.start_tok().to_string()),
+            TokenTree::Nested { kind, .. } => {
+                (kind.kind.start_tok(), kind.kind.start_tok().to_string())
+            }
         }) {
             match next_tok {
                 Tok::Friend
@@ -540,9 +658,9 @@ impl Format {
                 tok,
                 ..
             } => (*tok, content.clone()),
-            TokenTree::Nested {
-                elements: _, kind, ..
-            } => (kind.kind.start_tok(), kind.kind.start_tok().to_string()),
+            TokenTree::Nested { kind, .. } => {
+                (kind.kind.start_tok(), kind.kind.start_tok().to_string())
+            }
         }) {
             if new_line
                 && d == t_str
@@ -1166,11 +1284,22 @@ impl Format {
             return;
         };
         let (delimiter, has_colon) = analyze_token_tree_delimiter(elements);
-        let (b_new_line_mode, opt_component_break_mode) =
+        let (mut b_new_line_mode, opt_component_break_mode) =
             self.get_break_mode_begin_nested(nested_token, delimiter);
 
-        let b_add_indent = elements.is_empty()
-            || elements.first().unwrap().simple_str().unwrap_or_default() != "module";
+        let mut b_add_indent = true;
+        for i in 0..elements.len() {
+            let ele_str = elements[i].simple_str().unwrap_or_default();
+            if !matches!(ele_str, "#" | "" | "module") || i > 16 {
+                break;
+            }
+            if elements[i].simple_str().unwrap_or_default() == "module" {
+                b_add_indent = false;
+                b_new_line_mode |= true;
+                break;
+            }
+        }
+
         let nested_token_head = self.format_context.borrow().pre_simple_token.get_end_tok();
         let fun_body = note.map(|x| x == Note::FunBody).unwrap_or_default();
         if fun_body
@@ -1183,6 +1312,26 @@ impl Format {
                 [kind.start_pos as usize..kind.end_pos as usize + 1];
             tracing::trace!("should_skip_this_fun_body = {:?}", fun_body_str);
             self.push_str(fun_body_str);
+
+            for c in &self.comments[self.comments_index.get()..] {
+                if c.start_offset > kind.end_pos {
+                    break;
+                }
+                self.comments_index.set(self.comments_index.get() + 1);
+            }
+            self.cur_line.set(self.translate_line(kind.end_pos));
+            return;
+        }
+
+        if self
+            .syntax_extractor
+            .skip_extractor
+            .should_skip_block_body(kind, SkipType::SkipModuleBody)
+        {
+            let body_str = &self.format_context.borrow().content
+                [kind.start_pos as usize..kind.end_pos as usize + 1];
+            tracing::trace!("should_skip_block_body = {:?}", body_str);
+            self.push_str(body_str);
 
             for c in &self.comments[self.comments_index.get()..] {
                 if c.start_offset > kind.end_pos {
@@ -1227,6 +1376,17 @@ impl Format {
         // step8 -- format end_token
         self.format_token_trees_internal(&kind.end_token_tree(), None, false);
         if expr_fmt::need_space(nested_token, next_token) {
+            if nested_token_head == Tok::NumSign && kind.kind == NestKind_::Bracket {
+                return;
+            }
+            if next_token.is_some()
+                && matches!(
+                    next_token.unwrap().simple_str().unwrap_or_default(),
+                    "module" | "public"
+                )
+            {
+                return;
+            }
             self.push_str(" ");
         }
     }
@@ -1689,11 +1849,10 @@ impl Format {
                     let line_start = this_cmt_start_line;
                     let line_end = self.translate_line(end);
 
-                    if !content.contains(')') && !content.contains(',') && !content.contains(';') {
-                        self.push_str(" ");
-                    }
                     if line_start != line_end {
                         self.new_line(None);
+                    } else if content != ")" && content != "," && content != ";" {
+                        self.push_str(" ");
                     }
                     last_cmt_is_block_cmt = true;
                 }
@@ -1711,6 +1870,13 @@ impl Format {
                 // process this case:
                 // line[i]: /*comment1*/ /*comment2*/
                 // line[i+1]: code // located in `pos`
+                let mut ret_copy = self.ret.clone().into_inner();
+                if let Some(last_char) = ret_copy.chars().last() {
+                    if last_char == ' ' {
+                        ret_copy.pop();
+                    }
+                }
+                *self.ret.borrow_mut() = ret_copy.trim_end().to_string();
                 self.new_line(None);
             }
             tracing::debug!(
@@ -1915,31 +2081,11 @@ impl Format {
     }
 
     fn remove_trailing_whitespaces(&mut self) {
-        let ret_copy = self.ret.clone().into_inner();
-        let lines = ret_copy.lines();
-        let result: String = lines
-            .collect::<Vec<_>>()
-            .iter()
-            .map(|line| line.trim_end_matches(|c| c == ' '))
-            .collect::<Vec<_>>()
-            .join("\n");
-        *self.ret.borrow_mut() = result;
+        *self.ret.borrow_mut() = remove_trailing_whitespaces_util(self.ret.clone().into_inner());
     }
 
     fn process_last_empty_line(&mut self) {
-        let ret_copy = self.ret.clone().into_inner();
-        let mut lines = ret_copy.lines().collect::<Vec<&str>>();
-        let last_line = lines.last().unwrap_or(&"");
-
-        if last_line.is_empty() {
-            while lines.len() > 1 && lines[lines.len() - 2].is_empty() {
-                lines.pop();
-            }
-        } else {
-            lines.push("");
-        }
-
-        *self.ret.borrow_mut() = lines.join("\n");
+        *self.ret.borrow_mut() = process_last_empty_line_util(self.ret.clone().into_inner());
     }
 }
 
