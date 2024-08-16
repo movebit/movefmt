@@ -305,7 +305,6 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                         | "modifies"
                         | "emits"
                         | "requires"
-                        | "apply"
                         | "global"
                 ) {
                     return true;
