@@ -306,8 +306,11 @@ impl BranchExtractor {
                     .collect::<Vec<&str>>()
                     .join("");
 
-                let has_added =
+                let mut has_added =
                     cur_line.len() + then_body_str_trim_multi_space.len() > config.max_width();
+                if !has_added && cur_line.trim_start().len() == 0 {
+                    has_added = true;
+                }
 
                 let new_line_cnt = if self
                     .added_new_line_branch

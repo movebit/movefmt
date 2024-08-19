@@ -1425,6 +1425,12 @@ impl Format {
             {
                 tracing::debug!("need_new_line_after_branch[{:?}], add a new line", content);
                 self.inc_depth();
+                let cur_line = self.last_line();
+                if cur_line.trim_start().len() == 0 {
+                    // maybe already added new line because of judge_cond() is a long nested expr
+                    self.push_str(" ".to_string().repeat(self.local_cfg.indent_size).as_str());
+                    return;
+                }
                 return self.new_line(None);
             }
 
