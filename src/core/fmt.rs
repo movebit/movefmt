@@ -104,7 +104,6 @@ fn is_bin_op(op_token: Tok) -> bool {
     )
 }
 
-#[allow(dead_code)]
 fn global_tuning_on_module_body(module_body: String, config: Config) -> String {
     let mut ret_module_body = fun_fmt::fmt_fun(module_body.clone(), config.clone());
     if module_body.contains("spec ") {
@@ -173,29 +172,6 @@ impl Format {
         Ok("parse ok".to_string())
     }
 
-    fn post_process(&mut self) {
-        tracing::debug!("post_process >> meet Brace");
-        self.remove_trailing_whitespaces();
-        tracing::debug!("post_process -- fmt_fun");
-        *self.ret.borrow_mut() =
-            fun_fmt::fmt_fun(self.ret.clone().into_inner(), self.global_cfg.clone());
-        if self.ret.clone().into_inner().contains("spec ") {
-            *self.ret.borrow_mut() =
-                spec_fmt::fmt_spec(self.ret.clone().into_inner(), self.global_cfg.clone());
-        }
-        tracing::debug!("post_process -- fmt_big_block");
-        *self.ret.borrow_mut() = big_block_fmt::fmt_big_block(self.ret.clone().into_inner());
-        self.remove_trailing_whitespaces();
-
-        {
-            // this step must before add_comments. because there maybe some comments before new module
-            // https://github.com/movebit/movefmt/issues/1
-            self.process_last_empty_line();
-        }
-
-        tracing::debug!("post_process << done !!!");
-    }
-
     pub fn format_token_trees(mut self) -> String {
         let length = self.token_tree.len();
         let mut index = 0;
@@ -230,7 +206,7 @@ impl Format {
                         break;
                     }
                     if nested_ele_vec[i].simple_str().unwrap_or_default() == "module" {
-                        is_address_block= true;
+                        is_address_block = true;
                         break;
                     }
                 }
@@ -251,12 +227,12 @@ impl Format {
                     .skip_extractor
                     .has_skipped_module_body(&nested_kind)
                 {
-                    // self.post_process();
                     *self.ret.borrow_mut() = global_tuning_on_module_body(
                         self.ret.clone().into_inner(),
                         self.global_cfg.clone(),
                     );
-                    *self.ret.borrow_mut() = process_last_empty_line_util(self.ret.clone().into_inner());
+                    *self.ret.borrow_mut() =
+                        process_last_empty_line_util(self.ret.clone().into_inner());
                 }
                 let module_body_buf = self.ret.clone().into_inner();
                 return_cp_buf.push_str(&module_body_buf["module fmt".to_string().len()..]);
@@ -307,13 +283,14 @@ impl Format {
                     fine_ret_buf = corse_ret_buf.clone();
                 }
                 if last_mod_end_loc < corse_ret_buf.clone().len() {
-                    fine_ret_buf.push_str(
-                        &corse_ret_buf[last_mod_end_loc..corse_ret_buf.len()],
-                    );
+                    fine_ret_buf.push_str(&corse_ret_buf[last_mod_end_loc..corse_ret_buf.len()]);
                 }
 
                 tracing::debug!("return_cp_buf = {:?}", return_cp_buf);
-                tracing::debug!("fine_ret_buf = {:?}", &fine_ret_buf["address fmt".to_string().len()..]);
+                tracing::debug!(
+                    "fine_ret_buf = {:?}",
+                    &fine_ret_buf["address fmt".to_string().len()..]
+                );
                 return_cp_buf.push_str(&fine_ret_buf["address fmt".to_string().len()..]);
                 *self.ret.borrow_mut() = return_cp_buf.clone();
             } else if nested_kind.kind == NestKind_::Brace {
@@ -321,7 +298,12 @@ impl Format {
                 self.new_line(Some(t.end_pos()));
                 tracing::debug!("33 return_cp_buf = {:?}", return_cp_buf);
                 tracing::debug!("33 self.ret = {:?}", &self.ret);
-                self.post_process();
+                *self.ret.borrow_mut() = global_tuning_on_module_body(
+                    self.ret.clone().into_inner(),
+                    self.global_cfg.clone(),
+                );
+                *self.ret.borrow_mut() =
+                    process_last_empty_line_util(self.ret.clone().into_inner());
             }
 
             index += 1;

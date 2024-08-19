@@ -91,7 +91,9 @@ impl SkipExtractor {
         let mut right = len;
 
         while left < right {
-            if kind.end_pos < body_loc_vec[left].start() || kind.start_pos > body_loc_vec[right - 1].end() {
+            if kind.end_pos < body_loc_vec[left].start()
+                || kind.start_pos > body_loc_vec[right - 1].end()
+            {
                 return false;
             }
 
@@ -128,7 +130,7 @@ impl SkipExtractor {
 
         false
     }
- 
+
     pub(crate) fn is_module_block(&self, kind: &NestKind) -> bool {
         if kind.kind != NestKind_::Brace {
             return false;
@@ -141,5 +143,4 @@ impl SkipExtractor {
 
         false
     }
-
 }
