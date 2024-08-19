@@ -5,4 +5,5 @@ tab_spaces = 4
 emit_mode = "NewFile"
 verbose = "Normal"
 prefer_one_line_for_short_branch_blk = true
+prefer_one_line_for_short_call_para_list = true
 prefer_one_line_for_short_fn_header_para_list = true

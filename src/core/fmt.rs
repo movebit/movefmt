@@ -701,6 +701,60 @@ impl Format {
         }
     }
 
+    // prefer_one_line_for_short_call_para_list
+    fn get_break_mode_of_fun_call(
+        &self,
+        token: &TokenTree,
+        nested_token_len: usize,
+        max_len_when_no_add_line: f32,
+        opt_component_break_mode: &mut bool,
+    ) -> bool {
+        let TokenTree::Nested { elements, kind, .. } = token else {
+            return false;
+        };
+        let mut new_line_mode = false;
+        let elements_str = serde_json::to_string(&elements).unwrap_or_default();
+        let has_multi_para = elements_str.matches("\"content\":\",\"").count() > 2;
+        if self
+            .syntax_extractor
+            .call_extractor
+            .get_call_component_split_mode(
+                self.global_cfg.clone(),
+                kind,
+                &elements,
+                self.last_line().len(),
+            )
+        {
+            new_line_mode = true;
+
+            let next_line_len = " "
+                .to_string()
+                .repeat(self.depth.get() * self.local_cfg.indent_size + 1)
+                .len();
+            if self
+                .syntax_extractor
+                .call_extractor
+                .get_call_component_split_mode(
+                    self.global_cfg.clone(),
+                    kind,
+                    &elements,
+                    next_line_len,
+                )
+            {
+                *opt_component_break_mode = true;
+            }
+        }
+
+        if !*opt_component_break_mode
+            && has_multi_para
+            && (nested_token_len as f32 > max_len_when_no_add_line
+                || (!self.global_cfg.prefer_one_line_for_short_call_para_list() && new_line_mode))
+        {
+            *opt_component_break_mode = true;
+        }
+        new_line_mode
+    }
+
     fn get_break_mode_begin_paren(&self, token: &TokenTree) -> (bool, Option<bool>) {
         let TokenTree::Nested { elements, kind, .. } = token else {
             return (false, None);
@@ -762,39 +816,12 @@ impl Format {
                 let has_multi_para = elements_str.matches("\"content\":\",\"").count() > 2;
                 let is_in_fun_call = self.syntax_extractor.call_extractor.paren_in_call(kind);
                 if is_in_fun_call {
-                    if self
-                        .syntax_extractor
-                        .call_extractor
-                        .get_call_component_split_mode(
-                            self.global_cfg.clone(),
-                            kind,
-                            &elements,
-                            self.last_line().len(),
-                        )
-                    {
-                        new_line_mode = true;
-
-                        let next_line_len = " "
-                            .to_string()
-                            .repeat(self.depth.get() * (self.local_cfg.indent_size) + 1)
-                            .len();
-                        if self
-                            .syntax_extractor
-                            .call_extractor
-                            .get_call_component_split_mode(
-                                self.global_cfg.clone(),
-                                kind,
-                                &elements,
-                                next_line_len,
-                            )
-                        {
-                            opt_component_break_mode = true;
-                        }
-                    }
-
-                    if has_multi_para && nested_token_len as f32 > max_len_when_no_add_line {
-                        opt_component_break_mode = true;
-                    }
+                    new_line_mode |= self.get_break_mode_of_fun_call(
+                        token,
+                        nested_token_len,
+                        max_len_when_no_add_line,
+                        &mut opt_component_break_mode,
+                    );
                 } else {
                     new_line_mode |= has_multi_para
                         && self.format_context.borrow().pre_simple_token.get_end_tok()
@@ -817,10 +844,11 @@ impl Format {
                 new_line_mode |= is_plus_first_ele_over_width;
                 new_line_mode |= opt_component_break_mode && has_multi_para;
             }
-            if !new_line_mode {
-                if contains_comment(&nested_blk_str) && nested_blk_str.find("//").is_some() {
-                    new_line_mode = true;
-                }
+            if !new_line_mode
+                && contains_comment(&nested_blk_str)
+                && nested_blk_str.find("//").is_some()
+            {
+                new_line_mode = true;
             }
             return (new_line_mode, Some(opt_component_break_mode));
         }
