@@ -584,10 +584,6 @@ impl Format {
         let TokenTree::Nested { elements, kind, .. } = nested_token else {
             return false;
         };
-        // updated in 20240517: not break line for big vec[]
-        if kind.kind == NestKind_::Bracket && elements.len() > 128 {
-            return false;
-        }
 
         let t = elements.get(index).unwrap();
         let next_t = elements.get(index + 1);
@@ -701,7 +697,6 @@ impl Format {
         }
     }
 
-    // prefer_one_line_for_short_call_para_list
     fn get_break_mode_of_fun_call(
         &self,
         token: &TokenTree,
@@ -941,7 +936,18 @@ impl Format {
                 new_line_mode = (is_annotation && nested_token_len > self.global_cfg.max_width())
                     || (!is_annotation && nested_token_len as f32 > max_len_when_no_add_line);
                 if elements.len() > 32 {
-                    return (new_line_mode, Some(false));
+                    let mut bin_op_cnt = 0;
+                    let mut complex_ele_cnt = 0;
+                    for ele in elements {
+                        let result_inner = Self::is_long_nested_token(ele);
+                        if result_inner.0 && result_inner.1 > 4 {
+                            complex_ele_cnt += 1;
+                        }
+                        if is_bin_op(ele.get_start_tok()) {
+                            bin_op_cnt += 1;
+                        }
+                    }
+                    return (new_line_mode, Some(complex_ele_cnt > 4 || bin_op_cnt > 4));
                 }
             }
             NestKind_::Lambda => {

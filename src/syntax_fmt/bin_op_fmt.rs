@@ -191,6 +191,10 @@ impl BinOpExtractor {
         }
     }
 
+    fn collect_const(&mut self, c: &Constant) {
+        self.collect_expr(&c.value);
+    }
+
     fn collect_function(&mut self, d: &Function) {
         match &d.body.value {
             FunctionBody_::Defined(seq) => {
@@ -208,10 +212,16 @@ impl BinOpExtractor {
             if let ModuleMember::Spec(s) = &m {
                 self.collect_spec(s)
             }
+            // if let ModuleMember::Constant(con) = &m {
+            //     self.collect_const(con);
+            // }
         }
     }
 
     fn collect_script(&mut self, d: &Script) {
+        // for const_data in &d.constants {
+        //     self.collect_const(const_data);
+        // }
         self.collect_function(&d.function);
         for s in d.specs.iter() {
             self.collect_spec(s);
@@ -393,6 +403,25 @@ fn test_get_bin_op_exp2() {
                 aborts_if table::spec_contains(address_map, curr_auth_key) &&
                     table::spec_get(address_map, curr_auth_key) != originating_addr;
             }
+        }
+"
+        .to_string());
+}
+
+#[test]
+fn test_get_bin_op_exp3() {
+    get_bin_op_exp(
+        "
+        module test {
+            const C2: bool = {
+                ();
+                ();
+                (true && true) && (!false) && (1 << 7 == 128) && (128 >> 7 == 1) && (
+                    255 / 2 == 127
+                ) && (255 % 2 == 1) && (254 + 1 == 255) && (255 - 255 == 0) && (255&255 == 255) && (
+                    255 | 255 == 255
+                ) && (255 ^ 255 == 0)
+            };
         }
 "
         .to_string());
