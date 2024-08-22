@@ -239,7 +239,9 @@ module ExperimentalFramework::MultiToken {
         assert!(signer::address_of(&account) == ADMIN, ENOT_ADMIN);
         move_to(
             &account,
-            Admin { mint_events: event::new_event_handle<MintEvent>(&account) }
+            Admin {
+                mint_events: event::new_event_handle<MintEvent>(&account)
+            }
         )
     }
 
@@ -271,7 +273,9 @@ module ExperimentalFramework::MultiToken {
         if (!exists<TokenDataCollection<TokenType>>(signer::address_of(account))) {
             move_to(
                 account,
-                TokenDataCollection { tokens: vector::empty<TokenData<TokenType>>() }
+                TokenDataCollection {
+                    tokens: vector::empty<TokenData<TokenType>>()
+                }
             );
         };
         let token_data_collection =

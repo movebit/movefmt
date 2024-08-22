@@ -862,7 +862,9 @@ module aptos_framework::account {
         let account = borrow_global_mut<Account>(account_addr);
         event::emit_event<CoinRegisterEvent>(
             &mut account.coin_register_events,
-            CoinRegisterEvent { type_info: type_info::type_of<CoinType>() }
+            CoinRegisterEvent {
+                type_info: type_info::type_of<CoinType>()
+            }
         );
     }
 
@@ -1647,14 +1649,18 @@ module aptos_framework::account {
         register_coin<FakeCoin>(addr);
 
         let eventhandle = &borrow_global<Account>(addr).coin_register_events;
-        let event = CoinRegisterEvent { type_info: type_info::type_of<FakeCoin>() };
+        let event = CoinRegisterEvent {
+            type_info: type_info::type_of<FakeCoin>()
+        };
 
         let events = event::emitted_events_by_handle(eventhandle);
         assert!(vector::length(&events) == 1, 0);
         assert!(vector::borrow(&events, 0) == &event, 1);
         assert!(event::was_event_emitted_by_handle(eventhandle, &event), 2);
 
-        let event = CoinRegisterEvent { type_info: type_info::type_of<SadFakeCoin>() };
+        let event = CoinRegisterEvent {
+            type_info: type_info::type_of<SadFakeCoin>()
+        };
         assert!(!event::was_event_emitted_by_handle(eventhandle, &event), 3);
     }
 }

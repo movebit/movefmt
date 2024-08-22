@@ -963,6 +963,8 @@ impl Format {
                         && nested_token_len > 4)
                     || (contains_comment(nested_blk_str) && nested_blk_str.lines().count() > 1);
 
+                let (nested_cnt, _) = expr_fmt::get_nested_and_comma_num(elements);
+                new_line_mode |= nested_cnt >= 2 && nested_token_len > 32;
                 if self
                     .syntax_extractor
                     .branch_extractor

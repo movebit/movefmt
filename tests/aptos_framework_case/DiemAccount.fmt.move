@@ -680,7 +680,9 @@ module DiemFramework::DiemAccount {
             old(global<DiemAccount>(payer).received_events)
         );
         include WithdrawFromAbortsIf<Token>;
-        include WithdrawFromBalanceEnsures<Token> { balance: global<Balance<Token>>(payer) };
+        include WithdrawFromBalanceEnsures<Token> {
+            balance: global<Balance<Token>>(payer)
+        };
         include WithdrawOnlyFromCapAddress<Token>;
         include WithdrawFromEmits<Token>;
     }
