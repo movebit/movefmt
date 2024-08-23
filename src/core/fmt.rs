@@ -1803,8 +1803,8 @@ impl Format {
                 self.need_inc_depth_when_cur_is_nested(next_token, new_line_after);
             }
             TokenTree::SimpleToken { .. } => {
-                self.need_inc_depth_when_cur_is_simple(token, next_token, new_line_after);
                 self.format_simple_token(token, next_token, new_line_after);
+                self.need_inc_depth_when_cur_is_simple(token, next_token, new_line_after);
                 self.need_dec_depth_when_cur_is_simple(token);
             }
         }
