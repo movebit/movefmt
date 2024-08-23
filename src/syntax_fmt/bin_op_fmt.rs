@@ -424,5 +424,6 @@ fn test_get_bin_op_exp3() {
             };
         }
 "
-        .to_string());
+        .to_string(),
+    );
 }

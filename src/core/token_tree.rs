@@ -412,6 +412,9 @@ impl<'a> Parser<'a> {
         }
 
         fn collect_script(p: &mut Parser, d: &Script) {
+            for const_data in &d.constants {
+                collect_const(p, const_data);
+            }
             collect_function(p, &d.function);
             for s in d.specs.iter() {
                 collect_spec(p, s);

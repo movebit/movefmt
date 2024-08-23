@@ -196,7 +196,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
             }
             false
         }
-        (TokType::Number, TokType::Alphabet) => true,
+        (TokType::Number, TokType::Alphabet | TokType::Amp | TokType::Star) => true,
         (_, TokType::AmpMut) => true,
         (TokType::Colon, _) => true,
         (_, TokType::Less) => is_bin_next,
@@ -281,7 +281,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                 return true;
             }
 
-            if matches!(curr_start_tok, Tok::Amp | Tok::Pipe | Tok::Caret)
+            if matches!(curr_start_tok, Tok::Pipe | Tok::Caret)
                 && matches!(next_start_tok, Tok::LParen | Tok::LBrace)
             {
                 return true;
