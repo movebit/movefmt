@@ -212,16 +212,16 @@ impl BinOpExtractor {
             if let ModuleMember::Spec(s) = &m {
                 self.collect_spec(s)
             }
-            // if let ModuleMember::Constant(con) = &m {
-            //     self.collect_const(con);
-            // }
+            if let ModuleMember::Constant(con) = &m {
+                self.collect_const(con);
+            }
         }
     }
 
     fn collect_script(&mut self, d: &Script) {
-        // for const_data in &d.constants {
-        //     self.collect_const(const_data);
-        // }
+        for const_data in &d.constants {
+            self.collect_const(const_data);
+        }
         self.collect_function(&d.function);
         for s in d.specs.iter() {
             self.collect_spec(s);

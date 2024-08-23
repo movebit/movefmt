@@ -660,14 +660,16 @@ impl Format {
             next_token = next_tok;
         }
 
-        new_line |=
-            self.check_cur_token_is_long_bin_op(t, next_t, next_token, index, kind, &elements);
-        if !new_line && next_t.is_some() {
-            if self.check_next_token_is_long_bin_op(t, next_t, next_token) {
-                return true;
-            }
-            if self.check_next_token_is_quant_body(t, next_t) {
-                return true;
+        if self.get_kind_len_after_trim_space(*kind, false) > 16 {
+            new_line |=
+                self.check_cur_token_is_long_bin_op(t, next_t, next_token, index, kind, &elements);
+            if !new_line && next_t.is_some() {
+                if self.check_next_token_is_long_bin_op(t, next_t, next_token) {
+                    return true;
+                }
+                if self.check_next_token_is_quant_body(t, next_t) {
+                    return true;
+                }
             }
         }
         new_line
@@ -757,13 +759,7 @@ impl Format {
         let max_len_when_no_add_line = self.global_cfg.max_width() as f32 * 0.75;
         let nested_blk_str =
             &self.format_context.borrow().content[kind.start_pos as usize..kind.end_pos as usize];
-        let nested_blk_str_trim_multi_space = nested_blk_str
-            .replace('\n', "")
-            .split_whitespace()
-            .collect::<Vec<&str>>()
-            .join(" ");
-        let nested_token_len = nested_blk_str_trim_multi_space.len();
-
+        let nested_token_len = self.get_kind_len_after_trim_space(*kind, true);
         let first_ele_len =
             analyze_token_tree_length(&[elements[0].clone()], self.global_cfg.max_width());
 
@@ -871,13 +867,7 @@ impl Format {
         let max_len_when_no_add_line = self.global_cfg.max_width() as f32 * 0.75;
         let nested_blk_str =
             &self.format_context.borrow().content[kind.start_pos as usize..kind.end_pos as usize];
-        let nested_blk_str_trim_multi_space = nested_blk_str
-            .replace('\n', "")
-            .split_whitespace()
-            .collect::<Vec<&str>>()
-            .join(" ");
-        let nested_token_len = nested_blk_str_trim_multi_space.len();
-
+        let nested_token_len = self.get_kind_len_after_trim_space(*kind, true);
         if fun_body {
             self.process_fn_header();
         }
@@ -965,6 +955,18 @@ impl Format {
 
                 let (nested_cnt, _) = expr_fmt::get_nested_and_comma_num(elements);
                 new_line_mode |= nested_cnt >= 2 && nested_token_len > 32;
+
+                let mut control_blk_cnt = 0;
+                for ele in elements {
+                    if matches!(
+                        ele.get_start_tok(),
+                        Tok::If | Tok::Else | Tok::Loop | Tok::While
+                    ) {
+                        control_blk_cnt += 1;
+                    }
+                }
+                new_line_mode |= control_blk_cnt >= 2;
+
                 if self
                     .syntax_extractor
                     .branch_extractor
@@ -1707,14 +1709,18 @@ impl Format {
         if !new_line_after || next_token.is_none() {
             return;
         }
-        if self
-            .syntax_extractor
-            .bin_op_extractor
-            .need_inc_depth_by_long_op(token.clone())
-            || self
+        let is_cur_tok_bin_op = is_bin_op(token.get_end_tok());
+        let is_next_tok_bin_op = is_bin_op(next_token.unwrap().get_start_tok());
+        if (is_cur_tok_bin_op
+            && self
                 .syntax_extractor
                 .bin_op_extractor
-                .need_inc_depth_by_long_op(next_token.unwrap().clone())
+                .need_inc_depth_by_long_op(token.clone()))
+            || (is_next_tok_bin_op
+                && self
+                    .syntax_extractor
+                    .bin_op_extractor
+                    .need_inc_depth_by_long_op(next_token.unwrap().clone()))
         {
             tracing::debug!(
                 "bin_op_extractor.need_inc_depth_by_long_op22({:?})",
@@ -1728,10 +1734,11 @@ impl Format {
             .syntax_extractor
             .let_extractor
             .need_inc_depth_by_long_op(token.clone())
-            || self
-                .syntax_extractor
-                .let_extractor
-                .need_inc_depth_by_long_op(next_token.unwrap().clone())
+            || (is_next_tok_bin_op
+                && self
+                    .syntax_extractor
+                    .let_extractor
+                    .need_inc_depth_by_long_op(next_token.unwrap().clone()))
         {
             self.inc_depth();
             return;
@@ -2029,6 +2036,18 @@ impl Format {
 }
 
 impl Format {
+    fn get_kind_len_after_trim_space(&self, kind: NestKind, join_by_space: bool) -> usize {
+        let nested_blk_str = &self.format_context.borrow().content
+            [kind.start_pos as usize..kind.end_pos as usize]
+            .replace('\n', "");
+        let tok_vec = nested_blk_str.split_whitespace().collect::<Vec<&str>>();
+        if join_by_space {
+            tok_vec.join(" ").len()
+        } else {
+            tok_vec.join("").len()
+        }
+    }
+
     fn last_line(&self) -> String {
         self.ret
             .borrow()

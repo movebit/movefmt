@@ -209,6 +209,10 @@ impl CallExtractor {
         }
     }
 
+    fn collect_const(&mut self, c: &Constant) {
+        self.collect_expr(&c.value);
+    }
+
     fn collect_function(&mut self, d: &Function) {
         match &d.body.value {
             FunctionBody_::Defined(seq) => {
@@ -226,10 +230,16 @@ impl CallExtractor {
             if let ModuleMember::Spec(s) = &m {
                 self.collect_spec(s)
             }
+            if let ModuleMember::Constant(con) = &m {
+                self.collect_const(con);
+            }
         }
     }
 
     fn collect_script(&mut self, d: &Script) {
+        for const_data in &d.constants {
+            self.collect_const(const_data);
+        }
         self.collect_function(&d.function);
         for s in d.specs.iter() {
             self.collect_spec(s);

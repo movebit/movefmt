@@ -186,8 +186,7 @@ module 0xcafe::MyModule {
         let y = {
             ();
             ();
-            (true
-                && true)
+            (true && true)
                 && (!false)
                 && (1 << 7 == 128)
                 && (128 >> 7 == 1)
