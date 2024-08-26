@@ -377,7 +377,8 @@ impl Format {
         kind: &NestKind,
         elements: &[TokenTree],
     ) -> bool {
-        if matches!(current.simple_str().unwrap_or_default(), "==>" | "<==>") {
+        let cur_token_str = current.simple_str().unwrap_or_default();
+        if matches!(cur_token_str, "==>" | "<==>") {
             let next_token_start_pos = next.unwrap().start_pos();
             if self.translate_line(next_token_start_pos)
                 <= self.translate_line(current.end_pos()) + 1
@@ -391,7 +392,7 @@ impl Format {
         }
 
         // updated in 20240607: fix https://github.com/movebit/movefmt/issues/7
-        if current.simple_str().unwrap_or_default() == "="
+        if cur_token_str == "="
             && next.unwrap().simple_str().unwrap_or_default() != "vector"
             && next_tok != Tok::LBrace
             && self
@@ -581,6 +582,7 @@ impl Format {
         has_colon: bool,
         index: usize,
         component_break_mode: bool,
+        nested_kind_len: usize,
     ) -> bool {
         let TokenTree::Nested { elements, kind, .. } = nested_token else {
             return false;
@@ -661,7 +663,7 @@ impl Format {
             next_token = next_tok;
         }
 
-        if self.get_kind_len_after_trim_space(*kind, false) > 16 {
+        if nested_kind_len > 16 {
             new_line |=
                 self.check_cur_token_is_long_bin_op(t, next_t, next_token, index, kind, &elements);
             if !new_line && next_t.is_some() {
@@ -1154,24 +1156,34 @@ impl Format {
         let TokenTree::Nested { elements, kind, .. } = nested_token else {
             return;
         };
+        let nestd_kind_len = self.get_kind_len_after_trim_space(*kind, false);
         let old_kind = self.format_context.borrow_mut().cur_nested_kind;
         self.format_context.borrow_mut().cur_nested_kind = *kind;
         let mut pound_sign = None;
         let len = elements.len();
         let mut internal_token_idx = 0;
+
+        let mut need_get_break_mode_on_component = true;
+        if elements.len() > 32 && kind.kind == NestKind_::Bracket && !component_break_mode {
+            need_get_break_mode_on_component = false;
+        }
         while internal_token_idx < len {
             let pound_sign_new_line = pound_sign
                 .map(|x| (x + 1) == internal_token_idx)
                 .unwrap_or_default();
 
-            let mut new_line = self.need_new_line_for_each_token_finished_in_nested(
-                nested_token,
-                delimiter,
-                has_colon,
-                internal_token_idx,
-                component_break_mode,
-            );
-
+            let mut new_line = if need_get_break_mode_on_component {
+                self.need_new_line_for_each_token_finished_in_nested(
+                    nested_token,
+                    delimiter,
+                    has_colon,
+                    internal_token_idx,
+                    component_break_mode,
+                    nestd_kind_len,
+                )
+            } else {
+                false
+            };
             let is_call = kind.kind == NestKind_::ParentTheses
                 && self.syntax_extractor.call_extractor.paren_in_call(kind);
             if is_call {
