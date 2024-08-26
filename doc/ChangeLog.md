@@ -8,6 +8,7 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.0.4">v1.0.4</a><br/>
 <a href="#v1.0.3">v1.0.3</a><br/>
 <a href="#v1.0.2">v1.0.2</a><br/>
 <a href="#v1.0.1">v1.0.1</a><br/>
@@ -18,6 +19,50 @@
 </table>
 
 
+<a id="v1.0.4"></a>
+
+## 2024-8-26, Version v1.0.4
+
+### Features
+- Fixed 6 bugs and 14 issues{#9, #13, #14, #16, [#19 ~ #27], #30}
+- Optimize the output order of DIFF option
+
+### TODO
+- Support new syntax 'enum'
+- Support skipping code block on struct
+- Add cli.option{--package-path}
+
+### Commits
+* [[`066c799`](https://github.com/movebit/movefmt/commit/066c799440e4b51aeaeb7ba492c4ce573c79cb0c)] - improve performance on big vector (edy)
+* [[`88248ec`](https://github.com/movebit/movefmt/commit/88248ec4e8d72f561bce89665676996c791ce6e9)] - fix bug: issue#34 (edy)
+* [[`d799b34`](https://github.com/movebit/movefmt/commit/d799b3497ee9a3f96df3b56139985bf82708d633)] - fix bug: issue#33 (edy)
+* [[`0a119f6`](https://github.com/movebit/movefmt/commit/0a119f6ff85d7e6d6dbc491ed876eaec29c54434)] - fix bug: issue#32 (rblzw)
+* [[`b622ecc`](https://github.com/movebit/movefmt/commit/b622ecca9990965c37dfc5433b113d8db797d6b1)] - fix issue#25: optimize complex assign exp (rblzw)
+* [[`e74bdf1`](https://github.com/movebit/movefmt/commit/e74bdf1804ecd20526e45b259bf27302603c7843)] - fix bug: issue#29 (edy)
+* [[`5710ffd`](https://github.com/movebit/movefmt/commit/5710ffd5092d9d3d2204e277243be323c80d5490)] - fix issue#28 and issue#30 (edy)
+* [[`99486e2`](https://github.com/movebit/movefmt/commit/99486e2bba68b82bf82abacc507c7abd9841d61f)] - fix issue#23: optimize complex big vector (rblzw)
+* [[`9240377`](https://github.com/movebit/movefmt/commit/9240377a7783e07212e06306abbfe07398ba05a7)] - fix issue#22 (rblzw)
+* [[`9bd032f`](https://github.com/movebit/movefmt/commit/9bd032f78ff65333589a1368948f40370a4f7ed5)] - fix issue#20: support option[prefer_one_line_for_short_call_para_list] in the movefmt.toml (edy)
+* [[`fb07fa4`](https://github.com/movebit/movefmt/commit/fb07fa41b5e59ff3d4f75f146af38c262ff22e03)] - fix issue27; optimize break line about multi address{module{}} (edy)
+* [[`25e509c`](https://github.com/movebit/movefmt/commit/25e509c0fe90ed88c4601a41c223b98441907137)] - first try: fix issue27 (edy)
+* [[`bc4e888`](https://github.com/movebit/movefmt/commit/bc4e888b4cd281d08aca21692a81c74d8c4f9d44)] - fix issue26: wrong space added after 'apply' (edy)
+* [[`e39d16a`](https://github.com/movebit/movefmt/commit/e39d16ad022fb92c4dcb96825ea36374d70b1e47)] - support option[prefer_one_line_for_short_fn_header_para_list] in the movefmt.toml (edy)
+* [[`537ddf6`](https://github.com/movebit/movefmt/commit/537ddf60ed2fe3c921c8e1dd90163014c3f0ef2d)] - optimize: native fn; colon before fn's return_ty; <> in return_ty (edy)
+* [[`ef0e47d`](https://github.com/movebit/movefmt/commit/ef0e47dc9602b84de6495ea91713cff4a8b7e04e)] - fix bug: add space bewteen '^' and '(/{' (edy)
+* [[`90d6e83`](https://github.com/movebit/movefmt/commit/90d6e83837fea215879f750c6c6c33a68fbee654)] - fix issue#21 (edy)
+* [[`ceaa220`](https://github.com/movebit/movefmt/commit/ceaa220698c544d363ef71570cb6f48d0ffad2af)] - fix issue#14 (edy)
+* [[`434143d`](https://github.com/movebit/movefmt/commit/434143d85bd12db791e680d96d76d0421d933f84)] - optimize get_break_mode_begin_paren() and need_new_line_after_branch() (edy)
+* [[`f73ec06`](https://github.com/movebit/movefmt/commit/f73ec0653a84349f1539ad016b7114aa34b21e56)] - fix bug: add space between '|' and '(/{' (edy)
+* [[`bd9b665`](https://github.com/movebit/movefmt/commit/bd9b66509df170f6d9c2d8413363db044ca3eed1)] - optimize complex exp: first element is nested token_tree in () (edy)
+* [[`862516b`](https://github.com/movebit/movefmt/commit/862516b7aa4e40845df66e0f215a44ec37ae84bf)] - fix issue#13 (edy)
+* [[`1c37341`](https://github.com/movebit/movefmt/commit/1c3734109de6dafd59f2c68d0e79846352743c92)] - fix issue#19 (edy)
+* [[`0726d23`](https://github.com/movebit/movefmt/commit/0726d235002f52514f47a2b2fd9394b8679274bb)] - adjust the output order of DIFF option (edy)
+* [[`89ba14f`](https://github.com/movebit/movefmt/commit/89ba14f9e37c998774887b49d3a4176ae11a8ff5)] - optimize indentation (edy)
+* [[`b8446e1`](https://github.com/movebit/movefmt/commit/b8446e117851f1655198ac74932f367c8e3d46dd)] - second try: optimize indentation (edy)
+* [[`7381df4`](https://github.com/movebit/movefmt/commit/7381df48d5109a8eff96eb8edc1e05224192f3fd)] - first try: optimize indentation (rblzw)
+* [[`aa0f861`](https://github.com/movebit/movefmt/commit/aa0f86101965a21ba7dcdfccc0e4d6ca02974f87)] - fixed #issue9: Long lines for pragmas (rblzw)
+
+
 <a id="v1.0.3"></a>
 
 ## 2024-7-16, Version v1.0.3
@@ -25,6 +70,7 @@
 ### Features
 - Fixed 3 bugs and issues{#15, #17, #18}
 - Optimize formatting for complex exp
+- Optimize error prompt
 - Add config.option[prefer_one_line_for_short_branch_blk] and cli.option{--file-path, --dir-path}
 - Update EmitMode
 
@@ -33,6 +79,9 @@
 - Optimize issues{#9, #13, #14, #16, #19, #20, #21}
 
 ### Commits
+* [[`37a14e6`](https://github.com/movebit/movefmt/commit/37a14e6aced7364cadb911c914f6337a1b86e51f)] - optimize error prompt (rblzw)
+* [[`ba7784e`](https://github.com/movebit/movefmt/commit/ba7784e8c6a525f52dc7d875abb3365b27043030)] - Update EmitMode (edy)
+* [[`d32b55f`](https://github.com/movebit/movefmt/commit/d32b55f89b14c13539c9c7282f245ee081e8ad2f)] - optimize exp break line (edy)
 * [[`78d285a`](https://github.com/movebit/movefmt/commit/78d285a19153c5688bbd2751ff6d9d8bcbf83e8d)] - fix bug: add space when next_token is '*' or '&' (edy)
 * [[`1a7c922`](https://github.com/movebit/movefmt/commit/1a7c922e013518a3baef97aab0059aec7858cfbf)] - fix bug: line break error when variable name same with ability (edy)
 * [[`6e163fc`](https://github.com/movebit/movefmt/commit/6e163fceb493d46d358787f10fdfa87ea60715f3)] - optimize main.rs (qpzmV)
