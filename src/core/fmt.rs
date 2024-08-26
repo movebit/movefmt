@@ -347,6 +347,7 @@ impl Format {
                 | Tok::Return
                 | Tok::Public
                 | Tok::Native
+                | Tok::Inline
                 | Tok::Move
                 | Tok::Module
                 | Tok::Loop
