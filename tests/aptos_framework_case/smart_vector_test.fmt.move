@@ -19,7 +19,8 @@ module aptos_std::smart_vector_test {
         let v = make_smart_vector(100);
         let i = 0;
         V::for_each(
-            v, |x| {
+            v,
+            |x| {
                 assert!(i + 1 == x, 0);
                 i = i + 1;
             }
@@ -31,7 +32,8 @@ module aptos_std::smart_vector_test {
         let v = make_smart_vector(100);
         let i = 0;
         V::for_each_reverse(
-            v, |x| {
+            v,
+            |x| {
                 assert!(i == 100 - x, 0);
                 i = i + 1;
             }

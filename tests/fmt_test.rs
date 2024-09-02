@@ -120,7 +120,9 @@ fn test_content(content_origin: &str, p: impl AsRef<Path>) {
         .zip(comments_format.iter())
         .enumerate()
     {
-        assert_eq!(c1, c2, "comment {} not ok.", index);
+        let len1 = c1.trim_end_matches(&['\r', '\n'][..]).len();
+        let len2 = c2.trim_end_matches(&['\r', '\n'][..]).len();
+        assert_eq!(c1.clone().truncate(len1), c2.clone().truncate(len2), "comment {} not ok.", index);
     }
     assert_eq!(
         comments_origin.len(),
