@@ -4,12 +4,12 @@
 
 use crate::core::token_tree::{NestKind, NestKind_, TokenTree};
 use crate::syntax_fmt::expr_fmt;
-use crate::tools::syntax::parse_file_string;
 use crate::tools::utils::FileLineMappingOneFile;
 use commentfmt::Config;
 use move_command_line_common::files::FileHash;
 use move_compiler::parser::ast::*;
 use move_compiler::parser::lexer::{Lexer, Tok};
+use move_compiler::parser::syntax::parse_file_string;
 use move_compiler::shared::ast_debug;
 use move_compiler::shared::{CompilationEnv, Identifier};
 use move_compiler::Flags;

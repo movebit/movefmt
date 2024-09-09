@@ -2,7 +2,6 @@
 // Copyright (c) The BitsLab.MoveBit Contributors
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::tools::syntax::parse_file_string;
 use crate::tools::utils::FileLineMappingOneFile;
 use commentfmt::comment::contains_comment;
 use commentfmt::Config;
@@ -10,6 +9,7 @@ use move_command_line_common::files::FileHash;
 use move_compiler::parser::ast::Definition;
 use move_compiler::parser::ast::*;
 use move_compiler::parser::lexer::{Lexer, Tok};
+use move_compiler::parser::syntax::parse_file_string;
 use move_compiler::shared::{CompilationEnv, Identifier};
 use move_compiler::Flags;
 use move_ir_types::location::*;

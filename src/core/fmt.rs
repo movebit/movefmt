@@ -11,14 +11,13 @@ use crate::syntax_fmt::let_fmt::LetExtractor;
 use crate::syntax_fmt::quant_fmt::QuantExtractor;
 use crate::syntax_fmt::skip_fmt::{SkipExtractor, SkipType};
 use crate::syntax_fmt::{big_block_fmt, expr_fmt, fun_fmt, spec_fmt};
-use crate::tools::syntax::{self, parse_file_string};
 use crate::tools::utils::*;
 use commentfmt::comment::contains_comment;
 use commentfmt::{Config, Verbosity};
 use move_command_line_common::files::FileHash;
 use move_compiler::diagnostics::Diagnostics;
-use move_compiler::parser::ast::*;
 use move_compiler::parser::lexer::{Lexer, Tok};
+use move_compiler::parser::{ast::*, syntax::parse_file_string};
 use move_compiler::shared::CompilationEnv;
 use move_compiler::Flags;
 use move_ir_types::location::ByteIndex;
@@ -102,6 +101,16 @@ fn is_bin_op(op_token: Tok) -> bool {
             | Tok::EqualEqualGreater
             | Tok::LessEqualEqualGreater
     )
+}
+
+fn token_to_ability(token: Tok, content: &str) -> Option<Ability_> {
+    match (token, content) {
+        (Tok::Copy, _) => Some(Ability_::Copy),
+        (Tok::Identifier, Ability_::DROP) => Some(Ability_::Drop),
+        (Tok::Identifier, Ability_::STORE) => Some(Ability_::Store),
+        (Tok::Identifier, Ability_::KEY) => Some(Ability_::Key),
+        _ => None,
+    }
 }
 
 fn global_tuning_on_module_body(module_body: String, config: Config) -> String {
@@ -646,7 +655,7 @@ impl Format {
             if new_line
                 && d == t_str
                 && t_str.unwrap_or_default() == ","
-                && syntax::token_to_ability(
+                && token_to_ability(
                     self.format_context.borrow().pre_simple_token.get_end_tok(),
                     &self
                         .format_context
@@ -656,7 +665,7 @@ impl Format {
                         .unwrap_or_default(),
                 )
                 .is_some()
-                && syntax::token_to_ability(next_tok, &next_content).is_some()
+                && token_to_ability(next_tok, &next_content).is_some()
             {
                 new_line = false;
             }

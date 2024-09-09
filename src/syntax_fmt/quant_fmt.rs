@@ -283,8 +283,8 @@ impl QuantExtractor {
 
 #[allow(dead_code)]
 fn get_quant_exp(fmt_buffer: String) {
-    use crate::tools::syntax::parse_file_string;
     use move_command_line_common::files::FileHash;
+    use move_compiler::parser::syntax::parse_file_string;
     use move_compiler::shared::CompilationEnv;
     use move_compiler::Flags;
     use std::collections::BTreeSet;

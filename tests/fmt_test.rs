@@ -1,8 +1,8 @@
 use move_command_line_common::files::FileHash;
+use move_compiler::parser::syntax::parse_file_string;
 use movefmt::{
     core::token_tree::{CommentExtrator, CommentExtratorErr, TokenTree},
     tools::movefmt_diff,
-    tools::syntax::parse_file_string,
     tools::utils::*,
 };
 use std::collections::BTreeSet;
@@ -122,7 +122,12 @@ fn test_content(content_origin: &str, p: impl AsRef<Path>) {
     {
         let len1 = c1.trim_end_matches(&['\r', '\n'][..]).len();
         let len2 = c2.trim_end_matches(&['\r', '\n'][..]).len();
-        assert_eq!(c1.clone().truncate(len1), c2.clone().truncate(len2), "comment {} not ok.", index);
+        assert_eq!(
+            c1.clone().truncate(len1),
+            c2.clone().truncate(len2),
+            "comment {} not ok.",
+            index
+        );
     }
     assert_eq!(
         comments_origin.len(),

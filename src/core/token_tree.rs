@@ -468,9 +468,6 @@ impl<'a> Parser<'a> {
 
         fn collect_expr(p: &mut Parser, e: &Exp) {
             match &e.value {
-                Exp_::Value(_) => {}
-                Exp_::Move(_) => {}
-                Exp_::Copy(_) => {}
                 Exp_::Name(name, tys) => {
                     if tys.is_some() {
                         if name.loc.end() > e.loc.end() {
@@ -544,7 +541,6 @@ impl<'a> Parser<'a> {
                 Exp_::ExpList(es) => {
                     es.iter().for_each(|e| collect_expr(p, e));
                 }
-                Exp_::Unit => {}
                 Exp_::Assign(l, r) => {
                     collect_expr(p, l.as_ref());
                     collect_expr(p, r.as_ref());
@@ -557,8 +553,7 @@ impl<'a> Parser<'a> {
                 Exp_::Abort(e) => {
                     collect_expr(p, e.as_ref());
                 }
-                Exp_::Break => {}
-                Exp_::Continue => {}
+
                 Exp_::Dereference(e) => {
                     collect_expr(p, e.as_ref());
                 }
@@ -592,6 +587,8 @@ impl<'a> Parser<'a> {
                 Exp_::UnresolvedError => {
                     unreachable!()
                 }
+                // Exp_::Value  Exp_::Move Exp_::Copy Exp_::Unit Exp_::Break Exp_::Continue
+                _ => {}
             }
         }
 
@@ -1025,7 +1022,7 @@ impl CommentExtrator {
 
 #[cfg(test)]
 mod comment_test {
-    use crate::tools::syntax::parse_file_string;
+    use move_compiler::parser::syntax::parse_file_string;
     use move_compiler::{shared::CompilationEnv, Flags};
     use std::collections::BTreeSet;
 
