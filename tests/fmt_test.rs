@@ -1,14 +1,12 @@
 use move_command_line_common::files::FileHash;
-use move_compiler::parser::syntax::parse_file_string;
+use move_compiler::parser::{lexer::Lexer, syntax::parse_file_string};
 use movefmt::{
     core::token_tree::{CommentExtrator, CommentExtratorErr, TokenTree},
     tools::movefmt_diff,
     tools::utils::*,
 };
-use std::collections::BTreeSet;
 use tracing_subscriber::EnvFilter;
 
-use move_compiler::{parser::lexer::Lexer, shared::CompilationEnv, Flags};
 use std::path::Path;
 
 fn scan_dir(dir: &str) -> usize {
@@ -61,9 +59,7 @@ fn test_on_file(p: impl AsRef<Path>) -> bool {
     eprintln!("try format:{:?}", p);
     let content_origin = std::fs::read_to_string(&p).unwrap();
     {
-        let attrs: BTreeSet<String> = BTreeSet::new();
-        let mut env = CompilationEnv::new(Flags::testing(), attrs);
-        match parse_file_string(&mut env, FileHash::empty(), &content_origin) {
+        match parse_file_string(&mut get_compile_env(), FileHash::empty(), &content_origin) {
             Ok(_) => {}
             Err(_) => {
                 eprintln!("file '{:?}' skipped because of parse not ok", p);
@@ -165,9 +161,7 @@ fn extract_tokens(content: &str) -> Result<Vec<ExtractToken>, Vec<String>> {
     let mut line_mapping = FileLineMapping::default();
     line_mapping.update(p.clone(), &content);
     let filehash = FileHash::empty();
-    let attrs: BTreeSet<String> = BTreeSet::new();
-    let mut env = CompilationEnv::new(Flags::testing(), attrs);
-    let (defs, _comments) = match parse_file_string(&mut env, filehash, content) {
+    let (defs, _comments) = match parse_file_string(&mut get_compile_env(), filehash, content) {
         Ok(x) => x,
         Err(d) => {
             let mut ret = Vec::with_capacity(d.len());

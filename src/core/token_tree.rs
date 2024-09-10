@@ -2,7 +2,6 @@
 // Copyright (c) The BitsLab.MoveBit Contributors
 // SPDX-License-Identifier: Apache-2.0
 
-use core::panic;
 use move_command_line_common::files::FileHash;
 use move_compiler::parser::ast::Definition;
 use move_compiler::parser::ast::*;
@@ -1006,8 +1005,7 @@ impl CommentExtrator {
                     } else if *c == QUOTE {
                         state = ExtratorCommentState::Init;
                     } else if *c == NEW_LINE {
-                        // return Err(CommentExtratorErr::NewLineInQuote);
-                        panic!("1")
+                        return Err(CommentExtratorErr::NewLineInQuote);
                     }
                 }
             };
@@ -1023,10 +1021,8 @@ impl CommentExtrator {
 #[cfg(test)]
 mod comment_test {
     use move_compiler::parser::syntax::parse_file_string;
-    use move_compiler::{shared::CompilationEnv, Flags};
-    use std::collections::BTreeSet;
-
     use super::*;
+    use crate::tools::utils::*;
     #[test]
     fn token_tree_to_json() {
         let content = r#"module 0x1::xxx{
@@ -1035,9 +1031,7 @@ mod comment_test {
             }
           }"#;
         let filehash = FileHash::empty();
-        let attrs: BTreeSet<String> = BTreeSet::new();
-        let mut env = CompilationEnv::new(Flags::testing(), attrs);
-        let (defs, _) = parse_file_string(&mut env, filehash, content).unwrap();
+        let (defs, _) = parse_file_string(&mut get_compile_env(), filehash, content).unwrap();
         let lexer = Lexer::new(content, filehash);
         let parse = Parser::new(lexer, &defs, content.to_string());
         let token_tree = parse.parse_tokens();
@@ -1076,6 +1070,7 @@ mod comment_test {
         }
         assert_eq!(v.len(), x.comments.len());
     }
+
     #[test]
     fn test_comment_extrator_ok2() {
         let _x = CommentExtrator::new(r#"/* /* 1 */ */"#).unwrap();

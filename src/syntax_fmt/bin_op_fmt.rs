@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::core::token_tree::TokenTree;
-use crate::tools::utils::FileLineMappingOneFile;
+use crate::tools::utils::*;
 use move_compiler::parser::ast::*;
 use move_compiler::shared::ast_debug;
 use std::cell::RefCell;
@@ -302,12 +302,8 @@ impl BinOpExtractor {
 fn get_bin_op_exp(fmt_buffer: String) {
     use move_command_line_common::files::FileHash;
     use move_compiler::parser::syntax::parse_file_string;
-    use move_compiler::shared::CompilationEnv;
-    use move_compiler::Flags;
-    use std::collections::BTreeSet;
     let mut bin_op_extractor = BinOpExtractor::new(fmt_buffer.clone());
-    let mut env = CompilationEnv::new(Flags::testing(), BTreeSet::new());
-    let (defs, _) = parse_file_string(&mut env, FileHash::empty(), &fmt_buffer).unwrap();
+    let (defs, _) = parse_file_string(&mut get_compile_env(), FileHash::empty(), &fmt_buffer).unwrap();
     bin_op_extractor.preprocess(defs);
     for bin_op_exp in bin_op_extractor.bin_op_exp_vec.iter() {
         let bin_op_exp_str = &bin_op_extractor.source

@@ -2,17 +2,14 @@
 // Copyright (c) The BitsLab.MoveBit Contributors
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::tools::utils::FileLineMappingOneFile;
+use crate::tools::utils::*;
 use commentfmt::Config;
 use move_command_line_common::files::FileHash;
 use move_compiler::parser::ast::Definition;
 use move_compiler::parser::ast::*;
 use move_compiler::parser::lexer::{Lexer, Tok};
 use move_compiler::parser::syntax::parse_file_string;
-use move_compiler::shared::CompilationEnv;
-use move_compiler::Flags;
 use move_ir_types::location::*;
-use std::collections::BTreeSet;
 
 #[derive(Debug, Default)]
 pub struct UseExtractor {
@@ -32,9 +29,7 @@ impl UseExtractor {
         };
 
         use_extractor.line_mapping.update(&fmt_buffer);
-        let attrs: BTreeSet<String> = BTreeSet::new();
-        let mut env = CompilationEnv::new(Flags::testing(), attrs);
-        let (defs, _) = parse_file_string(&mut env, FileHash::empty(), &fmt_buffer).unwrap();
+        let (defs, _) = parse_file_string(&mut get_compile_env(), FileHash::empty(), &fmt_buffer).unwrap();
 
         for d in defs.iter() {
             use_extractor.collect_definition(d);

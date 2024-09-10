@@ -18,12 +18,9 @@ use move_command_line_common::files::FileHash;
 use move_compiler::diagnostics::Diagnostics;
 use move_compiler::parser::lexer::{Lexer, Tok};
 use move_compiler::parser::{ast::*, syntax::parse_file_string};
-use move_compiler::shared::CompilationEnv;
-use move_compiler::Flags;
 use move_ir_types::location::ByteIndex;
 use std::cell::Cell;
 use std::cell::RefCell;
-use std::collections::BTreeSet;
 use std::result::Result::*;
 
 pub struct FormatContext {
@@ -155,9 +152,7 @@ impl Format {
     }
 
     fn generate_token_tree(&mut self, content: &str) -> Result<String, Diagnostics> {
-        // let attrs: BTreeSet<String> = BTreeSet::new();
-        let mut env = CompilationEnv::new(Flags::testing(), BTreeSet::new());
-        let (defs, _) = parse_file_string(&mut env, FileHash::empty(), content)?;
+        let (defs, _) = parse_file_string(&mut get_compile_env(), FileHash::empty(), content)?;
         let lexer = Lexer::new(content, FileHash::empty());
         let parse = crate::core::token_tree::Parser::new(lexer, &defs, content.to_string());
         self.token_tree = parse.parse_tokens();
@@ -251,8 +246,7 @@ impl Format {
                 self.new_line(Some(t.end_pos()));
                 // self.ret just one address_block, that's also current address_block
                 let corse_ret_buf = self.ret.clone().into_inner();
-                let mut env = CompilationEnv::new(Flags::testing(), BTreeSet::new());
-                let def_vec = parse_file_string(&mut env, FileHash::empty(), &corse_ret_buf)
+                let def_vec = parse_file_string(&mut get_compile_env(), FileHash::empty(), &corse_ret_buf)
                     .unwrap_or_default()
                     .0;
 
@@ -2170,8 +2164,7 @@ pub fn format_entry(content: impl AsRef<str>, config: Config) -> Result<String, 
 
     {
         // https://github.com/movebit/movefmt/issues/2
-        let mut env = CompilationEnv::new(Flags::testing(), BTreeSet::new());
-        let _ = parse_file_string(&mut env, FileHash::empty(), content)?;
+        let _ = parse_file_string(&mut get_compile_env(), FileHash::empty(), content)?;
     }
 
     let mut full_fmt = Format::new(

@@ -4,17 +4,15 @@
 
 use crate::core::token_tree::{NestKind, NestKind_, TokenTree};
 use crate::syntax_fmt::expr_fmt;
-use crate::tools::utils::FileLineMappingOneFile;
+use crate::tools::utils::*;
 use commentfmt::Config;
 use move_command_line_common::files::FileHash;
 use move_compiler::parser::ast::*;
 use move_compiler::parser::lexer::{Lexer, Tok};
 use move_compiler::parser::syntax::parse_file_string;
 use move_compiler::shared::ast_debug;
-use move_compiler::shared::{CompilationEnv, Identifier};
-use move_compiler::Flags;
+use move_compiler::shared::Identifier;
 use move_ir_types::location::*;
-use std::collections::BTreeSet;
 
 #[derive(Debug, Default)]
 pub struct FunExtractor {
@@ -224,10 +222,8 @@ impl FunExtractor {
 }
 
 fn get_defs(fmt_buffer: String) -> Vec<Definition> {
-    let attrs: BTreeSet<String> = BTreeSet::new();
-    let mut env = CompilationEnv::new(Flags::testing(), attrs);
     let filehash = FileHash::empty();
-    parse_file_string(&mut env, filehash, &fmt_buffer)
+    parse_file_string(&mut get_compile_env(), filehash, &fmt_buffer)
         .unwrap()
         .0
 }

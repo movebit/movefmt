@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::core::token_tree::TokenTree;
-use crate::tools::utils::FileLineMappingOneFile;
+use crate::tools::utils::*;
 use move_compiler::parser::ast::Definition;
 use move_compiler::parser::ast::*;
 use move_compiler::shared::ast_debug;
@@ -285,12 +285,8 @@ impl QuantExtractor {
 fn get_quant_exp(fmt_buffer: String) {
     use move_command_line_common::files::FileHash;
     use move_compiler::parser::syntax::parse_file_string;
-    use move_compiler::shared::CompilationEnv;
-    use move_compiler::Flags;
-    use std::collections::BTreeSet;
     let mut quant_extractor = QuantExtractor::new(fmt_buffer.clone());
-    let mut env = CompilationEnv::new(Flags::testing(), BTreeSet::new());
-    let (defs, _) = parse_file_string(&mut env, FileHash::empty(), &fmt_buffer).unwrap();
+    let (defs, _) = parse_file_string(&mut get_compile_env(), FileHash::empty(), &fmt_buffer).unwrap();
     quant_extractor.preprocess(defs);
     for quant_exp in quant_extractor.quant_exp_vec.iter() {
         let quant_exp_str =

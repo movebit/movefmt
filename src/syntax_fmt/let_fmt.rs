@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::core::token_tree::TokenTree;
-use crate::tools::utils::FileLineMappingOneFile;
+use crate::tools::utils::*;
 use move_compiler::parser::ast::Definition;
 use move_compiler::parser::ast::*;
 use move_compiler::shared::ast_debug;
@@ -426,12 +426,8 @@ impl LetExtractor {
 fn get_bin_op_exp(fmt_buffer: String) {
     use move_command_line_common::files::FileHash;
     use move_compiler::parser::syntax::parse_file_string;
-    use move_compiler::shared::CompilationEnv;
-    use move_compiler::Flags;
-    use std::collections::BTreeSet;
     let mut let_extractor = LetExtractor::new(fmt_buffer.clone());
-    let mut env = CompilationEnv::new(Flags::testing(), BTreeSet::new());
-    let (defs, _) = parse_file_string(&mut env, FileHash::empty(), &fmt_buffer).unwrap();
+    let (defs, _) = parse_file_string(&mut get_compile_env(), FileHash::empty(), &fmt_buffer).unwrap();
     let_extractor.preprocess(defs);
     for bin_op_exp in let_extractor.bin_op_exp_vec.iter() {
         let bin_op_exp_str =
@@ -465,12 +461,8 @@ fn get_bin_op_exp(fmt_buffer: String) {
 fn get_long_assign(fmt_buffer: String) {
     use move_command_line_common::files::FileHash;
     use move_compiler::parser::syntax::parse_file_string;
-    use move_compiler::shared::CompilationEnv;
-    use move_compiler::Flags;
-    use std::collections::BTreeSet;
     let mut let_extractor = LetExtractor::new(fmt_buffer.clone());
-    let mut env = CompilationEnv::new(Flags::testing(), BTreeSet::new());
-    let (defs, _) = parse_file_string(&mut env, FileHash::empty(), &fmt_buffer).unwrap();
+    let (defs, _) = parse_file_string(&mut get_compile_env(), FileHash::empty(), &fmt_buffer).unwrap();
     let_extractor.preprocess(defs);
     for (idx, _) in let_extractor.let_assign_loc_vec.iter().enumerate() {
         let rhs_exp_loc = &let_extractor.let_assign_rhs_exp[idx].loc;

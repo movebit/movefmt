@@ -56,12 +56,14 @@ fun scale_radius(self: &mut Rectangle, factor:  u64) {
 
 // Patterns can be nested and contain conditions
 fun nested_exp() {
-    let r : Result<Result<u64>> = Ok(Err(42));
-    let v = match (r) {
-    Ok{_}                 => 2,
-    _                     => 3
-    };
-    assert!(v == 1);
+let r : Result<Result<u64>> = Ok(Err(42));
+let v = match (r) {
+  Ok(Err(c)) if c <= 42   => 0,
+  Ok(Err(c)) if c > 42   => 1,
+  Ok(_) => 2,
+  _ => 3
+};
+assert!(v == 1);
 }
 
 // Testing Enum Variants
