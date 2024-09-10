@@ -64,7 +64,8 @@ impl SpecExtractor {
         };
 
         spec_extractor.line_mapping.update(&fmt_buffer);
-        let (defs, _) = parse_file_string(&mut get_compile_env(), FileHash::empty(), &fmt_buffer).unwrap();
+        let (defs, _) =
+            parse_file_string(&mut get_compile_env(), FileHash::empty(), &fmt_buffer).unwrap();
         for d in defs.iter() {
             spec_extractor.collect_definition(d);
         }

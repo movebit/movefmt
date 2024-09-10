@@ -303,7 +303,8 @@ fn get_bin_op_exp(fmt_buffer: String) {
     use move_command_line_common::files::FileHash;
     use move_compiler::parser::syntax::parse_file_string;
     let mut bin_op_extractor = BinOpExtractor::new(fmt_buffer.clone());
-    let (defs, _) = parse_file_string(&mut get_compile_env(), FileHash::empty(), &fmt_buffer).unwrap();
+    let (defs, _) =
+        parse_file_string(&mut get_compile_env(), FileHash::empty(), &fmt_buffer).unwrap();
     bin_op_extractor.preprocess(defs);
     for bin_op_exp in bin_op_extractor.bin_op_exp_vec.iter() {
         let bin_op_exp_str = &bin_op_extractor.source

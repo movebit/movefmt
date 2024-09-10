@@ -427,7 +427,8 @@ fn get_bin_op_exp(fmt_buffer: String) {
     use move_command_line_common::files::FileHash;
     use move_compiler::parser::syntax::parse_file_string;
     let mut let_extractor = LetExtractor::new(fmt_buffer.clone());
-    let (defs, _) = parse_file_string(&mut get_compile_env(), FileHash::empty(), &fmt_buffer).unwrap();
+    let (defs, _) =
+        parse_file_string(&mut get_compile_env(), FileHash::empty(), &fmt_buffer).unwrap();
     let_extractor.preprocess(defs);
     for bin_op_exp in let_extractor.bin_op_exp_vec.iter() {
         let bin_op_exp_str =
@@ -462,7 +463,8 @@ fn get_long_assign(fmt_buffer: String) {
     use move_command_line_common::files::FileHash;
     use move_compiler::parser::syntax::parse_file_string;
     let mut let_extractor = LetExtractor::new(fmt_buffer.clone());
-    let (defs, _) = parse_file_string(&mut get_compile_env(), FileHash::empty(), &fmt_buffer).unwrap();
+    let (defs, _) =
+        parse_file_string(&mut get_compile_env(), FileHash::empty(), &fmt_buffer).unwrap();
     let_extractor.preprocess(defs);
     for (idx, _) in let_extractor.let_assign_loc_vec.iter().enumerate() {
         let rhs_exp_loc = &let_extractor.let_assign_rhs_exp[idx].loc;

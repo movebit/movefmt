@@ -22,7 +22,8 @@ impl BigBlockExtractor {
         };
 
         big_block_extractor.line_mapping.update(&fmt_buffer);
-        let (defs, _) = parse_file_string(&mut get_compile_env(), FileHash::empty(), &fmt_buffer).unwrap();
+        let (defs, _) =
+            parse_file_string(&mut get_compile_env(), FileHash::empty(), &fmt_buffer).unwrap();
 
         for d in defs.iter() {
             big_block_extractor.collect_definition(d);

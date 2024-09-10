@@ -235,6 +235,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                     | Tok::Return
                     | Tok::If
                     | Tok::Else
+                    | Tok::EqualGreater
             )
         }
 

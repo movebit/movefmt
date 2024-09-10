@@ -56,14 +56,14 @@ module test_enum {
     fun area(self: &Rectangle): u64 {
         match(self) {
             Circle { radius } => mul_with_pi(*radius * *radius),
-            Rectangle { width, height } =>*width * *height
+            Rectangle { width, height } => *width * *height
         }
     }
 
     //  match over a mutable reference
     fun scale_radius(self: &mut Rectangle, factor: u64) {
         match(self) {
-            Circle { radius: r } =>*r = *r *factor,
+            Circle { radius: r } => *r = *r * factor,
             _ => {}
             // do nothing if not a Circle
         }
@@ -74,7 +74,7 @@ module test_enum {
         let r: Result<Result<u64>> = Ok(Err(42));
         let v = match(r) {
             Ok(Err(c)) if c <= 42 => 0,
-            Ok(Err(c)) if c> 42 => 1,
+            Ok(Err(c)) if c > 42 => 1,
             Ok(_) => 2,
             _ => 3
         };

@@ -3,9 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use lsp_types::{Location, Position};
+use move_command_line_common::files::FileHash;
 use move_compiler::shared::CompilationEnv;
 use move_compiler::Flags;
-use move_command_line_common::files::FileHash;
 use move_ir_types::location::*;
 
 use std::collections::HashMap;

@@ -246,9 +246,10 @@ impl Format {
                 self.new_line(Some(t.end_pos()));
                 // self.ret just one address_block, that's also current address_block
                 let corse_ret_buf = self.ret.clone().into_inner();
-                let def_vec = parse_file_string(&mut get_compile_env(), FileHash::empty(), &corse_ret_buf)
-                    .unwrap_or_default()
-                    .0;
+                let def_vec =
+                    parse_file_string(&mut get_compile_env(), FileHash::empty(), &corse_ret_buf)
+                        .unwrap_or_default()
+                        .0;
 
                 let mut last_mod_end_loc = 0;
                 let mut fine_ret_buf = "".to_string();

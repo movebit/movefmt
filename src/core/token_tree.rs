@@ -586,6 +586,17 @@ impl<'a> Parser<'a> {
                 Exp_::UnresolvedError => {
                     unreachable!()
                 }
+                Exp_::Match(target, body) => {
+                    collect_expr(p, target.as_ref());
+                    for body_item in body {
+                        let (_, opt_exp, exp) = &body_item.value;
+                        if opt_exp.is_some() {
+                            let opt_condition_exp = opt_exp.clone().unwrap();
+                            collect_expr(p, &opt_condition_exp);
+                        }
+                        collect_expr(p, &exp);
+                    }
+                }
                 // Exp_::Value  Exp_::Move Exp_::Copy Exp_::Unit Exp_::Break Exp_::Continue
                 _ => {}
             }
@@ -1020,9 +1031,9 @@ impl CommentExtrator {
 
 #[cfg(test)]
 mod comment_test {
-    use move_compiler::parser::syntax::parse_file_string;
     use super::*;
     use crate::tools::utils::*;
+    use move_compiler::parser::syntax::parse_file_string;
     #[test]
     fn token_tree_to_json() {
         let content = r#"module 0x1::xxx{

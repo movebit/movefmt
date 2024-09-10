@@ -286,7 +286,8 @@ fn get_quant_exp(fmt_buffer: String) {
     use move_command_line_common::files::FileHash;
     use move_compiler::parser::syntax::parse_file_string;
     let mut quant_extractor = QuantExtractor::new(fmt_buffer.clone());
-    let (defs, _) = parse_file_string(&mut get_compile_env(), FileHash::empty(), &fmt_buffer).unwrap();
+    let (defs, _) =
+        parse_file_string(&mut get_compile_env(), FileHash::empty(), &fmt_buffer).unwrap();
     quant_extractor.preprocess(defs);
     for quant_exp in quant_extractor.quant_exp_vec.iter() {
         let quant_exp_str =
