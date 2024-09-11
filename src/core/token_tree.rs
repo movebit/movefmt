@@ -485,15 +485,42 @@ impl<'a> Parser<'a> {
                         );
                     } else {
                         p.type_lambda_pair.push((name.loc.end(), es.loc.start()));
+                        tracing::debug!(
+                            "code spniet: {:?}",
+                            &p.source[name.loc.end() as usize..es.loc.start() as usize]
+                        );
                     }
+                    tracing::debug!("in call, es = {:?}", es.value);
                     es.value.iter().for_each(|e| collect_expr(p, e));
                 }
-                Exp_::Pack(name, _tys, es) => {
+                Exp_::Pack(name, tys, es) => {
                     if let Some(e) = es.first() {
                         if name.loc.end() > e.0.loc().start() {
                             tracing::debug!("name loc end > exp loc end: {:?}", e);
                         } else {
                             p.type_lambda_pair.push((name.loc.end(), e.0.loc().start()));
+                        }
+                    } else {
+                        if tys.is_some() {
+                            let ty_vec = tys.clone().unwrap();
+                            let last_ty = ty_vec.last();
+                            if last_ty.is_some() {
+                                tracing::debug!(
+                                    "Pack -- code spniet: {:?}",
+                                    &p.source[name.loc.end() as usize
+                                        ..last_ty.unwrap().loc.end() as usize]
+                                );
+                                let end_str = &p.source
+                                    [last_ty.unwrap().loc.end() as usize..e.loc.end() as usize];
+                                if let Some(idx) = end_str.find('>') {
+                                    tracing::debug!(
+                                        "Pack 22-- code spniet: {:?}",
+                                        &p.source[name.loc.end() as usize
+                                            ..last_ty.unwrap().loc.end() as usize + idx + 1]
+                                    );
+                                    p.type_lambda_pair.push((name.loc.end(), last_ty.unwrap().loc.end() + idx as u32 + 1));
+                                }
+                            }
                         }
                     }
                     es.iter().for_each(|e| collect_expr(p, &e.1));
@@ -1041,6 +1068,35 @@ mod comment_test {
                 vector::for_each(objs,|o| {  });
             }
           }"#;
+        let filehash = FileHash::empty();
+        let (defs, _) = parse_file_string(&mut get_compile_env(), filehash, content).unwrap();
+        let lexer = Lexer::new(content, filehash);
+        let parse = Parser::new(lexer, &defs, content.to_string());
+        let token_tree = parse.parse_tokens();
+        let s = serde_json::to_string(&token_tree).unwrap();
+        // check this using some online json tool.
+        eprintln!("json:{:?}", s);
+        let and_op_num = s.matches("\"content\":\",\"").count() as u32;
+        eprintln!("and_op_num:{}", and_op_num);
+    }
+
+    #[test]
+    fn test_token_tree_to_json2() {
+        let content = r#"
+module test {
+    public fun transfer<CoinType1, CoinType2>(
+    from: &signer, to: address, amount: u64
+) {
+    BasicCoin::transfer<PoolToken<CoinType1, CoinType2>>(
+        from,
+        to,
+        amount,
+        PoolToken<CoinType1,
+        CoinType2  >  {}
+    );
+}
+}
+        "#;
         let filehash = FileHash::empty();
         let (defs, _) = parse_file_string(&mut get_compile_env(), filehash, content).unwrap();
         let lexer = Lexer::new(content, filehash);

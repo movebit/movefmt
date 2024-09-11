@@ -609,7 +609,7 @@ impl Format {
 
         let mut new_line = if component_break_mode {
             self.check_new_line_mode_for_each_token_in_nested(kind, delimiter, has_colon, t, next_t)
-                || (d == t_str && d.is_some())
+                || (d == t_str && d.is_some() && kind.kind != NestKind_::Type)
         } else {
             self.get_new_line_mode_for_each_token_in_nested(kind, t, next_t)
         };
@@ -677,7 +677,7 @@ impl Format {
             next_token = next_tok;
         }
 
-        if nested_kind_len > 16 {
+        if nested_kind_len > 16 && kind.kind != NestKind_::Type {
             new_line |=
                 self.check_cur_token_is_long_bin_op(t, next_t, next_token, index, kind, &elements);
             if !new_line && next_t.is_some() {
@@ -1177,7 +1177,9 @@ impl Format {
         let len = elements.len();
         let mut internal_token_idx = 0;
 
-        let mut need_get_break_mode_on_component = true;
+        let is_call = kind.kind == NestKind_::ParentTheses
+            && self.syntax_extractor.call_extractor.paren_in_call(kind);
+        let mut need_get_break_mode_on_component = component_break_mode;
         if elements.len() > 32 && kind.kind == NestKind_::Bracket && !component_break_mode {
             need_get_break_mode_on_component = false;
         }
@@ -1186,20 +1188,14 @@ impl Format {
                 .map(|x| (x + 1) == internal_token_idx)
                 .unwrap_or_default();
 
-            let mut new_line = if need_get_break_mode_on_component {
-                self.need_new_line_for_each_token_finished_in_nested(
-                    nested_token,
-                    delimiter,
-                    has_colon,
-                    internal_token_idx,
-                    component_break_mode,
-                    nestd_kind_len,
-                )
-            } else {
-                false
-            };
-            let is_call = kind.kind == NestKind_::ParentTheses
-                && self.syntax_extractor.call_extractor.paren_in_call(kind);
+            let mut new_line = self.need_new_line_for_each_token_finished_in_nested(
+                nested_token,
+                delimiter,
+                has_colon,
+                internal_token_idx,
+                need_get_break_mode_on_component,
+                nestd_kind_len,
+            );
             if is_call {
                 new_line |= component_break_mode
                     && self
