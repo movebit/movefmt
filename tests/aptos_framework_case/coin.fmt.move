@@ -772,9 +772,7 @@ module aptos_framework::coin {
 
         register<FakeMoney>(destination);
         let coins_minted = mint<FakeMoney>(amount, &mint_cap);
-        deposit(
-            signer::address_of(source), coins_minted
-        );
+        deposit(signer::address_of(source), coins_minted);
         move_to(
             source,
             FakeMoneyCapabilities { burn_cap, freeze_cap, mint_cap }
@@ -796,10 +794,7 @@ module aptos_framework::coin {
             initialize<FakeMoney>(&source, name, symbol, 18, true);
         register<FakeMoney>(&source);
         register<FakeMoney>(&destination);
-        assert!(
-            *option::borrow(&supply<FakeMoney>()) == 0,
-            0
-        );
+        assert!(*option::borrow(&supply<FakeMoney>()) == 0, 0);
 
         assert!(name<FakeMoney>() == name, 1);
         assert!(symbol<FakeMoney>() == symbol, 2);
@@ -809,13 +804,8 @@ module aptos_framework::coin {
         deposit(source_addr, coins_minted);
         transfer<FakeMoney>(&source, destination_addr, 50);
 
-        assert!(
-            balance<FakeMoney>(source_addr) == 50, 4
-        );
-        assert!(
-            balance<FakeMoney>(destination_addr) == 50,
-            5
-        );
+        assert!(balance<FakeMoney>(source_addr) == 50, 4);
+        assert!(balance<FakeMoney>(destination_addr) == 50, 5);
         assert!(
             *option::borrow(&supply<FakeMoney>()) == 100,
             6
@@ -824,10 +814,7 @@ module aptos_framework::coin {
         let coin = withdraw<FakeMoney>(&source, 10);
         assert!(value(&coin) == 10, 7);
         burn(coin, &burn_cap);
-        assert!(
-            *option::borrow(&supply<FakeMoney>()) == 90,
-            8
-        );
+        assert!(*option::borrow(&supply<FakeMoney>()) == 90, 8);
 
         move_to(
             &source,
@@ -848,30 +835,19 @@ module aptos_framework::coin {
             initialize_and_register_fake_money(&source, 1, false);
 
         register<FakeMoney>(&destination);
-        assert!(
-            option::is_none(&supply<FakeMoney>()), 0
-        );
+        assert!(option::is_none(&supply<FakeMoney>()), 0);
 
         let coins_minted = mint<FakeMoney>(100, &mint_cap);
         deposit<FakeMoney>(source_addr, coins_minted);
         transfer<FakeMoney>(&source, destination_addr, 50);
 
-        assert!(
-            balance<FakeMoney>(source_addr) == 50, 1
-        );
-        assert!(
-            balance<FakeMoney>(destination_addr) == 50,
-            2
-        );
-        assert!(
-            option::is_none(&supply<FakeMoney>()), 3
-        );
+        assert!(balance<FakeMoney>(source_addr) == 50, 1);
+        assert!(balance<FakeMoney>(destination_addr) == 50, 2);
+        assert!(option::is_none(&supply<FakeMoney>()), 3);
 
         let coin = withdraw<FakeMoney>(&source, 10);
         burn(coin, &burn_cap);
-        assert!(
-            option::is_none(&supply<FakeMoney>()), 4
-        );
+        assert!(option::is_none(&supply<FakeMoney>()), 4);
 
         move_to(
             &source,
@@ -908,10 +884,7 @@ module aptos_framework::coin {
 
         let (burn_cap, freeze_cap, mint_cap) =
             initialize_and_register_fake_money(&source, 1, true);
-        assert!(
-            *option::borrow(&supply<FakeMoney>()) == 0,
-            0
-        );
+        assert!(*option::borrow(&supply<FakeMoney>()) == 0, 0);
 
         let coins_minted = mint<FakeMoney>(100, &mint_cap);
         deposit(source_addr, coins_minted);
@@ -932,22 +905,15 @@ module aptos_framework::coin {
 
         let coins_minted = mint<FakeMoney>(100, &mint_cap);
         deposit(source_addr, coins_minted);
-        assert!(
-            balance<FakeMoney>(source_addr) == 100, 0
-        );
+        assert!(balance<FakeMoney>(source_addr) == 100, 0);
         assert!(
             *option::borrow(&supply<FakeMoney>()) == 100,
             1
         );
 
         burn_from<FakeMoney>(source_addr, 10, &burn_cap);
-        assert!(
-            balance<FakeMoney>(source_addr) == 90, 2
-        );
-        assert!(
-            *option::borrow(&supply<FakeMoney>()) == 90,
-            3
-        );
+        assert!(balance<FakeMoney>(source_addr) == 90, 2);
+        assert!(*option::borrow(&supply<FakeMoney>()) == 90, 3);
 
         move_to(
             &source,
@@ -986,9 +952,7 @@ module aptos_framework::coin {
         deposit(source_addr, coins_minted);
         deposit(source_addr, extracted);
 
-        assert!(
-            balance<FakeMoney>(source_addr) == 100, 2
-        );
+        assert!(balance<FakeMoney>(source_addr) == 100, 2);
 
         move_to(
             &source,
@@ -1189,10 +1153,7 @@ module aptos_framework::coin {
         optional_aggregator::add(supply, 100);
         optional_aggregator::sub(supply, 50);
         optional_aggregator::add(supply, 950);
-        assert!(
-            optional_aggregator::read(supply) == 1000,
-            0
-        );
+        assert!(optional_aggregator::read(supply) == 1000, 0);
     }
 
     #[test(framework = @aptos_framework)]
@@ -1230,10 +1191,7 @@ module aptos_framework::coin {
         optional_aggregator::add(supply, 100);
         optional_aggregator::sub(supply, 50);
         optional_aggregator::add(supply, 950);
-        assert!(
-            optional_aggregator::read(supply) == 1000,
-            0
-        );
+        assert!(optional_aggregator::read(supply) == 1000, 0);
 
         upgrade_supply<FakeMoney>(&framework);
     }
@@ -1266,10 +1224,7 @@ module aptos_framework::coin {
             optional_aggregator::is_parallelizable(supply),
             0
         );
-        assert!(
-            optional_aggregator::read(supply) == 100,
-            0
-        );
+        assert!(optional_aggregator::read(supply) == 100, 0);
     }
 
     #[test_only]
@@ -1290,13 +1245,9 @@ module aptos_framework::coin {
             initialize_and_register_fake_money(framework, 1, true);
 
         // Registering twice should not fail.
-        assert!(
-            is_account_registered<FakeMoney>(@0x1), 0
-        );
+        assert!(is_account_registered<FakeMoney>(@0x1), 0);
         register<FakeMoney>(framework);
-        assert!(
-            is_account_registered<FakeMoney>(@0x1), 1
-        );
+        assert!(is_account_registered<FakeMoney>(@0x1), 1);
 
         move_to(
             framework,
@@ -1313,10 +1264,7 @@ module aptos_framework::coin {
 
         let coins_minted = mint<FakeMoney>(100, &mint_cap);
         deposit(framework_addr, coins_minted);
-        assert!(
-            balance<FakeMoney>(framework_addr) == 100,
-            0
-        );
+        assert!(balance<FakeMoney>(framework_addr) == 100, 0);
         assert!(
             *option::borrow(&supply<FakeMoney>()) == 100,
             0
@@ -1324,9 +1272,7 @@ module aptos_framework::coin {
 
         let aggregatable_coin = initialize_aggregatable_coin<FakeMoney>(&framework);
         collect_into_aggregatable_coin<FakeMoney>(
-            framework_addr,
-            10,
-            &mut aggregatable_coin
+            framework_addr, 10, &mut aggregatable_coin
         );
 
         // Check that aggregatable coin has the right amount.
@@ -1338,10 +1284,7 @@ module aptos_framework::coin {
         assert!(value(&collected_coin) == 10, 0);
 
         // Supply of coins should be unchanged, but the balance on the account should decrease.
-        assert!(
-            balance<FakeMoney>(framework_addr) == 90,
-            0
-        );
+        assert!(balance<FakeMoney>(framework_addr) == 90, 0);
         assert!(
             *option::borrow(&supply<FakeMoney>()) == 100,
             0

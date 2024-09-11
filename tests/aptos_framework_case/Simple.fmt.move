@@ -130,9 +130,7 @@ module 0xABCD::simple {
     // Create the global `Counter`.
     // Stored under the module publisher address.
     fun init_module(publisher: &signer) {
-        move_to<Counter>(
-            publisher, Counter { count: 0 }
-        );
+        move_to<Counter>(publisher, Counter { count: 0 });
     }
 
     // Update `Counter` (private to the module, effectively a `static` in more
@@ -142,7 +140,8 @@ module 0xABCD::simple {
     public entry fun step_signer(s: &signer) acquires Counter {
         let addr = signer::address_of(s);
         assert!(
-            exists<Counter>(addr), error::invalid_argument(ECOUNTER_RESOURCE_NOT_PRESENT)
+            exists<Counter>(addr),
+            error::invalid_argument(ECOUNTER_RESOURCE_NOT_PRESENT)
         );
         let counter = borrow_global_mut<Counter>(addr);
         *(&mut counter.count) = counter.count + COUNTER_STEP;
@@ -152,7 +151,8 @@ module 0xABCD::simple {
     public entry fun get_counter(s: &signer) acquires Counter {
         let addr = signer::address_of(s);
         assert!(
-            exists<Counter>(addr), error::invalid_argument(ECOUNTER_RESOURCE_NOT_PRESENT)
+            exists<Counter>(addr),
+            error::invalid_argument(ECOUNTER_RESOURCE_NOT_PRESENT)
         );
         let counter = borrow_global<Counter>(addr);
         counter.count;

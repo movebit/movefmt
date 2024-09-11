@@ -9,8 +9,7 @@ script {
             let metadata = paired_metadata<CoinType>();
             if (option::is_some(&metadata)
                 && primary_fungible_store::primary_store_exists(
-                    account_addr,
-                    option::destroy_some(metadata)
+                    account_addr, option::destroy_some(metadata)
                 ))
                 (coin_balance, amount - coin_balance)
             else abort error::invalid_argument(EINSUFFICIENT_BALANCE)

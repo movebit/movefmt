@@ -743,7 +743,7 @@ impl Format {
 
             let next_line_len = " "
                 .to_string()
-                .repeat(self.depth.get() * self.local_cfg.indent_size + 1)
+                .repeat((self.depth.get() + 1) * self.local_cfg.indent_size)
                 .len();
             if self
                 .syntax_extractor

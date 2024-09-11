@@ -4,6 +4,7 @@
 
 use crate::core::token_tree::*;
 use crate::tools::utils::FileLineMappingOneFile;
+use commentfmt::comment::contains_comment;
 use commentfmt::Config;
 use move_compiler::parser::ast::*;
 use move_compiler::parser::lexer::Tok;
@@ -548,22 +549,22 @@ impl CallExtractor {
         elements: &[TokenTree],
         cur_ret_last_len: usize,
     ) -> bool {
-        if kind.kind != NestKind_::ParentTheses {
-            return false;
-        }
-        let len1 = cur_ret_last_len + (kind.end_pos - kind.start_pos) as usize;
-        if elements.is_empty() || len1 < config.max_width() {
+        if kind.kind != NestKind_::ParentTheses || elements.is_empty() {
             return false;
         }
 
         let call_str_in_source = &self.source[kind.start_pos as usize..kind.end_pos as usize];
-        let call_str_in_source_trim_multi_space = call_str_in_source
+        let call_str_trimed_multi_space = call_str_in_source
             .replace('\n', "")
             .split_whitespace()
             .collect::<Vec<&str>>()
             .join("");
-        let len2 = cur_ret_last_len + call_str_in_source_trim_multi_space.len() + 4;
-        tracing::debug!("len2 = {}", len2);
+        let len = if call_str_in_source.len() == call_str_trimed_multi_space.len() {
+            cur_ret_last_len + call_str_trimed_multi_space.len()
+        } else {
+            cur_ret_last_len + call_str_trimed_multi_space.len() + 4
+        };
+        tracing::debug!("len = {}", len);
 
         let line_cnt = call_str_in_source.matches("\n").count();
         let mut simple_token_cnt = 0;
@@ -579,7 +580,7 @@ impl CallExtractor {
         );
         tracing::debug!("nested_token_cnt = {}, comma_cnt = {}, bin_op_cnt = {}, line_cnt = {}, simple_token_cnt = {}", 
             nested_token_cnt, comma_cnt, bin_op_cnt, line_cnt, simple_token_cnt);
-        if len2 < config.max_width()
+        if len < config.max_width()
             && nested_token_cnt <= 2
             && comma_cnt < 3
             && bin_op_cnt < 2
@@ -590,9 +591,16 @@ impl CallExtractor {
             return false;
         }
 
+        if len <= config.max_width()
+            && call_str_trimed_multi_space.len() < config.max_width() / 2
+            && !contains_comment(call_str_in_source)
+            && call_str_trimed_multi_space.matches("}").count() < 2
+        {
+            return false;
+        }
         tracing::debug!(
-            "call_str_in_source_trim_multi_space = {:?}",
-            call_str_in_source_trim_multi_space
+            "call_str_trimed_multi_space = {:?}",
+            call_str_trimed_multi_space
         );
         true
     }

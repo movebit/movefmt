@@ -209,9 +209,7 @@ module DiemFramework::DiemAccount {
         CoreAddresses::assert_diem_root(dr_account);
 
         create_diem_root_account(copy dummy_auth_key_prefix);
-        create_treasury_compliance_account(
-            dr_account, copy dummy_auth_key_prefix
-        );
+        create_treasury_compliance_account(dr_account, copy dummy_auth_key_prefix);
     }
 
     spec initialize {
@@ -329,7 +327,10 @@ module DiemFramework::DiemAccount {
         };
 
         // Deposit the `to_deposit` coin
-        Diem::deposit(&mut borrow_global_mut<Balance<Token>>(payee).coin, to_deposit);
+        Diem::deposit(
+            &mut borrow_global_mut<Balance<Token>>(payee).coin,
+            to_deposit
+        );
 
         // Log a received event
         event::emit_event<ReceivedPaymentEvent>(
@@ -450,7 +451,14 @@ module DiemFramework::DiemAccount {
             );
         // Use the reserved address as the payer because the funds did not come from an existing
         // balance
-        deposit(@VMReserved, designated_dealer_address, coin, x"", x"", false)
+        deposit(
+            @VMReserved,
+            designated_dealer_address,
+            coin,
+            x"",
+            x"",
+            false
+        )
     }
 
     spec tiered_mint {
@@ -533,7 +541,14 @@ module DiemFramework::DiemAccount {
         let coin = Diem::cancel_burn<Token>(account, preburn_address, amount);
         // record both sender and recipient as `preburn_address`: the coins are moving from
         // `preburn_address`'s `Preburn` resource to its balance
-        deposit(preburn_address, preburn_address, coin, x"", x"", false)
+        deposit(
+            preburn_address,
+            preburn_address,
+            coin,
+            x"",
+            x"",
+            false
+        )
     }
 
     spec cancel_burn {
@@ -735,7 +750,8 @@ module DiemFramework::DiemAccount {
         Roles::assert_designated_dealer(dd);
         DiemTimestamp::assert_operating();
         Diem::preburn_to<Token>(
-            dd, withdraw_from(cap, signer::address_of(dd), amount, x"")
+            dd,
+            withdraw_from(cap, signer::address_of(dd), amount, x"")
         )
     }
 
@@ -1208,9 +1224,7 @@ module DiemFramework::DiemAccount {
                 key_rotation_capability: option::some(
                     KeyRotationCapability { account_address: new_account_addr }
                 ),
-                received_events: event::new_event_handle<ReceivedPaymentEvent>(
-                    new_account
-                ),
+                received_events: event::new_event_handle<ReceivedPaymentEvent>(new_account),
                 sent_events: event::new_event_handle<SentPaymentEvent>(new_account),
                 sequence_number: 0
             }
@@ -1598,9 +1612,7 @@ module DiemFramework::DiemAccount {
         Roles::assert_parent_vasp_role(parent);
         let new_account = create_signer(new_account_address);
         Roles::new_child_vasp_role(parent, &new_account);
-        VASP::publish_child_vasp_credential(
-            parent, &new_account
-        );
+        VASP::publish_child_vasp_credential(parent, &new_account);
         make_account(&new_account, auth_key_prefix);
         add_currencies_for_account<Token>(&new_account, add_all_currencies);
     }
@@ -1690,7 +1702,10 @@ module DiemFramework::DiemAccount {
             errors::already_published(EADD_EXISTING_CURRENCY)
         );
 
-        move_to(account, Balance<Token> { coin: Diem::zero<Token>() })
+        move_to(
+            account,
+            Balance<Token> { coin: Diem::zero<Token>() }
+        )
     }
 
     spec add_currency {
@@ -2096,12 +2111,14 @@ module DiemFramework::DiemAccount {
 
         // [PCA1]: Check that the chain ID stored on-chain matches the chain ID specified by the transaction
         assert!(
-            ChainId::get() == chain_id, errors::invalid_argument(PROLOGUE_EBAD_CHAIN_ID)
+            ChainId::get() == chain_id,
+            errors::invalid_argument(PROLOGUE_EBAD_CHAIN_ID)
         );
 
         // [PCA2]: Verify that the transaction sender's account exists
         assert!(
-            exists_at(transaction_sender), errors::invalid_argument(PROLOGUE_EACCOUNT_DNE)
+            exists_at(transaction_sender),
+            errors::invalid_argument(PROLOGUE_EACCOUNT_DNE)
         );
 
         // [PCA3]: We check whether this account is frozen, if it is no transaction can be sent from it.
@@ -2545,9 +2562,7 @@ module DiemFramework::DiemAccount {
             role_id: Roles::VALIDATOR_OPERATOR_ROLE_ID
         };
         ensures exists_at(new_account_address);
-        ensures ValidatorOperatorConfig::has_validator_operator_config(
-            new_account_address
-        );
+        ensures ValidatorOperatorConfig::has_validator_operator_config(new_account_address);
     }
 
     // ****************** Module Specifications *******************
@@ -2582,8 +2597,10 @@ module DiemFramework::DiemAccount {
     spec schema PreserveKeyRotationCapAbsence {
         /// The absence of KeyRotationCap is preserved.
         ensures forall addr: address:
-            old(!exists<DiemAccount>(addr)
-                || !spec_has_key_rotation_cap(addr)) ==>
+            old(
+                !exists<DiemAccount>(addr)
+                    || !spec_has_key_rotation_cap(addr)
+            ) ==>
                 (!exists<DiemAccount>(addr)
                     || !spec_has_key_rotation_cap(addr));
     }

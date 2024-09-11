@@ -80,7 +80,10 @@ module 0xcafe::MyModule {
             vector::length(&xbool2) - vector::length(&xbool)
         );
         for (i in 0..vector::length(&xbool)) {
-            assert!(vector::borrow(&xbool, i) == vector::borrow(&xbool2, i), i);
+            assert!(
+                vector::borrow(&xbool, i) == vector::borrow(&xbool2, i),
+                i
+            );
         };
         assert!(xbool == xbool2, 2);
 
@@ -179,7 +182,10 @@ module 0xcafe::MyModule {
         };
         assert!(delta == 2000, delta);
         for (i in 0..vector::length(&xnum)) {
-            assert!(vector::borrow(&xnum, i) == vector::borrow(&xnum2, i), i);
+            assert!(
+                vector::borrow(&xnum, i) == vector::borrow(&xnum2, i),
+                i
+            );
         };
         assert!(xnum == xnum2, 3000 + 2);
 

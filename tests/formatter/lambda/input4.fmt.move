@@ -30,7 +30,9 @@ module 0x42::LambdaTest2 {
         // Apply the lambda function g to the result of applying another lambda function to c, and add 2 to the result
         LambdaTest1::inline_apply1(
             |z| z,
-            g(LambdaTest1::inline_mul(c, LambdaTest1::inline_apply(|x| x, 3)))
+            g(
+                LambdaTest1::inline_mul(c, LambdaTest1::inline_apply(|x| x, 3))
+            )
         ) + 2
     }
 }

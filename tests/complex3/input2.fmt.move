@@ -16,7 +16,9 @@ module test {
             recipient_address: bob_addr
         };
 
-        let alice_signer_capability_offer_sig = ed25519::sign_struct(&alice_sk, challenge);
+        let alice_signer_capability_offer_sig = ed25519::sign_struct(
+            &alice_sk, challenge
+        );
 
         offer_signer_capability(
             &alice,
