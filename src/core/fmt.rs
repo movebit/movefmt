@@ -556,6 +556,16 @@ impl Format {
                 return true;
             }
         }
+
+        // added in 20240911
+        // special case: there are no comma between ENUM fields
+        if current.get_end_tok() == Tok::RBrace
+            && next.is_some()
+            && next.unwrap().get_start_tok() == Tok::Identifier
+            && !matches!(next.unwrap().simple_str().unwrap_or_default(), "to" | "for")
+        {
+            return true;
+        }
         false
     }
 

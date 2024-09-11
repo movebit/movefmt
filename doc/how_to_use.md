@@ -152,3 +152,15 @@ Spent 0.000 secs in the parsing phase, and 0.000 secs in the formatting phase
 edy@edydeMBP-4 movefmt % 
 
 ```
+
+#### case3: set environment variables on windows
+```bash
+# by powershell
+$env:MOVEFMT_LOG = "movefmt=DEBUG"
+
+# by cmd
+set MOVEFMT_LOG=movefmt=DEBUG
+
+# by git bash
+export MOVEFMT_LOG=movefmt=DEBUG
+```

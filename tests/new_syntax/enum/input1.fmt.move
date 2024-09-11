@@ -26,7 +26,8 @@ module test_enum {
     enum VersionedData has key {
         V1 {
             name: String
-        } V2 {
+        }
+        V2 {
             name: String,
             age: u64
         }
