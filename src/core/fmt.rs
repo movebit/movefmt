@@ -525,7 +525,7 @@ impl Format {
         false
     }
 
-    fn check_new_line_mode_for_each_token_in_nested(
+    fn check_new_line_mode_for_cur_tok(
         &self,
         kind_outer: &NestKind,
         delimiter: Option<Delimiter>,
@@ -569,7 +569,7 @@ impl Format {
         false
     }
 
-    fn get_new_line_mode_for_each_token_in_nested(
+    fn get_new_line_mode_for_cur_tok(
         &self,
         kind_outer: &NestKind,
         current: &TokenTree,
@@ -589,7 +589,7 @@ impl Format {
         false
     }
 
-    fn need_new_line_for_each_token_finished_in_nested(
+    fn need_new_line_for_cur_tok_finished(
         &self,
         nested_token: &TokenTree,
         delimiter: Option<Delimiter>,
@@ -608,10 +608,10 @@ impl Format {
         let t_str = t.simple_str();
 
         let mut new_line = if component_break_mode {
-            self.check_new_line_mode_for_each_token_in_nested(kind, delimiter, has_colon, t, next_t)
+            self.check_new_line_mode_for_cur_tok(kind, delimiter, has_colon, t, next_t)
                 || (d == t_str && d.is_some() && kind.kind != NestKind_::Type)
         } else {
-            self.get_new_line_mode_for_each_token_in_nested(kind, t, next_t)
+            self.get_new_line_mode_for_cur_tok(kind, t, next_t)
         };
 
         // comma in fun resource access specifier not change new line
@@ -1188,7 +1188,8 @@ impl Format {
                 .map(|x| (x + 1) == internal_token_idx)
                 .unwrap_or_default();
 
-            let mut new_line = self.need_new_line_for_each_token_finished_in_nested(
+            let cur_token_tree = elements.get(internal_token_idx).unwrap();
+            let mut new_line = self.need_new_line_for_cur_tok_finished(
                 nested_token,
                 delimiter,
                 has_colon,
@@ -1211,18 +1212,13 @@ impl Format {
             }
 
             if internal_token_idx == len - 1
-                && elements
-                    .get(internal_token_idx)
-                    .unwrap()
-                    .simple_str()
-                    .unwrap_or_default()
-                    == ","
+                && cur_token_tree.simple_str().unwrap_or_default() == ","
             {
                 internal_token_idx += 1;
                 continue;
             }
 
-            if elements.get(internal_token_idx).unwrap().is_pound() {
+            if cur_token_tree.is_pound() {
                 pound_sign = Some(internal_token_idx)
             }
 
@@ -1434,11 +1430,7 @@ impl Format {
         }
     }
 
-    fn top_half_process_branch_new_line_when_fmt_simple_token(
-        &self,
-        token: &TokenTree,
-        next_token: Option<&TokenTree>,
-    ) {
+    fn maybe_begin_of_if_else(&self, token: &TokenTree, next_token: Option<&TokenTree>) {
         // updated in 20240517: add condition `NestKind_::Bracket`
         if self.format_context.borrow().cur_nested_kind.kind == NestKind_::Bracket {
             return;
@@ -1519,11 +1511,7 @@ impl Format {
         }
     }
 
-    fn bottom_half_process_branch_new_line_when_fmt_simple_token(
-        &self,
-        token: &TokenTree,
-        next_token: Option<&TokenTree>,
-    ) {
+    fn maybe_end_of_if_else(&self, token: &TokenTree, next_token: Option<&TokenTree>) {
         if let TokenTree::SimpleToken { content, pos, .. } = token {
             // added in 20240115
             // updated in 20240124
@@ -1684,7 +1672,7 @@ impl Format {
     ) {
         if let TokenTree::SimpleToken { content, pos, .. } = token {
             // step1
-            self.top_half_process_branch_new_line_when_fmt_simple_token(token, next_token);
+            self.maybe_begin_of_if_else(token, next_token);
 
             // step2: add comment(xxx) before current simple_token
             self.add_comments(*pos, content.clone());
@@ -1696,7 +1684,7 @@ impl Format {
             self.fmt_simple_token_core(token, next_token, new_line_after);
 
             // step5
-            self.bottom_half_process_branch_new_line_when_fmt_simple_token(token, next_token);
+            self.maybe_end_of_if_else(token, next_token);
 
             // step6
             self.format_context.borrow_mut().pre_simple_token = token.clone();
@@ -1958,6 +1946,7 @@ impl Format {
         let old = self.depth.get();
         self.depth.set(old + 1);
     }
+
     fn dec_depth(&self) {
         let old = self.depth.get();
         if old == 0 {
@@ -1966,6 +1955,7 @@ impl Format {
         }
         self.depth.set(old - 1);
     }
+
     fn push_str(&self, s: impl AsRef<str>) {
         let s = s.as_ref();
         self.ret.borrow_mut().push_str(s);

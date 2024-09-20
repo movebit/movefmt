@@ -518,7 +518,10 @@ impl<'a> Parser<'a> {
                                         &p.source[name.loc.end() as usize
                                             ..last_ty.unwrap().loc.end() as usize + idx + 1]
                                     );
-                                    p.type_lambda_pair.push((name.loc.end(), last_ty.unwrap().loc.end() + idx as u32 + 1));
+                                    p.type_lambda_pair.push((
+                                        name.loc.end(),
+                                        last_ty.unwrap().loc.end() + idx as u32 + 1,
+                                    ));
                                 }
                             }
                         }
