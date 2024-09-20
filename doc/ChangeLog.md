@@ -8,6 +8,7 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.0.5">v1.0.5</a><br/>
 <a href="#v1.0.4">v1.0.4</a><br/>
 <a href="#v1.0.3">v1.0.3</a><br/>
 <a href="#v1.0.2">v1.0.2</a><br/>
@@ -17,6 +18,29 @@
 </td>
 </tr>
 </table>
+
+
+<a id="v1.0.5"></a>
+
+## 2024-9-20, Version v1.0.5
+
+### Features
+- Support new syntax 'enum'
+- Fixed 2 issues{#35, #37}
+
+### TODO
+- Support skipping code block on struct
+- Add cli.option{--package-path}
+
+### Commits
+* [[`ccff6a9`](https://github.com/movebit/movefmt/commit/ccff6a9e1c57458d58fd9d25b6759a1e3cb77874)] - optimize code (robin)
+* [[`bf887e4`](https://github.com/movebit/movefmt/commit/bf887e4c64b1aee7639b9c9917a8e5204a7e6467)] - first try: optimize formatting about fun call (robin)
+* [[`d22a79e`](https://github.com/movebit/movefmt/commit/d22a79ed6c7b858a04aca72e6b1304b76900d320)] - fix issue#37: fix bug -- wrong break line about generic type with empty pack body (robin)
+* [[`939eb42`](https://github.com/movebit/movefmt/commit/939eb42601670874a5fe2ce52e8e6ecd622fba31)] - fix issue#36: support new syntax about enum (robin)
+* [[`4716ba2`](https://github.com/movebit/movefmt/commit/4716ba26c9b7eb484f395471ef82a5eeffb60f26)] - first try: support new syntax about enum (robin)
+* [[`7bb0fad`](https://github.com/movebit/movefmt/commit/7bb0fad27b1035ef721de86bd340c5dc2bf6767a)] - set_lang_v2(true), update test case (robin)
+* [[`4751ac4`](https://github.com/movebit/movefmt/commit/4751ac473e1e8beb222cc3c5364b4a044c6e086b)] - upgrade aptos-core to latest; add test case about enum (robin)
+* [[`4ed6a03`](https://github.com/movebit/movefmt/commit/4ed6a031a1f0cbc1c4f904bbbfcc3c966fe0e979)] - optimize tests on win (robin)
 
 
 <a id="v1.0.4"></a>
