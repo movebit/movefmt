@@ -177,30 +177,27 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
             TokType::Alphabet,
             TokType::Alphabet | TokType::String | TokType::Number | TokType::AtSign,
         ) => true,
+        (_, TokType::AmpMut) => true,
         (TokType::MathSign, _) => true,
         (TokType::Sign, TokType::Alphabet) => Tok::Exclaim != curr_end_tok,
         (TokType::Sign, TokType::Number) => true,
-        (TokType::Sign, TokType::String | TokType::AtSign | TokType::Amp | TokType::AmpMut) => {
+        (TokType::Sign, TokType::String | TokType::AtSign | TokType::Amp) => {
             if !is_next_tok_nested && Tok::ByteStringValue == next_start_tok {
                 return true;
             }
 
             if Tok::Comma == curr_start_tok
-                && matches!(next_start_tok, Tok::AtSign | Tok::Amp | Tok::AmpMut)
+                && matches!(next_start_tok, Tok::AtSign | Tok::Amp)
             {
                 return true;
             }
-
-            // eg1: (exp) & ...
-            // eg2: (exp) &mut ...
-            if Tok::RParen == curr_end_tok &&
-                (Tok::Amp == next_start_tok || Tok::AmpMut == next_start_tok) {
-                 return true;
-             }
+            // eg: (exp) & ...
+            if Tok::RParen == curr_end_tok && Tok::Amp == next_start_tok {
+                return true;
+            }
             false
         }
         (TokType::Number, TokType::Alphabet | TokType::Amp | TokType::Star) => true,
-        (_, TokType::AmpMut) => true,
         (TokType::Colon, _) => true,
         (_, TokType::Less) => is_bin_next,
         (TokType::Alphabet, TokType::MathSign) => {

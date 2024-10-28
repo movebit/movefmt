@@ -253,6 +253,7 @@ fn test_dir() {
     num += scan_dir("./tests/break_line");
     num += scan_dir("./tests/new_syntax");
     num += scan_dir("./tests/bug");
+    num += scan_dir("./tests/bug2");
     eprintln!("formated {} files", num);
 }
 
