@@ -177,27 +177,20 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
             TokType::Alphabet,
             TokType::Alphabet | TokType::String | TokType::Number | TokType::AtSign,
         ) => true,
-        (_, TokType::AmpMut) => true,
+        (_, TokType::Amp | TokType::AmpMut) => Tok::Star != curr_start_tok,
         (TokType::MathSign, _) => true,
         (TokType::Sign, TokType::Alphabet) => Tok::Exclaim != curr_end_tok,
         (TokType::Sign, TokType::Number) => true,
-        (TokType::Sign, TokType::String | TokType::AtSign | TokType::Amp) => {
+        (TokType::Sign, TokType::String | TokType::AtSign) => {            
             if !is_next_tok_nested && Tok::ByteStringValue == next_start_tok {
                 return true;
             }
-
-            if Tok::Comma == curr_start_tok
-                && matches!(next_start_tok, Tok::AtSign | Tok::Amp)
-            {
-                return true;
-            }
-            // eg: (exp) & ...
-            if Tok::RParen == curr_end_tok && Tok::Amp == next_start_tok {
+            if Tok::Comma == curr_start_tok && next_start_tok == Tok::AtSign {
                 return true;
             }
             false
         }
-        (TokType::Number, TokType::Alphabet | TokType::Amp | TokType::Star) => true,
+        (TokType::Number, TokType::Alphabet | TokType::Star) => true,
         (TokType::Colon, _) => true,
         (_, TokType::Less) => is_bin_next,
         (TokType::Alphabet, TokType::MathSign) => {
@@ -208,12 +201,6 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
         }
         (_, TokType::MathSign) => true,
         (TokType::Less, _) => is_bin_current,
-        (TokType::Alphabet, TokType::Amp) => {
-            if is_bin_next {
-                return true;
-            }
-            matches!(curr_end_tok, Tok::Return | Tok::If | Tok::Else)
-        }
         (TokType::Amp, _) => is_bin_current,
         (_, TokType::Star) => {
             if is_bin_next {
