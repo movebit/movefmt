@@ -77,7 +77,7 @@ impl From<Tok> for TokType {
             Tok::RBrace => TokType::Sign,
             Tok::NumSign => TokType::Sign,
             Tok::AtSign => TokType::AtSign,
-            Tok::AmpMut => TokType::Amp,
+            Tok::AmpMut => TokType::AmpMut,
             _ => TokType::Alphabet,
         }
     }
