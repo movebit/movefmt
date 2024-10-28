@@ -8,6 +8,7 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.0.6">v1.0.6</a><br/>
 <a href="#v1.0.5">v1.0.5</a><br/>
 <a href="#v1.0.4">v1.0.4</a><br/>
 <a href="#v1.0.3">v1.0.3</a><br/>
@@ -18,6 +19,24 @@
 </td>
 </tr>
 </table>
+
+
+<a id="v1.0.6"></a>
+
+## 2024-10-28, Version v1.0.6
+
+### Features
+- Optimize code
+- Fixed bug #41
+
+### TODO
+- Support skipping code block on struct
+
+### Commits
+* [[`aeda535`](https://github.com/movebit/movefmt/commit/aeda5355d06b14d3924454eb87355d96f324c142)] - optimize expr_fmt (robin)
+* [[`62b127d`](https://github.com/movebit/movefmt/commit/62b127d57ebca213d51e1762c2c21313202fe2f5)] - add test cases; optimize expr_fmt::need_space() (robin)
+* [[`a1dabaa`](https://github.com/movebit/movefmt/commit/a1dabaaa76724e74be3310695e5ff5fc41873fc6)] - Update expr_fmt.rs (xiaozhang)
+* [[`77fbcad`](https://github.com/movebit/movefmt/commit/77fbcad8a9cfc3d3610124c26be07963aa494511)] - fix issue#41: invalid removal of space for mut ref (xiaozhang)
 
 
 <a id="v1.0.5"></a>
