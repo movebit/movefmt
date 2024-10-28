@@ -190,10 +190,13 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
             {
                 return true;
             }
-            // eg: (exp) & ...
-            if Tok::RParen == curr_end_tok && Tok::Amp == next_start_tok {
-                return true;
-            }
+
+            // eg1: (exp) & ...
+            // eg2: (exp) &mut ...
+            if Tok::RParen == curr_end_tok &&
+                (Tok::Amp == next_start_tok || Tok::AmpMut == next_start_tok) {
+                 return true;
+             }
             false
         }
         (TokType::Number, TokType::Alphabet | TokType::Amp | TokType::Star) => true,
