@@ -23,8 +23,6 @@ pub enum TokType {
     Amp,
     /// *
     Star,
-    /// &mut
-    AmpMut,
     ///
     Semicolon,
     ///:
@@ -77,7 +75,7 @@ impl From<Tok> for TokType {
             Tok::RBrace => TokType::Sign,
             Tok::NumSign => TokType::Sign,
             Tok::AtSign => TokType::AtSign,
-            Tok::AmpMut => TokType::AmpMut,
+            Tok::AmpMut => TokType::Amp,
             _ => TokType::Alphabet,
         }
     }
@@ -177,7 +175,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
             TokType::Alphabet,
             TokType::Alphabet | TokType::String | TokType::Number | TokType::AtSign,
         ) => true,
-        (_, TokType::Amp | TokType::AmpMut) => Tok::Star != curr_start_tok,
+        (_, TokType::Amp) => Tok::Star != curr_start_tok,
         (TokType::MathSign, _) => true,
         (TokType::Sign, TokType::Alphabet) => Tok::Exclaim != curr_end_tok,
         (TokType::Sign, TokType::Number) => true,
