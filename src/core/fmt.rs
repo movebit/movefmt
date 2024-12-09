@@ -395,6 +395,14 @@ impl Format {
             }
         }
 
+        let judge_equal_tok_is_long_op_fn = || {
+            self.syntax_extractor.let_extractor.is_long_assign(
+                current.clone(),
+                self.global_cfg.clone(),
+                self.last_line().len() + 2,
+            )
+        };
+
         // updated in 20240607: fix https://github.com/movebit/movefmt/issues/7
         if cur_token_str == "="
             && next.unwrap().simple_str().unwrap_or_default() != "vector"
@@ -410,14 +418,11 @@ impl Format {
                     self.get_cur_line_len(),
                 )
                 != 2
-            && self.syntax_extractor.let_extractor.is_long_assign(
-                current.clone(),
-                self.global_cfg.clone(),
-                self.last_line().len() + 2,
-            )
+            && judge_equal_tok_is_long_op_fn()
         {
             return true;
         }
+
         false
     }
 

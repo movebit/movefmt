@@ -6,6 +6,7 @@ use crate::core::token_tree::TokenTree;
 use crate::tools::utils::*;
 use move_compiler::parser::ast::Definition;
 use move_compiler::parser::ast::*;
+use move_compiler::parser::lexer::Tok;
 use move_compiler::shared::ast_debug;
 use move_ir_types::location::*;
 use std::cell::RefCell;
@@ -170,6 +171,14 @@ impl LetExtractor {
             }
             Exp_::Assign(l, r) => {
                 self.bin_op_exp_vec.push(e.clone());
+                if !matches!(r.value, Exp_::Call(..)) {
+                    self.let_assign_loc_vec.push(Loc::new(
+                        l.loc.file_hash(),
+                        l.loc.end(),
+                        r.loc.start(),
+                    ));
+                    self.let_assign_rhs_exp.push(*r.clone());
+                }
                 self.collect_expr(l.as_ref());
                 self.collect_expr(r.as_ref());
             }
@@ -350,15 +359,21 @@ impl LetExtractor {
         for (idx, let_assign) in self.let_assign_loc_vec.iter().enumerate() {
             if let_assign.start() <= token.end_pos() && token.end_pos() <= let_assign.end() {
                 let rhs_exp_loc = &self.let_assign_rhs_exp[idx].loc;
-                let is_long_rhs = self.source
+                let rhs_exp_str = self.source
                     [rhs_exp_loc.start() as usize..rhs_exp_loc.end() as usize]
                     .replace('\n', "")
                     .split_whitespace()
                     .collect::<Vec<&str>>()
-                    .join("")
-                    .len()
-                    + cur_ret_last_len
-                    >= config.max_width();
+                    .join("");
+                let mut is_long_rhs = rhs_exp_str.len() + cur_ret_last_len >= config.max_width();
+                // updated in 20241209: fix https://github.com/movebit/movefmt/issues/42
+                if !is_long_rhs
+                    && token.get_end_tok() == Tok::Equal
+                    && rhs_exp_str.starts_with("if")
+                    && rhs_exp_str.len() > config.max_width() / 2
+                {
+                    is_long_rhs = true;
+                }
                 if is_long_rhs {
                     self.break_line_by_let_rhs
                         .borrow_mut()
@@ -562,4 +577,24 @@ fn test_get_bin_op_exp2() {
         }
 "
         .to_string());
+}
+
+#[test]
+fn test_get_bin_op_exp3() {
+    get_bin_op_exp(
+        "
+        module std::bit_vector {           
+            fun test() {
+                let input_deposited = 1;
+                let output_deposited = 2;
+        
+                let input_into_output = 100;
+                input_into_output =
+                    if (input_into_output < output_deposited) 0
+                    else (input_into_output - output_deposited);
+            }
+        }
+"
+        .to_string(),
+    );
 }
