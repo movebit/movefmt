@@ -1447,6 +1447,13 @@ impl Format {
             return;
         };
 
+        // optimize in 20241212
+        let pre_tok = self.format_context.borrow().pre_simple_token.get_end_tok();
+        if !matches!(pre_tok, Tok::RParen | Tok::Else)
+            && *tok != Tok::Else {
+            return;
+        }
+
         // added in 20240115
         // updated in 20240124
         if Tok::LBrace != *tok
