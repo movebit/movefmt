@@ -1456,12 +1456,14 @@ impl Format {
 
         // added in 20240115
         // updated in 20240124
+        // updated in 20241212: fix https://github.com/movebit/movefmt/issues/43
+        let end_pos_of_if_cond_or_else = self.format_context.borrow().pre_simple_token.end_pos();
         if Tok::LBrace != *tok
             && content != "for"
             && self
                 .syntax_extractor
                 .branch_extractor
-                .need_new_line_after_branch(self.last_line(), *pos, self.global_cfg.clone())
+                .need_new_line_after_branch(self.last_line(), *pos, self.global_cfg.clone(), end_pos_of_if_cond_or_else)
         {
             tracing::debug!("need_new_line_after_branch[{:?}], add a new line", content);
             self.inc_depth();

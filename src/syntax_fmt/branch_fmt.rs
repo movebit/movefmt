@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::tools::utils::FileLineMappingOneFile;
+use commentfmt::comment::contains_comment;
 use commentfmt::Config;
 use move_compiler::parser::ast::Definition;
 use move_compiler::parser::ast::*;
@@ -305,6 +306,7 @@ impl BranchExtractor {
         cur_line: String,
         then_start_pos: ByteIndex,
         config: Config,
+        end_pos_of_if_cond_or_else: u32,
     ) -> bool {
         for then_loc in &self.com_if_else.then_loc_vec {
             if then_loc.start() == then_start_pos {
@@ -319,6 +321,17 @@ impl BranchExtractor {
                 let mut has_added =
                     cur_line.len() + then_body_str_trim_multi_space.len() > config.max_width();
                 if !has_added && cur_line.trim_start().len() == 0 {
+                    has_added = true;
+                }
+
+                // updated in 20241212: fix https://github.com/movebit/movefmt/issues/43
+                // maybe has '//' comments bewteen [end_pos_of_if_cond_or_else, then_start_pos]
+                let comment_or_space_str =
+                    &self.source[end_pos_of_if_cond_or_else as usize..then_loc.start() as usize];
+                if !has_added
+                    && contains_comment(comment_or_space_str)
+                    && comment_or_space_str.find("//").is_some()
+                {
                     has_added = true;
                 }
 
@@ -345,6 +358,7 @@ impl BranchExtractor {
         cur_line: String,
         else_start_pos: ByteIndex,
         config: Config,
+        end_pos_of_if_cond_or_else: u32,
     ) -> bool {
         for (else_loc_idx, else_loc) in self.com_if_else.else_loc_vec.iter().enumerate() {
             if else_loc.start() == else_start_pos {
@@ -364,6 +378,17 @@ impl BranchExtractor {
                         .end
                         .line
                         == self.get_loc_range(*else_loc).end.line;
+                }
+
+                // updated in 20241212: fix https://github.com/movebit/movefmt/issues/43
+                // maybe has '//' comments bewteen [end_pos_of_if_cond_or_else, else_start_pos]
+                let comment_or_space_str =
+                    &self.source[end_pos_of_if_cond_or_else as usize..else_start_pos as usize];
+                if !has_added
+                    && contains_comment(comment_or_space_str)
+                    && comment_or_space_str.find("//").is_some()
+                {
+                    has_added = true;
                 }
 
                 let new_line_cnt = if self
@@ -400,9 +425,19 @@ impl BranchExtractor {
         cur_line: String,
         branch_start_pos: ByteIndex,
         config: Config,
+        end_pos_of_if_cond_or_else: u32,
     ) -> bool {
-        self.need_new_line_in_then_without_brace(cur_line.clone(), branch_start_pos, config.clone())
-            || self.need_new_line_after_else(cur_line.clone(), branch_start_pos, config.clone())
+        self.need_new_line_in_then_without_brace(
+            cur_line.clone(),
+            branch_start_pos,
+            config.clone(),
+            end_pos_of_if_cond_or_else,
+        ) || self.need_new_line_after_else(
+            cur_line.clone(),
+            branch_start_pos,
+            config.clone(),
+            end_pos_of_if_cond_or_else,
+        )
     }
 
     fn added_new_line_in_then_without_brace(&self, then_end_pos: ByteIndex) -> usize {

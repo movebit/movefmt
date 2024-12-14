@@ -1962,8 +1962,8 @@ module econia::incentives {
         // If flagged to extract all, extract all and return.
         if (all) coin::extract_all(fee_coins_ref_mut)
         else
-        // Else extract specified amount and return.
-        coin::extract(fee_coins_ref_mut, amount)
+            // Else extract specified amount and return.
+            coin::extract(fee_coins_ref_mut, amount)
     }
 
     /// Wrapped call to `withdraw_econia_fees_internal()`, for
@@ -2012,8 +2012,8 @@ module econia::incentives {
         // If flagged to extract all, extract all and return.
         if (all) coin::extract_all(utility_coins_ref_mut)
         else
-        // Else extract specified amount and return.
-        coin::extract(utility_coins_ref_mut, amount)
+            // Else extract specified amount and return.
+            coin::extract(utility_coins_ref_mut, amount)
     }
 
     /// Wrapped call to `withdraw_utility_coins_internal()`, for
