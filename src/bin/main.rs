@@ -184,7 +184,9 @@ fn execute(opts: &Options) -> Result<i32> {
 }
 
 fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
-    eprintln!("options = {:?}", options);
+    if !options.quiet {
+        eprintln!("options = {:?}", options);
+    }
     let (config, config_path) = load_config(None, Some(options.clone()))?;
     let mut use_config = config.clone();
     let mut success_cnt = 0;
@@ -287,10 +289,10 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
             }
         }
     }
-    if skips_cnt > 0 {
+    if skips_cnt > 0 && !options.quiet {
         eprintln!("{:?} files skipped because of parse failed", skips_cnt);
     }
-    if success_cnt > 0 {
+    if success_cnt > 0 && !options.quiet {
         println!("{:?} files successfully formatted", success_cnt);
     }
     Ok(0)
