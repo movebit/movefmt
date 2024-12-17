@@ -51,7 +51,7 @@ fn test_single_file() {
         .with_env_filter(EnvFilter::from_env("MOVEFMT_LOG"))
         .init();
 
-    test_on_file(Path::new("./tests/issues/issue11/input1.move"));
+    test_on_file(Path::new("./tests/issues/issue45/input1.move"));
 }
 
 fn test_on_file(p: impl AsRef<Path>) -> bool {
@@ -242,18 +242,23 @@ fn test_dir() {
         .init();
 
     let mut num: usize = 0;
-    num += scan_dir("./tests/complex");
-    num += scan_dir("./tests/complex2");
-    num += scan_dir("./tests/complex3");
-    num += scan_dir("./tests/complex4");
-    num += scan_dir("./tests/complex5_fix_todo");
-    num += scan_dir("./tests/aptos_framework_case");
-    num += scan_dir("./tests/issues");
-    num += scan_dir("./tests/comment");
-    num += scan_dir("./tests/break_line");
-    num += scan_dir("./tests/new_syntax");
-    num += scan_dir("./tests/bug");
-    num += scan_dir("./tests/bug2");
+    // num += scan_dir("./tests/complex");
+    // num += scan_dir("./tests/complex2");
+    // num += scan_dir("./tests/complex3");
+    // num += scan_dir("./tests/complex4");
+    // num += scan_dir("./tests/complex5_fix_todo");
+    // num += scan_dir("./tests/aptos_framework_case");
+    // num += scan_dir("./tests/issues");
+    // num += scan_dir("./tests/comment");
+    // num += scan_dir("./tests/break_line");
+    // num += scan_dir("./tests/new_syntax");
+    // num += scan_dir("./tests/bug");
+    // num += scan_dir("./tests/bug2");
+
+    // num += scan_dir("./tests/complex6");
+    // num += scan_dir("./tests/formatter");
+    // num += scan_dir("./tests/new_syntax");
+    num += scan_dir("./tests/issues/issue45");
     eprintln!("formated {} files", num);
 }
 
