@@ -124,16 +124,18 @@ impl QuantExtractor {
                     self.collect_expr(else_.as_ref());
                 }
             }
-            Exp_::While(e, then_) => {
+            // Zax 20241217 issue45
+            Exp_::While(_, e, then_) => {
                 self.collect_expr(e.as_ref());
                 self.collect_expr(then_.as_ref());
             }
-            Exp_::Loop(b) => {
+            // Zax 20241217 issue45
+            Exp_::Loop(_, b) => {
                 self.collect_expr(b.as_ref());
             }
             Exp_::Block(b) => self.collect_seq(b),
-
-            Exp_::Lambda(_, e) => {
+            // Zax 20241217 issue45
+            Exp_::Lambda(_, e, _, _) => {
                 self.collect_expr(e.as_ref());
             }
             Exp_::Quant(_, _, es, e1, e2) => {
@@ -151,7 +153,7 @@ impl QuantExtractor {
             Exp_::ExpList(es) => {
                 es.iter().for_each(|e| self.collect_expr(e));
             }
-            Exp_::Assign(l, r) => {
+            Exp_::Assign(l, bin_op, r) => {
                 self.collect_expr(l.as_ref());
                 self.collect_expr(r.as_ref());
             }

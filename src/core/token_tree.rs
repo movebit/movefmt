@@ -543,17 +543,18 @@ impl<'a> Parser<'a> {
                         collect_expr(p, else_.as_ref());
                     }
                 }
-                Exp_::While(e, then_) => {
+                // Zax 20241217 issue45
+                Exp_::While(_, e, then_) => {
                     collect_expr(p, e.as_ref());
                     collect_expr(p, then_.as_ref());
                 }
-                Exp_::Loop(b) => {
+                Exp_::Loop(_, b) => {
                     collect_expr(p, b.as_ref());
                 }
                 Exp_::Block(b) => collect_seq(p, b),
-
-                Exp_::Lambda(b, e) => {
-                    p.type_lambda_pair.push((b.loc.start(), b.loc.end()));
+                // Zax 20241217 issue45
+                Exp_::Lambda(tb, e, _, ability) => {
+                    p.type_lambda_pair.push((tb.loc.start(), tb.loc.end()));
                     collect_expr(p, e.as_ref());
                 }
                 Exp_::Quant(_, _, es, e1, e2) => {
@@ -570,7 +571,8 @@ impl<'a> Parser<'a> {
                 Exp_::ExpList(es) => {
                     es.iter().for_each(|e| collect_expr(p, e));
                 }
-                Exp_::Assign(l, r) => {
+                // Zax 20241217 issue45
+                Exp_::Assign(l, bin_op, r) => {
                     collect_expr(p, l.as_ref());
                     collect_expr(p, r.as_ref());
                 }

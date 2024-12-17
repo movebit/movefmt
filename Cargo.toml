@@ -36,12 +36,12 @@ tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 commentfmt = { version = "1.6.0", path = "src/comment_fmt" }
 
-move-command-line-common = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "d5f94966af9c526b151809ed0850cf90fc661abd", package = "move-command-line-common" }
-move-compiler = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "d5f94966af9c526b151809ed0850cf90fc661abd", package = "move-compiler" }
-move-ir-types = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "d5f94966af9c526b151809ed0850cf90fc661abd", package = "move-ir-types" }
-move-package = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "d5f94966af9c526b151809ed0850cf90fc661abd", package = "move-package" }
-move-symbol-pool = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "d5f94966af9c526b151809ed0850cf90fc661abd", package = "move-symbol-pool" }
-move-core-types = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "d5f94966af9c526b151809ed0850cf90fc661abd", package = "move-core-types" }
+move-command-line-common = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "dd0dcd25d894024bce91ad59962fb6da48730653", package = "move-command-line-common" }
+move-compiler = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "dd0dcd25d894024bce91ad59962fb6da48730653", package = "move-compiler" }
+move-ir-types = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "dd0dcd25d894024bce91ad59962fb6da48730653", package = "move-ir-types" }
+move-package = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "dd0dcd25d894024bce91ad59962fb6da48730653", package = "move-package" }
+move-symbol-pool = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "dd0dcd25d894024bce91ad59962fb6da48730653", package = "move-symbol-pool" }
+move-core-types = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "dd0dcd25d894024bce91ad59962fb6da48730653", package = "move-core-types" }
 
 [target.'cfg(not(target_os= "windows"))'.dependencies]
 pprof = { version = "0.11.0" , features = ["flamegraph" , "protobuf"]}

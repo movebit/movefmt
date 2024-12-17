@@ -4,7 +4,7 @@
 
 use lsp_types::{Location, Position};
 use move_command_line_common::files::FileHash;
-use move_compiler::shared::CompilationEnv;
+use move_compiler::shared::{CompilationEnv, LanguageVersion};
 use move_compiler::Flags;
 use move_ir_types::location::*;
 
@@ -401,7 +401,7 @@ pub fn process_last_empty_line_util(input_str: String) -> String {
 
 pub fn get_compile_env() -> CompilationEnv {
     let mut flags = Flags::testing();
-    flags = flags.set_lang_v2(true);
+    flags = flags.set_language_version(LanguageVersion::V2);
     flags = flags.set_compiler_v2(true);
     CompilationEnv::new(flags, std::collections::BTreeSet::new())
 }
