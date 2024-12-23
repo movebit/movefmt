@@ -8,6 +8,7 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.0.7">v1.0.7</a><br/>
 <a href="#v1.0.6">v1.0.6</a><br/>
 <a href="#v1.0.5">v1.0.5</a><br/>
 <a href="#v1.0.4">v1.0.4</a><br/>
@@ -19,6 +20,33 @@
 </td>
 </tr>
 </table>
+
+
+<a id="v1.0.7"></a>
+
+## 2024-12-23, Version v1.0.7
+
+### Features
+- Fixed bug: issue#42, issue#43
+- Optimize code: issue#44
+- Upgrade aptos-core dependency
+- Supported compound assignments([binop]=)
+
+### TODO
+- Support skipping code block on struct
+
+### Commits
+* [[`f7c2a0b`](https://github.com/movebit/movefmt/commit/f7c2a0bf15b905dc07f751bf3e9b8cfaeda1c53c)] - optimize UT
+* [[`7ff7c83`](https://github.com/movebit/movefmt/commit/7ff7c83b953d1e7ff748d37a34fa9280a3c56de5)] - pass unit test
+* [[`aa992d5`](https://github.com/movebit/movefmt/commit/aa992d51803a48d7da5f9576aef32b9b4ce82fc9)] - fix issue#45: add unit test for assign with binop
+* [[`c26ecc3`](https://github.com/movebit/movefmt/commit/c26ecc3234acff66d5ae20e4c626a9ab29210957)] - fix issue#45: Update the Aptos version in Cargo.toml and ensure that movefmt compiles successfully.
+* [[`f4df9fe`](https://github.com/movebit/movefmt/commit/f4df9fefd8f9916ef968ba4ab04c4353ab44a971)] - fix issue#44: fix bug -- No print options and format file result when -q or --quiet is specified
+* [[`30c19eb`](https://github.com/movebit/movefmt/commit/30c19ebe946c1fa36741a933b1b85e67c57230fc)] - fix issue#43: fix bug -- indent errors when comments appear in if statements
+* [[`06a6ccb`](https://github.com/movebit/movefmt/commit/06a6ccb543b7540c5dce3521e174f07f1344d8f3)] - optimize fn maybe_begin_of_if_else()
+* [[`968d002`](https://github.com/movebit/movefmt/commit/968d00237d950b0d8f01820e4070289c97590a1e)] - update test case for issue43
+* [[`a55548a`](https://github.com/movebit/movefmt/commit/a55548a9e1c1682062e69e778301584f7c03ed54)] - add test case for issue43
+* [[`310493f`](https://github.com/movebit/movefmt/commit/310493f6e46fba58eb5bd4111c9b660506cba262)] - fix issue#42: bizarre ternary assignment outcomes
+* [[`792be11`](https://github.com/movebit/movefmt/commit/792be112060ecb345d6ddb369245fd8eee291f8c)] - optmize need_space()
 
 
 <a id="v1.0.6"></a>
