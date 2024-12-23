@@ -247,6 +247,7 @@ fn test_dir() {
     num += scan_dir("./tests/complex3");
     num += scan_dir("./tests/complex4");
     num += scan_dir("./tests/complex5_fix_todo");
+    num += scan_dir("./tests/complex6");
     num += scan_dir("./tests/aptos_framework_case");
     num += scan_dir("./tests/issues");
     num += scan_dir("./tests/comment");
@@ -254,11 +255,6 @@ fn test_dir() {
     num += scan_dir("./tests/new_syntax");
     num += scan_dir("./tests/bug");
     num += scan_dir("./tests/bug2");
-
-    num += scan_dir("./tests/complex6");
-    num += scan_dir("./tests/formatter");
-    num += scan_dir("./tests/new_syntax");
-    // num += scan_dir("./tests/issues/issue45");
     eprintln!("formated {} files", num);
 }
 
