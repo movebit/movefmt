@@ -310,7 +310,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                 return true;
             }
 
-            if Tok::Pipe == next_start_tok && next_start_tok != Tok::LParen {
+            if Tok::Pipe == next_start_tok {
                 return true;
             }
             result

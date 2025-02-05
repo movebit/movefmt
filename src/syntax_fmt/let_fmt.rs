@@ -174,7 +174,7 @@ impl LetExtractor {
             // Zax 20241217 issue45
             Exp_::Assign(l, _bin_op, r) => {
                 self.bin_op_exp_vec.push(e.clone());
-                if !matches!(r.value, Exp_::Call(..)) {
+                if !matches!(r.value, Exp_::Call(..)) && l.loc.end() < r.loc.start() {
                     self.let_assign_loc_vec.push(Loc::new(
                         l.loc.file_hash(),
                         l.loc.end(),
