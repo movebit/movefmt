@@ -153,7 +153,7 @@ impl QuantExtractor {
             Exp_::ExpList(es) => {
                 es.iter().for_each(|e| self.collect_expr(e));
             }
-            Exp_::Assign(l, bin_op, r) => {
+            Exp_::Assign(l, _bin_op, r) => {
                 self.collect_expr(l.as_ref());
                 self.collect_expr(r.as_ref());
             }

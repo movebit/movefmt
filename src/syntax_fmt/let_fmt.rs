@@ -172,7 +172,7 @@ impl LetExtractor {
                 es.iter().for_each(|e| self.collect_expr(e));
             }
             // Zax 20241217 issue45
-            Exp_::Assign(l, bin_op, r) => {
+            Exp_::Assign(l, _bin_op, r) => {
                 self.bin_op_exp_vec.push(e.clone());
                 if !matches!(r.value, Exp_::Call(..)) {
                     self.let_assign_loc_vec.push(Loc::new(

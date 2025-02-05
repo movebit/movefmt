@@ -553,7 +553,7 @@ impl<'a> Parser<'a> {
                 }
                 Exp_::Block(b) => collect_seq(p, b),
                 // Zax 20241217 issue45
-                Exp_::Lambda(tb, e, _, ability) => {
+                Exp_::Lambda(tb, e, _, _ability) => {
                     p.type_lambda_pair.push((tb.loc.start(), tb.loc.end()));
                     collect_expr(p, e.as_ref());
                 }
@@ -572,7 +572,7 @@ impl<'a> Parser<'a> {
                     es.iter().for_each(|e| collect_expr(p, e));
                 }
                 // Zax 20241217 issue45
-                Exp_::Assign(l, bin_op, r) => {
+                Exp_::Assign(l, _bin_op, r) => {
                     collect_expr(p, l.as_ref());
                     collect_expr(p, r.as_ref());
                 }
