@@ -27,7 +27,7 @@ anyhow = "1.0.52"
 codespan-reporting = "0.11.1"
 lsp-types = "0.94.0"
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0.64"
+serde_json = "1.0.138"
 url = "2.2.2"
 thiserror = "1.0.40"
 walkdir = "2"
@@ -36,12 +36,9 @@ tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 commentfmt = { version = "1.6.0", path = "src/comment_fmt" }
 
-move-command-line-common = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "dd0dcd25d894024bce91ad59962fb6da48730653", package = "move-command-line-common" }
-move-compiler = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "dd0dcd25d894024bce91ad59962fb6da48730653", package = "move-compiler" }
-move-ir-types = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "dd0dcd25d894024bce91ad59962fb6da48730653", package = "move-ir-types" }
-move-package = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "dd0dcd25d894024bce91ad59962fb6da48730653", package = "move-package" }
-move-symbol-pool = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "dd0dcd25d894024bce91ad59962fb6da48730653", package = "move-symbol-pool" }
-move-core-types = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "dd0dcd25d894024bce91ad59962fb6da48730653", package = "move-core-types" }
+move-command-line-common = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "ee2732c908177b463bc3606a7eb7b77b46d77b3e", package = "move-command-line-common" }
+move-compiler = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "ee2732c908177b463bc3606a7eb7b77b46d77b3e", package = "move-compiler" }
+move-ir-types = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "ee2732c908177b463bc3606a7eb7b77b46d77b3e", package = "move-ir-types" }
 
 [target.'cfg(not(target_os= "windows"))'.dependencies]
 pprof = { version = "0.11.0" , features = ["flamegraph" , "protobuf"]}
