@@ -179,7 +179,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
         (TokType::MathSign, _) => true,
         (TokType::Sign, TokType::Alphabet) => Tok::Exclaim != curr_end_tok,
         (TokType::Sign, TokType::Number) => true,
-        (TokType::Sign, TokType::String | TokType::AtSign) => {            
+        (TokType::Sign, TokType::String | TokType::AtSign) => {
             if !is_next_tok_nested && Tok::ByteStringValue == next_start_tok {
                 return true;
             }
@@ -273,6 +273,21 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                 return true;
             }
 
+            if matches!(
+                curr_end_tok,
+                Tok::RParen
+                    | Tok::EqualGreater
+                    | Tok::EqualEqualGreater
+                    | Tok::LessEqualEqualGreater
+            ) && next_start_tok == Tok::LParen
+            {
+                return true;
+            }
+
+            if Tok::Pipe == next_start_tok {
+                return true;
+            }
+
             if next_start_tok == Tok::Exclaim {
                 result = matches!(TokType::from(curr_start_tok), TokType::Alphabet)
                     || Tok::RParen == curr_end_tok;
@@ -306,13 +321,6 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                 }
             }
 
-            if Tok::RParen == curr_end_tok && next_start_tok == Tok::LParen {
-                return true;
-            }
-
-            if Tok::Pipe == next_start_tok {
-                return true;
-            }
             result
         }
         _ => false,

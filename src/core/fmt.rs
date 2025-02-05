@@ -1449,8 +1449,7 @@ impl Format {
 
         // optimize in 20241212
         let pre_tok = self.format_context.borrow().pre_simple_token.get_end_tok();
-        if !matches!(pre_tok, Tok::RParen | Tok::Else)
-            && *tok != Tok::Else {
+        if !matches!(pre_tok, Tok::RParen | Tok::Else) && *tok != Tok::Else {
             return;
         }
 
@@ -1463,7 +1462,12 @@ impl Format {
             && self
                 .syntax_extractor
                 .branch_extractor
-                .need_new_line_after_branch(self.last_line(), *pos, self.global_cfg.clone(), end_pos_of_if_cond_or_else)
+                .need_new_line_after_branch(
+                    self.last_line(),
+                    *pos,
+                    self.global_cfg.clone(),
+                    end_pos_of_if_cond_or_else,
+                )
         {
             tracing::debug!("need_new_line_after_branch[{:?}], add a new line", content);
             self.inc_depth();
