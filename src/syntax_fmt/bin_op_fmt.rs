@@ -6,7 +6,9 @@ use crate::core::token_tree::TokenTree;
 use crate::tools::utils::*;
 use move_compiler::parser::ast::*;
 use move_compiler::shared::ast_debug;
+use move_ir_types::location::Loc;
 use std::cell::RefCell;
+use std::vec;
 
 #[derive(Debug, Default)]
 pub struct BinOpExtractor {
@@ -80,7 +82,6 @@ impl BinOpExtractor {
                     type_: _,
                     init: _,
                 } => {}
-
                 SpecBlockMember_::Let {
                     name: _,
                     post_state: _,
@@ -153,6 +154,7 @@ impl BinOpExtractor {
             }
             // Zax 20241217 issue45
             Exp_::Assign(l, _bin_op, r) => {
+                self.bin_op_exp_vec.push(e.clone());
                 self.collect_expr(l.as_ref());
                 self.collect_expr(r.as_ref());
             }
@@ -249,6 +251,22 @@ impl BinOpExtractor {
         for d in module_defs.iter() {
             self.collect_definition(d);
         }
+        self.collect_long_bin();
+    }
+
+    pub(crate) fn collect_long_bin(&mut self) {
+        for (idx, bin_op) in self.bin_op_exp_vec.iter().enumerate() {
+            if let Exp_::Assign(l_assign, _, r_assign) = &bin_op.value {
+                if ast_debug::display(&l_assign.value).len()
+                    + 3
+                    + ast_debug::display(&r_assign.value).len()
+                    > 90
+                {
+                    eprintln!("r assign: {}", ast_debug::display(&r_assign.value));
+                    self.split_bin_op_vec.borrow_mut().push(idx);
+                }
+            }
+        }
     }
 
     pub(crate) fn get_bin_op_right_part_len(&self, token: TokenTree) -> (usize, usize) {
@@ -275,6 +293,31 @@ impl BinOpExtractor {
                     return true;
                 }
             }
+            if let Exp_::Assign(_, _, r) = &bin_op_exp.value {
+                if token.start_pos() == r.loc.start() {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    pub(crate) fn is_long_assign(
+        &self,
+        token: TokenTree,
+        config: commentfmt::Config,
+        cur_ret_last_len: usize,
+    ) -> bool {
+        for (idx, bin_op) in self.bin_op_exp_vec.iter().enumerate() {
+            if let Exp_::Assign(l_assign, _, r_assign) = &bin_op.value {
+                if r_assign.loc.start() <= token.end_pos() && token.end_pos() <= r_assign.loc.end()
+                {
+                    return ast_debug::display(&l_assign.value).len()
+                        + 3
+                        + ast_debug::display(&r_assign.value).len()
+                        > config.max_width();
+                }
+            }
         }
         false
     }
@@ -284,6 +327,11 @@ impl BinOpExtractor {
         for idx in self.split_bin_op_vec.borrow().iter() {
             let bin_op_exp = &self.bin_op_exp_vec[*idx];
             if let Exp_::BinopExp(_, _, r) = &bin_op_exp.value {
+                if token.end_pos() == r.loc.end() {
+                    inc_depth_cnt += 1;
+                }
+            }
+            if let Exp_::Assign(_, _, r) = &bin_op_exp.value {
                 if token.end_pos() == r.loc.end() {
                     inc_depth_cnt += 1;
                 }
