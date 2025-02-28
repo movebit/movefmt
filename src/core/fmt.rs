@@ -76,7 +76,8 @@ pub struct FormatConfig {
 fn is_bin_op(op_token: Tok) -> bool {
     matches!(
         op_token,
-        Tok::EqualEqual
+        Tok::Equal
+            | Tok::EqualEqual
             | Tok::ExclaimEqual
             | Tok::Less
             | Tok::Greater
@@ -396,11 +397,19 @@ impl Format {
         }
 
         let judge_equal_tok_is_long_op_fn = || {
-            self.syntax_extractor.let_extractor.is_long_assign(
+            let mut ret = self.syntax_extractor.let_extractor.is_long_assign(
                 current.clone(),
                 self.global_cfg.clone(),
                 self.last_line().len() + 2,
-            )
+            );
+            if let Some(next_token) = next {
+                ret |= self.syntax_extractor.bin_op_extractor.is_long_assign(
+                    next_token.clone(),
+                    self.global_cfg.clone(),
+                    self.last_line().len() + 2,
+                );
+            }
+            ret
         };
 
         // updated in 20240607: fix https://github.com/movebit/movefmt/issues/7
@@ -475,30 +484,30 @@ impl Format {
             }
         };
 
-        if is_bin_op(next_token) {
-            let r_exp_len_tuple = self
-                .syntax_extractor
-                .bin_op_extractor
-                .get_bin_op_right_part_len(next_t.unwrap().clone());
-            if r_exp_len_tuple.0 == 0 && r_exp_len_tuple.1 < 8 {
-                return false;
-            }
-            tracing::trace!(
-                "self.last_line().len() = {:?}, r_exp_len_tuple = {:?}",
-                self.last_line().len(),
-                r_exp_len_tuple
-            );
-            let len_bin_op_full = len_plus_cur_token
-                + 2
-                + next_t.unwrap().simple_str().unwrap_or_default().len()
-                + r_exp_len_tuple.1;
-            if len_bin_op_full >= self.global_cfg.max_width() {
-                self.syntax_extractor
-                    .bin_op_extractor
-                    .record_long_op(r_exp_len_tuple.0);
-                return true;
-            }
-        }
+        // if is_bin_op(next_token) {
+        //     let r_exp_len_tuple = self
+        //         .syntax_extractor
+        //         .bin_op_extractor
+        //         .get_bin_op_right_part_len(next_t.unwrap().clone());
+        //     if r_exp_len_tuple.0 == 0 && r_exp_len_tuple.1 < 8 {
+        //         return false;
+        //     }
+        //     tracing::trace!(
+        //         "self.last_line().len() = {:?}, r_exp_len_tuple = {:?}",
+        //         self.last_line().len(),
+        //         r_exp_len_tuple
+        //     );
+        //     let len_bin_op_full = len_plus_cur_token
+        //         + 2
+        //         + next_t.unwrap().simple_str().unwrap_or_default().len()
+        //         + r_exp_len_tuple.1;
+        //     if len_bin_op_full >= self.global_cfg.max_width() {
+        //         self.syntax_extractor
+        //             .bin_op_extractor
+        //             .record_long_op(r_exp_len_tuple.0);
+        //         return true;
+        //     }
+        // }
         false
     }
 
@@ -1755,11 +1764,10 @@ impl Format {
                 .syntax_extractor
                 .bin_op_extractor
                 .need_inc_depth_by_long_op(token.clone()))
-            || (is_next_tok_bin_op
-                && self
-                    .syntax_extractor
-                    .bin_op_extractor
-                    .need_inc_depth_by_long_op(next_token.unwrap().clone()))
+            || self
+                .syntax_extractor
+                .bin_op_extractor
+                .need_inc_depth_by_long_op(next_token.unwrap().clone())
         {
             tracing::debug!(
                 "bin_op_extractor.need_inc_depth_by_long_op22({:?})",
@@ -1800,8 +1808,11 @@ impl Format {
             > 0
         {
             tracing::debug!(
-                "bin_op_extractor.need_dec_depth_by_long_op({:?})",
-                token.simple_str()
+                "bin_op_extractor.need_dec_depth_by_long_op({:?}), dec = {}",
+                token.simple_str(),
+                self.syntax_extractor
+                    .bin_op_extractor
+                    .need_dec_depth_by_long_op(token.clone())
             );
         }
         let mut nested_break_line_depth = self
@@ -1968,7 +1979,7 @@ impl Format {
     fn dec_depth(&self) {
         let old = self.depth.get();
         if old == 0 {
-            eprintln!("old depth is zero, return");
+            // eprintln!("old depth is zero, return");
             return;
         }
         self.depth.set(old - 1);
