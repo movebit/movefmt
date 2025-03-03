@@ -154,7 +154,6 @@ impl BinOpExtractor {
             }
             // Zax 20241217 issue45
             Exp_::Assign(l, _bin_op, r) => {
-                self.bin_op_exp_vec.push(e.clone());
                 self.collect_expr(l.as_ref());
                 self.collect_expr(r.as_ref());
             }
