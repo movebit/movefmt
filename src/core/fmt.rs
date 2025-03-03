@@ -397,19 +397,12 @@ impl Format {
         }
 
         let judge_equal_tok_is_long_op_fn = || {
-            let mut ret = self.syntax_extractor.let_extractor.is_long_assign(
+            self.syntax_extractor.let_extractor.is_long_assign(
                 current.clone(),
+                next.clone(),
                 self.global_cfg.clone(),
                 self.last_line().len() + 2,
-            );
-            if let Some(next_token) = next {
-                ret |= self.syntax_extractor.bin_op_extractor.is_long_assign(
-                    next_token.clone(),
-                    self.global_cfg.clone(),
-                    self.last_line().len() + 2,
-                );
-            }
-            ret
+            )
         };
 
         // updated in 20240607: fix https://github.com/movebit/movefmt/issues/7
@@ -484,30 +477,30 @@ impl Format {
             }
         };
 
-        // if is_bin_op(next_token) {
-        //     let r_exp_len_tuple = self
-        //         .syntax_extractor
-        //         .bin_op_extractor
-        //         .get_bin_op_right_part_len(next_t.unwrap().clone());
-        //     if r_exp_len_tuple.0 == 0 && r_exp_len_tuple.1 < 8 {
-        //         return false;
-        //     }
-        //     tracing::trace!(
-        //         "self.last_line().len() = {:?}, r_exp_len_tuple = {:?}",
-        //         self.last_line().len(),
-        //         r_exp_len_tuple
-        //     );
-        //     let len_bin_op_full = len_plus_cur_token
-        //         + 2
-        //         + next_t.unwrap().simple_str().unwrap_or_default().len()
-        //         + r_exp_len_tuple.1;
-        //     if len_bin_op_full >= self.global_cfg.max_width() {
-        //         self.syntax_extractor
-        //             .bin_op_extractor
-        //             .record_long_op(r_exp_len_tuple.0);
-        //         return true;
-        //     }
-        // }
+        if is_bin_op(next_token) {
+            let r_exp_len_tuple = self
+                .syntax_extractor
+                .bin_op_extractor
+                .get_bin_op_right_part_len(next_t.unwrap().clone());
+            if r_exp_len_tuple.0 == 0 && r_exp_len_tuple.1 < 8 {
+                return false;
+            }
+            tracing::trace!(
+                "self.last_line().len() = {:?}, r_exp_len_tuple = {:?}",
+                self.last_line().len(),
+                r_exp_len_tuple
+            );
+            let len_bin_op_full = len_plus_cur_token
+                + 2
+                + next_t.unwrap().simple_str().unwrap_or_default().len()
+                + r_exp_len_tuple.1;
+            if len_bin_op_full >= self.global_cfg.max_width() {
+                self.syntax_extractor
+                    .bin_op_extractor
+                    .record_long_op(r_exp_len_tuple.0);
+                return true;
+            }
+        }
         false
     }
 
@@ -1815,6 +1808,37 @@ impl Format {
                     .need_dec_depth_by_long_op(token.clone())
             );
         }
+
+        if self
+            .syntax_extractor
+            .let_extractor
+            .need_dec_depth_by_long_op(token.clone())
+            > 0
+        {
+            tracing::debug!(
+                "let_extractor.need_dec_depth_by_long_op({:?}), dec = {}",
+                token.simple_str(),
+                self.syntax_extractor
+                    .let_extractor
+                    .need_dec_depth_by_long_op(token.clone())
+            );
+        }
+
+        if self
+            .syntax_extractor
+            .quant_extractor
+            .need_dec_depth_by_long_quant_exp(token.clone())
+            > 0
+        {
+            tracing::debug!(
+                "quant_extractor.need_dec_depth_by_long_op({:?}), dec = {}",
+                token.simple_str(),
+                self.syntax_extractor
+                    .quant_extractor
+                    .need_dec_depth_by_long_quant_exp(token.clone())
+            );
+        }
+
         let mut nested_break_line_depth = self
             .syntax_extractor
             .bin_op_extractor
