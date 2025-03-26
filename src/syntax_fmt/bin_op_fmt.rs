@@ -7,7 +7,7 @@ use crate::tools::utils::*;
 use move_compiler::parser::ast::*;
 use move_compiler::shared::ast_debug;
 use std::cell::RefCell;
-use super::syntax_extractor::SyntaxExtractor;
+use super::syntax_extractor::SingleSyntaxExtractor;
 
 #[derive(Debug, Default)]
 pub struct BinOpExtractor {
@@ -17,7 +17,19 @@ pub struct BinOpExtractor {
     pub line_mapping: FileLineMappingOneFile,
 }
 
-impl SyntaxExtractor for BinOpExtractor {
+impl SingleSyntaxExtractor for BinOpExtractor {
+    fn new(fmt_buffer: String) -> Self {
+        let mut this_bin_op_extractor = Self {
+            bin_op_exp_vec: vec![],
+            split_bin_op_vec: vec![].into(),
+            source: fmt_buffer.clone(),
+            line_mapping: FileLineMappingOneFile::default(),
+        };
+
+        this_bin_op_extractor.line_mapping.update(&fmt_buffer);
+        this_bin_op_extractor
+    }
+
     fn collect_seq_item(&mut self, s: &SequenceItem) {
         match &s.value {
             SequenceItem_::Seq(e) => self.collect_expr(e),
@@ -187,6 +199,8 @@ impl SyntaxExtractor for BinOpExtractor {
         self.collect_expr(&c.value);
     }
 
+    fn collect_struct(&mut self, _s: &StructDefinition) {}
+
     fn collect_function(&mut self, d: &Function) {
         match &d.body.value {
             FunctionBody_::Defined(seq) => {
@@ -234,19 +248,6 @@ impl SyntaxExtractor for BinOpExtractor {
 }
 
 impl BinOpExtractor {
-    pub fn new(fmt_buffer: String) -> Self {
-        let mut this_bin_op_extractor = Self {
-            bin_op_exp_vec: vec![],
-            split_bin_op_vec: vec![].into(),
-            source: fmt_buffer.clone(),
-            line_mapping: FileLineMappingOneFile::default(),
-        };
-
-        this_bin_op_extractor.line_mapping.update(&fmt_buffer);
-        this_bin_op_extractor
-    }
-
-
     pub(crate) fn preprocess(&mut self, module_defs: Vec<Definition>) {
         for d in module_defs.iter() {
             self.collect_definition(d);
