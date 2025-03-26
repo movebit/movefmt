@@ -8,14 +8,16 @@ use move_compiler::parser::ast::*;
 use move_compiler::parser::syntax::parse_file_string;
 use move_ir_types::location::*;
 
+use super::syntax_extractor::SingleSyntaxExtractor;
+
 #[derive(Debug, Default)]
 pub struct BigBlockExtractor {
     pub blk_loc_vec: Vec<Loc>,
     pub line_mapping: FileLineMappingOneFile,
 }
 
-impl BigBlockExtractor {
-    pub fn new(fmt_buffer: String) -> Self {
+impl SingleSyntaxExtractor for BigBlockExtractor {
+    fn new(fmt_buffer: String) -> Self {
         let mut big_block_extractor = Self {
             blk_loc_vec: vec![],
             line_mapping: FileLineMappingOneFile::default(),
@@ -30,6 +32,14 @@ impl BigBlockExtractor {
         }
         big_block_extractor
     }
+
+    fn collect_seq_item(&mut self, _s: &SequenceItem) {}
+
+    fn collect_seq(&mut self, _s: &Sequence) {}
+
+    fn collect_expr(&mut self, _e: &Exp) {}
+
+    fn collect_const(&mut self, _c: &Constant) {}
 
     fn collect_struct(&mut self, s: &StructDefinition) {
         self.blk_loc_vec.push(s.loc);
