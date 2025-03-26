@@ -778,9 +778,11 @@ impl Format {
     }
 
     fn get_break_mode_begin_paren(&self, token: &TokenTree) -> (bool, Option<bool>) {
+        // println!("get_break_mode_begin_paren... ");
         let TokenTree::Nested { elements, kind, .. } = token else {
             return (false, None);
         };
+        // println!("111111111111");
         let max_len_when_no_add_line = self.global_cfg.max_width() as f32 * 0.75;
         let nested_blk_str =
             &self.format_context.borrow().content[kind.start_pos as usize..kind.end_pos as usize];
@@ -797,7 +799,8 @@ impl Format {
             let mut opt_component_break_mode = nested_token_len
                 + self.depth.get() * self.local_cfg.indent_size
                 >= self.global_cfg.max_width();
-
+            println!("--1. opt_component_break_mode = {:?}", opt_component_break_mode);
+            println!("nested_token_len = {:?}", nested_token_len+ self.depth.get() * self.local_cfg.indent_size);
             let maybe_in_fun_header = self
                 .syntax_extractor
                 .fun_extractor
@@ -825,9 +828,11 @@ impl Format {
                 }
 
                 new_line_mode |= opt_component_break_mode;
+                println!("aaa. new_line_mode = {:?}, component_break_mode = {:?}", new_line_mode, opt_component_break_mode);
             } else if self.get_cur_line_len() > self.global_cfg.max_width() {
                 new_line_mode = true;
             } else {
+                println!("0. new_line_mode = {:?}, component_break_mode = {:?}", new_line_mode, opt_component_break_mode);
                 let elements_str = serde_json::to_string(&elements).unwrap_or_default();
                 let has_multi_para = elements_str.matches("\"content\":\",\"").count() > 2;
                 let is_in_fun_call = self.syntax_extractor.call_extractor.paren_in_call(kind);
@@ -843,22 +848,26 @@ impl Format {
                         && self.format_context.borrow().pre_simple_token.get_end_tok()
                             == Tok::Identifier;
                 }
-
+                println!("1. new_line_mode = {:?}, component_break_mode = {:?}", new_line_mode, opt_component_break_mode);
                 if elements[0].simple_str().is_some() {
                     let is_plus_nested_over_width = self.get_cur_line_len() + nested_token_len
                         > self.global_cfg.max_width()
                         && nested_token_len > 8;
                     let is_nested_len_too_large =
                         nested_token_len as f32 > 2.0 * max_len_when_no_add_line;
-
+                    println!("last line = {:?}", self.last_line());
+                    println!("self.get_cur_line_len() = {:?}, nested_token_len = {:?}", self.get_cur_line_len(), nested_token_len);
+                    println!("is_plus_nested_over_width = {:?}, is_nested_len_too_large = {:?}", is_plus_nested_over_width, is_nested_len_too_large);
                     new_line_mode |= is_plus_nested_over_width || is_nested_len_too_large;
                 }
+                println!("2. new_line_mode = {:?}, component_break_mode = {:?}", new_line_mode, opt_component_break_mode);
                 let is_plus_first_ele_over_width = self.get_cur_line_len() + first_ele_len
                     > self.global_cfg.max_width()
                     && first_ele_len > 8;
 
                 new_line_mode |= is_plus_first_ele_over_width;
                 new_line_mode |= opt_component_break_mode && has_multi_para;
+                println!("3. new_line_mode = {:?}, component_break_mode = {:?}", new_line_mode, opt_component_break_mode);
             }
             if !new_line_mode
                 && contains_comment(&nested_blk_str)
@@ -866,9 +875,10 @@ impl Format {
             {
                 new_line_mode = true;
             }
+            // println!("444444444444");
             return (new_line_mode, Some(opt_component_break_mode));
         }
-
+        // println!("get_break_mode_begin_paren... {:?}", new_line_mode);
         (new_line_mode, None)
     }
 
@@ -923,8 +933,10 @@ impl Format {
         };
         if new_line_mode && kind.kind != NestKind_::Type {
             if stct_def {
+                // println!("11111111111111111");
                 return (true, Some(true));
             }
+            // println!("22222222222222222");
             return (true, None);
         }
 
@@ -1015,6 +1027,7 @@ impl Format {
                 }
             }
         }
+        // println!("3333333333");
         (new_line_mode, None)
     }
 
@@ -1330,6 +1343,10 @@ impl Format {
         else {
             return;
         };
+        
+        println!("\n\n-------\nkind = {:?},", kind);
+        
+
         let (delimiter, has_colon) = analyze_token_tree_delimiter(elements);
         let (mut b_new_line_mode, opt_component_break_mode) =
             self.get_break_mode_begin_nested(nested_token, delimiter);
@@ -1402,6 +1419,7 @@ impl Format {
             b_add_space_around_brace,
         );
 
+        // println!("{:?}, {:?}", opt_component_break_mode, b_new_line_mode);
         // step4 -- format element
         self.format_each_token_in_nested_elements(
             nested_token,
@@ -2123,6 +2141,17 @@ impl Format {
         } else {
             tok_vec.join("").len()
         }
+
+        // let nested_blk_str = &self.format_context.borrow().content
+        //     [kind.start_pos as usize..kind.end_pos as usize]
+        //     .replace('\n', "");
+        // let new_nested_blk_str = nested_blk_str[1..].to_string();
+        // let tok_vec = new_nested_blk_str.split_whitespace().collect::<Vec<&str>>();
+        // if join_by_space {
+        //     tok_vec.join(" ").len() + 2
+        // } else {
+        //     tok_vec.join("").len() + 2
+        // }
     }
 
     fn last_line(&self) -> String {
