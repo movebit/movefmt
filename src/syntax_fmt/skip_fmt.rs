@@ -8,6 +8,8 @@ use move_compiler::shared::ast_debug;
 use move_ir_types::location::*;
 use std::cell::RefCell;
 
+use super::syntax_extractor::SingleSyntaxExtractor;
+
 #[derive(Debug, Default)]
 pub struct SkipExtractor {
     pub module_attributes: Vec<Vec<Attributes>>,
@@ -25,8 +27,8 @@ pub enum SkipType {
     SkipFunBody,
 }
 
-impl SkipExtractor {
-    pub fn new(fmt_buffer: String) -> Self {
+impl SingleSyntaxExtractor for SkipExtractor {
+    fn new(fmt_buffer: String) -> Self {
         let this_skip_extractor = Self {
             module_attributes: vec![],
             struct_attributes: vec![],
@@ -39,6 +41,18 @@ impl SkipExtractor {
         };
         this_skip_extractor
     }
+
+    fn collect_seq_item(&mut self, _s: &SequenceItem) {}
+
+    fn collect_seq(&mut self, _s: &Sequence) {}
+
+    fn collect_spec(&mut self, _spec_block: &SpecBlock) {}
+
+    fn collect_expr(&mut self, _e: &Exp) {}
+
+    fn collect_const(&mut self, _c: &Constant) {}
+
+    fn collect_struct(&mut self, _s: &StructDefinition) {}
 
     fn collect_function(&mut self, d: &Function) {
         self.fun_attributes.push(d.attributes.clone());
