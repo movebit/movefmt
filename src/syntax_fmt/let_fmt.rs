@@ -12,6 +12,8 @@ use move_ir_types::location::*;
 use std::cell::RefCell;
 use std::collections::HashMap;
 
+use super::syntax_extractor::SyntaxExtractor;
+
 #[derive(Debug, Default)]
 pub struct LetExtractor {
     pub bin_op_exp_vec: Vec<Exp>,
@@ -24,23 +26,7 @@ pub struct LetExtractor {
     pub line_mapping: FileLineMappingOneFile,
 }
 
-impl LetExtractor {
-    pub fn new(fmt_buffer: String) -> Self {
-        let mut this_let_extractor = Self {
-            bin_op_exp_vec: vec![],
-            long_bin_op_exp_vec: vec![],
-            let_assign_loc_vec: vec![],
-            let_assign_rhs_exp: vec![],
-            split_bin_op_vec: vec![].into(),
-            break_line_by_let_rhs: HashMap::default().into(),
-            source: fmt_buffer.clone(),
-            line_mapping: FileLineMappingOneFile::default(),
-        };
-
-        this_let_extractor.line_mapping.update(&fmt_buffer);
-        this_let_extractor
-    }
-
+impl SyntaxExtractor for LetExtractor {
     fn collect_seq_item(&mut self, s: &SequenceItem) {
         match &s.value {
             SequenceItem_::Seq(e) => self.collect_expr(e),
@@ -274,6 +260,22 @@ impl LetExtractor {
 }
 
 impl LetExtractor {
+    pub fn new(fmt_buffer: String) -> Self {
+        let mut this_let_extractor = Self {
+            bin_op_exp_vec: vec![],
+            long_bin_op_exp_vec: vec![],
+            let_assign_loc_vec: vec![],
+            let_assign_rhs_exp: vec![],
+            split_bin_op_vec: vec![].into(),
+            break_line_by_let_rhs: HashMap::default().into(),
+            source: fmt_buffer.clone(),
+            line_mapping: FileLineMappingOneFile::default(),
+        };
+
+        this_let_extractor.line_mapping.update(&fmt_buffer);
+        this_let_extractor
+    }
+
     fn collect_long_op_exp(&mut self) {
         self.multi_ampamp_or_pipepipe_exp();
         for bin_op_exp in self.bin_op_exp_vec.iter() {
