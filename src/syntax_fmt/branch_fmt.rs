@@ -11,6 +11,8 @@ use move_ir_types::location::*;
 use std::cell::RefCell;
 use std::collections::HashMap;
 
+use super::syntax_extractor::SingleSyntaxExtractor;
+
 #[derive(Debug)]
 pub struct LetIfElseBlock {
     pub let_if_else_block_loc_vec: Vec<Loc>,
@@ -40,8 +42,8 @@ pub struct BranchExtractor {
     pub added_new_line_branch: RefCell<HashMap<ByteIndex, usize>>,
 }
 
-impl BranchExtractor {
-    pub fn new(fmt_buffer: String) -> Self {
+impl SingleSyntaxExtractor for BranchExtractor {
+    fn new(fmt_buffer: String) -> Self {
         let let_if_else = LetIfElseBlock {
             let_if_else_block_loc_vec: vec![],
             then_in_let_loc_vec: vec![],
@@ -246,6 +248,8 @@ impl BranchExtractor {
     fn collect_const(&mut self, c: &Constant) {
         self.collect_expr(&c.value);
     }
+
+    fn collect_struct(&mut self, _s: &StructDefinition) {}
 
     fn collect_function(&mut self, d: &Function) {
         match &d.body.value {
