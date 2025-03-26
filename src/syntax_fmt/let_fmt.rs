@@ -12,7 +12,7 @@ use move_ir_types::location::*;
 use std::cell::RefCell;
 use std::collections::HashMap;
 
-use super::syntax_extractor::SyntaxExtractor;
+use super::syntax_extractor::SingleSyntaxExtractor;
 
 #[derive(Debug, Default)]
 pub struct LetExtractor {
@@ -26,7 +26,23 @@ pub struct LetExtractor {
     pub line_mapping: FileLineMappingOneFile,
 }
 
-impl SyntaxExtractor for LetExtractor {
+impl SingleSyntaxExtractor for LetExtractor {
+    fn new(fmt_buffer: String) -> Self {
+        let mut this_let_extractor = Self {
+            bin_op_exp_vec: vec![],
+            long_bin_op_exp_vec: vec![],
+            let_assign_loc_vec: vec![],
+            let_assign_rhs_exp: vec![],
+            split_bin_op_vec: vec![].into(),
+            break_line_by_let_rhs: HashMap::default().into(),
+            source: fmt_buffer.clone(),
+            line_mapping: FileLineMappingOneFile::default(),
+        };
+
+        this_let_extractor.line_mapping.update(&fmt_buffer);
+        this_let_extractor
+    }
+
     fn collect_seq_item(&mut self, s: &SequenceItem) {
         match &s.value {
             SequenceItem_::Seq(e) => self.collect_expr(e),
@@ -213,6 +229,8 @@ impl SyntaxExtractor for LetExtractor {
         self.collect_expr(&c.value);
     }
 
+    fn collect_struct(&mut self, _s: &StructDefinition) {}
+
     fn collect_function(&mut self, d: &Function) {
         match &d.body.value {
             FunctionBody_::Defined(seq) => {
@@ -260,22 +278,6 @@ impl SyntaxExtractor for LetExtractor {
 }
 
 impl LetExtractor {
-    pub fn new(fmt_buffer: String) -> Self {
-        let mut this_let_extractor = Self {
-            bin_op_exp_vec: vec![],
-            long_bin_op_exp_vec: vec![],
-            let_assign_loc_vec: vec![],
-            let_assign_rhs_exp: vec![],
-            split_bin_op_vec: vec![].into(),
-            break_line_by_let_rhs: HashMap::default().into(),
-            source: fmt_buffer.clone(),
-            line_mapping: FileLineMappingOneFile::default(),
-        };
-
-        this_let_extractor.line_mapping.update(&fmt_buffer);
-        this_let_extractor
-    }
-
     fn collect_long_op_exp(&mut self) {
         self.multi_ampamp_or_pipepipe_exp();
         for bin_op_exp in self.bin_op_exp_vec.iter() {
