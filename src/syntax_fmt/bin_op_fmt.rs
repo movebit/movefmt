@@ -6,7 +6,6 @@ use crate::core::token_tree::TokenTree;
 use crate::tools::utils::*;
 use move_compiler::parser::ast::*;
 use move_compiler::shared::ast_debug;
-use move_ir_types::location::Loc;
 use std::cell::RefCell;
 use super::syntax_extractor::SingleSyntaxExtractor;
 use std::vec;
