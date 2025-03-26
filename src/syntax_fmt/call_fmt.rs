@@ -10,6 +10,8 @@ use move_compiler::parser::ast::*;
 use move_compiler::parser::lexer::Tok;
 use move_ir_types::location::*;
 
+use super::syntax_extractor::SingleSyntaxExtractor;
+
 #[derive(Debug, Default)]
 pub struct CallExtractor {
     pub call_loc_vec: Vec<Loc>,
@@ -21,8 +23,8 @@ pub struct CallExtractor {
     pub line_mapping: FileLineMappingOneFile,
 }
 
-impl CallExtractor {
-    pub fn new(fmt_buffer: String) -> Self {
+impl SingleSyntaxExtractor for CallExtractor {
+    fn new(fmt_buffer: String) -> Self {
         let mut this_call_extractor = Self {
             call_loc_vec: vec![],
             call_paren_loc_vec: vec![],
@@ -216,6 +218,8 @@ impl CallExtractor {
     fn collect_const(&mut self, c: &Constant) {
         self.collect_expr(&c.value);
     }
+
+    fn collect_struct(&mut self, _s: &StructDefinition) {}
 
     fn collect_function(&mut self, d: &Function) {
         match &d.body.value {
