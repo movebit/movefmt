@@ -10,6 +10,7 @@ use crate::syntax_fmt::fun_fmt::FunExtractor;
 use crate::syntax_fmt::let_fmt::LetExtractor;
 use crate::syntax_fmt::quant_fmt::QuantExtractor;
 use crate::syntax_fmt::skip_fmt::{SkipExtractor, SkipType};
+use crate::syntax_fmt::syntax_extractor::SingleSyntaxExtractor;
 use crate::syntax_fmt::{big_block_fmt, expr_fmt, fun_fmt, spec_fmt};
 use crate::tools::utils::*;
 use commentfmt::comment::contains_comment;
