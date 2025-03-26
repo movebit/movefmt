@@ -360,9 +360,11 @@ impl LetExtractor {
     pub(crate) fn is_long_assign(
         &self,
         token: TokenTree,
+        next_token: Option<&TokenTree>,
         config: commentfmt::Config,
         cur_ret_last_len: usize,
     ) -> bool {
+        let mut is_long_rhs = false;
         for (idx, let_assign) in self.let_assign_loc_vec.iter().enumerate() {
             if let_assign.start() <= token.end_pos() && token.end_pos() <= let_assign.end() {
                 let rhs_exp_loc = &self.let_assign_rhs_exp[idx].loc;
@@ -372,7 +374,7 @@ impl LetExtractor {
                     .split_whitespace()
                     .collect::<Vec<&str>>()
                     .join("");
-                let mut is_long_rhs = rhs_exp_str.len() + cur_ret_last_len >= config.max_width();
+                is_long_rhs = rhs_exp_str.len() + cur_ret_last_len >= config.max_width();
                 // updated in 20241209: fix https://github.com/movebit/movefmt/issues/42
                 if !is_long_rhs
                     && token.get_end_tok() == Tok::Equal
@@ -389,6 +391,27 @@ impl LetExtractor {
                 return is_long_rhs;
             }
         }
+
+        if let Some(next_token) = next_token {
+            for span_exp in self.bin_op_exp_vec.iter() {
+                if let Exp_::Assign(l_assign, _, r_assign) = &span_exp.value {
+                    if l_assign.loc.end() <= token.start_pos()
+                        && token.end_pos() <= r_assign.loc.start()
+                    {
+                        if cur_ret_last_len + 3 + next_token.simple_str().unwrap_or("").len()
+                            > config.max_width()
+                        {
+                            self.break_line_by_let_rhs
+                                .borrow_mut()
+                                .insert(r_assign.loc.end(), token.end_pos());
+                            return true;
+                        }
+                        return false;
+                    }
+                }
+            }
+        }
+
         false
     }
 

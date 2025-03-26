@@ -6,8 +6,10 @@ use crate::core::token_tree::TokenTree;
 use crate::tools::utils::*;
 use move_compiler::parser::ast::*;
 use move_compiler::shared::ast_debug;
+use move_ir_types::location::Loc;
 use std::cell::RefCell;
 use super::syntax_extractor::SingleSyntaxExtractor;
+use std::vec;
 
 #[derive(Debug, Default)]
 pub struct BinOpExtractor {
@@ -81,7 +83,6 @@ impl SingleSyntaxExtractor for BinOpExtractor {
                     type_: _,
                     init: _,
                 } => {}
-
                 SpecBlockMember_::Let {
                     name: _,
                     post_state: _,
@@ -267,7 +268,9 @@ impl BinOpExtractor {
     }
 
     pub(crate) fn record_long_op(&self, idx: usize) {
-        self.split_bin_op_vec.borrow_mut().push(idx);
+        if !self.split_bin_op_vec.borrow_mut().contains(&idx) {
+            self.split_bin_op_vec.borrow_mut().push(idx);
+        }
     }
 
     pub(crate) fn need_split_long_bin_op_exp(&self, token: TokenTree) -> bool {
