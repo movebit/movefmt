@@ -393,22 +393,24 @@ impl LetExtractor {
         }
 
         if let Some(next_token) = next_token {
-            for span_exp in self.bin_op_exp_vec.iter() {
-                if let Exp_::Assign(l_assign, _, r_assign) = &span_exp.value {
-                    if l_assign.loc.end() <= token.start_pos()
-                        && token.end_pos() <= r_assign.loc.start()
-                    {
-                        if cur_ret_last_len + 3 + next_token.simple_str().unwrap_or("").len()
-                            > config.max_width()
-                        {
-                            self.break_line_by_let_rhs
-                                .borrow_mut()
-                                .insert(r_assign.loc.end(), token.end_pos());
-                            return true;
-                        }
-                        return false;
-                    }
+            let next_token_str = next_token.simple_str().unwrap_or_default();
+            let exceeds_max_width = cur_ret_last_len + 3 + next_token_str.len() > config.max_width();
+            
+            if let Some(Exp_::Assign(_, _, r_assign)) = self.bin_op_exp_vec
+                .iter()
+                .find(|exp| 
+                    matches!(&exp.value, Exp_::Assign(l, _, r) 
+                    if l.loc.end() <= token.start_pos() && token.end_pos() <= r.loc.start()
+                ))
+                .map(|exp| &exp.value)
+            {
+                if exceeds_max_width {
+                    self.break_line_by_let_rhs
+                        .borrow_mut()
+                        .insert(r_assign.loc.end(), token.end_pos());
+                    return true;
                 }
+                return false;
             }
         }
 
