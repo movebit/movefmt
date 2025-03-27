@@ -360,7 +360,9 @@ module aptos_framework::account {
             );
         } else if (from_scheme == MULTI_ED25519_SCHEME) {
             let from_pk =
-                multi_ed25519::new_unvalidated_public_key_from_bytes(from_public_key_bytes);
+                multi_ed25519::new_unvalidated_public_key_from_bytes(
+                    from_public_key_bytes
+                );
             let from_auth_key =
                 multi_ed25519::unvalidated_public_key_to_authentication_key(&from_pk);
             assert!(
@@ -780,7 +782,9 @@ module aptos_framework::account {
 
     /// This is a helper function to compute resource addresses. Computation of the address
     /// involves the use of a cryptographic hash operation and should be use thoughtfully.
-    public fun create_resource_address(source: &address, seed: vector<u8>): address {
+    public fun create_resource_address(
+        source: &address, seed: vector<u8>
+    ): address {
         let bytes = bcs::to_bytes(source);
         vector::append(&mut bytes, seed);
         vector::push_back(&mut bytes, DERIVE_RESOURCE_ACCOUNT_SCHEME);
@@ -828,8 +832,9 @@ module aptos_framework::account {
     }
 
     /// create the account for system reserved addresses
-    public(friend) fun create_framework_reserved_account(addr: address):
-        (signer, SignerCapability) {
+    public(friend) fun create_framework_reserved_account(addr: address): (
+        signer, SignerCapability
+    ) {
         assert!(
             addr == @0x1
                 || addr == @0x2
@@ -1068,7 +1073,9 @@ module aptos_framework::account {
     }
 
     #[test(user = @0x1)]
-    public entry fun test_resource_account_and_create_account(user: signer) acquires Account {
+    public entry fun test_resource_account_and_create_account(
+        user: signer
+    ) acquires Account {
         let resource_addr = create_resource_address(&@0x1, x"01");
         create_account_unchecked(resource_addr);
 

@@ -1108,7 +1108,9 @@ module DiemFramework::DiemAccount {
     }
 
     /// Return the key rotation capability to the account it originally came from
-    public fun restore_key_rotation_capability(cap: KeyRotationCapability) acquires DiemAccount {
+    public fun restore_key_rotation_capability(
+        cap: KeyRotationCapability
+    ) acquires DiemAccount {
         assert!(exists_at(cap.account_address), errors::not_published(EACCOUNT));
         let account = borrow_global_mut<DiemAccount>(cap.account_address);
         option::fill(&mut account.key_rotation_capability, cap)
@@ -1224,7 +1226,9 @@ module DiemFramework::DiemAccount {
                 key_rotation_capability: option::some(
                     KeyRotationCapability { account_address: new_account_addr }
                 ),
-                received_events: event::new_event_handle<ReceivedPaymentEvent>(new_account),
+                received_events: event::new_event_handle<ReceivedPaymentEvent>(
+                    new_account
+                ),
                 sent_events: event::new_event_handle<SentPaymentEvent>(new_account),
                 sequence_number: 0
             }
@@ -1949,7 +1953,9 @@ module DiemFramework::DiemAccount {
     }
 
     spec writeset_prologue {
-        include WritesetPrologueAbortsIf { txn_expiration_time_seconds: txn_expiration_time };
+        include WritesetPrologueAbortsIf {
+            txn_expiration_time_seconds: txn_expiration_time
+        };
         ensures prologue_guarantees(sender);
         ensures Roles::has_diem_root_role(sender);
     }
@@ -2562,7 +2568,9 @@ module DiemFramework::DiemAccount {
             role_id: Roles::VALIDATOR_OPERATOR_ROLE_ID
         };
         ensures exists_at(new_account_address);
-        ensures ValidatorOperatorConfig::has_validator_operator_config(new_account_address);
+        ensures ValidatorOperatorConfig::has_validator_operator_config(
+            new_account_address
+        );
     }
 
     // ****************** Module Specifications *******************

@@ -1,7 +1,8 @@
 script {
     /// create the account for system reserved addresses
-    public(friend) fun create_framework_reserved_account(addr: address):
-        (signer, SignerCapability) {
+    public(friend) fun create_framework_reserved_account(addr: address): (
+        signer, SignerCapability
+    ) {
         assert!(
             addr == @0x1
                 || addr == @0x2
