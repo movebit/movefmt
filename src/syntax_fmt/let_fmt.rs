@@ -388,6 +388,7 @@ impl LetExtractor {
                         .borrow_mut()
                         .insert(rhs_exp_loc.end(), token.end_pos());
                 }
+                println!("111111 is_long_rhs = {:?}", is_long_rhs);
                 return is_long_rhs;
             }
         }
@@ -408,12 +409,14 @@ impl LetExtractor {
                     self.break_line_by_let_rhs
                         .borrow_mut()
                         .insert(r_assign.loc.end(), token.end_pos());
+                    println!("222222 is_long_rhs = {:?}", true);
                     return true;
                 }
+                println!("333333 is_long_rhs = {:?}", false);
                 return false;
             }
         }
-
+        println!("444444 is_long_rhs = {:?}", false);
         false
     }
 

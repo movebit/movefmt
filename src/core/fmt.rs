@@ -421,9 +421,9 @@ impl Format {
                     self.get_cur_line_len(),
                 )
                 != 2
-            && judge_equal_tok_is_long_op_fn()
         {
-            return true;
+            tracing::debug!("\n\n----------\n");
+            return judge_equal_tok_is_long_op_fn();
         }
 
         false
@@ -1407,7 +1407,7 @@ impl Format {
             has_colon,
             opt_component_break_mode.unwrap_or(b_new_line_mode),
         );
-
+       
         // step5-step7
         self.bottom_half_before_kind_end(
             kind,
@@ -1643,30 +1643,33 @@ impl Format {
                 content
             );
 
+            let mut new_line_after_equal = false;
             if matches!(
                 *tok,
                 Tok::Equal | Tok::EqualEqual | Tok::EqualEqualGreater | Tok::LessEqualEqualGreater
             ) {
                 self.push_str(content.as_str());
                 split_line_after_content = true;
+                new_line_after_equal = new_line_after;
             }
-
-            let need_inc_depth = !matches!(
-                self.format_context.borrow().cur_nested_kind.kind,
-                NestKind_::Bracket | NestKind_::ParentTheses
-            );
-            if need_inc_depth {
-                let cur_indent_cnt = self.depth.get() * self.local_cfg.indent_size;
-                if leading_space_cnt + self.local_cfg.indent_size == cur_indent_cnt {
-                    tracing::debug!("cur_indent_cnt: {}", cur_indent_cnt);
-                    self.new_line(None);
+            if !new_line_after_equal {
+                let need_inc_depth = !matches!(
+                    self.format_context.borrow().cur_nested_kind.kind,
+                    NestKind_::Bracket | NestKind_::ParentTheses
+                );
+                if need_inc_depth {
+                    let cur_indent_cnt = self.depth.get() * self.local_cfg.indent_size;
+                    if leading_space_cnt + self.local_cfg.indent_size == cur_indent_cnt {
+                        tracing::debug!("cur_indent_cnt: {}", cur_indent_cnt);
+                        self.new_line(None);
+                    } else {
+                        self.inc_depth();
+                        self.new_line(None);
+                        self.dec_depth();
+                    }
                 } else {
-                    self.inc_depth();
                     self.new_line(None);
-                    self.dec_depth();
                 }
-            } else {
-                self.new_line(None);
             }
         }
 
@@ -2105,6 +2108,7 @@ impl Format {
         if b_add_comment {
             self.process_same_line_comment(add_line_comment, false);
         }
+        tracing::debug!("last line 1111= {:?}", self.last_line());
         self.push_str("\n");
         self.indent();
     }
