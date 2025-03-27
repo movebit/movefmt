@@ -792,7 +792,9 @@ impl Format {
 
         let mut new_line_mode = false;
         if NestKind_::ParentTheses == kind.kind {
+            // println!("elements.len() = {:?}, elements[0].simple_str() = {:?}", elements.len(), elements[0].simple_str());
             if elements.len() == 1 && elements[0].simple_str().is_none() {
+                // println!("22222222222");
                 return (false, None);
             }
             let nested_and_comma_pair = expr_fmt::get_nested_and_comma_num(elements);
