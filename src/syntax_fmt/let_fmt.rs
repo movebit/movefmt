@@ -415,7 +415,6 @@ impl LetExtractor {
                 return false;
             }
         }
-
         false
     }
 
