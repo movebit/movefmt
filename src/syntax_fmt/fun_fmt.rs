@@ -486,9 +486,7 @@ pub(crate) fn process_fun_header_too_long(fmt_buffer: String, config: Config) ->
             .start
             .line;
         let fun_header_str = get_nth_line(buf.as_str(), start_line as usize).unwrap_or_default();
-        // println!("fun_header_str ={}", fun_header_str);
         let trimed_header_prefix = fun_header_str.trim_start();
-        // println!("trimed_header_prefix ={}", trimed_header_prefix);
         if !trimed_header_prefix.is_empty() {
             let s = result[fun_loc.start() as usize + insert_char_nums + insert_loc..].to_string();
             if s.trim_start().starts_with("(\n") {
@@ -607,12 +605,9 @@ pub(crate) fn process_fun_annotation(kind: NestKind, elements: Vec<TokenTree>) -
 }
 
 pub fn fmt_fun(fmt_buffer: String, config: Config) -> String {
-    // println!("\n\n---------------\nfmt_buffer = {}", fmt_buffer);
     let mut result = process_block_comment_before_fun_header(fmt_buffer, config.clone());
     result = process_fun_header_too_long(result, config.clone());
-    // println!("---------------------result1 = {}\n", result);
     result = process_fun_ret_ty(result, config.clone());
-    // println!("---------------------result2 = {}\n", result);
     result
 }
 

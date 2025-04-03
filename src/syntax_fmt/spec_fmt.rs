@@ -2,6 +2,7 @@
 // Copyright (c) The BitsLab.MoveBit Contributors
 // SPDX-License-Identifier: Apache-2.0
 
+use super::syntax_extractor::SingleSyntaxExtractor;
 use crate::tools::utils::*;
 use commentfmt::comment::contains_comment;
 use commentfmt::Config;
@@ -13,7 +14,6 @@ use move_compiler::parser::syntax::parse_file_string;
 use move_compiler::shared::Identifier;
 use move_ir_types::location::*;
 use std::vec;
-use super::syntax_extractor::SingleSyntaxExtractor;
 #[derive(Debug, Default)]
 pub struct SpecExtractor {
     pub fn_loc_vec: Vec<Loc>,

@@ -2,12 +2,12 @@
 // Copyright (c) The BitsLab.MoveBit Contributors
 // SPDX-License-Identifier: Apache-2.0
 
+use super::syntax_extractor::SingleSyntaxExtractor;
 use crate::core::token_tree::TokenTree;
 use crate::tools::utils::*;
 use move_compiler::parser::ast::*;
 use move_compiler::shared::ast_debug;
 use std::cell::RefCell;
-use super::syntax_extractor::SingleSyntaxExtractor;
 use std::vec;
 
 #[derive(Debug, Default)]
