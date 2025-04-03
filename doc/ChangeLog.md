@@ -34,9 +34,13 @@
 - Support skipping code block on struct
 
 ### Commits
-* [[`e037ab7`](https://github.com/movebit/movefmt/commit/e037ab7fb572cc4401da9bfdd57bc8184e80fdda)] - fix issue#49 : wrong space between '=>' and '('
-* [[`37e3f5c`](https://github.com/movebit/movefmt/commit/37e3f5ce4668d3fce5ff50a042588244ddf8b3f2)] - fix issue#47 :: get different  result after twice fmt
+* [[`6368df6`](https://github.com/movebit/movefmt/commit/6368df6cd9cdf4608a85802e25b0f6ef2a500622)] - issue#46 - The let statement may have one extra line break.
+* [[`b56cda9`](https://github.com/movebit/movefmt/commit/b56cda99cf2e6a57b1a499fbcab3101abb85dd32)] - issue#47 - formats for the second time something that was already formatted
+* [[`6368df6`](https://github.com/movebit/movefmt/commit/6368df6cd9cdf4608a85802e25b0f6ef2a500622)] - issue#48 - [Bug] Line overflow
+* [[`4201066`](https://github.com/movebit/movefmt/commit/4201066560d2b19201d928d5554aa1c18e27d425
+)] - issue#48 - [Bug] Line overflow
 * [[`cc0e7c5`](https://github.com/movebit/movefmt/commit/cc0e7c5f3da6217698e2f1eab25a594b415d01dd)] - optize code style to rust
+* [[`4ba8cbb`](https://github.com/movebit/movefmt/commit/4ba8cbbde9fb66eff2628bd03412f7e9143c3fc3)] - Add SyntaxExtractor trait
 
 
 <a id="v1.0.7"></a>
