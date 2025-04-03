@@ -9,6 +9,8 @@ use move_compiler::parser::ast::*;
 use move_compiler::shared::ast_debug;
 use std::cell::RefCell;
 
+use super::syntax_extractor::SingleSyntaxExtractor;
+
 #[derive(Debug, Default)]
 pub struct QuantExtractor {
     pub quant_exp_vec: Vec<Exp>,
@@ -17,8 +19,8 @@ pub struct QuantExtractor {
     pub line_mapping: FileLineMappingOneFile,
 }
 
-impl QuantExtractor {
-    pub fn new(fmt_buffer: String) -> Self {
+impl SingleSyntaxExtractor for QuantExtractor {
+    fn new(fmt_buffer: String) -> Self {
         let mut this_let_extractor = Self {
             quant_exp_vec: vec![],
             split_quant_vec: vec![].into(),
@@ -193,6 +195,10 @@ impl QuantExtractor {
             _ => {}
         }
     }
+
+    fn collect_const(&mut self, _c: &Constant) {}
+
+    fn collect_struct(&mut self, _s: &StructDefinition) {}
 
     fn collect_function(&mut self, d: &Function) {
         match &d.body.value {

@@ -2,6 +2,7 @@
 // Copyright (c) The BitsLab.MoveBit Contributors
 // SPDX-License-Identifier: Apache-2.0
 
+use super::syntax_extractor::SingleSyntaxExtractor;
 use crate::tools::utils::*;
 use commentfmt::comment::contains_comment;
 use commentfmt::Config;
@@ -13,7 +14,6 @@ use move_compiler::parser::syntax::parse_file_string;
 use move_compiler::shared::Identifier;
 use move_ir_types::location::*;
 use std::vec;
-
 #[derive(Debug, Default)]
 pub struct SpecExtractor {
     pub fn_loc_vec: Vec<Loc>,
@@ -38,8 +38,8 @@ pub struct SpecExtractor {
     pub line_mapping: FileLineMappingOneFile,
 }
 
-impl SpecExtractor {
-    pub fn new(fmt_buffer: String) -> Self {
+impl SingleSyntaxExtractor for SpecExtractor {
+    fn new(fmt_buffer: String) -> Self {
         let mut spec_extractor = Self {
             fn_loc_vec: vec![],
             fn_ret_ty_loc_vec: vec![],
@@ -71,6 +71,14 @@ impl SpecExtractor {
         }
         spec_extractor
     }
+
+    fn collect_seq_item(&mut self, _s: &SequenceItem) {}
+
+    fn collect_seq(&mut self, _s: &Sequence) {}
+
+    fn collect_expr(&mut self, _e: &Exp) {}
+
+    fn collect_const(&mut self, _c: &Constant) {}
 
     fn collect_struct(&mut self, s: &StructDefinition) {
         self.stct_loc_vec.push(s.loc);

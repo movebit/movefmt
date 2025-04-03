@@ -12,6 +12,8 @@ use move_ir_types::location::*;
 use std::cell::RefCell;
 use std::collections::HashMap;
 
+use super::syntax_extractor::SingleSyntaxExtractor;
+
 #[derive(Debug, Default)]
 pub struct LetExtractor {
     pub bin_op_exp_vec: Vec<Exp>,
@@ -24,8 +26,8 @@ pub struct LetExtractor {
     pub line_mapping: FileLineMappingOneFile,
 }
 
-impl LetExtractor {
-    pub fn new(fmt_buffer: String) -> Self {
+impl SingleSyntaxExtractor for LetExtractor {
+    fn new(fmt_buffer: String) -> Self {
         let mut this_let_extractor = Self {
             bin_op_exp_vec: vec![],
             long_bin_op_exp_vec: vec![],
@@ -227,6 +229,8 @@ impl LetExtractor {
         self.collect_expr(&c.value);
     }
 
+    fn collect_struct(&mut self, _s: &StructDefinition) {}
+
     fn collect_function(&mut self, d: &Function) {
         match &d.body.value {
             FunctionBody_::Defined(seq) => {
@@ -356,6 +360,7 @@ impl LetExtractor {
     pub(crate) fn is_long_assign(
         &self,
         token: TokenTree,
+        next_token: Option<&TokenTree>,
         config: commentfmt::Config,
         cur_ret_last_len: usize,
     ) -> bool {
@@ -385,6 +390,32 @@ impl LetExtractor {
                 return is_long_rhs;
             }
         }
+
+        if let Some(next_token) = next_token {
+            let next_token_str = next_token.simple_str().unwrap_or_default();
+            let exceeds_max_width =
+                cur_ret_last_len + 3 + next_token_str.len() > config.max_width();
+
+            if let Some(Exp_::Assign(_, _, r_assign)) = self
+                .bin_op_exp_vec
+                .iter()
+                .find(|exp| {
+                    matches!(&exp.value, Exp_::Assign(l, _, r)
+                        if l.loc.end() <= token.start_pos() && token.end_pos() <= r.loc.start()
+                    )
+                })
+                .map(|exp| &exp.value)
+            {
+                if exceeds_max_width {
+                    self.break_line_by_let_rhs
+                        .borrow_mut()
+                        .insert(r_assign.loc.end(), token.end_pos());
+                    return true;
+                }
+                return false;
+            }
+        }
+
         false
     }
 

@@ -2,11 +2,13 @@
 // Copyright (c) The BitsLab.MoveBit Contributors
 // SPDX-License-Identifier: Apache-2.0
 
+use super::syntax_extractor::SingleSyntaxExtractor;
 use crate::core::token_tree::TokenTree;
 use crate::tools::utils::*;
 use move_compiler::parser::ast::*;
 use move_compiler::shared::ast_debug;
 use std::cell::RefCell;
+use std::vec;
 
 #[derive(Debug, Default)]
 pub struct BinOpExtractor {
@@ -16,8 +18,8 @@ pub struct BinOpExtractor {
     pub line_mapping: FileLineMappingOneFile,
 }
 
-impl BinOpExtractor {
-    pub fn new(fmt_buffer: String) -> Self {
+impl SingleSyntaxExtractor for BinOpExtractor {
+    fn new(fmt_buffer: String) -> Self {
         let mut this_bin_op_extractor = Self {
             bin_op_exp_vec: vec![],
             split_bin_op_vec: vec![].into(),
@@ -80,7 +82,6 @@ impl BinOpExtractor {
                     type_: _,
                     init: _,
                 } => {}
-
                 SpecBlockMember_::Let {
                     name: _,
                     post_state: _,
@@ -198,6 +199,8 @@ impl BinOpExtractor {
         self.collect_expr(&c.value);
     }
 
+    fn collect_struct(&mut self, _s: &StructDefinition) {}
+
     fn collect_function(&mut self, d: &Function) {
         match &d.body.value {
             FunctionBody_::Defined(seq) => {
@@ -264,7 +267,9 @@ impl BinOpExtractor {
     }
 
     pub(crate) fn record_long_op(&self, idx: usize) {
-        self.split_bin_op_vec.borrow_mut().push(idx);
+        if !self.split_bin_op_vec.borrow_mut().contains(&idx) {
+            self.split_bin_op_vec.borrow_mut().push(idx);
+        }
     }
 
     pub(crate) fn need_split_long_bin_op_exp(&self, token: TokenTree) -> bool {

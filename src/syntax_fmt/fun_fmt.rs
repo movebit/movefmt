@@ -14,6 +14,8 @@ use move_compiler::shared::ast_debug;
 use move_compiler::shared::Identifier;
 use move_ir_types::location::*;
 
+use super::syntax_extractor::SingleSyntaxExtractor;
+
 #[derive(Debug, Default)]
 pub struct FunExtractor {
     pub attributes: Vec<Vec<Attributes>>,
@@ -26,8 +28,8 @@ pub struct FunExtractor {
     pub source: String,
 }
 
-impl FunExtractor {
-    pub fn new(fmt_buffer: String) -> Self {
+impl SingleSyntaxExtractor for FunExtractor {
+    fn new(fmt_buffer: String) -> Self {
         let mut this_fun_extractor = Self {
             attributes: vec![],
             loc_vec: vec![],
@@ -42,6 +44,18 @@ impl FunExtractor {
         this_fun_extractor.line_mapping.update(&fmt_buffer);
         this_fun_extractor
     }
+
+    fn collect_seq_item(&mut self, _s: &SequenceItem) {}
+
+    fn collect_seq(&mut self, _s: &Sequence) {}
+
+    fn collect_spec(&mut self, _spec_block: &SpecBlock) {}
+
+    fn collect_expr(&mut self, _e: &Exp) {}
+
+    fn collect_const(&mut self, _c: &Constant) {}
+
+    fn collect_struct(&mut self, _s: &StructDefinition) {}
 
     fn collect_function(&mut self, d: &Function) {
         let start_line = self
@@ -474,6 +488,12 @@ pub(crate) fn process_fun_header_too_long(fmt_buffer: String, config: Config) ->
         let fun_header_str = get_nth_line(buf.as_str(), start_line as usize).unwrap_or_default();
         let trimed_header_prefix = fun_header_str.trim_start();
         if !trimed_header_prefix.is_empty() {
+            let s = result[fun_loc.start() as usize + insert_char_nums + insert_loc..].to_string();
+            if s.trim_start().starts_with("(\n") {
+                fun_idx += 1;
+                continue;
+            }
+
             let mut insert_str = "\n".to_string();
             if let Some(indent) = fun_header_str.find(trimed_header_prefix) {
                 insert_str.push_str(

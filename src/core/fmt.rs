@@ -10,6 +10,7 @@ use crate::syntax_fmt::fun_fmt::FunExtractor;
 use crate::syntax_fmt::let_fmt::LetExtractor;
 use crate::syntax_fmt::quant_fmt::QuantExtractor;
 use crate::syntax_fmt::skip_fmt::{SkipExtractor, SkipType};
+use crate::syntax_fmt::syntax_extractor::SingleSyntaxExtractor;
 use crate::syntax_fmt::{big_block_fmt, expr_fmt, fun_fmt, spec_fmt};
 use crate::tools::utils::*;
 use commentfmt::comment::contains_comment;
@@ -76,7 +77,8 @@ pub struct FormatConfig {
 fn is_bin_op(op_token: Tok) -> bool {
     matches!(
         op_token,
-        Tok::EqualEqual
+        Tok::Equal
+            | Tok::EqualEqual
             | Tok::ExclaimEqual
             | Tok::Less
             | Tok::Greater
@@ -398,6 +400,7 @@ impl Format {
         let judge_equal_tok_is_long_op_fn = || {
             self.syntax_extractor.let_extractor.is_long_assign(
                 current.clone(),
+                next.clone(),
                 self.global_cfg.clone(),
                 self.last_line().len() + 2,
             )
@@ -840,14 +843,12 @@ impl Format {
                         && self.format_context.borrow().pre_simple_token.get_end_tok()
                             == Tok::Identifier;
                 }
-
                 if elements[0].simple_str().is_some() {
                     let is_plus_nested_over_width = self.get_cur_line_len() + nested_token_len
                         > self.global_cfg.max_width()
                         && nested_token_len > 8;
                     let is_nested_len_too_large =
                         nested_token_len as f32 > 2.0 * max_len_when_no_add_line;
-
                     new_line_mode |= is_plus_nested_over_width || is_nested_len_too_large;
                 }
                 let is_plus_first_ele_over_width = self.get_cur_line_len() + first_ele_len
@@ -865,7 +866,6 @@ impl Format {
             }
             return (new_line_mode, Some(opt_component_break_mode));
         }
-
         (new_line_mode, None)
     }
 
@@ -1327,6 +1327,7 @@ impl Format {
         else {
             return;
         };
+
         let (delimiter, has_colon) = analyze_token_tree_delimiter(elements);
         let (mut b_new_line_mode, opt_component_break_mode) =
             self.get_break_mode_begin_nested(nested_token, delimiter);
@@ -1755,11 +1756,10 @@ impl Format {
                 .syntax_extractor
                 .bin_op_extractor
                 .need_inc_depth_by_long_op(token.clone()))
-            || (is_next_tok_bin_op
-                && self
-                    .syntax_extractor
-                    .bin_op_extractor
-                    .need_inc_depth_by_long_op(next_token.unwrap().clone()))
+            || self
+                .syntax_extractor
+                .bin_op_extractor
+                .need_inc_depth_by_long_op(next_token.unwrap().clone())
         {
             tracing::debug!(
                 "bin_op_extractor.need_inc_depth_by_long_op22({:?})",
@@ -1800,10 +1800,14 @@ impl Format {
             > 0
         {
             tracing::debug!(
-                "bin_op_extractor.need_dec_depth_by_long_op({:?})",
-                token.simple_str()
+                "bin_op_extractor.need_dec_depth_by_long_op({:?}), dec = {}",
+                token.simple_str(),
+                self.syntax_extractor
+                    .bin_op_extractor
+                    .need_dec_depth_by_long_op(token.clone())
             );
         }
+
         let mut nested_break_line_depth = self
             .syntax_extractor
             .bin_op_extractor
@@ -2078,14 +2082,25 @@ impl Format {
 
 impl Format {
     fn get_kind_len_after_trim_space(&self, kind: NestKind, join_by_space: bool) -> usize {
+        // let nested_blk_str = &self.format_context.borrow().content
+        //     [kind.start_pos as usize..kind.end_pos as usize]
+        //     .replace('\n', "");
+        // let tok_vec = nested_blk_str.split_whitespace().collect::<Vec<&str>>();
+        // if join_by_space {
+        //     tok_vec.join(" ").len()
+        // } else {
+        //     tok_vec.join("").len()
+        // }
+
         let nested_blk_str = &self.format_context.borrow().content
             [kind.start_pos as usize..kind.end_pos as usize]
             .replace('\n', "");
-        let tok_vec = nested_blk_str.split_whitespace().collect::<Vec<&str>>();
+        let new_nested_blk_str = nested_blk_str[1..].to_string();
+        let tok_vec = new_nested_blk_str.split_whitespace().collect::<Vec<&str>>();
         if join_by_space {
-            tok_vec.join(" ").len()
+            tok_vec.join(" ").len() + 2
         } else {
-            tok_vec.join("").len()
+            tok_vec.join("").len() + 2
         }
     }
 

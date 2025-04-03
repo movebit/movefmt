@@ -166,7 +166,9 @@ module 0xABCD::simple {
         data: vector<u8>
     }
 
-    public entry fun bytes_make_or_change(owner: &signer, data: vector<u8>) acquires ByteResource {
+    public entry fun bytes_make_or_change(
+        owner: &signer, data: vector<u8>
+    ) acquires ByteResource {
         if (exists<ByteResource>(signer::address_of(owner))) {
             let resource = borrow_global_mut<ByteResource>(signer::address_of(owner));
             *(&mut resource.data) = data;
