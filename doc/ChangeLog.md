@@ -8,6 +8,7 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.0.8">v1.0.8</a><br/>
 <a href="#v1.0.7">v1.0.7</a><br/>
 <a href="#v1.0.6">v1.0.6</a><br/>
 <a href="#v1.0.5">v1.0.5</a><br/>
@@ -20,6 +21,23 @@
 </td>
 </tr>
 </table>
+
+<a id="v1.0.8"></a>
+
+## 2025-04-03, Version v1.0.8
+
+### Features
+- Fixed bug: issue#46, issue#47, issue#48, issue#52
+- Optimize code: Add SyntaxExtractor trait
+
+### TODO
+- Support skipping code block on struct
+
+### Commits
+* [[`cba1ba7`](https://github.com/movebit/movefmt/commit/cba1ba7c3ecda391d74da2b2217b5654fe5602f7)] - fix issue#46: The let statement may have one extra line break.
+* [[`b56cda9`](https://github.com/movebit/movefmt/commit/b56cda99cf2e6a57b1a499fbcab3101abb85dd32)] - fix issue#47: [Bug] Compound assignment behavior
+* [[`b56cda9`](https://github.com/movebit/movefmt/commit/cba1ba7c3ecda391d74da2b2217b5654fe5602f7)] - fix issue#48: [Bug] Line overflow
+* [[`b56cda9`](https://github.com/movebit/movefmt/commit/4ba8cbbde9fb66eff2628bd03412f7e9143c3fc3)] - optize code: abstract syntax extractor trait
 
 
 <a id="v1.0.7"></a>
