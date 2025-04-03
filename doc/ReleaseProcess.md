@@ -15,13 +15,13 @@ git push origin develop
 ```
 [package]
 name = "movefmt"
-version = "1.0.7" # update here
+version = "1.0.8" # update here
 ```
 
 - src/bin/main.rs
 ```
 fn print_version() {
-    println!("movefmt v1.0.7");
+    println!("movefmt v1.0.8");
 }
 ```
 

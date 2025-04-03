@@ -8,6 +8,7 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.0.8">v1.0.8</a><br/>
 <a href="#v1.0.7">v1.0.7</a><br/>
 <a href="#v1.0.6">v1.0.6</a><br/>
 <a href="#v1.0.5">v1.0.5</a><br/>
@@ -20,6 +21,22 @@
 </td>
 </tr>
 </table>
+
+<a id="v1.0.8"></a>
+
+## 2025-04-03, Version v1.0.8
+
+### Features
+- Fixed bug: issue#46, issue#47, issue#48, issue#52 
+- Optimize code: Add SyntaxExtractor trait
+
+### TODO
+- Support skipping code block on struct
+
+### Commits
+* [[`e037ab7`](https://github.com/movebit/movefmt/commit/e037ab7fb572cc4401da9bfdd57bc8184e80fdda)] - fix issue#49 : wrong space between '=>' and '('
+* [[`37e3f5c`](https://github.com/movebit/movefmt/commit/37e3f5ce4668d3fce5ff50a042588244ddf8b3f2)] - fix issue#47 :: get different  result after twice fmt
+* [[`cc0e7c5`](https://github.com/movebit/movefmt/commit/cc0e7c5f3da6217698e2f1eab25a594b415d01dd)] - optize code style to rust
 
 
 <a id="v1.0.7"></a>
