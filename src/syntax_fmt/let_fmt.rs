@@ -364,7 +364,6 @@ impl LetExtractor {
         config: commentfmt::Config,
         cur_ret_last_len: usize,
     ) -> bool {
-        let mut is_long_rhs = false;
         for (idx, let_assign) in self.let_assign_loc_vec.iter().enumerate() {
             if let_assign.start() <= token.end_pos() && token.end_pos() <= let_assign.end() {
                 let rhs_exp_loc = &self.let_assign_rhs_exp[idx].loc;
@@ -374,7 +373,7 @@ impl LetExtractor {
                     .split_whitespace()
                     .collect::<Vec<&str>>()
                     .join("");
-                is_long_rhs = rhs_exp_str.len() + cur_ret_last_len >= config.max_width();
+                let mut is_long_rhs = rhs_exp_str.len() + cur_ret_last_len >= config.max_width();
                 // updated in 20241209: fix https://github.com/movebit/movefmt/issues/42
                 if !is_long_rhs
                     && token.get_end_tok() == Tok::Equal
@@ -394,14 +393,17 @@ impl LetExtractor {
 
         if let Some(next_token) = next_token {
             let next_token_str = next_token.simple_str().unwrap_or_default();
-            let exceeds_max_width = cur_ret_last_len + 3 + next_token_str.len() > config.max_width();
-            
-            if let Some(Exp_::Assign(_, _, r_assign)) = self.bin_op_exp_vec
+            let exceeds_max_width =
+                cur_ret_last_len + 3 + next_token_str.len() > config.max_width();
+
+            if let Some(Exp_::Assign(_, _, r_assign)) = self
+                .bin_op_exp_vec
                 .iter()
-                .find(|exp| 
-                    matches!(&exp.value, Exp_::Assign(l, _, r) 
-                    if l.loc.end() <= token.start_pos() && token.end_pos() <= r.loc.start()
-                ))
+                .find(|exp| {
+                    matches!(&exp.value, Exp_::Assign(l, _, r)
+                        if l.loc.end() <= token.start_pos() && token.end_pos() <= r.loc.start()
+                    )
+                })
                 .map(|exp| &exp.value)
             {
                 if exceeds_max_width {

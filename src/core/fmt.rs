@@ -1326,7 +1326,7 @@ impl Format {
         } = nested_token
         else {
             return;
-        };        
+        };
 
         let (delimiter, has_colon) = analyze_token_tree_delimiter(elements);
         let (mut b_new_line_mode, opt_component_break_mode) =
@@ -1390,7 +1390,7 @@ impl Format {
 
         let b_add_space_around_brace =
             self.judge_add_space_around_brace(nested_token, b_new_line_mode);
-        
+
         // step1-step3
         self.top_half_after_kind_start(
             kind,
@@ -1808,36 +1808,6 @@ impl Format {
             );
         }
 
-        if self
-            .syntax_extractor
-            .let_extractor
-            .need_dec_depth_by_long_op(token.clone())
-            > 0
-        {
-            tracing::debug!(
-                "let_extractor.need_dec_depth_by_long_op({:?}), dec = {}",
-                token.simple_str(),
-                self.syntax_extractor
-                    .let_extractor
-                    .need_dec_depth_by_long_op(token.clone())
-            );
-        }
-
-        if self
-            .syntax_extractor
-            .quant_extractor
-            .need_dec_depth_by_long_quant_exp(token.clone())
-            > 0
-        {
-            tracing::debug!(
-                "quant_extractor.need_dec_depth_by_long_op({:?}), dec = {}",
-                token.simple_str(),
-                self.syntax_extractor
-                    .quant_extractor
-                    .need_dec_depth_by_long_quant_exp(token.clone())
-            );
-        }
-
         let mut nested_break_line_depth = self
             .syntax_extractor
             .bin_op_extractor
@@ -2002,7 +1972,7 @@ impl Format {
     fn dec_depth(&self) {
         let old = self.depth.get();
         if old == 0 {
-            // eprintln!("old depth is zero, return");
+            eprintln!("old depth is zero, return");
             return;
         }
         self.depth.set(old - 1);

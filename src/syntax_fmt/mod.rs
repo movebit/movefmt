@@ -9,5 +9,5 @@ pub mod let_fmt;
 pub mod quant_fmt;
 pub mod skip_fmt;
 pub mod spec_fmt;
-pub mod use_fmt;
 pub mod syntax_extractor;
+pub mod use_fmt;
