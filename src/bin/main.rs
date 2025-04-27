@@ -1,7 +1,7 @@
 // Copyright © Aptos Foundation
 // Copyright (c) The BitsLab.MoveBit Contributors
 // SPDX-License-Identifier: Apache-2.0
-
+use std::result::Result::Ok;
 use anyhow::{format_err, Result};
 use commentfmt::{load_config, CliOptions, Config, EmitMode, Verbosity};
 use getopts::{Matches, Options};
@@ -78,6 +78,9 @@ pub enum OperationError {
     /// An io error during reading or writing.
     #[error("{0}")]
     IoError(IoError),
+    /// An error during escape check.
+    #[error("{0}")]
+    EscapeError(String),
 }
 
 impl From<IoError> for OperationError {
@@ -141,6 +144,7 @@ fn execute(opts: &Options) -> Result<i32> {
     let matches = opts.parse(env::args().skip(1))?;
     let options = GetOptsOptions::from_matches(&matches)?;
 
+
     match determine_operation(&matches)? {
         Operation::Help(HelpOp::None) => {
             print_usage_to_stdout(opts, "");
@@ -174,6 +178,7 @@ fn execute(opts: &Options) -> Result<i32> {
             let file = file.canonicalize().unwrap_or(file);
 
             let (config, _) = load_config(Some(file.parent().unwrap()), Some(options))?;
+            println!("1111111111111");
             let toml = config.all_options().to_toml()?;
             io::stdout().write_all(toml.as_bytes())?;
 
@@ -187,8 +192,12 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
     if !options.quiet {
         eprintln!("options = {:?}", options);
     }
+
     let (config, config_path) = load_config(None, Some(options.clone()))?;
+    println!("config = {:?}, config_path = {:?}", config.escape_format_paths(), config_path);
+    println!("---------------");
     let mut use_config = config.clone();
+    let mut use_config_path = config_path.clone();
     let mut success_cnt = 0;
     let mut skips_cnt = 0;
     tracing::info!(
@@ -217,16 +226,16 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
                 let (local_config, config_path) =
                     load_config(Some(file.parent().unwrap()), Some(options.clone()))?;
                 tracing::debug!("local config_path = {:?}", config_path);
-                if local_config.verbose() == Verbosity::Verbose {
-                    if let Some(path) = config_path {
-                        println!(
-                            "Using movefmt local config file {} for {}",
-                            path.display(),
-                            file.display()
-                        );
-                        use_config = local_config.clone();
-                    }
+                if let Some(path) = config_path {
+                    // println!(
+                    //     "Using movefmt local config file {} for {}",
+                    //     path.display(),
+                    //     file.display()
+                    // );
+                    use_config = local_config.clone();
+                    use_config_path = Some(path);
                 }
+                
             } else if use_config.verbose() == Verbosity::Verbose {
                 println!(
                     "Using movefmt config file {} for {}",
@@ -235,6 +244,41 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
                 );
             }
         }
+        
+        
+
+        // if let Some(p) = should_escape(&file, &use_config, use_config_path.clone()) {
+        //     println!("\nEscape file: {} because config : {}\n", file.display(), p.display());
+        //     continue;
+        // }
+        
+        //     if config_path.is_none() {
+//         return None;
+//     } 
+        if let Some(ref config_path) = use_config_path {
+            // let config_path = config_path.unwrap();
+            let config_parent = config_path.parent().unwrap_or(config_path.as_path()); 
+            let escape = use_config.escape_format_paths()
+                .split(";")
+                .find_map(|x| {
+                    let mut p = PathBuf::from(x);
+                    if !p.is_absolute() {
+                        p = config_parent.join(p);
+                    }
+
+                    if file.starts_with( &p) {
+                        Some(p)
+                    } else {
+                        None
+                    } 
+                    
+                });
+            if let Some(path) =  escape {
+                println!("\nEscape file: {} because config : {}\n", file.display(), path.display());
+                continue;
+            }
+        }
+        
 
         let content_origin = std::fs::read_to_string(file.as_path()).unwrap();
         if use_config.verbose() == Verbosity::Verbose {
@@ -486,3 +530,4 @@ fn emit_mode_from_emit_str(emit_str: &str) -> Result<EmitMode> {
         _ => Err(format_err!("Invalid value for `--emit`")),
     }
 }
+
