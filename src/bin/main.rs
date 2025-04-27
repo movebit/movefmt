@@ -225,14 +225,16 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
                 let (local_config, config_path) =
                     load_config(Some(file.parent().unwrap()), Some(options.clone()))?;
                 tracing::debug!("local config_path = {:?}", config_path);
-                if let Some(path) = config_path {
-                    // println!(
-                    //     "Using movefmt local config file {} for {}",
-                    //     path.display(),
-                    //     file.display()
-                    // );
-                    use_config = local_config.clone();
-                    use_config_path = Some(path);
+                if local_config.verbose() == Verbosity::Verbose {
+                    if let Some(path) = config_path {
+                        println!(
+                            "Using movefmt local config file {} for {}",
+                            path.display(),
+                            file.display()
+                        );
+                        use_config = local_config.clone();
+                        use_config_path = Some(path);
+                    }
                 }
             } else if use_config.verbose() == Verbosity::Verbose {
                 println!(
