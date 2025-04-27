@@ -198,8 +198,10 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
     println!("---------------");
     let mut use_config = config.clone();
     let mut use_config_path = config_path.clone();
+    let all_cnt = files.len();
     let mut success_cnt = 0;
-    let mut skips_cnt = 0;
+    let mut skips_cnt_expected = 0;
+    let mut skips_cnt_parse_not_ok = 0;
     tracing::info!(
         "config.[verbose, indent] = [{:?}, {:?}], {:?}",
         config.verbose(),
@@ -256,7 +258,7 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
 //         return None;
 //     } 
         if let Some(ref config_path) = use_config_path {
-            // let config_path = config_path.unwrap();
+            
             let config_parent = config_path.parent().unwrap_or(config_path.as_path()); 
             let escape = use_config.escape_format_paths()
                 .split(";")
@@ -273,10 +275,11 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
                     } 
                     
                 });
-            if let Some(path) =  escape {
-                println!("\nEscape file: {} because config : {}\n", file.display(), path.display());
-                continue;
-            }
+            // if let Some(path) =  escape {
+            //     skips_cnt_expected += 1;
+            //     println!("\nEscape file: {} because config : {}\n", file.display(), path.display());
+            //     continue;
+            // }
         }
         
 
@@ -314,7 +317,7 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
                 }
             }
             Err(diags) => {
-                skips_cnt += 1;
+                skips_cnt_parse_not_ok += 1;
                 let mut files_source_text: move_compiler::diagnostics::FilesSourceText =
                     HashMap::new();
                 files_source_text.insert(
@@ -333,12 +336,12 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
             }
         }
     }
-    if skips_cnt > 0 && !options.quiet {
-        eprintln!("{:?} files skipped because of parse failed", skips_cnt);
-    }
-    if success_cnt > 0 && !options.quiet {
-        println!("{:?} files successfully formatted", success_cnt);
-    }
+
+    eprintln!("all move file: {}", all_cnt);
+    eprintln!("success: {}", success_cnt);
+    eprintln!("skip(parse not ok): {}", skips_cnt_parse_not_ok);
+    eprintln!("skip(movefmt.toml expected): {}", skips_cnt_expected);
+
     Ok(0)
 }
 
