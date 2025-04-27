@@ -178,7 +178,6 @@ fn execute(opts: &Options) -> Result<i32> {
             let file = file.canonicalize().unwrap_or(file);
 
             let (config, _) = load_config(Some(file.parent().unwrap()), Some(options))?;
-            println!("1111111111111");
             let toml = config.all_options().to_toml()?;
             io::stdout().write_all(toml.as_bytes())?;
 
@@ -194,8 +193,6 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
     }
 
     let (config, config_path) = load_config(None, Some(options.clone()))?;
-    println!("config = {:?}, config_path = {:?}", config.escape_format_paths(), config_path);
-    println!("---------------");
     let mut use_config = config.clone();
     let mut use_config_path = config_path.clone();
     let all_cnt = files.len();
@@ -275,11 +272,11 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
                     } 
                     
                 });
-            // if let Some(path) =  escape {
-            //     skips_cnt_expected += 1;
-            //     println!("\nEscape file: {} because config : {}\n", file.display(), path.display());
-            //     continue;
-            // }
+            if let Some(path) =  escape {
+                skips_cnt_expected += 1;
+                println!("\nEscape file: {} because config : {}\n", file.display(), path.display());
+                continue;
+            }
         }
         
 
