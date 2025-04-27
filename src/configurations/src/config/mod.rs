@@ -33,7 +33,6 @@ create_config! {
     prefer_one_line_for_short_call_para_list: bool, true, true, "Prefer one line for short parameters list in function call";
     prefer_one_line_for_short_fn_header_para_list: bool, true, true, "Prefer one line for short parameters list in fun header";
     escape_format_paths: String, "".to_string(), true, "Paths to escape when formatting";
-    config_path: String, "".to_string(), true, "Path to the config file";
 }
 
 #[derive(Error, Debug)]
