@@ -234,7 +234,6 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
                     use_config = local_config.clone();
                     use_config_path = Some(path);
                 }
-                
             } else if use_config.verbose() == Verbosity::Verbose {
                 println!(
                     "Using movefmt config file {} for {}",
@@ -246,39 +245,11 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
         
         
 
-        // if let Some(p) = should_escape(&file, &use_config, use_config_path.clone()) {
-        //     println!("\nEscape file: {} because config : {}\n", file.display(), p.display());
-        //     continue;
-        // }
-        
-        //     if config_path.is_none() {
-//         return None;
-//     } 
-        if let Some(ref config_path) = use_config_path {
-            
-            let config_parent = config_path.parent().unwrap_or(config_path.as_path()); 
-            let escape = use_config.escape_format_paths()
-                .split(";")
-                .find_map(|x| {
-                    let mut p = PathBuf::from(x);
-                    if !p.is_absolute() {
-                        p = config_parent.join(p);
-                    }
-
-                    if file.starts_with( &p) {
-                        Some(p)
-                    } else {
-                        None
-                    } 
-                    
-                });
-            if let Some(path) =  escape {
-                skips_cnt_expected += 1;
-                println!("\nEscape file: {} because config : {}\n", file.display(), path.display());
-                continue;
-            }
+        if let Some(p) = should_escape(&file, &use_config, use_config_path.clone()) {
+            skips_cnt_expected += 1;
+            println!("\nEscape file: {} because config : {}\n", file.display(), p.display());
+            continue;
         }
-        
 
         let content_origin = std::fs::read_to_string(file.as_path()).unwrap();
         if use_config.verbose() == Verbosity::Verbose {
@@ -531,3 +502,29 @@ fn emit_mode_from_emit_str(emit_str: &str) -> Result<EmitMode> {
     }
 }
 
+
+fn should_escape(file: &Path, use_config: &Config, config_path: Option<PathBuf>) -> Option<PathBuf> {
+    if config_path.is_none() {
+        return None;
+    }
+
+    let config_path = config_path.unwrap();
+    let config_parent = config_path.parent().unwrap_or(config_path.as_path()); 
+    let escape = use_config.escape_format_paths()
+        .split(";")
+        .find_map(|x| {
+            let mut p = PathBuf::from(x);
+            if !p.is_absolute() {
+                p = config_parent.join(p);
+            }
+
+            if file.starts_with( &p) {
+                Some(p)
+            } else {
+                None
+            } 
+            
+        });
+    escape
+
+}
