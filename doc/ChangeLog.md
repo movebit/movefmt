@@ -27,20 +27,21 @@
 ## 2025-04-03, Version v1.0.8
 
 ### Features
+<<<<<<< HEAD
 - Fixed bug: issue#46, issue#47, issue#48, issue#52 
+=======
+- Fixed bug: issue#46, issue#47, issue#48, issue#52
+>>>>>>> bf7afa2b65882860b71bb3471015277c43eaefc6
 - Optimize code: Add SyntaxExtractor trait
 
 ### TODO
 - Support skipping code block on struct
 
 ### Commits
-* [[`6368df6`](https://github.com/movebit/movefmt/commit/6368df6cd9cdf4608a85802e25b0f6ef2a500622)] - issue#46 - The let statement may have one extra line break.
-* [[`b56cda9`](https://github.com/movebit/movefmt/commit/b56cda99cf2e6a57b1a499fbcab3101abb85dd32)] - issue#47 - formats for the second time something that was already formatted
-* [[`6368df6`](https://github.com/movebit/movefmt/commit/6368df6cd9cdf4608a85802e25b0f6ef2a500622)] - issue#48 - [Bug] Line overflow
-* [[`4201066`](https://github.com/movebit/movefmt/commit/4201066560d2b19201d928d5554aa1c18e27d425
-)] - issue#48 - [Bug] Line overflow
-* [[`cc0e7c5`](https://github.com/movebit/movefmt/commit/cc0e7c5f3da6217698e2f1eab25a594b415d01dd)] - optize code style to rust
-* [[`4ba8cbb`](https://github.com/movebit/movefmt/commit/4ba8cbbde9fb66eff2628bd03412f7e9143c3fc3)] - Add SyntaxExtractor trait
+* [[`cba1ba7`](https://github.com/movebit/movefmt/commit/cba1ba7c3ecda391d74da2b2217b5654fe5602f7)] - fix issue#46: The let statement may have one extra line break.
+* [[`b56cda9`](https://github.com/movebit/movefmt/commit/b56cda99cf2e6a57b1a499fbcab3101abb85dd32)] - fix issue#47: [Bug] Compound assignment behavior
+* [[`b56cda9`](https://github.com/movebit/movefmt/commit/cba1ba7c3ecda391d74da2b2217b5654fe5602f7)] - fix issue#48: [Bug] Line overflow
+* [[`b56cda9`](https://github.com/movebit/movefmt/commit/4ba8cbbde9fb66eff2628bd03412f7e9143c3fc3)] - optize code: abstract syntax extractor trait
 
 
 <a id="v1.0.7"></a>

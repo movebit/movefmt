@@ -422,6 +422,7 @@ impl Format {
                 )
                 != 2
         {
+            tracing::debug!("\n\n----------\n");
             return judge_equal_tok_is_long_op_fn();
         }
 
@@ -2077,6 +2078,7 @@ impl Format {
         if b_add_comment {
             self.process_same_line_comment(add_line_comment, false);
         }
+        tracing::debug!("last line 1111= {:?}", self.last_line());
         self.push_str("\n");
         self.indent();
     }
