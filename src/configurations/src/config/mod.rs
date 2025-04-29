@@ -169,7 +169,6 @@ pub fn load_config<O: CliOptions>(
     } else if let Some(file_path) = file_path {
         Config::from_resolved_toml_path(file_path)
     } else {
-        println!("default");
         Ok((Config::default(), None))
     };
 

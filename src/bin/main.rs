@@ -248,9 +248,12 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
         
         
 
-        if let Some(p) = should_escape(&file, &use_config, use_config_path.clone()) {
+        if let Some(mut p) = should_escape(&file, &use_config, use_config_path.clone()) {
             skips_cnt_expected += 1;
-            println!("\nEscape file: {} because config : {}\n", file.display(), p.display());
+            if use_config.verbose() == Verbosity::Verbose {
+                p.push("movefmt.toml");
+                println!("\nEscape file: {} because config : {}\n", file.display(), p.display());
+            }
             continue;
         }
 
@@ -308,10 +311,12 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
         }
     }
 
-    eprintln!("all move file: {}", all_cnt);
-    eprintln!("success: {}", success_cnt);
-    eprintln!("skip(parse not ok): {}", skips_cnt_parse_not_ok);
-    eprintln!("skip(movefmt.toml expected): {}", skips_cnt_expected);
+    if use_config.verbose() == Verbosity::Verbose {
+        eprintln!("all move file: {}", all_cnt);
+        eprintln!("success: {}", success_cnt);
+        eprintln!("skip(parse not ok): {}", skips_cnt_parse_not_ok);
+        eprintln!("skip(escaped dir in movefmt.toml ):  {}", skips_cnt_expected);
+    }
 
     Ok(0)
 }
