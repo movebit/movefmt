@@ -27,11 +27,7 @@
 ## 2025-04-03, Version v1.0.8
 
 ### Features
-<<<<<<< HEAD
-- Fixed bug: issue#46, issue#47, issue#48, issue#52 
-=======
 - Fixed bug: issue#46, issue#47, issue#48, issue#52
->>>>>>> bf7afa2b65882860b71bb3471015277c43eaefc6
 - Optimize code: Add SyntaxExtractor trait
 
 ### TODO

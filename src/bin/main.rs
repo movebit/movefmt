@@ -1,7 +1,6 @@
 // Copyright © Aptos Foundation
 // Copyright (c) The BitsLab.MoveBit Contributors
 // SPDX-License-Identifier: Apache-2.0
-use std::result::Result::Ok;
 use anyhow::{format_err, Result};
 use commentfmt::{load_config, CliOptions, Config, EmitMode, Verbosity};
 use getopts::{Matches, Options};
@@ -16,6 +15,7 @@ use std::env;
 use std::fs::File;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
+use std::result::Result::Ok;
 use thiserror::Error;
 use tracing_subscriber::EnvFilter;
 
@@ -144,7 +144,6 @@ fn execute(opts: &Options) -> Result<i32> {
     let matches = opts.parse(env::args().skip(1))?;
     let options = GetOptsOptions::from_matches(&matches)?;
 
-
     match determine_operation(&matches)? {
         Operation::Help(HelpOp::None) => {
             print_usage_to_stdout(opts, "");
@@ -195,7 +194,6 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
     let (config, config_path) = load_config(None, Some(options.clone()))?;
     let mut use_config = config.clone();
     let mut use_config_path = config_path.clone();
-    let all_cnt = files.len();
     let mut success_cnt = 0;
     let mut skips_cnt_expected = 0;
     let mut skips_cnt_parse_not_ok = 0;
@@ -225,7 +223,7 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
                 let (local_config, config_path) =
                     load_config(Some(file.parent().unwrap()), Some(options.clone()))?;
                 tracing::debug!("local config_path = {:?}", config_path);
-                
+
                 if let Some(path) = config_path {
                     if local_config.verbose() == Verbosity::Verbose {
                         println!(
@@ -237,22 +235,17 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
                     use_config = local_config.clone();
                     use_config_path = Some(path);
                 }
-            } else if use_config.verbose() == Verbosity::Verbose {
-                println!(
-                    "Using movefmt config file {} for {}",
-                    config_path.clone().unwrap_or_default().display(),
-                    file.display()
-                );
             }
         }
-        
-        
 
-        if let Some(mut p) = should_escape(&file, &use_config, use_config_path.clone()) {
+        if should_escape(&file, &use_config, use_config_path.clone()).is_some() {
             skips_cnt_expected += 1;
             if use_config.verbose() == Verbosity::Verbose && !options.quiet {
-                p.push("movefmt.toml");
-                println!("\nEscape file: {} because config : {}\n", file.display(), p.display());
+                println!(
+                    "\nEscape file: {} by config: {}\n",
+                    file.display(),
+                    use_config_path.clone().unwrap_or_default().display()
+                );
             }
             continue;
         }
@@ -312,10 +305,24 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
     }
 
     if !options.quiet {
-        eprintln!("all move file: {}", all_cnt);
-        eprintln!("success: {}", success_cnt);
-        eprintln!("skip(parse not ok): {}", skips_cnt_parse_not_ok);
-        eprintln!("skip(escaped dir in movefmt.toml ):  {}", skips_cnt_expected);
+        println!(
+            "\n----------------------------------------------------------------------------\n"
+        );
+        if skips_cnt_parse_not_ok > 0 {
+            println!(
+                "{:?} files skipped because of parse failed",
+                skips_cnt_parse_not_ok
+            );
+        }
+        if skips_cnt_expected > 0 {
+            println!(
+                "{:?} files skipped because escaped by movefmt.toml",
+                skips_cnt_expected
+            );
+        }
+        if success_cnt > 0 {
+            println!("{:?} files successfully formatted\n", success_cnt);
+        }
     }
 
     Ok(0)
@@ -397,11 +404,8 @@ fn determine_operation(matches: &Matches) -> Result<Operation, OperationError> {
 
     if files.is_empty() {
         eprintln!("no file argument is supplied, movefmt runs on current directory by default, \nformatting all .move files within it......");
-        eprintln!(
-            "\n----------------------------------------------------------------------------\n"
-        );
+        println!("----------------------------------------------------------------------------\n");
         if let Ok(current_dir) = std::env::current_dir() {
-            println!("Current directory: {:?}", current_dir.display());
             for x in walkdir::WalkDir::new(current_dir) {
                 let x = match x {
                     Ok(x) => x,
@@ -510,30 +514,30 @@ fn emit_mode_from_emit_str(emit_str: &str) -> Result<EmitMode> {
     }
 }
 
-
-fn should_escape(file: &Path, use_config: &Config, config_path: Option<PathBuf>) -> Option<PathBuf> {
+fn should_escape(
+    file: &Path,
+    use_config: &Config,
+    config_path: Option<PathBuf>,
+) -> Option<PathBuf> {
     if config_path.is_none() {
         return None;
     }
 
-    let config_path = config_path.unwrap();
-    let config_parent = config_path.parent().unwrap_or(config_path.as_path()); 
-    let escape = use_config.escape_format_paths()
+    let escape = use_config
+        .escape_format_paths()
         .split(";")
         .filter(|s| !s.is_empty())
         .find_map(|x| {
             let mut p = PathBuf::from(x);
-            if !p.is_absolute() {
-                p = config_parent.join(p);
+            if !p.is_absolute() && std::env::current_dir().is_ok() {
+                p = std::env::current_dir().ok().unwrap_or_default().join(p);
             }
 
-            if file.starts_with( &p) {
+            if file.starts_with(&p) {
                 Some(p)
             } else {
                 None
-            } 
-            
+            }
         });
     escape
-
 }

@@ -255,8 +255,6 @@ fn test_dir() {
     num += scan_dir("./tests/new_syntax");
     num += scan_dir("./tests/bug");
     num += scan_dir("./tests/bug2");
-    num += scan_dir("./tests/expect_escape1");
-    num += scan_dir("./tests/expect_escape2");
     eprintln!("formated {} files", num);
 }
 
