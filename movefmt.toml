@@ -7,4 +7,4 @@ verbose = "Normal"
 prefer_one_line_for_short_branch_blk = true
 prefer_one_line_for_short_call_para_list = true
 prefer_one_line_for_short_fn_header_para_list = true
-escape_format_paths = "tests/expct_escape1;tests/expect_escape1;"
+escape_format_paths = "tests/expect_escape1;tests/expect_escape2;"

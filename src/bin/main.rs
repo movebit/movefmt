@@ -520,6 +520,7 @@ fn should_escape(file: &Path, use_config: &Config, config_path: Option<PathBuf>)
     let config_parent = config_path.parent().unwrap_or(config_path.as_path()); 
     let escape = use_config.escape_format_paths()
         .split(";")
+        .filter(|s| !s.is_empty())
         .find_map(|x| {
             let mut p = PathBuf::from(x);
             if !p.is_absolute() {
