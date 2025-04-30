@@ -1407,7 +1407,7 @@ impl Format {
             has_colon,
             opt_component_break_mode.unwrap_or(b_new_line_mode),
         );
-       
+
         // step5-step7
         self.bottom_half_before_kind_end(
             kind,

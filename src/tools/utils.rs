@@ -402,7 +402,6 @@ pub fn process_last_empty_line_util(input_str: String) -> String {
 pub fn get_compile_env() -> CompilationEnv {
     let mut flags = Flags::testing();
     flags = flags.set_language_version(LanguageVersion::V2);
-    flags = flags.set_compiler_v2(true);
     CompilationEnv::new(flags, std::collections::BTreeSet::new())
 }
 
