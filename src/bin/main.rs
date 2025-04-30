@@ -524,7 +524,7 @@ fn should_escape(
     }
 
     let escape = use_config
-        .escape_format_paths()
+        .escape_skip_paths()
         .split(";")
         .filter(|s| !s.is_empty())
         .find_map(|x| {
