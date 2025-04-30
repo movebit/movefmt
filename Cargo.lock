@@ -3,12 +3,6 @@
 version = 3
 
 [[package]]
-name = "Inflector"
-version = "0.11.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe438c63458706e03479442743baae6c88256498e6431708f6dfc520a26515d3"
-
-[[package]]
 name = "addr2line"
 version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -44,12 +38,6 @@ checksum = "8e60d3430d3a69478ad0993f19238d2df97c507009a52b3c10addcd7f6bcb916"
 dependencies = [
  "memchr",
 ]
-
-[[package]]
-name = "aliasable"
-version = "0.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "250f629c0161ad8107cf89319e990051fae62832fd343083bea452d93e2205fd"
 
 [[package]]
 name = "allocator-api2"
@@ -862,6 +850,29 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
+name = "legacy-move-compiler"
+version = "0.0.1"
+source = "git+https://github.com/aptos-labs/aptos-core.git?rev=91b4c1f1da358bb6bb6149397486eb1999e56ecf#91b4c1f1da358bb6bb6149397486eb1999e56ecf"
+dependencies = [
+ "anyhow",
+ "bcs",
+ "clap",
+ "codespan-reporting",
+ "hex",
+ "move-binary-format",
+ "move-bytecode-source-map",
+ "move-bytecode-verifier",
+ "move-command-line-common",
+ "move-core-types",
+ "move-ir-types",
+ "move-symbol-pool",
+ "once_cell",
+ "petgraph",
+ "regex",
+ "tempfile",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.154"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -948,7 +959,7 @@ dependencies = [
 [[package]]
 name = "move-binary-format"
 version = "0.0.3"
-source = "git+https://github.com/aptos-labs/aptos-core.git?rev=ee2732c908177b463bc3606a7eb7b77b46d77b3e#ee2732c908177b463bc3606a7eb7b77b46d77b3e"
+source = "git+https://github.com/aptos-labs/aptos-core.git?rev=91b4c1f1da358bb6bb6149397486eb1999e56ecf#91b4c1f1da358bb6bb6149397486eb1999e56ecf"
 dependencies = [
  "anyhow",
  "backtrace",
@@ -963,12 +974,12 @@ dependencies = [
 [[package]]
 name = "move-borrow-graph"
 version = "0.0.1"
-source = "git+https://github.com/aptos-labs/aptos-core.git?rev=ee2732c908177b463bc3606a7eb7b77b46d77b3e#ee2732c908177b463bc3606a7eb7b77b46d77b3e"
+source = "git+https://github.com/aptos-labs/aptos-core.git?rev=91b4c1f1da358bb6bb6149397486eb1999e56ecf#91b4c1f1da358bb6bb6149397486eb1999e56ecf"
 
 [[package]]
 name = "move-bytecode-source-map"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?rev=ee2732c908177b463bc3606a7eb7b77b46d77b3e#ee2732c908177b463bc3606a7eb7b77b46d77b3e"
+source = "git+https://github.com/aptos-labs/aptos-core.git?rev=91b4c1f1da358bb6bb6149397486eb1999e56ecf#91b4c1f1da358bb6bb6149397486eb1999e56ecf"
 dependencies = [
  "anyhow",
  "bcs",
@@ -983,7 +994,7 @@ dependencies = [
 [[package]]
 name = "move-bytecode-spec"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?rev=ee2732c908177b463bc3606a7eb7b77b46d77b3e#ee2732c908177b463bc3606a7eb7b77b46d77b3e"
+source = "git+https://github.com/aptos-labs/aptos-core.git?rev=91b4c1f1da358bb6bb6149397486eb1999e56ecf#91b4c1f1da358bb6bb6149397486eb1999e56ecf"
 dependencies = [
  "once_cell",
  "quote",
@@ -993,7 +1004,7 @@ dependencies = [
 [[package]]
 name = "move-bytecode-verifier"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?rev=ee2732c908177b463bc3606a7eb7b77b46d77b3e#ee2732c908177b463bc3606a7eb7b77b46d77b3e"
+source = "git+https://github.com/aptos-labs/aptos-core.git?rev=91b4c1f1da358bb6bb6149397486eb1999e56ecf#91b4c1f1da358bb6bb6149397486eb1999e56ecf"
 dependencies = [
  "fail",
  "move-binary-format",
@@ -1007,7 +1018,7 @@ dependencies = [
 [[package]]
 name = "move-command-line-common"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?rev=ee2732c908177b463bc3606a7eb7b77b46d77b3e#ee2732c908177b463bc3606a7eb7b77b46d77b3e"
+source = "git+https://github.com/aptos-labs/aptos-core.git?rev=91b4c1f1da358bb6bb6149397486eb1999e56ecf#91b4c1f1da358bb6bb6149397486eb1999e56ecf"
 dependencies = [
  "anyhow",
  "difference",
@@ -1022,34 +1033,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "move-compiler"
-version = "0.0.1"
-source = "git+https://github.com/aptos-labs/aptos-core.git?rev=ee2732c908177b463bc3606a7eb7b77b46d77b3e#ee2732c908177b463bc3606a7eb7b77b46d77b3e"
-dependencies = [
- "anyhow",
- "bcs",
- "clap",
- "codespan-reporting",
- "hex",
- "move-binary-format",
- "move-borrow-graph",
- "move-bytecode-source-map",
- "move-bytecode-verifier",
- "move-command-line-common",
- "move-core-types",
- "move-ir-to-bytecode",
- "move-ir-types",
- "move-symbol-pool",
- "once_cell",
- "petgraph",
- "regex",
- "tempfile",
-]
-
-[[package]]
 name = "move-core-types"
 version = "0.0.4"
-source = "git+https://github.com/aptos-labs/aptos-core.git?rev=ee2732c908177b463bc3606a7eb7b77b46d77b3e#ee2732c908177b463bc3606a7eb7b77b46d77b3e"
+source = "git+https://github.com/aptos-labs/aptos-core.git?rev=91b4c1f1da358bb6bb6149397486eb1999e56ecf#91b4c1f1da358bb6bb6149397486eb1999e56ecf"
 dependencies = [
  "anyhow",
  "bcs",
@@ -1069,40 +1055,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "move-ir-to-bytecode"
-version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?rev=ee2732c908177b463bc3606a7eb7b77b46d77b3e#ee2732c908177b463bc3606a7eb7b77b46d77b3e"
-dependencies = [
- "anyhow",
- "codespan-reporting",
- "log",
- "move-binary-format",
- "move-bytecode-source-map",
- "move-command-line-common",
- "move-core-types",
- "move-ir-to-bytecode-syntax",
- "move-ir-types",
- "move-symbol-pool",
- "ouroboros",
-]
-
-[[package]]
-name = "move-ir-to-bytecode-syntax"
-version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?rev=ee2732c908177b463bc3606a7eb7b77b46d77b3e#ee2732c908177b463bc3606a7eb7b77b46d77b3e"
-dependencies = [
- "anyhow",
- "hex",
- "move-command-line-common",
- "move-core-types",
- "move-ir-types",
- "move-symbol-pool",
-]
-
-[[package]]
 name = "move-ir-types"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?rev=ee2732c908177b463bc3606a7eb7b77b46d77b3e#ee2732c908177b463bc3606a7eb7b77b46d77b3e"
+source = "git+https://github.com/aptos-labs/aptos-core.git?rev=91b4c1f1da358bb6bb6149397486eb1999e56ecf#91b4c1f1da358bb6bb6149397486eb1999e56ecf"
 dependencies = [
  "hex",
  "move-command-line-common",
@@ -1115,7 +1070,7 @@ dependencies = [
 [[package]]
 name = "move-symbol-pool"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?rev=ee2732c908177b463bc3606a7eb7b77b46d77b3e#ee2732c908177b463bc3606a7eb7b77b46d77b3e"
+source = "git+https://github.com/aptos-labs/aptos-core.git?rev=91b4c1f1da358bb6bb6149397486eb1999e56ecf#91b4c1f1da358bb6bb6149397486eb1999e56ecf"
 dependencies = [
  "once_cell",
  "serde",
@@ -1135,10 +1090,10 @@ dependencies = [
  "fern",
  "getopts",
  "lazy_static",
+ "legacy-move-compiler",
  "log",
  "lsp-types",
  "move-command-line-common",
- "move-compiler",
  "move-ir-types",
  "pprof",
  "regex",
@@ -1292,29 +1247,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c08d65885ee38876c4f86fa503fb49d7b507c2b62552df7c70b2fce627e06381"
 
 [[package]]
-name = "ouroboros"
-version = "0.15.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e1358bd1558bd2a083fed428ffeda486fbfb323e698cdda7794259d592ca72db"
-dependencies = [
- "aliasable",
- "ouroboros_macro",
-]
-
-[[package]]
-name = "ouroboros_macro"
-version = "0.15.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f7d21ccd03305a674437ee1248f3ab5d4b1db095cf1caf49f1713ddf61956b7"
-dependencies = [
- "Inflector",
- "proc-macro-error",
- "proc-macro2",
- "quote",
- "syn 1.0.109",
-]
-
-[[package]]
 name = "overload"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1439,30 +1371,6 @@ checksum = "7f4c021e1093a56626774e81216a4ce732a735e5bad4868a03f3ed65ca0c3919"
 dependencies = [
  "once_cell",
  "toml_edit",
-]
-
-[[package]]
-name = "proc-macro-error"
-version = "1.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da25490ff9892aab3fcf7c36f08cfb902dd3e71ca0f9f9517bea02a73a5ce38c"
-dependencies = [
- "proc-macro-error-attr",
- "proc-macro2",
- "quote",
- "syn 1.0.109",
- "version_check",
-]
-
-[[package]]
-name = "proc-macro-error-attr"
-version = "1.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1be40180e52ecc98ad80b184934baf3d0d29f979574e439af5a55274b35f869"
-dependencies = [
- "proc-macro2",
- "quote",
- "version_check",
 ]
 
 [[package]]

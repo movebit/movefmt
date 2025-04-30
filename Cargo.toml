@@ -36,9 +36,9 @@ tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 commentfmt = { version = "1.6.0", path = "src/comment_fmt" }
 
-move-command-line-common = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "ee2732c908177b463bc3606a7eb7b77b46d77b3e", package = "move-command-line-common" }
-move-compiler = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "ee2732c908177b463bc3606a7eb7b77b46d77b3e", package = "move-compiler" }
-move-ir-types = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "ee2732c908177b463bc3606a7eb7b77b46d77b3e", package = "move-ir-types" }
+move-command-line-common = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "91b4c1f1da358bb6bb6149397486eb1999e56ecf", package = "move-command-line-common" }
+move-compiler = { git = "https://github.com/aptos-labs/aptos-core", rev = "91b4c1f1da358bb6bb6149397486eb1999e56ecf", package = "legacy-move-compiler", subdir = "third_party/move/move-compiler-v2/legacy-move-compiler"}
+move-ir-types = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "91b4c1f1da358bb6bb6149397486eb1999e56ecf", package = "move-ir-types" }
 
 [target.'cfg(not(target_os= "windows"))'.dependencies]
 pprof = { version = "0.11.0" , features = ["flamegraph" , "protobuf"]}
