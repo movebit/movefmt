@@ -339,7 +339,7 @@ fn print_usage_to_stdout(opts: &Options, reason: &str) {
 }
 
 fn print_version() {
-    println!("movefmt v1.0.8");
+    println!("movefmt v1.0.9");
 }
 
 fn determine_operation(matches: &Matches) -> Result<Operation, OperationError> {
@@ -524,7 +524,7 @@ fn should_escape(
     }
 
     let escape = use_config
-        .escape_skip_paths()
+        .skip_formatting_dirs()
         .split(";")
         .filter(|s| !s.is_empty())
         .find_map(|x| {

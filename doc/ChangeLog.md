@@ -8,6 +8,7 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.0.9">v1.0.9</a><br/>
 <a href="#v1.0.8">v1.0.8</a><br/>
 <a href="#v1.0.7">v1.0.7</a><br/>
 <a href="#v1.0.6">v1.0.6</a><br/>
@@ -22,13 +23,30 @@
 </tr>
 </table>
 
+<a id="v1.0.9"></a>
+
+## 2025-04-30, Version v1.0.9
+
+### Features
+- Feature: `movefmt.toml` add `skip_formatting_dirs` to skip all files in expected dir
+- Fixed bug: issue#59
+
+### TODO
+- Optimize code: Improve `SyntaxExtractor` trait
+- Support skipping code block on struct
+
+### Commits
+* [[`9c8ad8b`](https://github.com/movebit/movefmt/commit/2105b46cc6d32adf73212054e6e9778ba9c8ad8b)] - fix issue#59: `movefmt.toml` only work in `Verbose::Verbose`
+* [[`0b2dbac`](https://github.com/movebit/movefmt/commit/41eebb40cbf82a62840dc2a514ae54c910b2dbac)] - feature: `movefmt.toml` add `skip_formatting_dirs` to skip all files in expected dir
+* [[`51a29da`](https://github.com/movebit/movefmt/commit/4189ebc06d3cd89d0001a4189f0a3e61651a29da)] - optimize code; fix bug on should_escape()
+
 <a id="v1.0.8"></a>
 
 ## 2025-04-03, Version v1.0.8
 
 ### Features
 - Fixed bug: issue#46, issue#47, issue#48, issue#52
-- Optimize code: Add SyntaxExtractor trait
+- Optimize code: Add `SyntaxExtractor` trait
 
 ### TODO
 - Support skipping code block on struct
