@@ -210,10 +210,18 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
         }
     }
 
-    // pwd -> all move files
     for file in files {
-        // 如果file不在sources/tests/scripts目录下，上一级有Move.toml文件，
-        // 并且选项为auto-discorver-project=true就跳过。
+        if should_escape_not_in_project(&file, use_config.auto_discover_project()) {
+            skips_cnt_expected += 1;
+            if use_config.verbose() == Verbosity::Verbose && !options.quiet {
+                println!(
+                    "\nEscape file: {} by config: {}\n",
+                    file.display(),
+                    use_config_path.clone().unwrap_or_default().display()
+                );
+            }
+            continue;
+        }
 
         if !file.exists() {
             eprintln!("Error: file `{}` does not exist", file.to_str().unwrap());
@@ -544,4 +552,22 @@ fn should_escape(
             }
         });
     escape
+}
+
+fn should_escape_not_in_project(file: &Path, auto_discover_project: bool) -> bool {
+    if !auto_discover_project {
+        return false;
+    }
+
+    for ancestor in file.ancestors() {
+        if let Some(dir_name) = ancestor.file_name().and_then(|n| n.to_str()) {
+            if dir_name == "sources" || dir_name == "scripts" || dir_name == "tests" {
+                if let Some(parent) = ancestor.parent() {
+                    let toml_path = parent.join("Move.toml");
+                    return !toml_path.exists();
+                }
+            }
+        }
+    }
+    false
 }
