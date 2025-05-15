@@ -210,7 +210,11 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
         }
     }
 
+    // pwd -> all move files 
     for file in files {
+        // 如果file不在sources/tests/scripts目录下，上一级有Move.toml文件，
+        // 并且选项为auto-discorver-project=true就跳过。
+
         if !file.exists() {
             eprintln!("Error: file `{}` does not exist", file.to_str().unwrap());
             continue;

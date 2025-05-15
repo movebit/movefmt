@@ -1,0 +1,25 @@
+name: Rust Format Check
+
+on:
+  push:
+    branches: [fea/20250501]
+  pull_request:
+    branches: [fea/20250501]
+
+jobs:
+  check-format:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          components: rustfmt
+
+      - name: Check format
+        run: cargo fmt --all -- --check
