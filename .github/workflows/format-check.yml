@@ -2,9 +2,9 @@ name: Rust Format Check
 
 on:
   push:
-    branches: [fea/20250501]
+    branches: [develop]
   pull_request:
-    branches: [fea/20250501]
+    branches: [develop]
 
 jobs:
   check-format:
