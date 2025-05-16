@@ -23,7 +23,7 @@ term = "0.7"
 lazy_static = "1.4.0"
 regex = "1.5.5"
 bisection = "0.1.0"
-anyhow = "1.0.52"
+anyhow = "1.0.98"
 codespan-reporting = "0.11.1"
 lsp-types = "0.94.0"
 serde = { version = "1.0", features = ["derive"] }
@@ -36,9 +36,9 @@ tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 commentfmt = { version = "1.6.0", path = "src/comment_fmt" }
 
-move-command-line-common = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "91b4c1f1da358bb6bb6149397486eb1999e56ecf", package = "move-command-line-common" }
-move-compiler = { git = "https://github.com/aptos-labs/aptos-core", rev = "91b4c1f1da358bb6bb6149397486eb1999e56ecf", package = "legacy-move-compiler", subdir = "third_party/move/move-compiler-v2/legacy-move-compiler"}
-move-ir-types = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "91b4c1f1da358bb6bb6149397486eb1999e56ecf", package = "move-ir-types" }
+move-command-line-common = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "dac0205473241be3288608696fc93a4c82541763", package = "move-command-line-common" }
+move-compiler = { git = "https://github.com/aptos-labs/aptos-core", rev = "dac0205473241be3288608696fc93a4c82541763", package = "legacy-move-compiler", subdir = "third_party/move/move-compiler-v2/legacy-move-compiler"}
+move-ir-types = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "dac0205473241be3288608696fc93a4c82541763", package = "move-ir-types" }
 
 [target.'cfg(not(target_os= "windows"))'.dependencies]
 pprof = { version = "0.11.0" , features = ["flamegraph" , "protobuf"]}
