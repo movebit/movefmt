@@ -4,9 +4,9 @@ use regex::Regex;
 use unicode_properties::{GeneralCategory, UnicodeGeneralCategory};
 use unicode_segmentation::UnicodeSegmentation;
 
-use configurations::config::Config;
 use crate::shape::Shape;
 use crate::utils::{unicode_str_width, wrap_str};
+use configurations::config::Config;
 
 const MIN_STRING: usize = 10;
 

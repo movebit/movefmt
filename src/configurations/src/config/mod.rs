@@ -60,8 +60,7 @@ impl Config {
         let mut file = File::open(&file_path)?;
         let mut toml = String::new();
         file.read_to_string(&mut toml)?;
-        Config::from_toml(&toml)
-            .map_err(|err| Error::new(ErrorKind::InvalidData, err))
+        Config::from_toml(&toml).map_err(|err| Error::new(ErrorKind::InvalidData, err))
     }
 
     /// Resolves the config for input in `dir`.

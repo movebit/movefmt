@@ -49,7 +49,7 @@ fn main() {
 
 /// movefmt operations.
 enum Operation {
-    /// Format files and their child modules. The bool value indicates whether 
+    /// Format files and their child modules. The bool value indicates whether
     /// the file is aspecified Move file from command line, which should not be escaped.
     Format { files: Vec<(PathBuf, bool)> },
     /// Print the help message.
@@ -235,9 +235,11 @@ fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> 
             }
         }
 
-        if !is_specified_file && should_escape_not_in_package(&file, &use_config)   {
+        if !is_specified_file && should_escape_not_in_package(&file, &use_config) {
             skips_cnt_not_belong_to_any_package += 1;
-            if use_config.verbose() == Verbosity::Verbose && (options.quiet.is_none() || !options.quiet.unwrap()) {
+            if use_config.verbose() == Verbosity::Verbose
+                && (options.quiet.is_none() || !options.quiet.unwrap())
+            {
                 tracing::warn!(
                     "\n{}: {} {}\n",
                     "Escape file".yellow(),
@@ -248,9 +250,13 @@ fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> 
             continue;
         }
 
-        if !is_specified_file && should_escape(&file, &use_config, use_config_path.clone()).is_some() {
+        if !is_specified_file
+            && should_escape(&file, &use_config, use_config_path.clone()).is_some()
+        {
             skips_cnt_expected += 1;
-            if use_config.verbose() == Verbosity::Verbose && (options.quiet.is_none() || !options.quiet.unwrap()) {
+            if use_config.verbose() == Verbosity::Verbose
+                && (options.quiet.is_none() || !options.quiet.unwrap())
+            {
                 tracing::warn!(
                     "\n{}: {} {}: {}\n",
                     "Escape file".yellow(),
@@ -291,10 +297,12 @@ fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> 
                             let mut failures = HashMap::new();
                             failures.insert(file.to_owned(), compare);
                             print_mismatches_default_message(failures);
-                            
+
                             // Only for github CI
                             if std::env::var("CI").is_ok() {
-                                return Err(format_err!("check failed, source code maybe not formatted before."));
+                                return Err(format_err!(
+                                    "check failed, source code maybe not formatted before."
+                                ));
                             }
                         }
                     }
@@ -405,7 +413,6 @@ fn determine_operation(matches: &Matches) -> Result<Operation, OperationError> {
         }
     }
 
-
     if matches.opt_present("dir-path") {
         if let Some(move_dir_path) = matches.opt_str("dir-path") {
             for x in walkdir::WalkDir::new(PathBuf::from(move_dir_path)) {
@@ -425,7 +432,6 @@ fn determine_operation(matches: &Matches) -> Result<Operation, OperationError> {
             }
         }
     }
-
 
     if files.is_empty() {
         eprintln!("no file argument is supplied, movefmt runs on current directory by default, \nformatting all .move files within it......");
@@ -468,8 +474,16 @@ struct GetOptsOptions {
 impl GetOptsOptions {
     pub fn from_matches(matches: &Matches) -> Result<GetOptsOptions> {
         let mut options = GetOptsOptions {
-            quiet: if matches.opt_present("quiet") { Some(true) } else { None },
-            verbose: if matches.opt_present("verbose") { Some(true) } else { None },
+            quiet: if matches.opt_present("quiet") {
+                Some(true)
+            } else {
+                None
+            },
+            verbose: if matches.opt_present("verbose") {
+                Some(true)
+            } else {
+                None
+            },
             config_path: matches.opt_str("config-path").map(PathBuf::from),
             ..Default::default()
         };
@@ -514,7 +528,7 @@ impl CliOptions for GetOptsOptions {
         } else if self.quiet.is_some() && self.quiet.unwrap() {
             config.set().verbose(Verbosity::Quiet);
         }
-        
+
         if let Some(emit_mode) = self.emit_mode {
             config.set().emit_mode(emit_mode);
         }
@@ -582,7 +596,7 @@ fn should_escape_not_in_package(file: &Path, use_config: &Config) -> bool {
                     }
                 }
             }
-        }    
+        }
     }
     true
 }

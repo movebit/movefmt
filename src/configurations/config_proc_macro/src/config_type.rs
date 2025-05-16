@@ -1,5 +1,5 @@
-use proc_macro2::TokenStream;
 use crate::item_enum::define_config_type_on_enum;
+use proc_macro2::TokenStream;
 
 /// Defines `config_type` on enum.
 pub fn define_config_type(input: &syn::Item) -> TokenStream {
