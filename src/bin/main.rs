@@ -28,11 +28,6 @@ fn main() {
             EnvFilter::try_from_env("MOVEFMT_LOG").unwrap_or_else(|_| EnvFilter::new("warn")),
         )
         .init();
-    tracing::warn!("{}", "
-            Currently movefmt is still in the beta testing phase.
-            The formatting results of the beta version may be incompatible with the official release version.
-        ".yellow()
-    );
     let opts = make_opts();
 
     let exit_code = match execute(&opts) {
@@ -189,7 +184,7 @@ fn execute(opts: &Options) -> Result<i32> {
 
 fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> {
     if options.quiet.is_none() || !options.quiet.unwrap() {
-        eprintln!("options = {:?}", options);
+        println!("options = {:?}", options);
     }
 
     let (config, config_path) = load_config(None, Some(options.clone()))?;
@@ -243,9 +238,11 @@ fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> 
         if !is_specified_file && should_escape_not_in_package(&file, &use_config)   {
             skips_cnt_not_belong_to_any_package += 1;
             if use_config.verbose() == Verbosity::Verbose && (options.quiet.is_none() || !options.quiet.unwrap()) {
-                println!(
-                    "\nEscape file: {} because it's not belong to any Move-Package\n",
-                    file.display()
+                tracing::warn!(
+                    "\n{}: {} {}\n",
+                    "Escape file".yellow(),
+                    file.display(),
+                    "because it's not belong to any Move-Package".yellow()
                 );
             }
             continue;
@@ -254,9 +251,11 @@ fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> 
         if !is_specified_file && should_escape(&file, &use_config, use_config_path.clone()).is_some() {
             skips_cnt_expected += 1;
             if use_config.verbose() == Verbosity::Verbose && (options.quiet.is_none() || !options.quiet.unwrap()) {
-                println!(
-                    "\nEscape file: {} by config: {}\n",
+                tracing::warn!(
+                    "\n{}: {} {}: {}\n",
+                    "Escape file".yellow(),
                     file.display(),
+                    "by config".yellow(),
                     use_config_path.clone().unwrap_or_default().display()
                 );
             }
