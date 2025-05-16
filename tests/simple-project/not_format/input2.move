@@ -3,7 +3,8 @@ module 0xc0ffee::m {
     fun test() {}
 }
 
-// second module
+
+/* second module */
 module 0xc0ffee::n {
     fun test() {}
 }
