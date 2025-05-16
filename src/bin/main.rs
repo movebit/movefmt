@@ -28,11 +28,6 @@ fn main() {
             EnvFilter::try_from_env("MOVEFMT_LOG").unwrap_or_else(|_| EnvFilter::new("warn")),
         )
         .init();
-    tracing::warn!("{}", "
-            Currently movefmt is still in the beta testing phase.
-            The formatting results of the beta version may be incompatible with the official release version.
-        ".yellow()
-    );
     let opts = make_opts();
 
     let exit_code = match execute(&opts) {
@@ -54,8 +49,9 @@ fn main() {
 
 /// movefmt operations.
 enum Operation {
-    /// Format files and their child modules.
-    Format { files: Vec<PathBuf> },
+    /// Format files and their child modules. The bool value indicates whether
+    /// the file is aspecified Move file from command line, which should not be escaped.
+    Format { files: Vec<(PathBuf, bool)> },
     /// Print the help message.
     Help(HelpOp),
     /// Print version information
@@ -186,9 +182,9 @@ fn execute(opts: &Options) -> Result<i32> {
     }
 }
 
-fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
-    if !options.quiet {
-        eprintln!("options = {:?}", options);
+fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> {
+    if options.quiet.is_none() || !options.quiet.unwrap() {
+        println!("options = {:?}", options);
     }
 
     let (config, config_path) = load_config(None, Some(options.clone()))?;
@@ -196,6 +192,7 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
     let mut use_config_path = config_path.clone();
     let mut success_cnt = 0;
     let mut skips_cnt_expected = 0;
+    let mut skips_cnt_not_belong_to_any_package = 0;
     let mut skips_cnt_parse_not_ok = 0;
     tracing::info!(
         "config.[verbose, indent] = [{:?}, {:?}], {:?}",
@@ -210,7 +207,7 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
         }
     }
 
-    for file in files {
+    for (file, is_specified_file) in files {
         if !file.exists() {
             eprintln!("Error: file `{}` does not exist", file.to_str().unwrap());
             continue;
@@ -238,12 +235,33 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
             }
         }
 
-        if should_escape(&file, &use_config, use_config_path.clone()).is_some() {
-            skips_cnt_expected += 1;
-            if use_config.verbose() == Verbosity::Verbose && !options.quiet {
-                println!(
-                    "\nEscape file: {} by config: {}\n",
+        if !is_specified_file && should_escape_not_in_package(&file, &use_config) {
+            skips_cnt_not_belong_to_any_package += 1;
+            if use_config.verbose() == Verbosity::Verbose
+                && (options.quiet.is_none() || !options.quiet.unwrap())
+            {
+                tracing::warn!(
+                    "\n{}: {} {}\n",
+                    "Escape file".yellow(),
                     file.display(),
+                    "because it's not belong to any Move-Package".yellow()
+                );
+            }
+            continue;
+        }
+
+        if !is_specified_file
+            && should_escape(&file, &use_config, use_config_path.clone()).is_some()
+        {
+            skips_cnt_expected += 1;
+            if use_config.verbose() == Verbosity::Verbose
+                && (options.quiet.is_none() || !options.quiet.unwrap())
+            {
+                tracing::warn!(
+                    "\n{}: {} {}: {}\n",
+                    "Escape file".yellow(),
+                    file.display(),
+                    "by config".yellow(),
                     use_config_path.clone().unwrap_or_default().display()
                 );
             }
@@ -279,6 +297,13 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
                             let mut failures = HashMap::new();
                             failures.insert(file.to_owned(), compare);
                             print_mismatches_default_message(failures);
+
+                            // Only for github CI
+                            if std::env::var("CI").is_ok() {
+                                return Err(format_err!(
+                                    "check failed, source code maybe not formatted before."
+                                ));
+                            }
                         }
                     }
                 }
@@ -304,7 +329,7 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
         }
     }
 
-    if !options.quiet {
+    if options.quiet.is_none() || !options.quiet.unwrap() {
         println!(
             "\n----------------------------------------------------------------------------\n"
         );
@@ -318,6 +343,12 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
             println!(
                 "{:?} files skipped because escaped by movefmt.toml",
                 skips_cnt_expected
+            );
+        }
+        if skips_cnt_not_belong_to_any_package > 0 {
+            println!(
+                "{:?} files skipped because it's not belong to any Move-Package",
+                skips_cnt_not_belong_to_any_package
             );
         }
         if success_cnt > 0 {
@@ -372,13 +403,13 @@ fn determine_operation(matches: &Matches) -> Result<Operation, OperationError> {
             let p = PathBuf::from(s);
             // we will do comparison later, so here tries to canonicalize first
             // to get the expected behavior.
-            p.canonicalize().unwrap_or(p)
+            (p.canonicalize().unwrap_or(p), true)
         })
         .collect();
 
     if matches.opt_present("file-path") {
         if let Some(move_file_path) = matches.opt_str("file-path") {
-            files.push(move_file_path.into());
+            files.push((PathBuf::from(move_file_path), true));
         }
     }
 
@@ -396,7 +427,7 @@ fn determine_operation(matches: &Matches) -> Result<Operation, OperationError> {
                     && !x.file_name().to_str().unwrap().contains(".fmt")
                     && !x.file_name().to_str().unwrap().contains(".out")
                 {
-                    files.push(x.clone().into_path());
+                    files.push((x.clone().into_path(), false));
                 }
             }
         }
@@ -418,7 +449,7 @@ fn determine_operation(matches: &Matches) -> Result<Operation, OperationError> {
                     && !x.file_name().to_str().unwrap().contains(".fmt")
                     && !x.file_name().to_str().unwrap().contains(".out")
                 {
-                    files.push(x.clone().into_path());
+                    files.push((x.clone().into_path(), false));
                 }
             }
         } else {
@@ -433,8 +464,8 @@ fn determine_operation(matches: &Matches) -> Result<Operation, OperationError> {
 /// Parsed command line options.
 #[derive(Clone, Debug, Default)]
 struct GetOptsOptions {
-    quiet: bool,
-    verbose: bool,
+    quiet: Option<bool>,
+    verbose: Option<bool>,
     config_path: Option<PathBuf>,
     emit_mode: Option<EmitMode>,
     inline_config: HashMap<String, String>,
@@ -443,12 +474,20 @@ struct GetOptsOptions {
 impl GetOptsOptions {
     pub fn from_matches(matches: &Matches) -> Result<GetOptsOptions> {
         let mut options = GetOptsOptions {
-            quiet: matches.opt_present("quiet"),
-            verbose: matches.opt_present("verbose"),
+            quiet: if matches.opt_present("quiet") {
+                Some(true)
+            } else {
+                None
+            },
+            verbose: if matches.opt_present("verbose") {
+                Some(true)
+            } else {
+                None
+            },
             config_path: matches.opt_str("config-path").map(PathBuf::from),
             ..Default::default()
         };
-        if options.verbose && options.quiet {
+        if options.verbose.is_some() && options.quiet.is_some() {
             return Err(format_err!("Can't use both `--verbose` and `--quiet`"));
         }
 
@@ -484,13 +523,12 @@ impl GetOptsOptions {
 
 impl CliOptions for GetOptsOptions {
     fn apply_to(self, config: &mut Config) {
-        if self.verbose {
+        if self.verbose.is_some() && self.verbose.unwrap() {
             config.set().verbose(Verbosity::Verbose);
-        } else if self.quiet {
+        } else if self.quiet.is_some() && self.quiet.unwrap() {
             config.set().verbose(Verbosity::Quiet);
-        } else {
-            config.set().verbose(Verbosity::Normal);
         }
+
         if let Some(emit_mode) = self.emit_mode {
             config.set().emit_mode(emit_mode);
         }
@@ -540,4 +578,25 @@ fn should_escape(
             }
         });
     escape
+}
+
+fn should_escape_not_in_package(file: &Path, use_config: &Config) -> bool {
+    if !use_config.auto_apply_package() {
+        return false;
+    }
+    for ancestor in file.ancestors() {
+        if let Some(dir_name) = ancestor.file_name().and_then(|n| n.to_str()) {
+            if matches!(dir_name, "sources" | "scripts" | "tests" | "examples") {
+                if let Some(parent) = ancestor.parent() {
+                    let toml_path = parent.join("Move.toml");
+                    if toml_path.exists() {
+                        return false;
+                    } else {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+    true
 }

@@ -32,7 +32,8 @@ create_config! {
     prefer_one_line_for_short_branch_blk: bool, true, true, "Prefer one line for short branch block";
     prefer_one_line_for_short_call_para_list: bool, true, true, "Prefer one line for short parameters list in function call";
     prefer_one_line_for_short_fn_header_para_list: bool, true, true, "Prefer one line for short parameters list in fun header";
-    skip_formatting_dirs: String, "".to_string(), true, "Paths to escape when formatting";
+    skip_formatting_dirs: String, "".to_string(), true, "Dirs to skip during formatting";
+    auto_apply_package: bool, false, true, "Auto-format all Move files that belong to Move-Package in the specified dir or default current dir";
 }
 
 #[derive(Error, Debug)]
@@ -59,8 +60,7 @@ impl Config {
         let mut file = File::open(&file_path)?;
         let mut toml = String::new();
         file.read_to_string(&mut toml)?;
-        Config::from_toml(&toml)
-            .map_err(|err| Error::new(ErrorKind::InvalidData, err))
+        Config::from_toml(&toml).map_err(|err| Error::new(ErrorKind::InvalidData, err))
     }
 
     /// Resolves the config for input in `dir`.
