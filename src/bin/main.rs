@@ -197,6 +197,7 @@ fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> 
     let mut use_config_path = config_path.clone();
     let mut success_cnt = 0;
     let mut skips_cnt_expected = 0;
+    let mut skips_cnt_not_belong_to_any_package = 0;
     let mut skips_cnt_parse_not_ok = 0;
     tracing::info!(
         "config.[verbose, indent] = [{:?}, {:?}], {:?}",
@@ -239,19 +240,18 @@ fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> 
             }
         }
 
-        if should_escape_not_in_project(&file, use_config.auto_apply_package()) && !is_specified_file {
-            skips_cnt_expected += 1;
+        if !is_specified_file && should_escape_not_in_package(&file, &use_config)   {
+            skips_cnt_not_belong_to_any_package += 1;
             if use_config.verbose() == Verbosity::Verbose && (options.quiet.is_none() || !options.quiet.unwrap()) {
                 println!(
-                    "\nEscape file: {} because not in project by config: {}\n",
-                    file.display(),
-                    use_config_path.clone().unwrap_or_default().display()
+                    "\nEscape file: {} because it's not belong to any Move-Package\n",
+                    file.display()
                 );
             }
             continue;
         }
 
-        if should_escape(&file, &use_config, use_config_path.clone()).is_some() && !is_specified_file {
+        if !is_specified_file && should_escape(&file, &use_config, use_config_path.clone()).is_some() {
             skips_cnt_expected += 1;
             if use_config.verbose() == Verbosity::Verbose && (options.quiet.is_none() || !options.quiet.unwrap()) {
                 println!(
@@ -336,6 +336,12 @@ fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> 
             println!(
                 "{:?} files skipped because escaped by movefmt.toml",
                 skips_cnt_expected
+            );
+        }
+        if skips_cnt_not_belong_to_any_package > 0 {
+            println!(
+                "{:?} files skipped because it's not belong to any Move-Package",
+                skips_cnt_not_belong_to_any_package
             );
         }
         if success_cnt > 0 {
@@ -561,15 +567,13 @@ fn should_escape(
     escape
 }
 
-fn should_escape_not_in_project(file: &Path, auto_apply_package: bool) -> bool {
-    if !auto_apply_package {
+fn should_escape_not_in_package(file: &Path, use_config: &Config) -> bool {
+    if !use_config.auto_apply_package() {
         return false;
     }
-
     for ancestor in file.ancestors() {
         if let Some(dir_name) = ancestor.file_name().and_then(|n| n.to_str()) {
-            if dir_name == "sources" || dir_name == "scripts" 
-            || dir_name == "tests" || dir_name == "examples" {
+            if matches!(dir_name, "sources" | "scripts" | "tests" | "examples") {
                 if let Some(parent) = ancestor.parent() {
                     let toml_path = parent.join("Move.toml");
                     if toml_path.exists() {
@@ -579,7 +583,7 @@ fn should_escape_not_in_project(file: &Path, auto_apply_package: bool) -> bool {
                     }
                 }
             }
-        }
+        }    
     }
     true
 }
