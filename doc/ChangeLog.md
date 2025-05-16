@@ -8,6 +8,7 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.2.0">v1.2.0</a><br/>
 <a href="#v1.0.9">v1.0.9</a><br/>
 <a href="#v1.0.8">v1.0.8</a><br/>
 <a href="#v1.0.7">v1.0.7</a><br/>
@@ -22,6 +23,46 @@
 </td>
 </tr>
 </table>
+
+<a id="v1.2.0"></a>
+
+## 2025-05-15, Version v1.2.0
+
+### Bug
+
+Fix Issue: movefmt.toml not work #59
+
+Fix Issue: Verbose level not work in movefmt.toml #64
+
+### Features
+
+Close Issue: Add pre-commit support for CI use [[issue39](https://github.com/movebit/movefmt/issues/39)]
+
+Close Issue: Use Semantic Versioning [[issue40](https://github.com/movebit/movefmt/issues/40)]
+
+Issue: Support auto-discovery of directories containing Move.toml [[issue63](https://github.com/movebit/movefmt/issues/63)]
+
+
+ - In `movefmt.toml`, set `auto_apply_package = true` to automatically detect and format all Move files that belong to a Move project in the specified directory (or current directory by default). Files that are not part of a Move project will be skipped.
+
+Issue:movefmt for github actions CI check [[issue65](https://github.com/movebit/movefmt/issues/65)]
+
+ - published a publicly available repository(https://github.com/movebit/movefmt-workflow) for the Move formatter workflow
+
+### TODO
+- Optimize code: Improve `SyntaxExtractor` trait
+- Support skipping code block on struct
+
+### Commits
+* [[`45f2da9`](https://github.com/movebit/movefmt/commit/45f2da9dcabbd0bf43bd70c783a95ef24b3ace79)] - Add simple-project for test `auto_apply_package`
+* [[`1e00711`](https://github.com/movebit/movefmt/commit/1e007111f2a773279f09e78ab879d9c12ecb67f4)] - Bug: File which from command line not be escaped
+* [[`68e038c`](https://github.com/movebit/movefmt/commit/68e038c8f3ab552948790abb57f3a3ac694e8e67)] - Update aptos-core to lastest
+* [[`cd53fec`](https://github.com/movebit/movefmt/commit/cd53fecf8d7668feefeddfc536f8010479c7a940)] - `Emit:diff`: support github CI log
+* [[`2e7161e`](https://github.com/movebit/movefmt/commit/2e7161e12b80b578375cc2034df41686b1838ac1)] - Add TestCase for `auto_discover_project` in `movefmt.toml`
+* [[`9e25ca3`](https://github.com/movebit/movefmt/commit/9e25ca3a1896bc0c30b750a82d54a038c9053609)] - Bug fix for issue64: `Verbose` level not work in `movefmt.toml`
+* [[`853f035`](https://github.com/movebit/movefmt/commit/853f03540e7ce431a78d1956969ca4ad046e2b7a)] - Support auto-dicover-project feature
+* [[`d618f88`](https://github.com/movebit/movefmt/commit/d618f888609cd22b997c03e2c511ce07a56ec557)] - Add format check GitHub Action
+
 
 <a id="v1.0.9"></a>
 
