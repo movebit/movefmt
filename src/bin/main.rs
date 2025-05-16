@@ -291,6 +291,11 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
                             let mut failures = HashMap::new();
                             failures.insert(file.to_owned(), compare);
                             print_mismatches_default_message(failures);
+                            
+                            // Only for github CI
+                            if std::env::var("CI").is_ok() {
+                                return Err(format_err!("check failed, source code maybe not formatted before."));
+                            }
                         }
                     }
                 }

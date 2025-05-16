@@ -164,6 +164,11 @@ impl OutputWriter {
     // in the specified color if this OutputWriter instance contains a
     // Terminal in its `terminal` field.
     pub(crate) fn writeln(&mut self, msg: &str, color: Option<term::color::Color>) {
+        if std::env::var("CI").is_ok() {
+            println!("{msg}");
+            return;
+        }
+
         match &mut self.terminal {
             Some(ref mut t) => {
                 if let Some(color) = color {
