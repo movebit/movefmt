@@ -33,7 +33,7 @@ create_config! {
     prefer_one_line_for_short_call_para_list: bool, true, true, "Prefer one line for short parameters list in function call";
     prefer_one_line_for_short_fn_header_para_list: bool, true, true, "Prefer one line for short parameters list in fun header";
     skip_formatting_dirs: String, "".to_string(), true, "Paths to escape when formatting";
-    auto_discover_project: bool, false, true, "Only format move file in `sources/tests/scripts` dirs in project with Move.toml";
+    auto_apply_package: bool, false, true, "Only format move file in `sources/tests/scripts` dirs in project with Move.toml";
 }
 
 #[derive(Error, Debug)]

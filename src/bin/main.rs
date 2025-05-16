@@ -54,8 +54,9 @@ fn main() {
 
 /// movefmt operations.
 enum Operation {
-    /// Format files and their child modules.
-    Format { files: Vec<PathBuf> },
+    /// Format files and their child modules. The bool value indicates whether 
+    /// the file is aspecified Move file from command line, which should not be escaped.
+    Format { files: Vec<(PathBuf, bool)> },
     /// Print the help message.
     Help(HelpOp),
     /// Print version information
@@ -186,7 +187,7 @@ fn execute(opts: &Options) -> Result<i32> {
     }
 }
 
-fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
+fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> {
     if options.quiet.is_none() || !options.quiet.unwrap() {
         eprintln!("options = {:?}", options);
     }
@@ -210,7 +211,7 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
         }
     }
 
-    for file in files {
+    for (file, is_specified_file) in files {
         if !file.exists() {
             eprintln!("Error: file `{}` does not exist", file.to_str().unwrap());
             continue;
@@ -238,7 +239,7 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
             }
         }
 
-        if should_escape_not_in_project(&file, use_config.auto_discover_project()) {
+        if should_escape_not_in_project(&file, use_config.auto_apply_package()) && !is_specified_file {
             skips_cnt_expected += 1;
             if use_config.verbose() == Verbosity::Verbose && (options.quiet.is_none() || !options.quiet.unwrap()) {
                 println!(
@@ -250,7 +251,7 @@ fn format(files: Vec<PathBuf>, options: &GetOptsOptions) -> Result<i32> {
             continue;
         }
 
-        if should_escape(&file, &use_config, use_config_path.clone()).is_some() {
+        if should_escape(&file, &use_config, use_config_path.clone()).is_some() && !is_specified_file {
             skips_cnt_expected += 1;
             if use_config.verbose() == Verbosity::Verbose && (options.quiet.is_none() || !options.quiet.unwrap()) {
                 println!(
@@ -389,15 +390,16 @@ fn determine_operation(matches: &Matches) -> Result<Operation, OperationError> {
             let p = PathBuf::from(s);
             // we will do comparison later, so here tries to canonicalize first
             // to get the expected behavior.
-            p.canonicalize().unwrap_or(p)
+            (p.canonicalize().unwrap_or(p), true)
         })
         .collect();
 
     if matches.opt_present("file-path") {
         if let Some(move_file_path) = matches.opt_str("file-path") {
-            files.push(move_file_path.into());
+            files.push((PathBuf::from(move_file_path), true));
         }
     }
+
 
     if matches.opt_present("dir-path") {
         if let Some(move_dir_path) = matches.opt_str("dir-path") {
@@ -413,11 +415,12 @@ fn determine_operation(matches: &Matches) -> Result<Operation, OperationError> {
                     && !x.file_name().to_str().unwrap().contains(".fmt")
                     && !x.file_name().to_str().unwrap().contains(".out")
                 {
-                    files.push(x.clone().into_path());
+                    files.push((x.clone().into_path(), false));
                 }
             }
         }
     }
+
 
     if files.is_empty() {
         eprintln!("no file argument is supplied, movefmt runs on current directory by default, \nformatting all .move files within it......");
@@ -435,7 +438,7 @@ fn determine_operation(matches: &Matches) -> Result<Operation, OperationError> {
                     && !x.file_name().to_str().unwrap().contains(".fmt")
                     && !x.file_name().to_str().unwrap().contains(".out")
                 {
-                    files.push(x.clone().into_path());
+                    files.push((x.clone().into_path(), false));
                 }
             }
         } else {
@@ -558,14 +561,15 @@ fn should_escape(
     escape
 }
 
-fn should_escape_not_in_project(file: &Path, auto_discover_project: bool) -> bool {
-    if !auto_discover_project {
+fn should_escape_not_in_project(file: &Path, auto_apply_package: bool) -> bool {
+    if !auto_apply_package {
         return false;
     }
 
     for ancestor in file.ancestors() {
         if let Some(dir_name) = ancestor.file_name().and_then(|n| n.to_str()) {
-            if dir_name == "sources" || dir_name == "scripts" || dir_name == "tests" {
+            if dir_name == "sources" || dir_name == "scripts" 
+            || dir_name == "tests" || dir_name == "examples" {
                 if let Some(parent) = ancestor.parent() {
                     let toml_path = parent.join("Move.toml");
                     if toml_path.exists() {
