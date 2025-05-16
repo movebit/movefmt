@@ -43,7 +43,7 @@ Close Issue: Use Semantic Versioning [[issue40](https://github.com/movebit/movef
 Issue: Support auto-discovery of directories containing Move.toml [[issue63](https://github.com/movebit/movefmt/issues/63)]
 
 
- - In `movefmt.toml`, set `auto_apply_package = true` to automatically detect and format all Move files that belong to a Move project in the specified directory (or current directory by default). Files that are not part of a Move project will be skipped.
+ - In `movefmt.toml`, set `auto_apply_package = true` to automatically detect and format all .move files that belong to a Move-Package in the specified directory (or current directory by default). Files that are not part of a Move-Package will be skipped.
 
 Issue:movefmt for github actions CI check [[issue65](https://github.com/movebit/movefmt/issues/65)]
 
