@@ -62,6 +62,11 @@ More usage you can see at:
 Alternatively, you can easily use the vscode plugin **aptos-move-analyzer** by installing it. We have integrated **movefmt** into it, which allows you to format the current move file with just one right-click. The VScode plugin **aptos-move-analyzer** is installed on the plugin market page with detailed guidance.
 > https://marketplace.visualstudio.com/items?itemName=MoveBit.aptos-move-analyzer
 
+## Github CI
+
+There are publicly available repository for the Move formatter workflow: https://github.com/movebit/movefmt-workflow.
+It allows you to easily integrate `movefmt` checks by configuring a simple `.github/workflows` file.
+
 ## License
 
 **movefmt**  is released under the open source [Apache License](LICENSE)
