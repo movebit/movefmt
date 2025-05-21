@@ -13,7 +13,7 @@ use movefmt::{
 use std::collections::HashMap;
 use std::env;
 use std::fs::File;
-use std::io::{self, Write};
+use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 use std::result::Result::Ok;
 use thiserror::Error;
@@ -60,6 +60,8 @@ enum Operation {
     ConfigOutputDefault { path: Option<String> },
     /// Output current config (as if formatting to a file) to stdout
     ConfigOutputCurrent { path: Option<String> },
+    /// No file specified, read from stdin
+    Stdin { exit_code: i32 },
 }
 
 /// movefmt operations errors.
@@ -77,6 +79,16 @@ pub enum OperationError {
     /// An error during escape check.
     #[error("{0}")]
     EscapeError(String),
+}
+
+/// formatting errors.
+#[derive(Error, Debug)]
+pub enum FormattingError {
+    #[error("{0}")]
+    ParseContentError(String),
+
+    #[error("{0}")]
+    FmtError(String),
 }
 
 impl From<IoError> for OperationError {
@@ -178,7 +190,48 @@ fn execute(opts: &Options) -> Result<i32> {
 
             Ok(0)
         }
+        Operation::Stdin { exit_code } => Ok(exit_code),
         Operation::Format { files } => format(files, &options),
+    }
+}
+
+fn format_string(content_origin: String, options: GetOptsOptions) -> Result<i32> {
+    let (config, config_path) = load_config(None, Some(options.clone()))?;
+    let use_config = config.clone();
+    if config.verbose() == Verbosity::Verbose {
+        if let Some(path) = config_path.as_ref() {
+            println!("Using movefmt config file {}", path.display());
+        }
+    }
+    match format_entry(content_origin.clone(), use_config.clone()) {
+        Ok(formatted_text) => {
+            let emit_mode = if let Some(op_emit) = options.emit_mode {
+                op_emit
+            } else {
+                use_config.emit_mode()
+            };
+            match emit_mode {
+                EmitMode::Diff => {
+                    let compare = make_diff(&content_origin, &formatted_text, DIFF_CONTEXT_SIZE);
+                    if !compare.is_empty() {
+                        let mut failures = HashMap::new();
+                        failures.insert(PathBuf::new(), compare);
+                        print_mismatches_default_message(failures);
+                    }
+                }
+                _ => {
+                    if options.quiet.is_none() || !options.quiet.unwrap() {
+                        tracing::warn!(
+                            "\n{}\n--------------------------------------------------------------------",
+                            "The formatted result of the Move code read from stdin is as follows:".green()
+                        );
+                    }
+                    println!("{}", formatted_text);
+                }
+            }
+            Ok(0)
+        }
+        Err(_) => Err(FormattingError::ParseContentError("parse failed".to_string()).into()),
     }
 }
 
@@ -434,6 +487,18 @@ fn determine_operation(matches: &Matches) -> Result<Operation, OperationError> {
     }
 
     if files.is_empty() {
+        let mut buffer = String::new();
+        io::stdin().read_to_string(&mut buffer)?;
+        let options = GetOptsOptions::from_matches(&matches).unwrap_or_default();
+        if let Ok(_) = format_string(buffer, options) {
+            return Ok(Operation::Stdin { exit_code: 0 });
+        } else {
+            tracing::error!(
+                "{}, please re-enter a valid move code",
+                "Format Failed on stdin's buffer".red()
+            );
+        }
+
         eprintln!("no file argument is supplied, movefmt runs on current directory by default, \nformatting all .move files within it......");
         println!("----------------------------------------------------------------------------\n");
         if let Ok(current_dir) = std::env::current_dir() {
