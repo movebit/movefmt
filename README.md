@@ -67,6 +67,26 @@ Alternatively, you can easily use the vscode plugin **aptos-move-analyzer** by i
 There are publicly available repository for the Move formatter workflow: https://github.com/movebit/movefmt-workflow.
 It allows you to easily integrate `movefmt` checks by configuring a simple `.github/workflows` file.
 
+## Pre-commit hooks
+
+This project supports **pre-commit hooks**. You can easily run the hooks by adding a `.pre-commit-config.yaml` file to your project:
+
+```yaml
+repos:
+  - repo: https://github.com/movebit/movefmt
+    rev: v1.2.1  # or a newer version
+    hooks:
+      - id: movefmt
+        args: ['--config-path', 'path/to/your/movefmt.toml']  # or additional command-line arguments
+```
+
+Then run:
+
+```bash
+pre-commit install
+pre-commit run --all-files
+```
+
 ## License
 
 **movefmt**  is released under the open source [Apache License](LICENSE)
