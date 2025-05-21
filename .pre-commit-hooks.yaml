@@ -2,4 +2,4 @@
   name: movefmt
   entry: movefmt
   language: system  # 或者 python、node、docker 等
-  types: [file]
+  pass_filenames: false
