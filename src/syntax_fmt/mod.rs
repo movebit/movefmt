@@ -1,10 +1,13 @@
 pub mod big_block_fmt;
+pub mod bin_op_fmt;
 pub mod branch_fmt;
 pub mod call_fmt;
 pub mod comment_fmt;
 pub mod expr_fmt;
 pub mod fun_fmt;
 pub mod let_fmt;
+pub mod quant_fmt;
+pub mod skip_fmt;
 pub mod spec_fmt;
+pub mod syntax_extractor;
 pub mod use_fmt;
-pub mod bin_op_fmt;

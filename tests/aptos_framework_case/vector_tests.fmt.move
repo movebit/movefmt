@@ -273,7 +273,10 @@ module std::vector_tests {
     fun remove_value_singleton_vector() {
         let v = V::empty();
         V::push_back(&mut v, 0);
-        assert!(V::borrow(&V::remove_value(&mut v, &0), 0) == &0, 0);
+        assert!(
+            V::borrow(&V::remove_value(&mut v, &0), 0) == &0,
+            0
+        );
         assert!(V::length(&v) == 0, 0);
     }
 
@@ -285,7 +288,10 @@ module std::vector_tests {
         V::push_back(&mut v, 2);
         V::push_back(&mut v, 3);
 
-        assert!(V::borrow(&V::remove_value(&mut v, &2), 0) == &2, 0);
+        assert!(
+            V::borrow(&V::remove_value(&mut v, &2), 0) == &2,
+            0
+        );
         assert!(V::length(&v) == 3, 0);
         assert!(*V::borrow(&v, 0) == 0, 0);
         assert!(*V::borrow(&v, 1) == 1, 0);
@@ -300,7 +306,10 @@ module std::vector_tests {
         V::push_back(&mut v, 2);
         V::push_back(&mut v, 3);
 
-        assert!(V::borrow(&V::remove_value(&mut v, &3), 0) == &3, 0);
+        assert!(
+            V::borrow(&V::remove_value(&mut v, &3), 0) == &3,
+            0
+        );
         assert!(V::length(&v) == 3, 0);
         assert!(*V::borrow(&v, 0) == 0, 0);
         assert!(*V::borrow(&v, 1) == 1, 0);
@@ -617,7 +626,8 @@ module std::vector_tests {
 
         test_natives_with_type<Droppable>(Droppable {}, Droppable {});
         (NotDroppable {}, NotDroppable {}) = test_natives_with_type<NotDroppable>(
-            NotDroppable {}, NotDroppable {}
+            NotDroppable {},
+            NotDroppable {}
         );
     }
 
@@ -625,10 +635,9 @@ module std::vector_tests {
     fun test_for_each() {
         let v = vector[1, 2, 3];
         let s = 0;
-        V::for_each(v,
-            |e| {
-                s = s + e;
-            });
+        V::for_each(v, |e| {
+            s = s + e;
+        });
         assert!(s == 6, 0)
     }
 
@@ -656,13 +665,10 @@ module std::vector_tests {
         let v = vector[1, 2, 3];
         let i_s = 0;
         let s = 0;
-        V::enumerate_ref(
-            &v,
-            |i, e| {
-                i_s = i_s + i;
-                s = s + *e;
-            }
-        );
+        V::enumerate_ref(&v, |i, e| {
+            i_s = i_s + i;
+            s = s + *e;
+        });
         assert!(i_s == 3, 0);
         assert!(s == 6, 0);
     }
@@ -679,11 +685,10 @@ module std::vector_tests {
     fun test_for_each_mut() {
         let v = vector[1, 2, 3];
         let s = 2;
-        V::for_each_mut(&mut v,
-            |e| {
-                *e = s;
-                s = s + 1
-            });
+        V::for_each_mut(&mut v, |e| {
+            *e = s;
+            s = s + 1
+        });
         assert!(v == vector[2, 3, 4], 0)
     }
 
@@ -718,7 +723,7 @@ module std::vector_tests {
                 let e2: &mut u64 = e2;
                 *e1 = *e1 + 1;
                 *e2 = *e2 + 10;
-            },
+            }
         );
         assert!(v1 == vector[2, 3, 4], 0);
         assert!(v2 == vector[20, 30, 40], 0);
@@ -773,14 +778,11 @@ module std::vector_tests {
         let v = vector[1, 2, 3];
         let i_s = 0;
         let s = 2;
-        V::enumerate_mut(
-            &mut v,
-            |i, e| {
-                i_s = i_s + i;
-                *e = s;
-                s = s + 1
-            },
-        );
+        V::enumerate_mut(&mut v, |i, e| {
+            i_s = i_s + i;
+            *e = s;
+            s = s + 1
+        });
         assert!(i_s == 3, 0);
         assert!(v == vector[2, 3, 4], 0);
     }
@@ -876,7 +878,10 @@ module std::vector_tests {
     fun test_stable_partition() {
         let v: vector<u64> = vector[1, 2, 3, 4, 5];
 
-        assert!(vector::stable_partition(&mut v, |n| *n % 2 == 0) == 2, 0);
+        assert!(
+            vector::stable_partition(&mut v, |n| *n % 2 == 0) == 2,
+            0
+        );
         assert!(&v == &vector[2, 4, 1, 3, 5], 1);
 
         assert!(vector::partition(&mut v, |_n| false) == 0, 0);
@@ -969,9 +974,11 @@ module std::vector_tests {
     #[test]
     fun test_destroy() {
         let v = vector[MoveOnly {}];
-        vector::destroy(v,
+        vector::destroy(
+            v,
             |m| {
                 let MoveOnly {} = m;
-            })
+            }
+        )
     }
 }

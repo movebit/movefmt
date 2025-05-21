@@ -4,6 +4,8 @@
 
 use lsp_types::{Location, Position};
 use move_command_line_common::files::FileHash;
+use move_compiler::shared::{CompilationEnv, LanguageVersion};
+use move_compiler::Flags;
 use move_ir_types::location::*;
 
 use std::collections::HashMap;
@@ -370,6 +372,37 @@ pub fn mk_result_filepath(x: &Path) -> PathBuf {
     let mut ret = x.clone();
     ret.push(format!("{}{}", &b.as_str()[0..index], ".fmt.out"));
     ret
+}
+
+pub fn remove_trailing_whitespaces_util(input_str: String) -> String {
+    input_str
+        .lines()
+        .collect::<Vec<_>>()
+        .iter()
+        .map(|line| line.trim_end_matches(|c| c == ' '))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+pub fn process_last_empty_line_util(input_str: String) -> String {
+    let mut lines = input_str.lines().collect::<Vec<&str>>();
+    let last_line = lines.last().unwrap_or(&"");
+
+    if last_line.is_empty() {
+        while lines.len() > 1 && lines[lines.len() - 2].is_empty() {
+            lines.pop();
+        }
+    } else {
+        lines.push("");
+    }
+
+    lines.join("\n")
+}
+
+pub fn get_compile_env() -> CompilationEnv {
+    let mut flags = Flags::testing();
+    flags = flags.set_language_version(LanguageVersion::V2);
+    CompilationEnv::new(flags, std::collections::BTreeSet::new())
 }
 
 pub const PROJECT_FILE_NAME: &str = "Move.toml";

@@ -15,7 +15,7 @@ module ExperimentalFramework::MultiToken {
         token_id: guid::GUID,
         /// Pointer to where the content and metadata is stored.
         content_uri: vector<u8>,
-        supply: u64,
+        supply: u64
     }
 
     /// A hot potato wrapper for the token's metadata. Since this wrapper has no `key` or `store`
@@ -25,7 +25,7 @@ module ExperimentalFramework::MultiToken {
     struct TokenDataWrapper<TokenType: store> {
         origin: address,
         index: u64,
-        metadata: TokenType,
+        metadata: TokenType
     }
 
     /// Struct representing a semi-fungible or non-fungible token (depending on the supply).
@@ -34,22 +34,22 @@ module ExperimentalFramework::MultiToken {
     /// under the creator's address.
     struct Token<phantom TokenType: store> has key, store {
         id: guid::ID,
-        balance: u64,
+        balance: u64
     }
 
     struct MintEvent has copy, drop, store {
         id: guid::ID,
         creator: address,
         content_uri: vector<u8>,
-        amount: u64,
+        amount: u64
     }
 
     struct Admin has key {
-        mint_events: event::EventHandle<MintEvent>,
+        mint_events: event::EventHandle<MintEvent>
     }
 
     struct TokenDataCollection<TokenType: store> has key {
-        tokens: vector<TokenData<TokenType>>,
+        tokens: vector<TokenData<TokenType>>
     }
 
     spec fun get_tokens<TokenType>(addr: address): vector<TokenData<TokenType>> {
@@ -115,8 +115,9 @@ module ExperimentalFramework::MultiToken {
     }
 
     /// Extract the MultiToken data of the given token into a hot potato wrapper.
-    public fun extract_token<TokenType: store>(nft: &Token<TokenType>)
-        : TokenDataWrapper<TokenType> acquires TokenDataCollection {
+    public fun extract_token<TokenType: store>(
+        nft: &Token<TokenType>
+    ): TokenDataWrapper<TokenType> acquires TokenDataCollection {
         let owner_addr = guid::id_creator_address(&nft.id);
         let tokens =
             &mut borrow_global_mut<TokenDataCollection<TokenType>>(owner_addr).tokens;
@@ -142,7 +143,8 @@ module ExperimentalFramework::MultiToken {
                 index: min_token_idx,
                 metadata: option::borrow(token_collection[min_token_idx].metadata)
             };
-        ensures get_tokens<TokenType>(addr)[min_token_idx].metadata == option::spec_none();
+        ensures get_tokens<TokenType>(addr)[min_token_idx].metadata
+            == option::spec_none();
     }
 
     /// Restore the token in the wrapper back into global storage under original address.
@@ -175,13 +177,13 @@ module ExperimentalFramework::MultiToken {
         let i = 0;
         let len1 = vector::length(gallery);
         while ({
-                spec {
-                    invariant i >= 0;
-                    invariant i <= len(gallery);
-                    invariant forall k in 0..i: gallery[k].token_id.id != id;
-                };
-                (i < len1)
-            }) {
+            spec {
+                invariant i >= 0;
+                invariant i <= len(gallery);
+                invariant forall k in 0..i: gallery[k].token_id.id != id;
+            };
+            (i < len1)
+        }) {
             if (guid::eq_id(&vector::borrow(gallery, i).token_id, id)) {
                 return option::some(i)
             };
@@ -205,7 +207,10 @@ module ExperimentalFramework::MultiToken {
     ) {
         let Token { id, balance } = other;
         assert!(*&token.id == id, EWRONG_TOKEN_ID);
-        assert!(MAX_U64 - token.balance >= balance, ETOKEN_BALANCE_OVERFLOWS);
+        assert!(
+            MAX_U64 - token.balance >= balance,
+            ETOKEN_BALANCE_OVERFLOWS
+        );
         token.balance = token.balance + balance
     }
 
@@ -237,7 +242,9 @@ module ExperimentalFramework::MultiToken {
         assert!(signer::address_of(&account) == ADMIN, ENOT_ADMIN);
         move_to(
             &account,
-            Admin { mint_events: event::new_event_handle<MintEvent>(&account), },
+            Admin {
+                mint_events: event::new_event_handle<MintEvent>(&account)
+            }
         )
     }
 
@@ -250,7 +257,10 @@ module ExperimentalFramework::MultiToken {
 
     /// Create a` TokenData<TokenType>` that wraps `metadata` and with balance of `amount`
     public fun create<TokenType: store>(
-        account: &signer, metadata: TokenType, content_uri: vector<u8>, amount: u64
+        account: &signer,
+        metadata: TokenType,
+        content_uri: vector<u8>,
+        amount: u64
     ): Token<TokenType> acquires Admin, TokenDataCollection {
         let guid = guid::create(account);
         event::emit_event(
@@ -259,14 +269,16 @@ module ExperimentalFramework::MultiToken {
                 id: guid::id(&guid),
                 creator: signer::address_of(account),
                 content_uri: copy content_uri,
-                amount,
-            },
+                amount
+            }
         );
         let id = guid::id(&guid);
         if (!exists<TokenDataCollection<TokenType>>(signer::address_of(account))) {
             move_to(
                 account,
-                TokenDataCollection { tokens: vector::empty<TokenData<TokenType>>() },
+                TokenDataCollection {
+                    tokens: vector::empty<TokenData<TokenType>>()
+                }
             );
         };
         let token_data_collection =
@@ -280,7 +292,7 @@ module ExperimentalFramework::MultiToken {
                 token_id: guid,
                 content_uri,
                 supply: amount
-            },
+            }
         );
         Token { id, balance: amount }
     }

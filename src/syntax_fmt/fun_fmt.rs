@@ -4,18 +4,17 @@
 
 use crate::core::token_tree::{NestKind, NestKind_, TokenTree};
 use crate::syntax_fmt::expr_fmt;
-use crate::tools::syntax::parse_file_string;
-use crate::tools::utils::FileLineMappingOneFile;
+use crate::tools::utils::*;
 use commentfmt::Config;
 use move_command_line_common::files::FileHash;
-use move_compiler::parser::ast::Definition;
 use move_compiler::parser::ast::*;
 use move_compiler::parser::lexer::{Lexer, Tok};
+use move_compiler::parser::syntax::parse_file_string;
 use move_compiler::shared::ast_debug;
-use move_compiler::shared::{CompilationEnv, Identifier};
-use move_compiler::Flags;
+use move_compiler::shared::Identifier;
 use move_ir_types::location::*;
-use std::collections::BTreeSet;
+
+use super::syntax_extractor::SingleSyntaxExtractor;
 
 #[derive(Debug, Default)]
 pub struct FunExtractor {
@@ -26,12 +25,11 @@ pub struct FunExtractor {
     pub body_loc_vec: Vec<Loc>,
     pub loc_line_vec: Vec<(u32, u32)>,
     pub line_mapping: FileLineMappingOneFile,
-    pub belong_module_for_fn: Vec<u32>,
-    pub cur_module_id: u32,
+    pub source: String,
 }
 
-impl FunExtractor {
-    pub fn new(fmt_buffer: String) -> Self {
+impl SingleSyntaxExtractor for FunExtractor {
+    fn new(fmt_buffer: String) -> Self {
         let mut this_fun_extractor = Self {
             attributes: vec![],
             loc_vec: vec![],
@@ -40,56 +38,61 @@ impl FunExtractor {
             body_loc_vec: vec![],
             loc_line_vec: vec![],
             line_mapping: FileLineMappingOneFile::default(),
-            belong_module_for_fn: vec![],
-            cur_module_id: 0,
+            source: fmt_buffer.clone(),
         };
 
         this_fun_extractor.line_mapping.update(&fmt_buffer);
         this_fun_extractor
     }
 
+    fn collect_seq_item(&mut self, _s: &SequenceItem) {}
+
+    fn collect_seq(&mut self, _s: &Sequence) {}
+
+    fn collect_spec(&mut self, _spec_block: &SpecBlock) {}
+
+    fn collect_expr(&mut self, _e: &Exp) {}
+
+    fn collect_const(&mut self, _c: &Constant) {}
+
+    fn collect_struct(&mut self, _s: &StructDefinition) {}
+
     fn collect_function(&mut self, d: &Function) {
-        match &d.body.value {
-            FunctionBody_::Defined(..) => {
-                let start_line = self
-                    .line_mapping
-                    .translate(d.loc.start(), d.loc.start())
-                    .unwrap()
-                    .start
-                    .line;
-                let end_line = self
-                    .line_mapping
-                    .translate(d.loc.end(), d.loc.end())
-                    .unwrap()
-                    .start
-                    .line;
-                let attributes: Vec<Attributes> = d.attributes.clone();
-                self.attributes.push(attributes);
-                self.loc_vec.push(d.loc);
+        let start_line = self
+            .line_mapping
+            .translate(d.loc.start(), d.loc.start())
+            .unwrap()
+            .start
+            .line;
+        let end_line = self
+            .line_mapping
+            .translate(d.loc.end(), d.loc.end())
+            .unwrap()
+            .start
+            .line;
+        let attributes: Vec<Attributes> = d.attributes.clone();
+        self.attributes.push(attributes);
+        self.loc_vec.push(d.loc);
 
-                if d.signature.parameters.is_empty() {
-                    self.para_span_vec.push(Loc::new(FileHash::empty(), 0, 0));
-                } else {
-                    let first_para_loc = d.signature.parameters.first().unwrap().0.loc();
-                    let last_para_loc = d.signature.parameters.last().unwrap().0.loc();
-                    self.para_span_vec.push(Loc::new(
-                        first_para_loc.file_hash(),
-                        first_para_loc.start(),
-                        last_para_loc.end(),
-                    ));
-                }
-
-                if let Type_::Unit = d.signature.return_type.value {
-                    self.ret_ty_loc_vec.push(Loc::new(FileHash::empty(), 0, 0));
-                } else {
-                    self.ret_ty_loc_vec.push(d.signature.return_type.loc);
-                }
-                self.body_loc_vec.push(d.body.loc);
-                self.loc_line_vec.push((start_line, end_line));
-                self.belong_module_for_fn.push(self.cur_module_id);
-            }
-            FunctionBody_::Native => {}
+        if d.signature.parameters.is_empty() {
+            self.para_span_vec.push(Loc::new(FileHash::empty(), 0, 0));
+        } else {
+            let first_para_loc = d.signature.parameters.first().unwrap().0.loc();
+            let last_para_loc = d.signature.parameters.last().unwrap().0.loc();
+            self.para_span_vec.push(Loc::new(
+                first_para_loc.file_hash(),
+                first_para_loc.start(),
+                last_para_loc.end(),
+            ));
         }
+
+        if let Type_::Unit = d.signature.return_type.value {
+            self.ret_ty_loc_vec.push(Loc::new(FileHash::empty(), 0, 0));
+        } else {
+            self.ret_ty_loc_vec.push(d.signature.return_type.loc);
+        }
+        self.body_loc_vec.push(d.body.loc);
+        self.loc_line_vec.push((start_line, end_line));
     }
 
     fn collect_module(&mut self, d: &ModuleDefinition) {
@@ -135,7 +138,6 @@ fn get_space_cnt_before_line_str(s: &str) -> usize {
 impl FunExtractor {
     pub(crate) fn preprocess(&mut self, module_defs: Vec<Definition>) {
         for d in module_defs.iter() {
-            self.cur_module_id += 1;
             self.collect_definition(d);
         }
     }
@@ -168,16 +170,31 @@ impl FunExtractor {
 
         false
     }
-    pub(crate) fn is_parameter_paren_in_fun_header(&self, kind: &NestKind) -> bool {
+
+    pub(crate) fn is_parameter_paren_in_fun_header(&self, kind: &NestKind) -> (bool, usize) {
         if kind.kind != NestKind_::ParentTheses {
-            return false;
+            return (false, 0);
         }
-        for para_span in &self.para_span_vec {
+        for (i, para_span) in self.para_span_vec.iter().enumerate() {
             if kind.start_pos <= para_span.start() && para_span.end() <= kind.end_pos {
-                return true;
+                let header_str = if self.body_loc_vec[i].end() - self.body_loc_vec[i].start() == 0 {
+                    // no function body
+                    &self.source[self.loc_vec[i].start() as usize..self.loc_vec[i].end() as usize]
+                } else {
+                    &self.source
+                        [self.loc_vec[i].start() as usize..self.body_loc_vec[i].start() as usize]
+                };
+
+                let fun_header_len = header_str
+                    .replace('\n', "")
+                    .split_whitespace()
+                    .collect::<Vec<&str>>()
+                    .join("")
+                    .len();
+                return (true, fun_header_len);
             }
         }
-        false
+        (false, 0)
     }
 
     pub(crate) fn should_skip_this_fun_body(&self, kind: &NestKind) -> bool {
@@ -219,10 +236,8 @@ impl FunExtractor {
 }
 
 fn get_defs(fmt_buffer: String) -> Vec<Definition> {
-    let attrs: BTreeSet<String> = BTreeSet::new();
-    let mut env = CompilationEnv::new(Flags::testing(), attrs);
     let filehash = FileHash::empty();
-    parse_file_string(&mut env, filehash, &fmt_buffer)
+    parse_file_string(&mut get_compile_env(), filehash, &fmt_buffer)
         .unwrap()
         .0
 }
@@ -231,7 +246,7 @@ pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &str) -> Str
     use std::collections::HashSet;
     let mut specifier_str_set: HashSet<String> = HashSet::new();
 
-    tracing::debug!("fun_specifier_str = {}", specifier);
+    tracing::trace!("fun_specifier_str = {}", specifier);
 
     let mut fun_specifiers_code = vec![];
     let mut lexer = Lexer::new(specifier, FileHash::empty());
@@ -303,7 +318,6 @@ pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &str) -> Str
                 }
 
                 if this_token_is_comment {
-                    // tracing::debug!("intern> this token is comment -- {}",  item_j);
                     chain.push(item_j.to_string());
                     continue;
                 }
@@ -317,7 +331,6 @@ pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &str) -> Str
                     break;
                 } else {
                     let judge_new_line = &specifier[old_last_substr_len..*last_substr_len];
-                    // tracing::debug!("judge_new_line = {:?}", judge_new_line);
                     if judge_new_line.contains('\n') {
                         chain.push("\n".to_string());
                         let tmp_indent_str = " ".to_string().repeat(
@@ -329,7 +342,6 @@ pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &str) -> Str
                     chain.push(item_j.to_string());
                 }
             }
-            // tracing::debug!("intern> chain[{:?}] -- {:?}", i, chain);
             chain
         };
 
@@ -339,11 +351,8 @@ pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &str) -> Str
             // if this token's pos not comment
             for token_idx in 0..fun_specifiers_code.len() {
                 let token = &fun_specifiers_code[token_idx];
-                // tracing::debug!("iter_specifier = {}, specifier_set = {}", iter_specifier, specifier_set);
-                // tracing::debug!("token.0 = {}, idx = {}, last_substr_len = {}", token.0, idx, last_substr_len);
                 if token.0 == (idx + last_substr_len) as u32 {
                     this_token_is_comment = false;
-                    // tracing::debug!("token.0 = {} === idx + last_substr_len = {}", token.0, idx + last_substr_len);
                     fun_specifiers_code.remove(token_idx);
                     break;
                 }
@@ -352,7 +361,6 @@ pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &str) -> Str
         }
 
         if this_token_is_comment {
-            // tracing::debug!("extern> this token is comment -- {}",  specifier_set);
             continue;
         }
 
@@ -377,7 +385,6 @@ pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &str) -> Str
             }
         }
 
-        // tracing::debug!("<< for loop end, last_substr_len = {}, specifier.len = {}", last_substr_len, specifier.len());
         if last_substr_len == specifier.len() {
             break;
         }
@@ -387,7 +394,6 @@ pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &str) -> Str
     if found_specifier {
         ret_str.push_str(fun_specifier_fmted_str.as_str());
         ret_str.push(' ');
-        // tracing::debug!("fun_specifier_fmted_str = --------------{}", ret_str);
     } else {
         ret_str = specifier.to_string();
     }
@@ -460,7 +466,7 @@ pub(crate) fn process_fun_header_too_long(fmt_buffer: String, config: Config) ->
         lexer.advance().unwrap();
         while lexer.peek() != Tok::EOF {
             if lexer.peek() == Tok::Colon {
-                insert_loc = lexer.start_loc();
+                insert_loc = lexer.start_loc() + 1;
             }
             lexer.advance().unwrap();
         }
@@ -482,11 +488,17 @@ pub(crate) fn process_fun_header_too_long(fmt_buffer: String, config: Config) ->
         let fun_header_str = get_nth_line(buf.as_str(), start_line as usize).unwrap_or_default();
         let trimed_header_prefix = fun_header_str.trim_start();
         if !trimed_header_prefix.is_empty() {
+            let s = result[fun_loc.start() as usize + insert_char_nums + insert_loc..].to_string();
+            if s.trim_start().starts_with("(\n") {
+                fun_idx += 1;
+                continue;
+            }
+
             let mut insert_str = "\n".to_string();
             if let Some(indent) = fun_header_str.find(trimed_header_prefix) {
                 insert_str.push_str(
                     " ".to_string()
-                        .repeat(indent + config.indent_size())
+                        .repeat(indent + config.indent_size() - 1)
                         .as_str(),
                 );
             }
@@ -532,12 +544,9 @@ pub(crate) fn process_fun_ret_ty(fmt_buffer: String, config: Config) -> String {
                 continue;
             }
 
-            // tracing::debug!("fun_header_str = {:?}, ret_ty_str = {:?}", fun_header_str, ret_ty_str);
             let indent1 = get_space_cnt_before_line_str(fun_header_str);
             let indent2 = get_space_cnt_before_line_str(ret_ty_str);
-            // tracing::debug!("indent1 = {}, indent2 = {}", indent1, indent2);
             if indent1 == indent2 {
-                // tracing::debug!("fun_header_str = \n{:?}", &buf[0..(ret_ty_loc.start() as usize - ret_ty_str.len())]);
                 result.insert_str(
                     ret_ty_loc.start() as usize - ret_ty_str.len() + insert_char_nums,
                     " ".to_string().repeat(config.indent_size()).as_str(),
@@ -546,10 +555,10 @@ pub(crate) fn process_fun_ret_ty(fmt_buffer: String, config: Config) -> String {
             }
         }
     }
-    // tracing::debug!("result = \n{}", result);
     result
 }
 
+#[allow(dead_code)]
 pub(crate) fn process_fun_annotation(kind: NestKind, elements: Vec<TokenTree>) -> String {
     fn process_simple_token(token: &TokenTree, next_token: Option<&TokenTree>) -> String {
         let mut fmt_result_str = "".to_string();
@@ -562,12 +571,7 @@ pub(crate) fn process_fun_annotation(kind: NestKind, elements: Vec<TokenTree>) -
 
     fn process_nested_token(nested_token_tree: &TokenTree) -> String {
         let mut fmt_result_str = "".to_string();
-        if let TokenTree::Nested {
-            elements,
-            kind,
-            note: _,
-        } = nested_token_tree
-        {
+        if let TokenTree::Nested { elements, kind, .. } = nested_token_tree {
             fmt_result_str.push_str(kind.start_token_tree().simple_str().unwrap_or_default());
             let mut internal_token_idx = 0;
             while internal_token_idx < elements.len() {

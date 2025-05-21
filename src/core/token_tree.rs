@@ -2,7 +2,6 @@
 // Copyright (c) The BitsLab.MoveBit Contributors
 // SPDX-License-Identifier: Apache-2.0
 
-use core::panic;
 use move_command_line_common::files::FileHash;
 use move_compiler::parser::ast::Definition;
 use move_compiler::parser::ast::*;
@@ -154,17 +153,8 @@ impl Default for TokenTree {
 impl TokenTree {
     pub fn get_note(&self) -> Option<Note> {
         match self {
-            TokenTree::SimpleToken {
-                content: _,
-                pos: _,
-                tok: _,
-                note,
-            } => *note,
-            TokenTree::Nested {
-                elements: _,
-                kind: _,
-                note,
-            } => *note,
+            TokenTree::SimpleToken { note, .. } => *note,
+            TokenTree::Nested { note, .. } => *note,
         }
     }
 
@@ -194,29 +184,15 @@ impl TokenTree {
 
     pub fn get_start_tok(&self) -> Tok {
         match self {
-            TokenTree::SimpleToken {
-                content: _,
-                pos: _,
-                tok,
-                ..
-            } => *tok,
-            TokenTree::Nested {
-                elements: _, kind, ..
-            } => kind.kind.start_tok(),
+            TokenTree::SimpleToken { tok, .. } => *tok,
+            TokenTree::Nested { kind, .. } => kind.kind.start_tok(),
         }
     }
 
     pub fn get_end_tok(&self) -> Tok {
         match self {
-            TokenTree::SimpleToken {
-                content: _,
-                pos: _,
-                tok,
-                ..
-            } => *tok,
-            TokenTree::Nested {
-                elements: _, kind, ..
-            } => kind.kind.end_tok(),
+            TokenTree::SimpleToken { tok, .. } => *tok,
+            TokenTree::Nested { kind, .. } => kind.kind.end_tok(),
         }
     }
 
@@ -435,6 +411,9 @@ impl<'a> Parser<'a> {
         }
 
         fn collect_script(p: &mut Parser, d: &Script) {
+            for const_data in &d.constants {
+                collect_const(p, const_data);
+            }
             collect_function(p, &d.function);
             for s in d.specs.iter() {
                 collect_spec(p, s);
@@ -488,9 +467,6 @@ impl<'a> Parser<'a> {
 
         fn collect_expr(p: &mut Parser, e: &Exp) {
             match &e.value {
-                Exp_::Value(_) => {}
-                Exp_::Move(_) => {}
-                Exp_::Copy(_) => {}
                 Exp_::Name(name, tys) => {
                     if tys.is_some() {
                         if name.loc.end() > e.loc.end() {
@@ -509,15 +485,45 @@ impl<'a> Parser<'a> {
                         );
                     } else {
                         p.type_lambda_pair.push((name.loc.end(), es.loc.start()));
+                        tracing::debug!(
+                            "code spniet: {:?}",
+                            &p.source[name.loc.end() as usize..es.loc.start() as usize]
+                        );
                     }
+                    tracing::debug!("in call, es = {:?}", es.value);
                     es.value.iter().for_each(|e| collect_expr(p, e));
                 }
-                Exp_::Pack(name, _tys, es) => {
+                Exp_::Pack(name, tys, es) => {
                     if let Some(e) = es.first() {
                         if name.loc.end() > e.0.loc().start() {
                             tracing::debug!("name loc end > exp loc end: {:?}", e);
                         } else {
                             p.type_lambda_pair.push((name.loc.end(), e.0.loc().start()));
+                        }
+                    } else {
+                        if tys.is_some() {
+                            let ty_vec = tys.clone().unwrap();
+                            let last_ty = ty_vec.last();
+                            if last_ty.is_some() {
+                                tracing::debug!(
+                                    "Pack -- code spniet: {:?}",
+                                    &p.source[name.loc.end() as usize
+                                        ..last_ty.unwrap().loc.end() as usize]
+                                );
+                                let end_str = &p.source
+                                    [last_ty.unwrap().loc.end() as usize..e.loc.end() as usize];
+                                if let Some(idx) = end_str.find('>') {
+                                    tracing::debug!(
+                                        "Pack 22-- code spniet: {:?}",
+                                        &p.source[name.loc.end() as usize
+                                            ..last_ty.unwrap().loc.end() as usize + idx + 1]
+                                    );
+                                    p.type_lambda_pair.push((
+                                        name.loc.end(),
+                                        last_ty.unwrap().loc.end() + idx as u32 + 1,
+                                    ));
+                                }
+                            }
                         }
                     }
                     es.iter().for_each(|e| collect_expr(p, &e.1));
@@ -537,17 +543,18 @@ impl<'a> Parser<'a> {
                         collect_expr(p, else_.as_ref());
                     }
                 }
-                Exp_::While(e, then_) => {
+                // Zax 20241217 issue45
+                Exp_::While(_, e, then_) => {
                     collect_expr(p, e.as_ref());
                     collect_expr(p, then_.as_ref());
                 }
-                Exp_::Loop(b) => {
+                Exp_::Loop(_, b) => {
                     collect_expr(p, b.as_ref());
                 }
                 Exp_::Block(b) => collect_seq(p, b),
-
-                Exp_::Lambda(b, e) => {
-                    p.type_lambda_pair.push((b.loc.start(), b.loc.end()));
+                // Zax 20241217 issue45
+                Exp_::Lambda(tb, e, _, _ability) => {
+                    p.type_lambda_pair.push((tb.loc.start(), tb.loc.end()));
                     collect_expr(p, e.as_ref());
                 }
                 Exp_::Quant(_, _, es, e1, e2) => {
@@ -564,8 +571,8 @@ impl<'a> Parser<'a> {
                 Exp_::ExpList(es) => {
                     es.iter().for_each(|e| collect_expr(p, e));
                 }
-                Exp_::Unit => {}
-                Exp_::Assign(l, r) => {
+                // Zax 20241217 issue45
+                Exp_::Assign(l, _bin_op, r) => {
                     collect_expr(p, l.as_ref());
                     collect_expr(p, r.as_ref());
                 }
@@ -577,8 +584,7 @@ impl<'a> Parser<'a> {
                 Exp_::Abort(e) => {
                     collect_expr(p, e.as_ref());
                 }
-                Exp_::Break => {}
-                Exp_::Continue => {}
+
                 Exp_::Dereference(e) => {
                     collect_expr(p, e.as_ref());
                 }
@@ -612,6 +618,19 @@ impl<'a> Parser<'a> {
                 Exp_::UnresolvedError => {
                     unreachable!()
                 }
+                Exp_::Match(target, body) => {
+                    collect_expr(p, target.as_ref());
+                    for body_item in body {
+                        let (_, opt_exp, exp) = &body_item.value;
+                        if opt_exp.is_some() {
+                            let opt_condition_exp = opt_exp.clone().unwrap();
+                            collect_expr(p, &opt_condition_exp);
+                        }
+                        collect_expr(p, &exp);
+                    }
+                }
+                // Exp_::Value  Exp_::Move Exp_::Copy Exp_::Unit Exp_::Break Exp_::Continue
+                _ => {}
             }
         }
 
@@ -938,7 +957,6 @@ impl CommentExtrator {
                 }
             };
         }
-        // tracing::info!("xxxx:{}", content.len());
         while index <= last_index {
             let c = content.get(index).unwrap();
             // tracing::info!(
@@ -1030,8 +1048,7 @@ impl CommentExtrator {
                     } else if *c == QUOTE {
                         state = ExtratorCommentState::Init;
                     } else if *c == NEW_LINE {
-                        // return Err(CommentExtratorErr::NewLineInQuote);
-                        panic!("1")
+                        return Err(CommentExtratorErr::NewLineInQuote);
                     }
                 }
             };
@@ -1046,11 +1063,9 @@ impl CommentExtrator {
 
 #[cfg(test)]
 mod comment_test {
-    use crate::tools::syntax::parse_file_string;
-    use move_compiler::{shared::CompilationEnv, Flags};
-    use std::collections::BTreeSet;
-
     use super::*;
+    use crate::tools::utils::*;
+    use move_compiler::parser::syntax::parse_file_string;
     #[test]
     fn token_tree_to_json() {
         let content = r#"module 0x1::xxx{
@@ -1059,9 +1074,36 @@ mod comment_test {
             }
           }"#;
         let filehash = FileHash::empty();
-        let attrs: BTreeSet<String> = BTreeSet::new();
-        let mut env = CompilationEnv::new(Flags::testing(), attrs);
-        let (defs, _) = parse_file_string(&mut env, filehash, content).unwrap();
+        let (defs, _) = parse_file_string(&mut get_compile_env(), filehash, content).unwrap();
+        let lexer = Lexer::new(content, filehash);
+        let parse = Parser::new(lexer, &defs, content.to_string());
+        let token_tree = parse.parse_tokens();
+        let s = serde_json::to_string(&token_tree).unwrap();
+        // check this using some online json tool.
+        eprintln!("json:{:?}", s);
+        let and_op_num = s.matches("\"content\":\",\"").count() as u32;
+        eprintln!("and_op_num:{}", and_op_num);
+    }
+
+    #[test]
+    fn test_token_tree_to_json2() {
+        let content = r#"
+module test {
+    public fun transfer<CoinType1, CoinType2>(
+    from: &signer, to: address, amount: u64
+) {
+    BasicCoin::transfer<PoolToken<CoinType1, CoinType2>>(
+        from,
+        to,
+        amount,
+        PoolToken<CoinType1,
+        CoinType2  >  {}
+    );
+}
+}
+        "#;
+        let filehash = FileHash::empty();
+        let (defs, _) = parse_file_string(&mut get_compile_env(), filehash, content).unwrap();
         let lexer = Lexer::new(content, filehash);
         let parse = Parser::new(lexer, &defs, content.to_string());
         let token_tree = parse.parse_tokens();
@@ -1100,6 +1142,7 @@ mod comment_test {
         }
         assert_eq!(v.len(), x.comments.len());
     }
+
     #[test]
     fn test_comment_extrator_ok2() {
         let _x = CommentExtrator::new(r#"/* /* 1 */ */"#).unwrap();

@@ -8,6 +8,13 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.2.0">v1.2.0</a><br/>
+<a href="#v1.0.9">v1.0.9</a><br/>
+<a href="#v1.0.8">v1.0.8</a><br/>
+<a href="#v1.0.7">v1.0.7</a><br/>
+<a href="#v1.0.6">v1.0.6</a><br/>
+<a href="#v1.0.5">v1.0.5</a><br/>
+<a href="#v1.0.4">v1.0.4</a><br/>
 <a href="#v1.0.3">v1.0.3</a><br/>
 <a href="#v1.0.2">v1.0.2</a><br/>
 <a href="#v1.0.1">v1.0.1</a><br/>
@@ -17,6 +24,192 @@
 </tr>
 </table>
 
+<a id="v1.2.0"></a>
+
+## 2025-05-15, Version v1.2.0
+
+### Bug
+
+Fix Issue: movefmt.toml not work #59
+
+Fix Issue: Verbose level not work in movefmt.toml #64
+
+### Features
+
+Close Issue: Add pre-commit support for CI use [[issue39](https://github.com/movebit/movefmt/issues/39)]
+
+Close Issue: Use Semantic Versioning [[issue40](https://github.com/movebit/movefmt/issues/40)]
+
+Issue: Support auto-discovery of directories containing Move.toml [[issue63](https://github.com/movebit/movefmt/issues/63)]
+
+
+ - In `movefmt.toml`, set `auto_apply_package = true` to automatically detect and format all .move files that belong to a Move-Package in the specified directory (or current directory by default). Files that are not part of a Move-Package will be skipped.
+
+Issue:movefmt for github actions CI check [[issue65](https://github.com/movebit/movefmt/issues/65)]
+
+ - published a publicly available repository(https://github.com/movebit/movefmt-workflow) for the Move formatter workflow
+
+### TODO
+- Optimize code: Improve `SyntaxExtractor` trait
+- Support skipping code block on struct
+
+### Commits
+* [[`45f2da9`](https://github.com/movebit/movefmt/commit/45f2da9dcabbd0bf43bd70c783a95ef24b3ace79)] - Add simple-project for test `auto_apply_package`
+* [[`1e00711`](https://github.com/movebit/movefmt/commit/1e007111f2a773279f09e78ab879d9c12ecb67f4)] - Bug: File which from command line not be escaped
+* [[`68e038c`](https://github.com/movebit/movefmt/commit/68e038c8f3ab552948790abb57f3a3ac694e8e67)] - Update aptos-core to lastest
+* [[`cd53fec`](https://github.com/movebit/movefmt/commit/cd53fecf8d7668feefeddfc536f8010479c7a940)] - `Emit:diff`: support github CI log
+* [[`2e7161e`](https://github.com/movebit/movefmt/commit/2e7161e12b80b578375cc2034df41686b1838ac1)] - Add TestCase for `auto_discover_project` in `movefmt.toml`
+* [[`9e25ca3`](https://github.com/movebit/movefmt/commit/9e25ca3a1896bc0c30b750a82d54a038c9053609)] - Bug fix for issue64: `Verbose` level not work in `movefmt.toml`
+* [[`853f035`](https://github.com/movebit/movefmt/commit/853f03540e7ce431a78d1956969ca4ad046e2b7a)] - Support auto-dicover-project feature
+* [[`d618f88`](https://github.com/movebit/movefmt/commit/d618f888609cd22b997c03e2c511ce07a56ec557)] - Add format check GitHub Action
+
+
+<a id="v1.0.9"></a>
+
+## 2025-04-30, Version v1.0.9
+
+### Features
+- Feature: `movefmt.toml` add `skip_formatting_dirs` to skip all files in expected dir
+- Fixed bug: issue#59
+
+### TODO
+- Optimize code: Improve `SyntaxExtractor` trait
+- Support skipping code block on struct
+
+### Commits
+* [[`9c8ad8b`](https://github.com/movebit/movefmt/commit/2105b46cc6d32adf73212054e6e9778ba9c8ad8b)] - fix issue#59: `movefmt.toml` only work in `Verbose::Verbose`
+* [[`0b2dbac`](https://github.com/movebit/movefmt/commit/41eebb40cbf82a62840dc2a514ae54c910b2dbac)] - feature: `movefmt.toml` add `skip_formatting_dirs` to skip all files in expected dir
+* [[`51a29da`](https://github.com/movebit/movefmt/commit/4189ebc06d3cd89d0001a4189f0a3e61651a29da)] - optimize code; fix bug on should_escape()
+
+<a id="v1.0.8"></a>
+
+## 2025-04-03, Version v1.0.8
+
+### Features
+- Fixed bug: issue#46, issue#47, issue#48, issue#52
+- Optimize code: Add `SyntaxExtractor` trait
+
+### TODO
+- Support skipping code block on struct
+
+### Commits
+* [[`cba1ba7`](https://github.com/movebit/movefmt/commit/cba1ba7c3ecda391d74da2b2217b5654fe5602f7)] - fix issue#46: The let statement may have one extra line break.
+* [[`b56cda9`](https://github.com/movebit/movefmt/commit/b56cda99cf2e6a57b1a499fbcab3101abb85dd32)] - fix issue#47: [Bug] Compound assignment behavior
+* [[`b56cda9`](https://github.com/movebit/movefmt/commit/cba1ba7c3ecda391d74da2b2217b5654fe5602f7)] - fix issue#48: [Bug] Line overflow
+* [[`b56cda9`](https://github.com/movebit/movefmt/commit/4ba8cbbde9fb66eff2628bd03412f7e9143c3fc3)] - optize code: abstract syntax extractor trait
+
+
+<a id="v1.0.7"></a>
+
+## 2024-12-23, Version v1.0.7
+
+### Features
+- Fixed bug: issue#42, issue#43
+- Optimize code: issue#44
+- Upgrade aptos-core dependency
+- Supported compound assignments([binop]=)
+
+### TODO
+- Support skipping code block on struct
+
+### Commits
+* [[`f7c2a0b`](https://github.com/movebit/movefmt/commit/f7c2a0bf15b905dc07f751bf3e9b8cfaeda1c53c)] - optimize UT
+* [[`7ff7c83`](https://github.com/movebit/movefmt/commit/7ff7c83b953d1e7ff748d37a34fa9280a3c56de5)] - pass unit test
+* [[`aa992d5`](https://github.com/movebit/movefmt/commit/aa992d51803a48d7da5f9576aef32b9b4ce82fc9)] - fix issue#45: add unit test for assign with binop
+* [[`c26ecc3`](https://github.com/movebit/movefmt/commit/c26ecc3234acff66d5ae20e4c626a9ab29210957)] - fix issue#45: Update the Aptos version in Cargo.toml and ensure that movefmt compiles successfully.
+* [[`f4df9fe`](https://github.com/movebit/movefmt/commit/f4df9fefd8f9916ef968ba4ab04c4353ab44a971)] - fix issue#44: fix bug -- No print options and format file result when -q or --quiet is specified
+* [[`30c19eb`](https://github.com/movebit/movefmt/commit/30c19ebe946c1fa36741a933b1b85e67c57230fc)] - fix issue#43: fix bug -- indent errors when comments appear in if statements
+* [[`06a6ccb`](https://github.com/movebit/movefmt/commit/06a6ccb543b7540c5dce3521e174f07f1344d8f3)] - optimize fn maybe_begin_of_if_else()
+* [[`968d002`](https://github.com/movebit/movefmt/commit/968d00237d950b0d8f01820e4070289c97590a1e)] - update test case for issue43
+* [[`a55548a`](https://github.com/movebit/movefmt/commit/a55548a9e1c1682062e69e778301584f7c03ed54)] - add test case for issue43
+* [[`310493f`](https://github.com/movebit/movefmt/commit/310493f6e46fba58eb5bd4111c9b660506cba262)] - fix issue#42: bizarre ternary assignment outcomes
+* [[`792be11`](https://github.com/movebit/movefmt/commit/792be112060ecb345d6ddb369245fd8eee291f8c)] - optmize need_space()
+
+
+<a id="v1.0.6"></a>
+
+## 2024-10-28, Version v1.0.6
+
+### Features
+- Optimize code
+- Fixed bug #41
+
+### TODO
+- Support skipping code block on struct
+
+### Commits
+* [[`aeda535`](https://github.com/movebit/movefmt/commit/aeda5355d06b14d3924454eb87355d96f324c142)] - optimize expr_fmt (robin)
+* [[`62b127d`](https://github.com/movebit/movefmt/commit/62b127d57ebca213d51e1762c2c21313202fe2f5)] - add test cases; optimize expr_fmt::need_space() (robin)
+* [[`a1dabaa`](https://github.com/movebit/movefmt/commit/a1dabaaa76724e74be3310695e5ff5fc41873fc6)] - Update expr_fmt.rs (xiaozhang)
+* [[`77fbcad`](https://github.com/movebit/movefmt/commit/77fbcad8a9cfc3d3610124c26be07963aa494511)] - fix issue#41: invalid removal of space for mut ref (xiaozhang)
+
+
+<a id="v1.0.5"></a>
+
+## 2024-9-20, Version v1.0.5
+
+### Features
+- Support new syntax 'enum'
+- Fixed 2 issues{#35, #37}
+
+### TODO
+- Support skipping code block on struct
+- Add cli.option{--package-path}
+
+### Commits
+* [[`ccff6a9`](https://github.com/movebit/movefmt/commit/ccff6a9e1c57458d58fd9d25b6759a1e3cb77874)] - optimize code (robin)
+* [[`bf887e4`](https://github.com/movebit/movefmt/commit/bf887e4c64b1aee7639b9c9917a8e5204a7e6467)] - first try: optimize formatting about fun call (robin)
+* [[`d22a79e`](https://github.com/movebit/movefmt/commit/d22a79ed6c7b858a04aca72e6b1304b76900d320)] - fix issue#37: fix bug -- wrong break line about generic type with empty pack body (robin)
+* [[`939eb42`](https://github.com/movebit/movefmt/commit/939eb42601670874a5fe2ce52e8e6ecd622fba31)] - fix issue#36: support new syntax about enum (robin)
+* [[`4716ba2`](https://github.com/movebit/movefmt/commit/4716ba26c9b7eb484f395471ef82a5eeffb60f26)] - first try: support new syntax about enum (robin)
+* [[`7bb0fad`](https://github.com/movebit/movefmt/commit/7bb0fad27b1035ef721de86bd340c5dc2bf6767a)] - set_lang_v2(true), update test case (robin)
+* [[`4751ac4`](https://github.com/movebit/movefmt/commit/4751ac473e1e8beb222cc3c5364b4a044c6e086b)] - upgrade aptos-core to latest; add test case about enum (robin)
+* [[`4ed6a03`](https://github.com/movebit/movefmt/commit/4ed6a031a1f0cbc1c4f904bbbfcc3c966fe0e979)] - optimize tests on win (robin)
+
+
+<a id="v1.0.4"></a>
+
+## 2024-8-26, Version v1.0.4
+
+### Features
+- Fixed 6 bugs and 14 issues{#9, #13, #14, #16, [#19 ~ #27], #30}
+- Optimize the output order of DIFF option
+
+### TODO
+- Support new syntax 'enum'
+- Support skipping code block on struct
+- Add cli.option{--package-path}
+
+### Commits
+* [[`066c799`](https://github.com/movebit/movefmt/commit/066c799440e4b51aeaeb7ba492c4ce573c79cb0c)] - improve performance on big vector (edy)
+* [[`88248ec`](https://github.com/movebit/movefmt/commit/88248ec4e8d72f561bce89665676996c791ce6e9)] - fix bug: issue#34 (edy)
+* [[`d799b34`](https://github.com/movebit/movefmt/commit/d799b3497ee9a3f96df3b56139985bf82708d633)] - fix bug: issue#33 (edy)
+* [[`0a119f6`](https://github.com/movebit/movefmt/commit/0a119f6ff85d7e6d6dbc491ed876eaec29c54434)] - fix bug: issue#32 (rblzw)
+* [[`b622ecc`](https://github.com/movebit/movefmt/commit/b622ecca9990965c37dfc5433b113d8db797d6b1)] - fix issue#25: optimize complex assign exp (rblzw)
+* [[`e74bdf1`](https://github.com/movebit/movefmt/commit/e74bdf1804ecd20526e45b259bf27302603c7843)] - fix bug: issue#29 (edy)
+* [[`5710ffd`](https://github.com/movebit/movefmt/commit/5710ffd5092d9d3d2204e277243be323c80d5490)] - fix issue#28 and issue#30 (edy)
+* [[`99486e2`](https://github.com/movebit/movefmt/commit/99486e2bba68b82bf82abacc507c7abd9841d61f)] - fix issue#23: optimize complex big vector (rblzw)
+* [[`9240377`](https://github.com/movebit/movefmt/commit/9240377a7783e07212e06306abbfe07398ba05a7)] - fix issue#22 (rblzw)
+* [[`9bd032f`](https://github.com/movebit/movefmt/commit/9bd032f78ff65333589a1368948f40370a4f7ed5)] - fix issue#20: support option[prefer_one_line_for_short_call_para_list] in the movefmt.toml (edy)
+* [[`fb07fa4`](https://github.com/movebit/movefmt/commit/fb07fa41b5e59ff3d4f75f146af38c262ff22e03)] - fix issue27; optimize break line about multi address{module{}} (edy)
+* [[`25e509c`](https://github.com/movebit/movefmt/commit/25e509c0fe90ed88c4601a41c223b98441907137)] - first try: fix issue27 (edy)
+* [[`bc4e888`](https://github.com/movebit/movefmt/commit/bc4e888b4cd281d08aca21692a81c74d8c4f9d44)] - fix issue26: wrong space added after 'apply' (edy)
+* [[`e39d16a`](https://github.com/movebit/movefmt/commit/e39d16ad022fb92c4dcb96825ea36374d70b1e47)] - support option[prefer_one_line_for_short_fn_header_para_list] in the movefmt.toml (edy)
+* [[`537ddf6`](https://github.com/movebit/movefmt/commit/537ddf60ed2fe3c921c8e1dd90163014c3f0ef2d)] - optimize: native fn; colon before fn's return_ty; <> in return_ty (edy)
+* [[`ef0e47d`](https://github.com/movebit/movefmt/commit/ef0e47dc9602b84de6495ea91713cff4a8b7e04e)] - fix bug: add space bewteen '^' and '(/{' (edy)
+* [[`90d6e83`](https://github.com/movebit/movefmt/commit/90d6e83837fea215879f750c6c6c33a68fbee654)] - fix issue#21 (edy)
+* [[`ceaa220`](https://github.com/movebit/movefmt/commit/ceaa220698c544d363ef71570cb6f48d0ffad2af)] - fix issue#14 (edy)
+* [[`434143d`](https://github.com/movebit/movefmt/commit/434143d85bd12db791e680d96d76d0421d933f84)] - optimize get_break_mode_begin_paren() and need_new_line_after_branch() (edy)
+* [[`f73ec06`](https://github.com/movebit/movefmt/commit/f73ec0653a84349f1539ad016b7114aa34b21e56)] - fix bug: add space between '|' and '(/{' (edy)
+* [[`bd9b665`](https://github.com/movebit/movefmt/commit/bd9b66509df170f6d9c2d8413363db044ca3eed1)] - optimize complex exp: first element is nested token_tree in () (edy)
+* [[`862516b`](https://github.com/movebit/movefmt/commit/862516b7aa4e40845df66e0f215a44ec37ae84bf)] - fix issue#13 (edy)
+* [[`1c37341`](https://github.com/movebit/movefmt/commit/1c3734109de6dafd59f2c68d0e79846352743c92)] - fix issue#19 (edy)
+* [[`0726d23`](https://github.com/movebit/movefmt/commit/0726d235002f52514f47a2b2fd9394b8679274bb)] - adjust the output order of DIFF option (edy)
+* [[`89ba14f`](https://github.com/movebit/movefmt/commit/89ba14f9e37c998774887b49d3a4176ae11a8ff5)] - optimize indentation (edy)
+* [[`b8446e1`](https://github.com/movebit/movefmt/commit/b8446e117851f1655198ac74932f367c8e3d46dd)] - second try: optimize indentation (edy)
+* [[`7381df4`](https://github.com/movebit/movefmt/commit/7381df48d5109a8eff96eb8edc1e05224192f3fd)] - first try: optimize indentation (rblzw)
+* [[`aa0f861`](https://github.com/movebit/movefmt/commit/aa0f86101965a21ba7dcdfccc0e4d6ca02974f87)] - fixed #issue9: Long lines for pragmas (rblzw)
+
 
 <a id="v1.0.3"></a>
 
@@ -25,6 +218,7 @@
 ### Features
 - Fixed 3 bugs and issues{#15, #17, #18}
 - Optimize formatting for complex exp
+- Optimize error prompt
 - Add config.option[prefer_one_line_for_short_branch_blk] and cli.option{--file-path, --dir-path}
 - Update EmitMode
 
@@ -33,6 +227,9 @@
 - Optimize issues{#9, #13, #14, #16, #19, #20, #21}
 
 ### Commits
+* [[`37a14e6`](https://github.com/movebit/movefmt/commit/37a14e6aced7364cadb911c914f6337a1b86e51f)] - optimize error prompt (rblzw)
+* [[`ba7784e`](https://github.com/movebit/movefmt/commit/ba7784e8c6a525f52dc7d875abb3365b27043030)] - Update EmitMode (edy)
+* [[`d32b55f`](https://github.com/movebit/movefmt/commit/d32b55f89b14c13539c9c7282f245ee081e8ad2f)] - optimize exp break line (edy)
 * [[`78d285a`](https://github.com/movebit/movefmt/commit/78d285a19153c5688bbd2751ff6d9d8bcbf83e8d)] - fix bug: add space when next_token is '*' or '&' (edy)
 * [[`1a7c922`](https://github.com/movebit/movefmt/commit/1a7c922e013518a3baef97aab0059aec7858cfbf)] - fix bug: line break error when variable name same with ability (edy)
 * [[`6e163fc`](https://github.com/movebit/movefmt/commit/6e163fceb493d46d358787f10fdfa87ea60715f3)] - optimize main.rs (qpzmV)

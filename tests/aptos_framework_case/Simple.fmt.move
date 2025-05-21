@@ -84,10 +84,7 @@ module 0xABCD::simple {
             b = a + 1;
 
             // can never be true
-            if (a > b
-                && b > c
-                && c > d
-                && d > a) {
+            if (a > b && b > c && c > d && d > a) {
                 count = count + 1;
             }
         }
@@ -127,15 +124,13 @@ module 0xABCD::simple {
     const COUNTER_STEP: u64 = 1;
 
     struct Counter has key {
-        count: u64,
+        count: u64
     }
 
     // Create the global `Counter`.
     // Stored under the module publisher address.
     fun init_module(publisher: &signer) {
-        move_to<Counter>(
-            publisher, Counter { count: 0 }
-        );
+        move_to<Counter>(publisher, Counter { count: 0 });
     }
 
     // Update `Counter` (private to the module, effectively a `static` in more
@@ -145,7 +140,8 @@ module 0xABCD::simple {
     public entry fun step_signer(s: &signer) acquires Counter {
         let addr = signer::address_of(s);
         assert!(
-            exists<Counter>(addr), error::invalid_argument(ECOUNTER_RESOURCE_NOT_PRESENT)
+            exists<Counter>(addr),
+            error::invalid_argument(ECOUNTER_RESOURCE_NOT_PRESENT)
         );
         let counter = borrow_global_mut<Counter>(addr);
         *(&mut counter.count) = counter.count + COUNTER_STEP;
@@ -155,7 +151,8 @@ module 0xABCD::simple {
     public entry fun get_counter(s: &signer) acquires Counter {
         let addr = signer::address_of(s);
         assert!(
-            exists<Counter>(addr), error::invalid_argument(ECOUNTER_RESOURCE_NOT_PRESENT)
+            exists<Counter>(addr),
+            error::invalid_argument(ECOUNTER_RESOURCE_NOT_PRESENT)
         );
         let counter = borrow_global<Counter>(addr);
         counter.count;
@@ -166,10 +163,12 @@ module 0xABCD::simple {
     //
 
     struct ByteResource has key {
-        data: vector<u8>,
+        data: vector<u8>
     }
 
-    public entry fun bytes_make_or_change(owner: &signer, data: vector<u8>) acquires ByteResource {
+    public entry fun bytes_make_or_change(
+        owner: &signer, data: vector<u8>
+    ) acquires ByteResource {
         if (exists<ByteResource>(signer::address_of(owner))) {
             let resource = borrow_global_mut<ByteResource>(signer::address_of(owner));
             *(&mut resource.data) = data;
@@ -186,11 +185,11 @@ module 0xABCD::simple {
     struct Resource has key {
         id: u64,
         name: String,
-        data: Data,
+        data: Data
     }
 
     struct Data has copy, drop, store {
-        data: vector<u8>,
+        data: vector<u8>
     }
 
     // Update `Resource` with the values provided. This is effectively a rewrite of `Resource`.
@@ -273,7 +272,7 @@ module 0xABCD::simple {
             };
         // copy the biger data into the smaller one
         while (vector::length(&data) > vector::length(&resource.data.data)
-                || vector::length(&resource.data.data) < 10000) {
+            || vector::length(&resource.data.data) < 10000) {
             append_data(&mut resource.data.data, &data);
         }
     }
@@ -325,7 +324,7 @@ module 0xABCD::simple {
     public entry fun set_id(owner: &signer, id: u64) acquires Resource {
         if (!exists<Resource>(signer::address_of(owner))) {
             let data = Data { data: DATA };
-            let resource = Resource { id, name: string::utf8(NAME), data, };
+            let resource = Resource { id, name: string::utf8(NAME), data };
             move_to<Resource>(owner, resource);
         } else {
             let resource = borrow_global_mut<Resource>(signer::address_of(owner));
@@ -340,7 +339,7 @@ module 0xABCD::simple {
     public entry fun set_name(owner: &signer, name: String) acquires Resource {
         if (!exists<Resource>(signer::address_of(owner))) {
             let data = Data { data: DATA };
-            let resource = Resource { id: 0, name, data, };
+            let resource = Resource { id: 0, name, data };
             move_to<Resource>(owner, resource);
         } else {
             let resource = borrow_global_mut<Resource>(signer::address_of(owner));
@@ -356,7 +355,7 @@ module 0xABCD::simple {
     public entry fun double(owner: &signer) acquires Resource {
         if (!exists<Resource>(signer::address_of(owner))) {
             let data = Data { data: DATA };
-            let resource = Resource { id: 0, name: utf8(NAME), data, };
+            let resource = Resource { id: 0, name: utf8(NAME), data };
             move_to<Resource>(owner, resource);
         } else {
             let resource = borrow_global_mut<Resource>(signer::address_of(owner));
@@ -375,7 +374,7 @@ module 0xABCD::simple {
     public entry fun half(owner: &signer) acquires Resource {
         if (!exists<Resource>(signer::address_of(owner))) {
             let data = Data { data: DATA };
-            let resource = Resource { id: 0, name: utf8(NAME), data, };
+            let resource = Resource { id: 0, name: utf8(NAME), data };
             move_to<Resource>(owner, resource);
         } else {
             let resource = borrow_global_mut<Resource>(signer::address_of(owner));
@@ -395,7 +394,7 @@ module 0xABCD::simple {
         r1: &Resource,
         r2: &Resource,
         c1: &Counter,
-        c2: &Counter,
+        c2: &Counter
     ): &u64 {
         let ret1 = &r1.id;
         let ret2 = &r2.id;
@@ -449,7 +448,7 @@ module 0xABCD::simple {
     }
 
     struct EventStore has key {
-        simple_events: EventHandle<SimpleEvent>,
+        simple_events: EventHandle<SimpleEvent>
     }
 
     fun emit_events(owner: &signer, count: u64) acquires EventStore {
@@ -457,7 +456,9 @@ module 0xABCD::simple {
         if (!exists<EventStore>(owner_address)) {
             move_to<EventStore>(
                 owner,
-                EventStore { simple_events: account::new_event_handle<SimpleEvent>(owner) },
+                EventStore {
+                    simple_events: account::new_event_handle<SimpleEvent>(owner)
+                }
             );
         };
         let event_store = borrow_global_mut<EventStore>(owner_address);
@@ -465,7 +466,7 @@ module 0xABCD::simple {
             count = count - 1;
             event::emit_event<SimpleEvent>(
                 &mut event_store.simple_events,
-                SimpleEvent { event_id: count },
+                SimpleEvent { event_id: count }
             );
         }
     }

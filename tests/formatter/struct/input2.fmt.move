@@ -12,7 +12,7 @@ module complex_module {
         // Field 3 comment
         field3: bool,
         // Field 4 comment
-        field4: /* Pre-comment */ SomeOtherStruct<T> /* Post-comment */,
+        field4: /* Pre-comment */ SomeOtherStruct<T> /* Post-comment */
     } /* Struct footer comment */
 
     // Function using the struct

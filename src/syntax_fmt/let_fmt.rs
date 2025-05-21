@@ -3,13 +3,16 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::core::token_tree::TokenTree;
-use crate::tools::utils::FileLineMappingOneFile;
+use crate::tools::utils::*;
 use move_compiler::parser::ast::Definition;
 use move_compiler::parser::ast::*;
+use move_compiler::parser::lexer::Tok;
 use move_compiler::shared::ast_debug;
 use move_ir_types::location::*;
 use std::cell::RefCell;
 use std::collections::HashMap;
+
+use super::syntax_extractor::SingleSyntaxExtractor;
 
 #[derive(Debug, Default)]
 pub struct LetExtractor {
@@ -23,8 +26,8 @@ pub struct LetExtractor {
     pub line_mapping: FileLineMappingOneFile,
 }
 
-impl LetExtractor {
-    pub fn new(fmt_buffer: String) -> Self {
+impl SingleSyntaxExtractor for LetExtractor {
+    fn new(fmt_buffer: String) -> Self {
         let mut this_let_extractor = Self {
             bin_op_exp_vec: vec![],
             long_bin_op_exp_vec: vec![],
@@ -142,16 +145,18 @@ impl LetExtractor {
                     self.collect_expr(else_.as_ref());
                 }
             }
-            Exp_::While(e, then_) => {
+            // Zax 20241217 issue45
+            Exp_::While(_, e, then_) => {
                 self.collect_expr(e.as_ref());
                 self.collect_expr(then_.as_ref());
             }
-            Exp_::Loop(b) => {
+            // Zax 20241217 issue45
+            Exp_::Loop(_, b) => {
                 self.collect_expr(b.as_ref());
             }
             Exp_::Block(b) => self.collect_seq(b),
-
-            Exp_::Lambda(_, e) => {
+            // Zax 20241217 issue45
+            Exp_::Lambda(_, e, _, _) => {
                 self.collect_expr(e.as_ref());
             }
             Exp_::Quant(_, _, es, e1, e2) => {
@@ -168,8 +173,17 @@ impl LetExtractor {
             Exp_::ExpList(es) => {
                 es.iter().for_each(|e| self.collect_expr(e));
             }
-            Exp_::Assign(l, r) => {
+            // Zax 20241217 issue45
+            Exp_::Assign(l, _bin_op, r) => {
                 self.bin_op_exp_vec.push(e.clone());
+                if !matches!(r.value, Exp_::Call(..)) && l.loc.end() < r.loc.start() {
+                    self.let_assign_loc_vec.push(Loc::new(
+                        l.loc.file_hash(),
+                        l.loc.end(),
+                        r.loc.start(),
+                    ));
+                    self.let_assign_rhs_exp.push(*r.clone());
+                }
                 self.collect_expr(l.as_ref());
                 self.collect_expr(r.as_ref());
             }
@@ -211,6 +225,12 @@ impl LetExtractor {
         }
     }
 
+    fn collect_const(&mut self, c: &Constant) {
+        self.collect_expr(&c.value);
+    }
+
+    fn collect_struct(&mut self, _s: &StructDefinition) {}
+
     fn collect_function(&mut self, d: &Function) {
         match &d.body.value {
             FunctionBody_::Defined(seq) => {
@@ -228,10 +248,16 @@ impl LetExtractor {
             if let ModuleMember::Spec(s) = &m {
                 self.collect_spec(s)
             }
+            if let ModuleMember::Constant(con) = &m {
+                self.collect_const(con);
+            }
         }
     }
 
     fn collect_script(&mut self, d: &Script) {
+        for const_data in &d.constants {
+            self.collect_const(const_data);
+        }
         self.collect_function(&d.function);
         for s in d.specs.iter() {
             self.collect_spec(s);
@@ -256,17 +282,17 @@ impl LetExtractor {
         self.multi_ampamp_or_pipepipe_exp();
         for bin_op_exp in self.bin_op_exp_vec.iter() {
             match &bin_op_exp.value {
-                Exp_::BinopExp(_, op, r) => {
-                    match op.value {
-                        BinOp_::Implies | BinOp_::Iff => {
-                            if ast_debug::display(&bin_op_exp.value).len() > 48 && ast_debug::display(&r.value).len() > 16 {
-                                self.long_bin_op_exp_vec.push(bin_op_exp.clone());
-                                self.split_bin_op_vec.borrow_mut().push(false);
-                            }
+                Exp_::BinopExp(_, op, r) => match op.value {
+                    BinOp_::Implies | BinOp_::Iff => {
+                        if ast_debug::display(&bin_op_exp.value).len() > 48
+                            && ast_debug::display(&r.value).len() > 16
+                        {
+                            self.long_bin_op_exp_vec.push(bin_op_exp.clone());
+                            self.split_bin_op_vec.borrow_mut().push(false);
                         }
-                        _ => {}
                     }
-                }
+                    _ => {}
+                },
                 _ => {}
             };
         }
@@ -278,7 +304,9 @@ impl LetExtractor {
         while idx < self.bin_op_exp_vec.len() {
             let bin_op_exp = &self.bin_op_exp_vec[idx];
             let bin_op_exp_str = ast_debug::display(&bin_op_exp.value);
-            if bin_op_exp_str.matches("&&").count() < 2 && bin_op_exp_str.matches("||").count() < 2
+            if (bin_op_exp_str.matches("&&").count() < 2
+                && bin_op_exp_str.matches("||").count() < 2)
+                || bin_op_exp_str.len() < 64
             {
                 idx += 1;
                 continue;
@@ -332,27 +360,59 @@ impl LetExtractor {
     pub(crate) fn is_long_assign(
         &self,
         token: TokenTree,
+        next_token: Option<&TokenTree>,
         config: commentfmt::Config,
         cur_ret_last_len: usize,
     ) -> bool {
         for (idx, let_assign) in self.let_assign_loc_vec.iter().enumerate() {
             if let_assign.start() <= token.end_pos() && token.end_pos() <= let_assign.end() {
                 let rhs_exp_loc = &self.let_assign_rhs_exp[idx].loc;
-                let is_long_rhs = self.source
+                let rhs_exp_str = self.source
                     [rhs_exp_loc.start() as usize..rhs_exp_loc.end() as usize]
                     .replace('\n', "")
                     .split_whitespace()
                     .collect::<Vec<&str>>()
-                    .join("")
-                    .len()
-                    + cur_ret_last_len
-                    >= config.max_width();
+                    .join("");
+                let mut is_long_rhs = rhs_exp_str.len() + cur_ret_last_len >= config.max_width();
+                // updated in 20241209: fix https://github.com/movebit/movefmt/issues/42
+                if !is_long_rhs
+                    && token.get_end_tok() == Tok::Equal
+                    && rhs_exp_str.starts_with("if")
+                    && rhs_exp_str.len() > config.max_width() / 2
+                {
+                    is_long_rhs = true;
+                }
                 if is_long_rhs {
                     self.break_line_by_let_rhs
                         .borrow_mut()
                         .insert(rhs_exp_loc.end(), token.end_pos());
                 }
                 return is_long_rhs;
+            }
+        }
+
+        if let Some(next_token) = next_token {
+            let next_token_str = next_token.simple_str().unwrap_or_default();
+            let exceeds_max_width =
+                cur_ret_last_len + 3 + next_token_str.len() > config.max_width();
+
+            if let Some(Exp_::Assign(_, _, r_assign)) = self
+                .bin_op_exp_vec
+                .iter()
+                .find(|exp| {
+                    matches!(&exp.value, Exp_::Assign(l, _, r)
+                        if l.loc.end() <= token.start_pos() && token.end_pos() <= r.loc.start()
+                    )
+                })
+                .map(|exp| &exp.value)
+            {
+                if exceeds_max_width {
+                    self.break_line_by_let_rhs
+                        .borrow_mut()
+                        .insert(r_assign.loc.end(), token.end_pos());
+                    return true;
+                }
+                return false;
             }
         }
         false
@@ -412,14 +472,11 @@ impl LetExtractor {
 
 #[allow(dead_code)]
 fn get_bin_op_exp(fmt_buffer: String) {
-    use crate::tools::syntax::parse_file_string;
     use move_command_line_common::files::FileHash;
-    use move_compiler::shared::CompilationEnv;
-    use move_compiler::Flags;
-    use std::collections::BTreeSet;
+    use move_compiler::parser::syntax::parse_file_string;
     let mut let_extractor = LetExtractor::new(fmt_buffer.clone());
-    let mut env = CompilationEnv::new(Flags::testing(), BTreeSet::new());
-    let (defs, _) = parse_file_string(&mut env, FileHash::empty(), &fmt_buffer).unwrap();
+    let (defs, _) =
+        parse_file_string(&mut get_compile_env(), FileHash::empty(), &fmt_buffer).unwrap();
     let_extractor.preprocess(defs);
     for bin_op_exp in let_extractor.bin_op_exp_vec.iter() {
         let bin_op_exp_str =
@@ -451,14 +508,11 @@ fn get_bin_op_exp(fmt_buffer: String) {
 
 #[allow(dead_code)]
 fn get_long_assign(fmt_buffer: String) {
-    use crate::tools::syntax::parse_file_string;
     use move_command_line_common::files::FileHash;
-    use move_compiler::shared::CompilationEnv;
-    use move_compiler::Flags;
-    use std::collections::BTreeSet;
+    use move_compiler::parser::syntax::parse_file_string;
     let mut let_extractor = LetExtractor::new(fmt_buffer.clone());
-    let mut env = CompilationEnv::new(Flags::testing(), BTreeSet::new());
-    let (defs, _) = parse_file_string(&mut env, FileHash::empty(), &fmt_buffer).unwrap();
+    let (defs, _) =
+        parse_file_string(&mut get_compile_env(), FileHash::empty(), &fmt_buffer).unwrap();
     let_extractor.preprocess(defs);
     for (idx, _) in let_extractor.let_assign_loc_vec.iter().enumerate() {
         let rhs_exp_loc = &let_extractor.let_assign_rhs_exp[idx].loc;
@@ -556,4 +610,24 @@ fn test_get_bin_op_exp2() {
         }
 "
         .to_string());
+}
+
+#[test]
+fn test_get_bin_op_exp3() {
+    get_bin_op_exp(
+        "
+        module std::bit_vector {           
+            fun test() {
+                let input_deposited = 1;
+                let output_deposited = 2;
+        
+                let input_into_output = 100;
+                input_into_output =
+                    if (input_into_output < output_deposited) 0
+                    else (input_into_output - output_deposited);
+            }
+        }
+"
+        .to_string(),
+    );
 }

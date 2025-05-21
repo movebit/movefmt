@@ -3,7 +3,7 @@
 module TestFunFormat {
 
     struct SomeOtherStruct has drop {
-        some_field: u64,
+        some_field: u64
     }
 
     public fun fun1(v: u64): SomeOtherStruct {

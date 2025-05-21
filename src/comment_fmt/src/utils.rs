@@ -1,7 +1,7 @@
-use unicode_width::UnicodeWidthStr;
 use crate::comment::{filter_normal_code, FullCodeCharKind, LineClasses};
-use configurations::config::Config;
 use crate::shape::{Indent, Shape};
+use configurations::config::Config;
+use unicode_width::UnicodeWidthStr;
 
 #[inline]
 pub fn is_single_line(s: &str) -> bool {
@@ -74,11 +74,7 @@ pub fn filtered_str_fits(snippet: &str, max_width: usize, shape: Shape) -> bool 
 }
 
 /// Indent each line according to the specified `indent`.
-pub fn trim_left_preserve_layout(
-    orig: &str,
-    indent: Indent,
-    config: &Config,
-) -> Option<String> {
+pub fn trim_left_preserve_layout(orig: &str, indent: Indent, config: &Config) -> Option<String> {
     let mut lines = LineClasses::new(orig);
     let first_line = lines.next().map(|(_, s)| s.trim_end().to_owned())?;
     let mut trimmed_lines = Vec::with_capacity(16);

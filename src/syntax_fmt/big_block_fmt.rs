@@ -2,15 +2,13 @@
 // Copyright (c) The BitsLab.MoveBit Contributors
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::tools::syntax::parse_file_string;
-use crate::tools::utils::FileLineMappingOneFile;
+use crate::tools::utils::*;
 use move_command_line_common::files::FileHash;
-use move_compiler::parser::ast::Definition;
 use move_compiler::parser::ast::*;
-use move_compiler::shared::CompilationEnv;
-use move_compiler::Flags;
+use move_compiler::parser::syntax::parse_file_string;
 use move_ir_types::location::*;
-use std::collections::BTreeSet;
+
+use super::syntax_extractor::SingleSyntaxExtractor;
 
 #[derive(Debug, Default)]
 pub struct BigBlockExtractor {
@@ -18,23 +16,30 @@ pub struct BigBlockExtractor {
     pub line_mapping: FileLineMappingOneFile,
 }
 
-impl BigBlockExtractor {
-    pub fn new(fmt_buffer: String) -> Self {
+impl SingleSyntaxExtractor for BigBlockExtractor {
+    fn new(fmt_buffer: String) -> Self {
         let mut big_block_extractor = Self {
             blk_loc_vec: vec![],
             line_mapping: FileLineMappingOneFile::default(),
         };
 
         big_block_extractor.line_mapping.update(&fmt_buffer);
-        let attrs: BTreeSet<String> = BTreeSet::new();
-        let mut env = CompilationEnv::new(Flags::testing(), attrs);
-        let (defs, _) = parse_file_string(&mut env, FileHash::empty(), &fmt_buffer).unwrap();
+        let (defs, _) =
+            parse_file_string(&mut get_compile_env(), FileHash::empty(), &fmt_buffer).unwrap();
 
         for d in defs.iter() {
             big_block_extractor.collect_definition(d);
         }
         big_block_extractor
     }
+
+    fn collect_seq_item(&mut self, _s: &SequenceItem) {}
+
+    fn collect_seq(&mut self, _s: &Sequence) {}
+
+    fn collect_expr(&mut self, _e: &Exp) {}
+
+    fn collect_const(&mut self, _c: &Constant) {}
 
     fn collect_struct(&mut self, s: &StructDefinition) {
         self.blk_loc_vec.push(s.loc);
@@ -92,7 +97,6 @@ pub fn add_blank_row_in_two_blocks(fmt_buffer: String) -> String {
     let buf = fmt_buffer.clone();
     let mut result = fmt_buffer.clone();
     let big_block_extractor = BigBlockExtractor::new(fmt_buffer.clone());
-    // tracing::debug!("blocks = {:?}", big_block_extractor.blk_loc_vec);
     let mut insert_char_nums = 0;
     for pre_blk_idx in 0..big_block_extractor.blk_loc_vec.len() {
         if pre_blk_idx == big_block_extractor.blk_loc_vec.len() - 1 {
@@ -128,8 +132,6 @@ pub fn add_blank_row_in_two_blocks(fmt_buffer: String) -> String {
                 let trimed_prefix = the_row_after_blk1_end.trim_start().split(' ');
                 if trimed_prefix.count() > 1 || the_row_after_blk1_end.trim_start().len() >= 2 {
                     // there are code or comment located in line(blk1_end_line + 1)
-                    // tracing::debug!("trimed_prefix = {:?}", trimed_prefix);
-                    // tracing::debug!("blk1_end_line = {:?}, blk2_start_line = {:?}", blk1_end_line, blk2_start_line);
                     true
                 } else {
                     false

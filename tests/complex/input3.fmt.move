@@ -7,7 +7,7 @@ module TestFunFormat {
             // Move to the fee account an initialized one.
             move_to<UtilityCoinStore<CoinType>>(
                 fee_account,
-                UtilityCoinStore { coins: coin::zero<CoinType>() },
+                UtilityCoinStore { coins: coin::zero<CoinType>() }
             );
     }
 }

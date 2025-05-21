@@ -7,7 +7,7 @@ module complex_module {
         // Field 2 comment
         field2: bool,
         // Field 3 comment
-        field3: /* Pre-comment */ SomeOtherStruct<T> /* Post-comment */,
+        field3: /* Pre-comment */ SomeOtherStruct<T> /* Post-comment */
     } /* Struct footer comment */
 
     // Struct with nested comments and complex types
@@ -17,6 +17,6 @@ module complex_module {
         // Field 2 comment
         field2: /* Comment before complex type */ SomeGenericStruct<U> /* Comment after complex type */,
         // Field 3 comment
-        field3: /* Pre-comment */ optional<bool> /* Post-comment */,
+        field3: /* Pre-comment */ optional<bool> /* Post-comment */
     } // Struct footer comment
 }

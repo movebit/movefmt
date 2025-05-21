@@ -23,8 +23,6 @@ pub enum TokType {
     Amp,
     /// *
     Star,
-    /// &mut
-    AmpMut,
     ///
     Semicolon,
     ///:
@@ -97,8 +95,7 @@ pub(crate) fn get_nested_and_comma_num(elements: &[TokenTree]) -> (usize, usize)
     for ele in elements {
         if let TokenTree::Nested {
             elements: recursive_elements,
-            kind: _,
-            note: _,
+            ..
         } = ele
         {
             let recursive_result = get_nested_and_comma_num(recursive_elements);
@@ -164,11 +161,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
     let mut next_tok_nested_kind = NestKind_::Brace;
     let mut next_tok_simple_content = "".to_string();
     match next_token_tree {
-        TokenTree::Nested {
-            elements: _,
-            kind,
-            note: _,
-        } => {
+        TokenTree::Nested { kind, .. } => {
             is_next_tok_nested = true;
             next_tok_nested_kind = kind.kind;
         }
@@ -182,27 +175,20 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
             TokType::Alphabet,
             TokType::Alphabet | TokType::String | TokType::Number | TokType::AtSign,
         ) => true,
+        (_, TokType::Amp) => Tok::Star != curr_start_tok,
         (TokType::MathSign, _) => true,
         (TokType::Sign, TokType::Alphabet) => Tok::Exclaim != curr_end_tok,
         (TokType::Sign, TokType::Number) => true,
-        (TokType::Sign, TokType::String | TokType::AtSign | TokType::Amp | TokType::AmpMut) => {
+        (TokType::Sign, TokType::String | TokType::AtSign) => {
             if !is_next_tok_nested && Tok::ByteStringValue == next_start_tok {
                 return true;
             }
-
-            if Tok::Comma == curr_start_tok
-                && matches!(next_start_tok, Tok::AtSign | Tok::Amp | Tok::AmpMut)
-            {
-                return true;
-            }
-            // eg: (exp) & ...
-            if Tok::RParen == curr_end_tok && Tok::Amp == next_start_tok {
+            if Tok::Comma == curr_start_tok && next_start_tok == Tok::AtSign {
                 return true;
             }
             false
         }
-        (TokType::Number, TokType::Alphabet) => true,
-        (_, TokType::AmpMut) => true,
+        (TokType::Number, TokType::Alphabet | TokType::Star) => true,
         (TokType::Colon, _) => true,
         (_, TokType::Less) => is_bin_next,
         (TokType::Alphabet, TokType::MathSign) => {
@@ -213,12 +199,6 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
         }
         (_, TokType::MathSign) => true,
         (TokType::Less, _) => is_bin_current,
-        (TokType::Alphabet, TokType::Amp) => {
-            if is_bin_next {
-                return true;
-            }
-            matches!(curr_end_tok, Tok::Return | Tok::If | Tok::Else)
-        }
         (TokType::Amp, _) => is_bin_current,
         (_, TokType::Star) => {
             if is_bin_next {
@@ -240,6 +220,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                     | Tok::Return
                     | Tok::If
                     | Tok::Else
+                    | Tok::EqualGreater
             )
         }
 
@@ -285,6 +266,28 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
             ) {
                 return true;
             }
+
+            if matches!(curr_start_tok, Tok::Pipe | Tok::Caret)
+                && matches!(next_start_tok, Tok::LParen | Tok::LBrace)
+            {
+                return true;
+            }
+
+            if matches!(
+                curr_end_tok,
+                Tok::RParen
+                    | Tok::EqualGreater
+                    | Tok::EqualEqualGreater
+                    | Tok::LessEqualEqualGreater
+            ) && next_start_tok == Tok::LParen
+            {
+                return true;
+            }
+
+            if Tok::Pipe == next_start_tok {
+                return true;
+            }
+
             if next_start_tok == Tok::Exclaim {
                 result = matches!(TokType::from(curr_start_tok), TokType::Alphabet)
                     || Tok::RParen == curr_end_tok;
@@ -303,7 +306,6 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                         | "modifies"
                         | "emits"
                         | "requires"
-                        | "apply"
                         | "global"
                 ) {
                     return true;
@@ -319,52 +321,14 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
                 }
             }
 
-            if Tok::RParen == curr_end_tok && next_start_tok == Tok::LParen {
-                return true;
-            }
-
-            if Tok::Pipe == next_start_tok && next_start_tok != Tok::LParen {
-                return true;
-            }
-            // tracing::debug!("result = {}, next_start_tok = {:?}", result, next_start_tok);
             result
         }
         _ => false,
     }
 }
 
-/*
-pub(crate) fn judge_simple_paren_expr(
-    kind: &NestKind,
-    elements: &Vec<TokenTree>,
-    config: Config,
-) -> bool {
-    if elements.is_empty() {
-        return true;
-    };
-    if NestKind_::ParentTheses == kind.kind {
-        let paren_num = get_nested_and_comma_num(elements);
-        tracing::debug!(
-            "elements[0] = {:?}, paren_num = {:?}",
-            elements[0].simple_str(),
-            paren_num
-        );
-        if (paren_num.0 > 4 || paren_num.1 > 4) && analyze_token_tree_length(elements, config.max_width() / 2) >= 32 {
-            return false;
-        }
-        // if paren_num.0 >= 1 && paren_num.1 >= 4 {
-        //     return false;
-        // }
-        // if analyze_token_tree_length(elements, config.max_width() / 2) >= config.max_width() - 55 {
-        //     return false;
-        // }
-    }
-    true
-}
- */
-
 pub(crate) fn process_link_access(elements: &[TokenTree], idx: usize) -> (usize, usize) {
-    tracing::debug!("process_link_access >>");
+    tracing::trace!("process_link_access >>");
     if idx >= elements.len() - 1 {
         return (0, 0);
     }
@@ -378,7 +342,7 @@ pub(crate) fn process_link_access(elements: &[TokenTree], idx: usize) -> (usize,
         continue_dot_cnt += 1;
         index += 2;
     }
-    tracing::debug!(
+    tracing::trace!(
         "process_link_access << (continue_dot_cnt, index) = ({}, {})",
         continue_dot_cnt,
         index
@@ -432,7 +396,14 @@ pub(crate) fn need_break_cur_line_when_trim_blank_lines(current: &Tok, next: &To
             Tok::AtSign | Tok::Amp,
             Tok::NumValue | Tok::Identifier | Tok::LParen
         ) | (Tok::RBrace, Tok::RBrace)
-            | (Tok::LBrace, Tok::Module | Tok::Identifier)
+            | (
+                Tok::LBrace,
+                Tok::Module | Tok::Identifier | Tok::NumValue | Tok::NumTypedValue
+            )
+            | (
+                Tok::LParen,
+                Tok::Identifier | Tok::NumValue | Tok::NumTypedValue
+            )
             | (Tok::Identifier, Tok::Identifier)
     )
 }

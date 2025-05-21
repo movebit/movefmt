@@ -4,7 +4,7 @@ module complex_module {
     struct ComplexStruct2<T, U> {
         field1: /* Pre-comment */ vector<T> /* Inline comment */,
         field2: /* Comment before complex type */ SomeGenericStruct<U> /* Comment after complex type */,
-        field3: /* Pre-comment */ optional<bool> /* Post-comment */,
+        field3: /* Pre-comment */ optional<bool> /* Post-comment */
     } // Struct footer comment
 
     // Struct with various comment styles and positions
@@ -13,6 +13,6 @@ module complex_module {
         field1: u64, // Inline comment (line 1)
         // continued on line 2.
         /* Field 2 comment (multi-line) */
-        field2: /* Inline comment (multi-line) */ bool, // Trailing comment (single-line)
+        field2: /* Inline comment (multi-line) */ bool // Trailing comment (single-line)
     } // Struct footer comment (single-line)
 }

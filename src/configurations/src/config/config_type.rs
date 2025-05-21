@@ -51,7 +51,7 @@ macro_rules! create_config {
 
         use serde::{Deserialize, Serialize};
 
-        #[derive(Clone)]
+        #[derive(Clone, Debug)]
         #[allow(unreachable_pub)]
         pub struct Config {
             // For each config item, we store:

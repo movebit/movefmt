@@ -2,11 +2,13 @@
 // Copyright (c) The BitsLab.MoveBit Contributors
 // SPDX-License-Identifier: Apache-2.0
 
+use super::syntax_extractor::SingleSyntaxExtractor;
 use crate::core::token_tree::TokenTree;
-use crate::tools::utils::FileLineMappingOneFile;
+use crate::tools::utils::*;
 use move_compiler::parser::ast::*;
 use move_compiler::shared::ast_debug;
 use std::cell::RefCell;
+use std::vec;
 
 #[derive(Debug, Default)]
 pub struct BinOpExtractor {
@@ -16,8 +18,8 @@ pub struct BinOpExtractor {
     pub line_mapping: FileLineMappingOneFile,
 }
 
-impl BinOpExtractor {
-    pub fn new(fmt_buffer: String) -> Self {
+impl SingleSyntaxExtractor for BinOpExtractor {
+    fn new(fmt_buffer: String) -> Self {
         let mut this_bin_op_extractor = Self {
             bin_op_exp_vec: vec![],
             split_bin_op_vec: vec![].into(),
@@ -80,7 +82,6 @@ impl BinOpExtractor {
                     type_: _,
                     init: _,
                 } => {}
-
                 SpecBlockMember_::Let {
                     name: _,
                     post_state: _,
@@ -123,16 +124,18 @@ impl BinOpExtractor {
                     self.collect_expr(else_.as_ref());
                 }
             }
-            Exp_::While(e, then_) => {
+            // Zax 20241217 issue45
+            Exp_::While(_, e, then_) => {
                 self.collect_expr(e.as_ref());
                 self.collect_expr(then_.as_ref());
             }
-            Exp_::Loop(b) => {
+            // Zax 20241217 issue45
+            Exp_::Loop(_, b) => {
                 self.collect_expr(b.as_ref());
             }
             Exp_::Block(b) => self.collect_seq(b),
-
-            Exp_::Lambda(_, e) => {
+            // Zax 20241217 issue45
+            Exp_::Lambda(_, e, _, _) => {
                 self.collect_expr(e.as_ref());
             }
             Exp_::Quant(_, _, es, e1, e2) => {
@@ -149,7 +152,8 @@ impl BinOpExtractor {
             Exp_::ExpList(es) => {
                 es.iter().for_each(|e| self.collect_expr(e));
             }
-            Exp_::Assign(l, r) => {
+            // Zax 20241217 issue45
+            Exp_::Assign(l, _bin_op, r) => {
                 self.collect_expr(l.as_ref());
                 self.collect_expr(r.as_ref());
             }
@@ -191,6 +195,12 @@ impl BinOpExtractor {
         }
     }
 
+    fn collect_const(&mut self, c: &Constant) {
+        self.collect_expr(&c.value);
+    }
+
+    fn collect_struct(&mut self, _s: &StructDefinition) {}
+
     fn collect_function(&mut self, d: &Function) {
         match &d.body.value {
             FunctionBody_::Defined(seq) => {
@@ -208,10 +218,16 @@ impl BinOpExtractor {
             if let ModuleMember::Spec(s) = &m {
                 self.collect_spec(s)
             }
+            if let ModuleMember::Constant(con) = &m {
+                self.collect_const(con);
+            }
         }
     }
 
     fn collect_script(&mut self, d: &Script) {
+        for const_data in &d.constants {
+            self.collect_const(const_data);
+        }
         self.collect_function(&d.function);
         for s in d.specs.iter() {
             self.collect_spec(s);
@@ -243,7 +259,7 @@ impl BinOpExtractor {
             if let Exp_::BinopExp(_, m, r) = &bin_op_exp.value {
                 if token.end_pos() == m.loc.end() {
                     tracing::debug!("r.value = {:?}", ast_debug::display(&r.value));
-                    return (idx, ast_debug::display(&r.value).len())
+                    return (idx, ast_debug::display(&r.value).len());
                 }
             }
         }
@@ -251,7 +267,9 @@ impl BinOpExtractor {
     }
 
     pub(crate) fn record_long_op(&self, idx: usize) {
-        self.split_bin_op_vec.borrow_mut().push(idx);
+        if !self.split_bin_op_vec.borrow_mut().contains(&idx) {
+            self.split_bin_op_vec.borrow_mut().push(idx);
+        }
     }
 
     pub(crate) fn need_split_long_bin_op_exp(&self, token: TokenTree) -> bool {
@@ -290,18 +308,15 @@ impl BinOpExtractor {
 
 #[allow(dead_code)]
 fn get_bin_op_exp(fmt_buffer: String) {
-    use crate::tools::syntax::parse_file_string;
     use move_command_line_common::files::FileHash;
-    use move_compiler::shared::CompilationEnv;
-    use move_compiler::Flags;
-    use std::collections::BTreeSet;
+    use move_compiler::parser::syntax::parse_file_string;
     let mut bin_op_extractor = BinOpExtractor::new(fmt_buffer.clone());
-    let mut env = CompilationEnv::new(Flags::testing(), BTreeSet::new());
-    let (defs, _) = parse_file_string(&mut env, FileHash::empty(), &fmt_buffer).unwrap();
+    let (defs, _) =
+        parse_file_string(&mut get_compile_env(), FileHash::empty(), &fmt_buffer).unwrap();
     bin_op_extractor.preprocess(defs);
     for bin_op_exp in bin_op_extractor.bin_op_exp_vec.iter() {
-        let bin_op_exp_str =
-            &bin_op_extractor.source[bin_op_exp.loc.start() as usize..bin_op_exp.loc.end() as usize];
+        let bin_op_exp_str = &bin_op_extractor.source
+            [bin_op_exp.loc.start() as usize..bin_op_exp.loc.end() as usize];
         if bin_op_exp_str.len() < 64 {
             continue;
         }
@@ -326,7 +341,6 @@ fn get_bin_op_exp(fmt_buffer: String) {
         eprintln!(" ******************************************************** <<\n\n\n");
     }
 }
-
 
 #[test]
 fn test_get_bin_op_exp() {
@@ -397,4 +411,24 @@ fn test_get_bin_op_exp2() {
         }
 "
         .to_string());
+}
+
+#[test]
+fn test_get_bin_op_exp3() {
+    get_bin_op_exp(
+        "
+        module test {
+            const C2: bool = {
+                ();
+                ();
+                (true && true) && (!false) && (1 << 7 == 128) && (128 >> 7 == 1) && (
+                    255 / 2 == 127
+                ) && (255 % 2 == 1) && (254 + 1 == 255) && (255 - 255 == 0) && (255&255 == 255) && (
+                    255 | 255 == 255
+                ) && (255 ^ 255 == 0)
+            };
+        }
+"
+        .to_string(),
+    );
 }

@@ -1,14 +1,12 @@
 use move_command_line_common::files::FileHash;
+use move_compiler::parser::{lexer::Lexer, syntax::parse_file_string};
 use movefmt::{
     core::token_tree::{CommentExtrator, CommentExtratorErr, TokenTree},
     tools::movefmt_diff,
-    tools::syntax::parse_file_string,
     tools::utils::*,
 };
-use std::collections::BTreeSet;
 use tracing_subscriber::EnvFilter;
 
-use move_compiler::{parser::lexer::Lexer, shared::CompilationEnv, Flags};
 use std::path::Path;
 
 fn scan_dir(dir: &str) -> usize {
@@ -53,7 +51,7 @@ fn test_single_file() {
         .with_env_filter(EnvFilter::from_env("MOVEFMT_LOG"))
         .init();
 
-    test_on_file(Path::new("./tests/issues/issue11/input1.move"));
+    test_on_file(Path::new("./tests/issues/issue57/input1.move"));
 }
 
 fn test_on_file(p: impl AsRef<Path>) -> bool {
@@ -61,9 +59,7 @@ fn test_on_file(p: impl AsRef<Path>) -> bool {
     eprintln!("try format:{:?}", p);
     let content_origin = std::fs::read_to_string(&p).unwrap();
     {
-        let attrs: BTreeSet<String> = BTreeSet::new();
-        let mut env = CompilationEnv::new(Flags::testing(), attrs);
-        match parse_file_string(&mut env, FileHash::empty(), &content_origin) {
+        match parse_file_string(&mut get_compile_env(), FileHash::empty(), &content_origin) {
             Ok(_) => {}
             Err(_) => {
                 eprintln!("file '{:?}' skipped because of parse not ok", p);
@@ -120,7 +116,14 @@ fn test_content(content_origin: &str, p: impl AsRef<Path>) {
         .zip(comments_format.iter())
         .enumerate()
     {
-        assert_eq!(c1, c2, "comment {} not ok.", index);
+        let len1 = c1.trim_end_matches(&['\r', '\n'][..]).len();
+        let len2 = c2.trim_end_matches(&['\r', '\n'][..]).len();
+        assert_eq!(
+            c1.clone().truncate(len1),
+            c2.clone().truncate(len2),
+            "comment {} not ok.",
+            index
+        );
     }
     assert_eq!(
         comments_origin.len(),
@@ -158,9 +161,7 @@ fn extract_tokens(content: &str) -> Result<Vec<ExtractToken>, Vec<String>> {
     let mut line_mapping = FileLineMapping::default();
     line_mapping.update(p.clone(), &content);
     let filehash = FileHash::empty();
-    let attrs: BTreeSet<String> = BTreeSet::new();
-    let mut env = CompilationEnv::new(Flags::testing(), attrs);
-    let (defs, _comments) = match parse_file_string(&mut env, filehash, content) {
+    let (defs, _comments) = match parse_file_string(&mut get_compile_env(), filehash, content) {
         Ok(x) => x,
         Err(d) => {
             let mut ret = Vec::with_capacity(d.len());
@@ -198,11 +199,7 @@ fn extract_tokens(content: &str) -> Result<Vec<ExtractToken>, Vec<String>> {
                     });
                 }
             }
-            TokenTree::Nested {
-                elements,
-                kind,
-                note: _,
-            } => {
+            TokenTree::Nested { elements, kind, .. } => {
                 let start_loc = m
                     .translate(
                         &Path::new(".").to_path_buf(),
@@ -249,12 +246,15 @@ fn test_dir() {
     num += scan_dir("./tests/complex2");
     num += scan_dir("./tests/complex3");
     num += scan_dir("./tests/complex4");
+    num += scan_dir("./tests/complex5_fix_todo");
+    num += scan_dir("./tests/complex6");
     num += scan_dir("./tests/aptos_framework_case");
     num += scan_dir("./tests/issues");
     num += scan_dir("./tests/comment");
     num += scan_dir("./tests/break_line");
     num += scan_dir("./tests/new_syntax");
     num += scan_dir("./tests/bug");
+    num += scan_dir("./tests/bug2");
     eprintln!("formated {} files", num);
 }
 

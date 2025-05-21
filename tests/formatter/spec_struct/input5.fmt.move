@@ -12,7 +12,7 @@ module std::ascii {
     // comment
     store {
         // comment
-        byte: u8,
+        byte: u8
     }
 
     spec Char {

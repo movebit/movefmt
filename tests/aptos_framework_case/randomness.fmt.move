@@ -34,7 +34,7 @@ module aptos_framework::randomness {
     struct PerBlockRandomness has drop, key {
         epoch: u64,
         round: u64,
-        seed: Option<vector<u8>>,
+        seed: Option<vector<u8>>
     }
 
     #[event]
@@ -48,7 +48,7 @@ module aptos_framework::randomness {
         if (!exists<PerBlockRandomness>(@aptos_framework)) {
             move_to(
                 framework,
-                PerBlockRandomness { epoch: 0, round: 0, seed: option::none(), },
+                PerBlockRandomness { epoch: 0, round: 0, seed: option::none() }
             );
         }
     }
@@ -61,7 +61,10 @@ module aptos_framework::randomness {
 
     /// Invoked in block prologues to update the block-level randomness seed.
     public(friend) fun on_new_block(
-        vm: &signer, epoch: u64, round: u64, seed_for_new_block: Option<vector<u8>>
+        vm: &signer,
+        epoch: u64,
+        round: u64,
+        seed_for_new_block: Option<vector<u8>>
     ) acquires PerBlockRandomness {
         system_addresses::assert_vm(vm);
         if (exists<PerBlockRandomness>(@aptos_framework)) {
@@ -278,11 +281,11 @@ module aptos_framework::randomness {
         let sample = r1 % range;
         let i = 0;
         while ({
-                spec {
-                    invariant sample >= 0 && sample < max_excl - min_incl;
-                };
-                i < 256
-            }) {
+            spec {
+                invariant sample >= 0 && sample < max_excl - min_incl;
+            };
+            i < 256
+        }) {
             sample = safe_add_mod(sample, sample, range);
             i = i + 1;
         };
@@ -309,12 +312,12 @@ module aptos_framework::randomness {
         // Initialize into [0, 1, ..., n-1].
         let i = 0;
         while ({
-                spec {
-                    invariant i <= n;
-                    invariant len(values) == i;
-                };
-                i < n
-            }) {
+            spec {
+                invariant i <= n;
+                invariant len(values) == i;
+            };
+            i < n
+        }) {
             std::vector::push_back(&mut values, i);
             i = i + 1;
         };
@@ -325,11 +328,11 @@ module aptos_framework::randomness {
         // Shuffle.
         let tail = n - 1;
         while ({
-                spec {
-                    invariant tail >= 0 && tail < len(values);
-                };
-                tail > 0
-            }) {
+            spec {
+                invariant tail >= 0 && tail < len(values);
+            };
+            tail > 0
+        }) {
             let pop_position = u64_range_internal(0, tail + 1);
             spec {
                 assert pop_position < len(values);
@@ -389,63 +392,63 @@ module aptos_framework::randomness {
                 == safe_add_mod(
                     0xfffffffffffffffffffffffffffffffffffffffffffffffd,
                     0x000000000000000000000000000000000000000000000001,
-                    0xffffffffffffffffffffffffffffffffffffffffffffffff,
+                    0xffffffffffffffffffffffffffffffffffffffffffffffff
                 ),
-            1,
+            1
         );
         assert!(
             0xfffffffffffffffffffffffffffffffffffffffffffffffe
                 == safe_add_mod(
                     0x000000000000000000000000000000000000000000000001,
                     0xfffffffffffffffffffffffffffffffffffffffffffffffd,
-                    0xffffffffffffffffffffffffffffffffffffffffffffffff,
+                    0xffffffffffffffffffffffffffffffffffffffffffffffff
                 ),
-            1,
+            1
         );
         assert!(
             0x000000000000000000000000000000000000000000000000
                 == safe_add_mod(
                     0xfffffffffffffffffffffffffffffffffffffffffffffffd,
                     0x000000000000000000000000000000000000000000000002,
-                    0xffffffffffffffffffffffffffffffffffffffffffffffff,
+                    0xffffffffffffffffffffffffffffffffffffffffffffffff
                 ),
-            1,
+            1
         );
         assert!(
             0x000000000000000000000000000000000000000000000000
                 == safe_add_mod(
                     0x000000000000000000000000000000000000000000000002,
                     0xfffffffffffffffffffffffffffffffffffffffffffffffd,
-                    0xffffffffffffffffffffffffffffffffffffffffffffffff,
+                    0xffffffffffffffffffffffffffffffffffffffffffffffff
                 ),
-            1,
+            1
         );
         assert!(
             0x000000000000000000000000000000000000000000000001
                 == safe_add_mod(
                     0xfffffffffffffffffffffffffffffffffffffffffffffffd,
                     0x000000000000000000000000000000000000000000000003,
-                    0xffffffffffffffffffffffffffffffffffffffffffffffff,
+                    0xffffffffffffffffffffffffffffffffffffffffffffffff
                 ),
-            1,
+            1
         );
         assert!(
             0x000000000000000000000000000000000000000000000001
                 == safe_add_mod(
                     0x000000000000000000000000000000000000000000000003,
                     0xfffffffffffffffffffffffffffffffffffffffffffffffd,
-                    0xffffffffffffffffffffffffffffffffffffffffffffffff,
+                    0xffffffffffffffffffffffffffffffffffffffffffffffff
                 ),
-            1,
+            1
         );
         assert!(
             0xfffffffffffffffffffffffffffffffffffffffffffffffd
                 == safe_add_mod(
                     0xfffffffffffffffffffffffffffffffffffffffffffffffe,
                     0xfffffffffffffffffffffffffffffffffffffffffffffffe,
-                    0xffffffffffffffffffffffffffffffffffffffffffffffff,
+                    0xffffffffffffffffffffffffffffffffffffffffffffffff
                 ),
-            1,
+            1
         );
     }
 

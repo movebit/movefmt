@@ -3,12 +3,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::tools::utils::FileLineMappingOneFile;
+use commentfmt::comment::contains_comment;
 use commentfmt::Config;
 use move_compiler::parser::ast::Definition;
 use move_compiler::parser::ast::*;
 use move_ir_types::location::*;
 use std::cell::RefCell;
 use std::collections::HashMap;
+
+use super::syntax_extractor::SingleSyntaxExtractor;
 
 #[derive(Debug)]
 pub struct LetIfElseBlock {
@@ -39,8 +42,8 @@ pub struct BranchExtractor {
     pub added_new_line_branch: RefCell<HashMap<ByteIndex, usize>>,
 }
 
-impl BranchExtractor {
-    pub fn new(fmt_buffer: String) -> Self {
+impl SingleSyntaxExtractor for BranchExtractor {
+    fn new(fmt_buffer: String) -> Self {
         let let_if_else = LetIfElseBlock {
             let_if_else_block_loc_vec: vec![],
             then_in_let_loc_vec: vec![],
@@ -172,16 +175,18 @@ impl BranchExtractor {
                     self.collect_expr(el.as_ref());
                 }
             }
-            Exp_::While(e, then_) => {
+            // Zax 20241217 issue45
+            Exp_::While(_, e, then_) => {
                 self.collect_expr(e.as_ref());
                 self.collect_expr(then_.as_ref());
             }
-            Exp_::Loop(b) => {
+            // Zax 20241217 issue45
+            Exp_::Loop(_, b) => {
                 self.collect_expr(b.as_ref());
             }
             Exp_::Block(b) => self.collect_seq(b),
-
-            Exp_::Lambda(_, e) => {
+            // Zax 20241217 issue45
+            Exp_::Lambda(_, e, _, _) => {
                 self.collect_expr(e.as_ref());
             }
             Exp_::Quant(_, _, es, e1, e2) => {
@@ -198,7 +203,8 @@ impl BranchExtractor {
             Exp_::ExpList(es) => {
                 es.iter().for_each(|e| self.collect_expr(e));
             }
-            Exp_::Assign(l, r) => {
+            // Zax 20241217 issue45
+            Exp_::Assign(l, _bin_op, r) => {
                 self.collect_expr(l.as_ref());
                 self.collect_expr(r.as_ref());
             }
@@ -239,6 +245,12 @@ impl BranchExtractor {
         }
     }
 
+    fn collect_const(&mut self, c: &Constant) {
+        self.collect_expr(&c.value);
+    }
+
+    fn collect_struct(&mut self, _s: &StructDefinition) {}
+
     fn collect_function(&mut self, d: &Function) {
         match &d.body.value {
             FunctionBody_::Defined(seq) => {
@@ -256,10 +268,16 @@ impl BranchExtractor {
             if let ModuleMember::Spec(s) = &m {
                 self.collect_spec(s)
             }
+            if let ModuleMember::Constant(con) = &m {
+                self.collect_const(con);
+            }
         }
     }
 
     fn collect_script(&mut self, d: &Script) {
+        for const_data in &d.constants {
+            self.collect_const(const_data);
+        }
         self.collect_function(&d.function);
         for s in d.specs.iter() {
             self.collect_spec(s);
@@ -295,11 +313,34 @@ impl BranchExtractor {
         cur_line: String,
         then_start_pos: ByteIndex,
         config: Config,
+        end_pos_of_if_cond_or_else: u32,
     ) -> bool {
         for then_loc in &self.com_if_else.then_loc_vec {
             if then_loc.start() == then_start_pos {
-                let has_added = cur_line.len() as u32 + then_loc.end() - then_loc.start()
-                    > config.max_width() as u32;
+                let then_body_str =
+                    &self.source[then_loc.start() as usize..then_loc.end() as usize];
+                let then_body_str_trim_multi_space = then_body_str
+                    .replace('\n', "")
+                    .split_whitespace()
+                    .collect::<Vec<&str>>()
+                    .join("");
+
+                let mut has_added =
+                    cur_line.len() + then_body_str_trim_multi_space.len() > config.max_width();
+                if !has_added && cur_line.trim_start().len() == 0 {
+                    has_added = true;
+                }
+
+                // updated in 20241212: fix https://github.com/movebit/movefmt/issues/43
+                // maybe has '//' comments bewteen [end_pos_of_if_cond_or_else, then_start_pos]
+                let comment_or_space_str =
+                    &self.source[end_pos_of_if_cond_or_else as usize..then_loc.start() as usize];
+                if !has_added
+                    && contains_comment(comment_or_space_str)
+                    && comment_or_space_str.find("//").is_some()
+                {
+                    has_added = true;
+                }
 
                 let new_line_cnt = if self
                     .added_new_line_branch
@@ -324,17 +365,37 @@ impl BranchExtractor {
         cur_line: String,
         else_start_pos: ByteIndex,
         config: Config,
+        end_pos_of_if_cond_or_else: u32,
     ) -> bool {
         for (else_loc_idx, else_loc) in self.com_if_else.else_loc_vec.iter().enumerate() {
             if else_loc.start() == else_start_pos {
-                let mut has_added = cur_line.len() as u32 + else_loc.end() - else_loc.start()
-                    > config.max_width() as u32;
+                let else_body_str =
+                    &self.source[else_loc.start() as usize..else_loc.end() as usize];
+                let else_body_str_trim_multi_space = else_body_str
+                    .replace('\n', "")
+                    .split_whitespace()
+                    .collect::<Vec<&str>>()
+                    .join("");
+
+                let mut has_added =
+                    cur_line.len() + else_body_str_trim_multi_space.len() + 4 >= config.max_width();
                 if !has_added && else_loc_idx + 1 < self.com_if_else.else_loc_vec.len() {
                     has_added = self
                         .get_loc_range(self.com_if_else.else_loc_vec[else_loc_idx + 1])
                         .end
                         .line
                         == self.get_loc_range(*else_loc).end.line;
+                }
+
+                // updated in 20241212: fix https://github.com/movebit/movefmt/issues/43
+                // maybe has '//' comments bewteen [end_pos_of_if_cond_or_else, else_start_pos]
+                let comment_or_space_str =
+                    &self.source[end_pos_of_if_cond_or_else as usize..else_start_pos as usize];
+                if !has_added
+                    && contains_comment(comment_or_space_str)
+                    && comment_or_space_str.find("//").is_some()
+                {
+                    has_added = true;
                 }
 
                 let new_line_cnt = if self
@@ -371,9 +432,19 @@ impl BranchExtractor {
         cur_line: String,
         branch_start_pos: ByteIndex,
         config: Config,
+        end_pos_of_if_cond_or_else: u32,
     ) -> bool {
-        self.need_new_line_in_then_without_brace(cur_line.clone(), branch_start_pos, config.clone())
-            || self.need_new_line_after_else(cur_line.clone(), branch_start_pos, config.clone())
+        self.need_new_line_in_then_without_brace(
+            cur_line.clone(),
+            branch_start_pos,
+            config.clone(),
+            end_pos_of_if_cond_or_else,
+        ) || self.need_new_line_after_else(
+            cur_line.clone(),
+            branch_start_pos,
+            config.clone(),
+            end_pos_of_if_cond_or_else,
+        )
     }
 
     fn added_new_line_in_then_without_brace(&self, then_end_pos: ByteIndex) -> usize {
@@ -413,6 +484,29 @@ impl BranchExtractor {
         for else_loc in self.com_if_else.else_loc_vec.iter() {
             if else_loc.start() < pos && pos < else_loc.end() {
                 return true;
+            }
+        }
+        false
+    }
+
+    pub fn else_branch_too_long(
+        &self,
+        cur_line: String,
+        branch_start_pos: ByteIndex,
+        config: Config,
+    ) -> bool {
+        for (_, else_loc) in self.com_if_else.else_loc_vec.iter().enumerate() {
+            if else_loc.start() == branch_start_pos {
+                let else_body_str =
+                    &self.source[else_loc.start() as usize..else_loc.end() as usize];
+                let else_body_str_trim_multi_space = else_body_str
+                    .replace('\n', "")
+                    .split_whitespace()
+                    .collect::<Vec<&str>>()
+                    .join("");
+
+                return cur_line.len() + else_body_str_trim_multi_space.len() + 16
+                    >= config.max_width();
             }
         }
         false

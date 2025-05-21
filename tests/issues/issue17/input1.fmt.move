@@ -11,12 +11,12 @@ module test {
         assert!(
             coin::balance<AptosCoin>(shareholder_1_address)
                 == shareholder_1_bal + pending_distribution / 4,
-            0,
+            0
         );
         assert!(
             coin::balance<AptosCoin>(shareholder_2_address)
                 == shareholder_2_bal + pending_distribution * 3 / 4,
-            1,
+            1
         );
 
         let xxxxxxxxxxxxxxxxxxxxxxxxxxxx =
@@ -25,15 +25,14 @@ module test {
                     * cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
                 - dddddddddddd / eeeeeeeeeeee;
 
-        (
-            (int2bv((((1 as u8) << ((feature % (8 as u64)) as u64)) as u8)) as u8)
-                & features[feature / 8] as u8
-        ) > (0 as u8) && (feature / 8) < len(features)
+        ((int2bv((((1 as u8) << ((feature % (8 as u64)) as u64)) as u8)) as u8)
+            & features[feature / 8] as u8) > (0 as u8) && (feature / 8) < len(features)
     }
 
     spec schema UpdateAuthKeyAndOriginatingAddressTableAbortsIf {
         let stake_balance_0 = stake_pool_res.active.value
-            + stake_pool_res.pending_active.value + stake_pool_res.pending_inactive.value;
+            + stake_pool_res.pending_active.value
+            + stake_pool_res.pending_inactive.value;
         let stake_balance_1 = stake_pool_res.active.value
             + stake_pool_res.pending_inactive.value;
 

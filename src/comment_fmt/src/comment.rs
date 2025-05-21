@@ -1,14 +1,11 @@
-use std::{self, borrow::Cow, iter};
+use crate::shape::{Indent, Shape};
+use crate::string::{rewrite_string, StringFormat};
+use crate::utils::{count_newlines, last_line_width, trim_left_preserve_layout, unicode_str_width};
+use configurations::config::Config;
 use itertools::{multipeek, MultiPeek};
 use lazy_static::lazy_static;
 use regex::Regex;
-use configurations::config::Config;
-use crate::shape::{Indent, Shape};
-use crate::string::{rewrite_string, StringFormat};
-use crate::utils::{
-    count_newlines, last_line_width, trim_left_preserve_layout,
-    unicode_str_width,
-};
+use std::{self, borrow::Cow, iter};
 
 lazy_static! {
     /// A regex matching reference doc links.
@@ -251,28 +248,25 @@ fn identify_comment(
     };
 
     let (first_group, rest) = orig.split_at(first_group_ending);
-    let rewritten_first_group =
-        if has_bare_lines && style.is_block_comment() {
-            trim_left_preserve_layout(first_group, shape.indent, config)?
-        } else if !(
-                // `format_code_in_doc_comments` should only take effect on doc comments,
-                // so we only consider it when this comment block is a doc comment block.
-                is_doc_comment
-            )
-        {
-            light_rewrite_comment(first_group, shape.indent, config, is_doc_comment)
-        } else {
-            rewrite_comment_inner(
-                first_group,
-                block_style,
-                style,
-                shape,
-                config,
-                is_doc_comment || style.is_doc_comment(),
-            )?
-        };
+    let rewritten_first_group = if has_bare_lines && style.is_block_comment() {
+        trim_left_preserve_layout(first_group, shape.indent, config)?
+    } else if !(
+        // `format_code_in_doc_comments` should only take effect on doc comments,
+        // so we only consider it when this comment block is a doc comment block.
+        is_doc_comment
+    ) {
+        light_rewrite_comment(first_group, shape.indent, config, is_doc_comment)
+    } else {
+        rewrite_comment_inner(
+            first_group,
+            block_style,
+            style,
+            shape,
+            config,
+            is_doc_comment || style.is_doc_comment(),
+        )?
+    };
     if rest.is_empty() {
-        // tracing::info!("rewritten_first_group = \n{}", rewritten_first_group);
         Some(rewritten_first_group)
     } else {
         identify_comment(
@@ -283,19 +277,18 @@ fn identify_comment(
             is_doc_comment,
         )
         .map(|rest_str| {
-            let ret_cmt_str = 
-                format!(
-                    "{}\n{}{}{}",
-                    rewritten_first_group,
-                    // insert back the blank line
-                    if has_bare_lines && style.is_line_comment() {
-                        "\n"
-                    } else {
-                        ""
-                    },
-                    shape.indent.to_string(config),
-                    rest_str
-                );
+            let ret_cmt_str = format!(
+                "{}\n{}{}{}",
+                rewritten_first_group,
+                // insert back the blank line
+                if has_bare_lines && style.is_line_comment() {
+                    "\n"
+                } else {
+                    ""
+                },
+                shape.indent.to_string(config),
+                rest_str
+            );
             tracing::info!("ret_cmt_str = {}", ret_cmt_str);
             ret_cmt_str
         })
@@ -435,7 +428,7 @@ impl<'a> CommentRewrite<'a> {
         let is_last = i == num_newlines;
         if self.code_block_attr.is_some() {
             self.code_block_buffer
-            .push_str(&hide_sharp_behind_comment(line));
+                .push_str(&hide_sharp_behind_comment(line));
             self.code_block_buffer.push('\n');
             return false;
         }
@@ -562,10 +555,7 @@ fn rewrite_comment_inner(
         .map(|s| left_trim_comment_line(s, &style))
         .map(|(line, has_leading_whitespace)| {
             if orig.starts_with("/*") && line_breaks == 0 {
-                (
-                    line.trim_start(),
-                    has_leading_whitespace,
-                )
+                (line.trim_start(), has_leading_whitespace)
             } else {
                 (line, has_leading_whitespace)
             }
@@ -1144,62 +1134,6 @@ impl<'a> Iterator for LineClasses<'a> {
     }
 }
 
-struct UngroupedCommentCodeSlices<'a> {
-    slice: &'a str,
-    iter: iter::Peekable<CharClasses<std::str::CharIndices<'a>>>,
-}
-
-// impl<'a> UngroupedCommentCodeSlices<'a> {
-//     fn new(code: &'a str) -> UngroupedCommentCodeSlices<'a> {
-//         UngroupedCommentCodeSlices {
-//             slice: code,
-//             iter: CharClasses::new(code.char_indices()).peekable(),
-//         }
-//     }
-// }
-
-impl<'a> Iterator for UngroupedCommentCodeSlices<'a> {
-    type Item = (CodeCharKind, usize, &'a str);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let (kind, (start_idx, _)) = self.iter.next()?;
-        match kind {
-            FullCodeCharKind::Normal | FullCodeCharKind::InString => {
-                // Consume all the Normal code
-                while let Some(&(char_kind, _)) = self.iter.peek() {
-                    if char_kind.is_comment() {
-                        break;
-                    }
-                    let _ = self.iter.next();
-                }
-            }
-            FullCodeCharKind::StartComment => {
-                // Consume the whole comment
-                loop {
-                    match self.iter.next() {
-                        Some((kind, ..)) if kind.inside_comment() => continue,
-                        _ => break,
-                    }
-                }
-            }
-            _ => panic!(),
-        }
-        let slice = match self.iter.peek() {
-            Some(&(_, (end_idx, _))) => &self.slice[start_idx..end_idx],
-            None => &self.slice[start_idx..],
-        };
-        Some((
-            if kind.is_comment() {
-                CodeCharKind::Comment
-            } else {
-                CodeCharKind::Normal
-            },
-            start_idx,
-            slice,
-        ))
-    }
-}
-
 pub struct CommentCodeSlices<'a> {
     slice: &'a str,
     last_slice_kind: CodeCharKind,
@@ -1292,71 +1226,6 @@ pub fn filter_normal_code(code: &str) -> String {
     }
     buffer
 }
-
-/// Iterator over the 'payload' characters of a comment.
-/// It skips whitespace, comment start/end marks, and '*' at the beginning of lines.
-/// The comment must be one comment, ie not more than one start mark (no multiple line comments,
-/// for example).
-struct CommentReducer<'a> {
-    is_block: bool,
-    at_start_line: bool,
-    iter: std::str::Chars<'a>,
-}
-
-// impl<'a> CommentReducer<'a> {
-//     fn new(comment: &'a str) -> CommentReducer<'a> {
-//         let is_block = comment.starts_with("/*");
-//         let comment = remove_comment_header(comment);
-//         CommentReducer {
-//             is_block,
-//             // There are no supplementary '*' on the first line.
-//             at_start_line: false,
-//             iter: comment.chars(),
-//         }
-//     }
-// }
-
-impl<'a> Iterator for CommentReducer<'a> {
-    type Item = char;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            let mut c = self.iter.next()?;
-            if self.is_block && self.at_start_line {
-                while c.is_whitespace() {
-                    c = self.iter.next()?;
-                }
-                // Ignore leading '*'.
-                if c == '*' {
-                    c = self.iter.next()?;
-                }
-            } else if c == '\n' {
-                self.at_start_line = true;
-            }
-            if !c.is_whitespace() {
-                return Some(c);
-            }
-        }
-    }
-}
-
-// fn remove_comment_header(comment: &str) -> &str {
-//     if comment.starts_with("///") || comment.starts_with("//!") {
-//         &comment[3..]
-//     } else if let Some(stripped) = comment.strip_prefix("//") {
-//         stripped
-//     } else if (comment.starts_with("/**") && !comment.starts_with("/**/"))
-//         || comment.starts_with("/*!")
-//     {
-//         &comment[3..comment.len() - 2]
-//     } else {
-//         assert!(
-//             comment.starts_with("/*"),
-//             "string '{comment}' is not a comment"
-//         );
-//         &comment[2..comment.len() - 2]
-//     }
-// }
 
 #[cfg(test)]
 mod test {

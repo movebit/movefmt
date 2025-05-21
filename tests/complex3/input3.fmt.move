@@ -6,7 +6,8 @@ spec aptos_token::property_map {
         let name = type_name<T>();
         aborts_if !string::spec_internal_check_utf8(b"bool");
 
-        aborts_if name != spec_utf8(b"bool") && !string::spec_internal_check_utf8(b"u8");
+        aborts_if name != spec_utf8(b"bool")
+            && !string::spec_internal_check_utf8(b"u8");
 
         aborts_if name != spec_utf8(b"bool")
             && name != spec_utf8(b"u8")

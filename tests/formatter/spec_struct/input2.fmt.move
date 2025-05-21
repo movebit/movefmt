@@ -13,7 +13,7 @@ module std::ascii {
 
     /// An ASCII character.
     struct Char has copy, drop, store {
-        byte: u8,
+        byte: u8
     }
 
     spec Char {

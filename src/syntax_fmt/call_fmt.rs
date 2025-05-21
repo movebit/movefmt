@@ -4,10 +4,13 @@
 
 use crate::core::token_tree::*;
 use crate::tools::utils::FileLineMappingOneFile;
+use commentfmt::comment::contains_comment;
 use commentfmt::Config;
 use move_compiler::parser::ast::*;
 use move_compiler::parser::lexer::Tok;
 use move_ir_types::location::*;
+
+use super::syntax_extractor::SingleSyntaxExtractor;
 
 #[derive(Debug, Default)]
 pub struct CallExtractor {
@@ -20,8 +23,8 @@ pub struct CallExtractor {
     pub line_mapping: FileLineMappingOneFile,
 }
 
-impl CallExtractor {
-    pub fn new(fmt_buffer: String) -> Self {
+impl SingleSyntaxExtractor for CallExtractor {
+    fn new(fmt_buffer: String) -> Self {
         let mut this_call_extractor = Self {
             call_loc_vec: vec![],
             call_paren_loc_vec: vec![],
@@ -116,7 +119,6 @@ impl CallExtractor {
         match &e.value {
             Exp_::Call(name, _, _tys, es) => {
                 if name.loc.end() > es.loc.start() {
-                    // tracing::debug!("name loc end > exp loc end: {:?}", e);
                     // self.receiver_style_call_exp_vec.push(e.clone());
                     if judge_link_call_exp(e).0 {
                         self.link_call_exp_vec.push(e.clone());
@@ -141,16 +143,18 @@ impl CallExtractor {
                     self.collect_expr(else_.as_ref());
                 }
             }
-            Exp_::While(e, then_) => {
+            // Zax 20241217 issue45
+            Exp_::While(_, e, then_) => {
                 self.collect_expr(e.as_ref());
                 self.collect_expr(then_.as_ref());
             }
-            Exp_::Loop(b) => {
+            // Zax 20241217 issue45
+            Exp_::Loop(_, b) => {
                 self.collect_expr(b.as_ref());
             }
             Exp_::Block(b) => self.collect_seq(b),
-
-            Exp_::Lambda(_, e) => {
+            // Zax 20241217 issue45
+            Exp_::Lambda(_, e, _, _) => {
                 self.collect_expr(e.as_ref());
             }
             Exp_::Quant(_, _, es, e1, e2) => {
@@ -167,7 +171,8 @@ impl CallExtractor {
             Exp_::ExpList(es) => {
                 es.iter().for_each(|e| self.collect_expr(e));
             }
-            Exp_::Assign(l, r) => {
+            // Zax 20241217 issue45
+            Exp_::Assign(l, _bin_op, r) => {
                 self.collect_expr(l.as_ref());
                 self.collect_expr(r.as_ref());
             }
@@ -210,6 +215,12 @@ impl CallExtractor {
         }
     }
 
+    fn collect_const(&mut self, c: &Constant) {
+        self.collect_expr(&c.value);
+    }
+
+    fn collect_struct(&mut self, _s: &StructDefinition) {}
+
     fn collect_function(&mut self, d: &Function) {
         match &d.body.value {
             FunctionBody_::Defined(seq) => {
@@ -227,10 +238,16 @@ impl CallExtractor {
             if let ModuleMember::Spec(s) = &m {
                 self.collect_spec(s)
             }
+            if let ModuleMember::Constant(con) = &m {
+                self.collect_const(con);
+            }
         }
     }
 
     fn collect_script(&mut self, d: &Script) {
+        for const_data in &d.constants {
+            self.collect_const(const_data);
+        }
         self.collect_function(&d.function);
         for s in d.specs.iter() {
             self.collect_spec(s);
@@ -450,14 +467,14 @@ impl CallExtractor {
         if let TokenTree::Nested {
             elements: _lambda_ele,
             kind: next_kind,
-            note: _,
+            ..
         } = next_t.unwrap()
         {
             if next_kind.kind == NestKind_::Lambda && next_next_t.is_some() {
                 if let TokenTree::Nested {
                     elements: lambda_brace_ele,
                     kind: next_next_kind,
-                    note: _,
+                    ..
                 } = next_next_t.unwrap()
                 {
                     if next_next_kind.kind == NestKind_::Brace {
@@ -539,22 +556,22 @@ impl CallExtractor {
         elements: &[TokenTree],
         cur_ret_last_len: usize,
     ) -> bool {
-        if kind.kind != NestKind_::ParentTheses {
-            return false;
-        }
-        let len1 = cur_ret_last_len + (kind.end_pos - kind.start_pos) as usize;
-        if elements.is_empty() || len1 < config.max_width() {
+        if kind.kind != NestKind_::ParentTheses || elements.is_empty() {
             return false;
         }
 
         let call_str_in_source = &self.source[kind.start_pos as usize..kind.end_pos as usize];
-        let call_str_in_source_trim_multi_space = call_str_in_source
+        let call_str_trimed_multi_space = call_str_in_source
             .replace('\n', "")
             .split_whitespace()
             .collect::<Vec<&str>>()
             .join("");
-        let len2 = cur_ret_last_len + call_str_in_source_trim_multi_space.len() + 4;
-        tracing::debug!("len2 = {}", len2);
+        let len = if call_str_in_source.len() == call_str_trimed_multi_space.len() {
+            cur_ret_last_len + call_str_trimed_multi_space.len()
+        } else {
+            cur_ret_last_len + call_str_trimed_multi_space.len() + 4
+        };
+        tracing::debug!("len = {}", len);
 
         let line_cnt = call_str_in_source.matches("\n").count();
         let mut simple_token_cnt = 0;
@@ -570,7 +587,7 @@ impl CallExtractor {
         );
         tracing::debug!("nested_token_cnt = {}, comma_cnt = {}, bin_op_cnt = {}, line_cnt = {}, simple_token_cnt = {}", 
             nested_token_cnt, comma_cnt, bin_op_cnt, line_cnt, simple_token_cnt);
-        if len2 < config.max_width()
+        if len < config.max_width()
             && nested_token_cnt <= 2
             && comma_cnt < 3
             && bin_op_cnt < 2
@@ -581,9 +598,16 @@ impl CallExtractor {
             return false;
         }
 
+        if len <= config.max_width()
+            && call_str_trimed_multi_space.len() < config.max_width() / 2
+            && !contains_comment(call_str_in_source)
+            && call_str_trimed_multi_space.matches("}").count() < 2
+        {
+            return false;
+        }
         tracing::debug!(
-            "call_str_in_source_trim_multi_space = {:?}",
-            call_str_in_source_trim_multi_space
+            "call_str_trimed_multi_space = {:?}",
+            call_str_trimed_multi_space
         );
         true
     }

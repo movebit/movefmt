@@ -1,6 +1,6 @@
-use std::path::Path;
-use config_proc_macro::config_type;
 use crate::config::Config;
+use config_proc_macro::config_type;
+use std::path::Path;
 
 /// What movefmt should emit. Mostly corresponds to the `--emit` command line
 /// option.
