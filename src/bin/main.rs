@@ -22,6 +22,16 @@ use tracing_subscriber::EnvFilter;
 extern crate colored;
 use colored::Colorize;
 
+const ERR_EMPTY_INPUT_FROM_STDIN: i32 = 1;
+const ERR_INVALID_MOVE_CODE_FROM_STDIN: i32 = 2;
+
+
+#[derive(Error, Debug)]
+enum MoveFmtError {
+    #[error("Format failed with exit code: {0}")]
+    ErrStdin(i32),
+}
+
 fn main() {
     tracing_subscriber::fmt()
         .with_env_filter(
@@ -143,6 +153,7 @@ fn make_opts() -> Options {
     opts.optflag("V", "version", "Show version information");
     let help_topic_msg = "Show help".to_owned();
     opts.optflagopt("h", "help", &help_topic_msg, "=TOPIC");
+    opts.optflag("i", "stdin", "Receive code text from stdin");
 
     opts
 }
@@ -190,7 +201,13 @@ fn execute(opts: &Options) -> Result<i32> {
 
             Ok(0)
         }
-        Operation::Stdin { exit_code } => Ok(exit_code),
+        Operation::Stdin { exit_code } => {
+          if exit_code > 0 {
+            Err(MoveFmtError::ErrStdin(exit_code).into())
+          } else {
+            Ok(0)
+          }
+        }
         Operation::Format { files } => format(files, &options),
     }
 }
@@ -486,20 +503,28 @@ fn determine_operation(matches: &Matches) -> Result<Operation, OperationError> {
         }
     }
 
-    if files.is_empty() {
+    if matches.opt_present("stdin") {
         let mut buffer = String::new();
         io::stdin().read_to_string(&mut buffer)?;
         let options = GetOptsOptions::from_matches(&matches).unwrap_or_default();
-        if let Ok(_) = format_string(buffer, options) {
+        if buffer.is_empty() {
+            tracing::warn!("\n{}",
+            "You haven't entered any Move code. Please run movefmt again.".yellow());
+            return Ok(Operation::Stdin { exit_code: ERR_EMPTY_INPUT_FROM_STDIN });
+        } else if let Ok(_) = format_string(buffer, options) {
             return Ok(Operation::Stdin { exit_code: 0 });
         } else {
             tracing::error!(
                 "{}, please re-enter a valid move code",
                 "Format Failed on stdin's buffer".red()
             );
+            return Ok(Operation::Stdin { exit_code: ERR_INVALID_MOVE_CODE_FROM_STDIN });
         }
+    }
 
-        eprintln!("no file argument is supplied, movefmt runs on current directory by default, \nformatting all .move files within it......");
+    if files.is_empty() {
+        tracing::warn!("\n{}",
+            "No file argument is supplied, movefmt runs on current directory by default, \nformatting all .move files within it......".yellow());
         println!("----------------------------------------------------------------------------\n");
         if let Ok(current_dir) = std::env::current_dir() {
             for x in walkdir::WalkDir::new(current_dir) {
