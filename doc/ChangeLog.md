@@ -8,6 +8,7 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.2.1">v1.2.1</a><br/>
 <a href="#v1.2.0">v1.2.0</a><br/>
 <a href="#v1.0.9">v1.0.9</a><br/>
 <a href="#v1.0.8">v1.0.8</a><br/>
@@ -23,6 +24,26 @@
 </td>
 </tr>
 </table>
+
+<a id="v1.2.1"></a>
+
+## 2025-05-22, Version v1.2.1
+### Features
+
+Finish issue#39, issue#61
+
+### Commits
+
+* [[`4d82dbc`](https://github.com/movebit/movefmt/commit/4d82dbc9768ad12a1d5eb3e6e6d4fab536632696)] - do cargo fmt; add doc (robinlzw)
+* [[`1aef607`](https://github.com/movebit/movefmt/commit/1aef607c4fd9f94536aea8b81b80808722c1824c)] - Add cmd-opt '-i' to avoid conflict between the 'receive-from-stdin' and 'pre-commit' features (robinlzw)
+* [[`046c61a`](https://github.com/movebit/movefmt/commit/046c61ae95e9b2db6754b71eb5ae451f7c3c2ee7)] - update doc for `pre-commit-hooks` (hapeeeeee)
+* [[`85589b8`](https://github.com/movebit/movefmt/commit/85589b8a49216fead88992b84e2d21e7ca789f4f)] - update doc for Github CI (hapeeeeee)
+* [[`0de9044`](https://github.com/movebit/movefmt/commit/0de9044e40d1630a28d8f99963a873f540702255)] - add .pre-commit-hooks.yaml (hapeeeeee)
+* [[`9f50959`](https://github.com/movebit/movefmt/commit/9f509591666bfaa6472b1d96b0e7a85a3c61a026)] - add pass files false (hapeeeeee)
+* [[`9df8332`](https://github.com/movebit/movefmt/commit/9df8332a48e902f01e6fe8b7ac3f0205cb2652be)] - .pre-commit-hooks.yaml (hapeeeeee)
+* [[`c8d44eb`](https://github.com/movebit/movefmt/commit/c8d44ebc17eb4a6efff945b76f919f565acb90de)] - first try on #issue61: receive code text from stdin (robinlzw)
+* [[`e2db7fc`](https://github.com/movebit/movefmt/commit/e2db7fcd371c6e64677c99a3480027ea973c5c56)] - remove beta log; optimize warn log (robinlzw)
+* [[`475b8b9`](https://github.com/movebit/movefmt/commit/475b8b92f5074ffc346f89f6aa1690d27863b059)] - optimize code and comment (robinlzw)
 
 <a id="v1.2.0"></a>
 
