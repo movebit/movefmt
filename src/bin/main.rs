@@ -25,7 +25,6 @@ use colored::Colorize;
 const ERR_EMPTY_INPUT_FROM_STDIN: i32 = 1;
 const ERR_INVALID_MOVE_CODE_FROM_STDIN: i32 = 2;
 
-
 #[derive(Error, Debug)]
 enum MoveFmtError {
     #[error("Format failed with exit code: {0}")]
@@ -202,11 +201,11 @@ fn execute(opts: &Options) -> Result<i32> {
             Ok(0)
         }
         Operation::Stdin { exit_code } => {
-          if exit_code > 0 {
-            Err(MoveFmtError::ErrStdin(exit_code).into())
-          } else {
-            Ok(0)
-          }
+            if exit_code > 0 {
+                Err(MoveFmtError::ErrStdin(exit_code).into())
+            } else {
+                Ok(0)
+            }
         }
         Operation::Format { files } => format(files, &options),
     }
@@ -508,9 +507,13 @@ fn determine_operation(matches: &Matches) -> Result<Operation, OperationError> {
         io::stdin().read_to_string(&mut buffer)?;
         let options = GetOptsOptions::from_matches(&matches).unwrap_or_default();
         if buffer.is_empty() {
-            tracing::warn!("\n{}",
-            "You haven't entered any Move code. Please run movefmt again.".yellow());
-            return Ok(Operation::Stdin { exit_code: ERR_EMPTY_INPUT_FROM_STDIN });
+            tracing::warn!(
+                "\n{}",
+                "You haven't entered any Move code. Please run movefmt again.".yellow()
+            );
+            return Ok(Operation::Stdin {
+                exit_code: ERR_EMPTY_INPUT_FROM_STDIN,
+            });
         } else if let Ok(_) = format_string(buffer, options) {
             return Ok(Operation::Stdin { exit_code: 0 });
         } else {
@@ -518,7 +521,9 @@ fn determine_operation(matches: &Matches) -> Result<Operation, OperationError> {
                 "{}, please re-enter a valid move code",
                 "Format Failed on stdin's buffer".red()
             );
-            return Ok(Operation::Stdin { exit_code: ERR_INVALID_MOVE_CODE_FROM_STDIN });
+            return Ok(Operation::Stdin {
+                exit_code: ERR_INVALID_MOVE_CODE_FROM_STDIN,
+            });
         }
     }
 
