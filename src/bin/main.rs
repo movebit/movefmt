@@ -682,6 +682,11 @@ fn should_escape_not_in_package(file: &Path, use_config: &Config) -> bool {
                 if let Some(parent) = ancestor.parent() {
                     let toml_path = parent.join("Move.toml");
                     if toml_path.exists() {
+                        if let Ok(toml_content) = std::fs::read_to_string(&toml_path) {
+                            if toml_content.contains("https://github.com/MystenLabs/sui.git") {
+                                return true;
+                            }
+                        }
                         return false;
                     } else {
                         return true;
