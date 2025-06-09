@@ -24,11 +24,15 @@ use colored::Colorize;
 
 const ERR_EMPTY_INPUT_FROM_STDIN: i32 = 1;
 const ERR_INVALID_MOVE_CODE_FROM_STDIN: i32 = 2;
+const ERR_FMT: i32 = 3;
 
 #[derive(Error, Debug)]
 enum MoveFmtError {
-    #[error("Format failed with exit code: {0}")]
+    #[error("Format failed by Stdin with exit code: {0}")]
     ErrStdin(i32),
+
+    #[error("Format failed with exit code: {0}")]
+    ErrFmt(i32),
 }
 
 fn main() {
@@ -262,7 +266,6 @@ fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> 
     let mut success_cnt = 0;
     let mut skips_cnt_expected = 0;
     let mut skips_cnt_not_belong_to_any_package = 0;
-    let mut skips_cnt_parse_not_ok = 0;
     tracing::info!(
         "config.[verbose, indent] = [{:?}, {:?}], {:?}",
         config.verbose(),
@@ -378,7 +381,6 @@ fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> 
                 }
             }
             Err(diags) => {
-                skips_cnt_parse_not_ok += 1;
                 let mut files_source_text: move_compiler::diagnostics::FilesSourceText =
                     HashMap::new();
                 files_source_text.insert(
@@ -394,6 +396,7 @@ fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> 
                     // https://github.com/movebit/movefmt/issues/2
                     eprintln!("file '{:?}' skipped because of parse not ok", file);
                 }
+                return Err(MoveFmtError::ErrFmt(ERR_FMT).into());
             }
         }
     }
@@ -402,12 +405,6 @@ fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> 
         println!(
             "\n----------------------------------------------------------------------------\n"
         );
-        if skips_cnt_parse_not_ok > 0 {
-            println!(
-                "{:?} files skipped because of parse failed",
-                skips_cnt_parse_not_ok
-            );
-        }
         if skips_cnt_expected > 0 {
             println!(
                 "{:?} files skipped because escaped by movefmt.toml",
