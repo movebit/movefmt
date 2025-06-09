@@ -279,6 +279,32 @@ fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> 
         }
     }
 
+    let mut files = files;
+    let mut no_files_argument = files.is_empty();
+    if no_files_argument {
+        if let Ok(current_dir) = std::env::current_dir() {
+            for x in walkdir::WalkDir::new(current_dir) {
+                let x = match x {
+                    Ok(x) => x,
+                    Err(_) => {
+                        break;
+                    }
+                };
+                if x.file_type().is_file()
+                    && x.file_name().to_str().unwrap().ends_with(".move")
+                    && !x.file_name().to_str().unwrap().contains(".fmt")
+                    && !x.file_name().to_str().unwrap().contains(".out")
+                {
+                    files.push((x.clone().into_path(), false));
+                }
+            }
+        } else {
+            return Err(format_err!(
+                "Failed to get the current directory when file argument is not specified."
+            ));
+        }
+    }
+
     for (file, is_specified_file) in files {
         if !file.exists() {
             eprintln!("Error: file `{}` does not exist", file.to_str().unwrap());
@@ -305,6 +331,18 @@ fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> 
                     use_config_path = Some(path);
                 }
             }
+        }
+
+        if !use_config.auto_apply_package()
+            && no_files_argument
+            && use_config.verbose() == Verbosity::Verbose
+        {
+            tracing::warn!("\n{}",
+            "No file argument is supplied, movefmt runs on current directory by default, \nformatting all .move files within it......".yellow());
+            println!(
+                "----------------------------------------------------------------------------\n"
+            );
+            no_files_argument = false;
         }
 
         if !is_specified_file && should_escape_not_in_package(&file, &use_config) {
@@ -373,7 +411,7 @@ fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> 
                             // Only for github CI
                             if std::env::var("CI").is_ok() {
                                 return Err(format_err!(
-                                    "check failed, source code maybe not formatted before."
+                                    "CHECK FAILED, your source code has not been formatted with movefmt."
                                 ));
                             }
                         }
@@ -521,32 +559,6 @@ fn determine_operation(matches: &Matches) -> Result<Operation, OperationError> {
             return Ok(Operation::Stdin {
                 exit_code: ERR_INVALID_MOVE_CODE_FROM_STDIN,
             });
-        }
-    }
-
-    if files.is_empty() {
-        tracing::warn!("\n{}",
-            "No file argument is supplied, movefmt runs on current directory by default, \nformatting all .move files within it......".yellow());
-        println!("----------------------------------------------------------------------------\n");
-        if let Ok(current_dir) = std::env::current_dir() {
-            for x in walkdir::WalkDir::new(current_dir) {
-                let x = match x {
-                    Ok(x) => x,
-                    Err(_) => {
-                        break;
-                    }
-                };
-                if x.file_type().is_file()
-                    && x.file_name().to_str().unwrap().ends_with(".move")
-                    && !x.file_name().to_str().unwrap().contains(".fmt")
-                    && !x.file_name().to_str().unwrap().contains(".out")
-                {
-                    files.push((x.clone().into_path(), false));
-                }
-            }
-        } else {
-            eprintln!("Failed to get the current directory.");
-            return Ok(Operation::Help(HelpOp::None));
         }
     }
 
