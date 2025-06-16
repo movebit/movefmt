@@ -35,6 +35,7 @@ getopts = "0.2"
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 commentfmt = { version = "1.6.0", path = "src/comment_fmt" }
+rayon = "1.8"
 
 move-command-line-common = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "dac0205473241be3288608696fc93a4c82541763", package = "move-command-line-common" }
 move-compiler = { git = "https://github.com/aptos-labs/aptos-core", rev = "dac0205473241be3288608696fc93a4c82541763", package = "legacy-move-compiler", subdir = "third_party/move/move-compiler-v2/legacy-move-compiler"}
