@@ -2,12 +2,13 @@
 // Copyright (c) The BitsLab.MoveBit Contributors
 // SPDX-License-Identifier: Apache-2.0
 
-use super::syntax_extractor::SingleSyntaxExtractor;
+use super::syntax_extractor::{SingleSyntaxExtractor, Preprocessor};
 use crate::core::token_tree::TokenTree;
 use crate::tools::utils::*;
 use move_compiler::parser::ast::*;
 use move_compiler::shared::ast_debug;
 use std::cell::RefCell;
+use std::sync::Arc;
 use std::vec;
 
 #[derive(Debug, Default)]
@@ -247,13 +248,15 @@ impl SingleSyntaxExtractor for BinOpExtractor {
     }
 }
 
-impl BinOpExtractor {
-    pub(crate) fn preprocess(&mut self, module_defs: Vec<Definition>) {
+impl Preprocessor for BinOpExtractor {
+    fn preprocess(&mut self, module_defs: Arc<Vec<Definition>>) {
         for d in module_defs.iter() {
             self.collect_definition(d);
         }
     }
+}
 
+impl BinOpExtractor {
     pub(crate) fn get_bin_op_right_part_len(&self, token: TokenTree) -> (usize, usize) {
         for (idx, bin_op_exp) in self.bin_op_exp_vec.iter().enumerate() {
             if let Exp_::BinopExp(_, m, r) = &bin_op_exp.value {
@@ -313,7 +316,7 @@ fn get_bin_op_exp(fmt_buffer: String) {
     let mut bin_op_extractor = BinOpExtractor::new(fmt_buffer.clone());
     let (defs, _) =
         parse_file_string(&mut get_compile_env(), FileHash::empty(), &fmt_buffer).unwrap();
-    bin_op_extractor.preprocess(defs);
+    bin_op_extractor.preprocess(Arc::new(defs));
     for bin_op_exp in bin_op_extractor.bin_op_exp_vec.iter() {
         let bin_op_exp_str = &bin_op_extractor.source
             [bin_op_exp.loc.start() as usize..bin_op_exp.loc.end() as usize];

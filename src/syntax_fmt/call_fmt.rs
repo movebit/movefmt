@@ -2,6 +2,8 @@
 // Copyright (c) The BitsLab.MoveBit Contributors
 // SPDX-License-Identifier: Apache-2.0
 
+use std::sync::Arc;
+
 use crate::core::token_tree::*;
 use crate::tools::utils::FileLineMappingOneFile;
 use commentfmt::comment::contains_comment;
@@ -10,7 +12,7 @@ use move_compiler::parser::ast::*;
 use move_compiler::parser::lexer::Tok;
 use move_ir_types::location::*;
 
-use super::syntax_extractor::SingleSyntaxExtractor;
+use super::syntax_extractor::{SingleSyntaxExtractor, Preprocessor};
 
 #[derive(Debug, Default)]
 pub struct CallExtractor {
@@ -267,13 +269,15 @@ impl SingleSyntaxExtractor for CallExtractor {
     }
 }
 
-impl CallExtractor {
-    pub(crate) fn preprocess(&mut self, module_defs: Vec<Definition>) {
+impl Preprocessor for CallExtractor {
+    fn preprocess(&mut self, module_defs: Arc<Vec<Definition>>) {
         for d in module_defs.iter() {
             self.collect_definition(d);
         }
     }
+}
 
+impl CallExtractor {
     // fn_call(comp1, comp2, nested_call_maybe_too_long(...), comp4);
     // >>
     // fn_call(comp1, comp2,
