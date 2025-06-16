@@ -6,7 +6,7 @@ use movefmt::{
     tools::utils::*,
 };
 use tracing_subscriber::EnvFilter;
-
+use std::time::Instant;
 use std::path::Path;
 
 fn scan_dir(dir: &str) -> usize {
@@ -236,6 +236,7 @@ fn extract_tokens(content: &str) -> Result<Vec<ExtractToken>, Vec<String>> {
 
 #[test]
 fn test_dir() {
+    let start = Instant::now();
     std::env::set_var("MOVEFMT_LOG", "movefmt=WARN");
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_env("MOVEFMT_LOG"))
@@ -256,6 +257,9 @@ fn test_dir() {
     num += scan_dir("./tests/bug");
     num += scan_dir("./tests/bug2");
     eprintln!("formated {} files", num);
+
+    let duration = start.elapsed(); // 计算耗时
+    println!("Speed time : {:?} ms", duration.as_millis());
 }
 
 #[test]
