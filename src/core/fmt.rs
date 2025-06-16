@@ -10,7 +10,7 @@ use crate::syntax_fmt::fun_fmt::FunExtractor;
 use crate::syntax_fmt::let_fmt::LetExtractor;
 use crate::syntax_fmt::quant_fmt::QuantExtractor;
 use crate::syntax_fmt::skip_fmt::{SkipExtractor, SkipType};
-use crate::syntax_fmt::syntax_extractor::SingleSyntaxExtractor;
+use crate::syntax_fmt::syntax_extractor::{SingleSyntaxExtractor, Preprocessor};
 use crate::syntax_fmt::{big_block_fmt, expr_fmt, fun_fmt, spec_fmt};
 use crate::tools::utils::*;
 use commentfmt::comment::contains_comment;
@@ -23,6 +23,7 @@ use move_ir_types::location::ByteIndex;
 use std::cell::Cell;
 use std::cell::RefCell;
 use std::result::Result::*;
+use std::sync::Arc;
 
 pub struct FormatContext {
     pub content: String,
@@ -158,6 +159,8 @@ impl Format {
         let lexer = Lexer::new(content, FileHash::empty());
         let parse = crate::core::token_tree::Parser::new(lexer, &defs, content.to_string());
         self.token_tree = parse.parse_tokens();
+
+        let defs = Arc::new(defs);
         self.syntax_extractor
             .branch_extractor
             .preprocess(defs.clone());
@@ -175,6 +178,36 @@ impl Format {
         self.syntax_extractor
             .skip_extractor
             .preprocess(defs.clone());
+        Ok("parse ok".to_string())
+    }
+
+    fn generate_token_tree_par(&mut self, content: &str) -> Result<String, Diagnostics> {
+        let (defs, _) = parse_file_string(&mut get_compile_env(), FileHash::empty(), content)?;
+        let lexer = Lexer::new(content, FileHash::empty());
+        let parse = crate::core::token_tree::Parser::new(lexer, &defs, content.to_string());
+        self.token_tree = parse.parse_tokens();
+       
+        // 创建一个线程池
+        let defs = Arc::new(defs);
+        let pool = rayon::ThreadPoolBuilder::new()
+            .num_threads(7)  // 根据 extractor 数量设置线程数
+            .build()
+            .unwrap();
+
+        // 使用线程池并行处理所有 extractor
+        pool.install(|| {
+            rayon::scope(|s| {
+                // 为每个 extractor 创建一个作用域
+                s.spawn(|_| self.syntax_extractor.branch_extractor.preprocess(defs.clone()));
+                s.spawn(|_| self.syntax_extractor.fun_extractor.preprocess(defs.clone()));
+                s.spawn(|_| self.syntax_extractor.call_extractor.preprocess(defs.clone()));
+                s.spawn(|_| self.syntax_extractor.let_extractor.preprocess(defs.clone()));
+                s.spawn(|_| self.syntax_extractor.bin_op_extractor.preprocess(defs.clone()));
+                s.spawn(|_| self.syntax_extractor.quant_extractor.preprocess(defs.clone()));
+                s.spawn(|_| self.syntax_extractor.skip_extractor.preprocess(defs.clone()));
+            });
+        });
+
         Ok("parse ok".to_string())
     }
 
@@ -2207,7 +2240,7 @@ pub fn format_entry(content: impl AsRef<str>, config: Config) -> Result<String, 
         FormatContext::new(content.to_string()),
     );
 
-    full_fmt.generate_token_tree(content)?;
+    full_fmt.generate_token_tree_par(content)?;
     timer = timer.done_parsing();
 
     let result = full_fmt.format_token_trees();
