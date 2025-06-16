@@ -181,23 +181,22 @@ impl Format {
         Ok("parse ok".to_string())
     }
 
+    #[allow(dead_code)]
     fn generate_token_tree_par(&mut self, content: &str) -> Result<String, Diagnostics> {
         let (defs, _) = parse_file_string(&mut get_compile_env(), FileHash::empty(), content)?;
         let lexer = Lexer::new(content, FileHash::empty());
         let parse = crate::core::token_tree::Parser::new(lexer, &defs, content.to_string());
         self.token_tree = parse.parse_tokens();
        
-        // 创建一个线程池
         let defs = Arc::new(defs);
         let pool = rayon::ThreadPoolBuilder::new()
             .num_threads(7)  // 根据 extractor 数量设置线程数
             .build()
             .unwrap();
 
-        // 使用线程池并行处理所有 extractor
+        // tokio
         pool.install(|| {
             rayon::scope(|s| {
-                // 为每个 extractor 创建一个作用域
                 s.spawn(|_| self.syntax_extractor.branch_extractor.preprocess(defs.clone()));
                 s.spawn(|_| self.syntax_extractor.fun_extractor.preprocess(defs.clone()));
                 s.spawn(|_| self.syntax_extractor.call_extractor.preprocess(defs.clone()));
@@ -207,7 +206,7 @@ impl Format {
                 s.spawn(|_| self.syntax_extractor.skip_extractor.preprocess(defs.clone()));
             });
         });
-
+        
         Ok("parse ok".to_string())
     }
 
@@ -2239,10 +2238,11 @@ pub fn format_entry(content: impl AsRef<str>, config: Config) -> Result<String, 
         content,
         FormatContext::new(content.to_string()),
     );
-
-    full_fmt.generate_token_tree_par(content)?;
+    // Todo: 
+    full_fmt.generate_token_tree(content)?;
     timer = timer.done_parsing();
 
+    // wait for notify
     let result = full_fmt.format_token_trees();
     timer = timer.done_formatting();
     if config.verbose() == Verbosity::Verbose {
