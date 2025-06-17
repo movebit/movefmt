@@ -316,10 +316,7 @@ fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> 
         }
     }
 
-    let (pool, 
-        tx, 
-        rx
-    ) = get_item_for_mutil_thread(ENABLE_THREAD);
+    let (pool, tx, rx) = get_item_for_mutil_thread(ENABLE_THREAD);
 
     for (file, is_specified_file) in files {
         if !file.exists() {
@@ -463,7 +460,7 @@ fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> 
             if result.is_err() {
                 eprintln!("Failed to write file({}): {:?}", path.display(), result);
                 return Err(MoveFmtError::ErrWrite(ERR_WRITE).into());
-            } 
+            }
             counter += 1;
         }
     }
@@ -739,15 +736,18 @@ fn should_escape_not_in_package(file: &Path, use_config: &Config) -> bool {
     true
 }
 
-
-fn get_item_for_mutil_thread(is_enable_thread: bool) 
-    -> (
-        Option<rayon::ThreadPool>, 
-        Option<std::sync::mpsc::Sender<WriteResult>>, 
-        Option<std::sync::mpsc::Receiver<WriteResult>>) 
-{
+fn get_item_for_mutil_thread(
+    is_enable_thread: bool,
+) -> (
+    Option<rayon::ThreadPool>,
+    Option<std::sync::mpsc::Sender<WriteResult>>,
+    Option<std::sync::mpsc::Receiver<WriteResult>>,
+) {
     if is_enable_thread {
-        let pool = rayon::ThreadPoolBuilder::new().num_threads(4).build().unwrap();
+        let pool = rayon::ThreadPoolBuilder::new()
+            .num_threads(4)
+            .build()
+            .unwrap();
         // let pool = ThreadPool::new(4);
         let (tx, rx) = std::sync::mpsc::channel();
         (Some(pool), Some(tx), Some(rx))
@@ -757,20 +757,26 @@ fn get_item_for_mutil_thread(is_enable_thread: bool)
 }
 
 fn write_file(
-    path: PathBuf, 
-    content: String, 
-    is_enable_thread: bool, 
-    pool: &Option<rayon::ThreadPool>, 
-    tx: &Option<std::sync::mpsc::Sender<WriteResult>>
+    path: PathBuf,
+    content: String,
+    is_enable_thread: bool,
+    pool: &Option<rayon::ThreadPool>,
+    tx: &Option<std::sync::mpsc::Sender<WriteResult>>,
 ) -> Result<()> {
     if is_enable_thread {
         let tx = tx.clone();
         pool.as_ref().unwrap().spawn(move || {
             let write_result = std::fs::write(path.clone(), content);
             if write_result.is_err() {
-                let _ = tx.as_ref().unwrap().send(WriteResult { path: path, result: write_result });
+                let _ = tx.as_ref().unwrap().send(WriteResult {
+                    path: path,
+                    result: write_result,
+                });
             } else {
-                let _ = tx.as_ref().unwrap().send(WriteResult { path: path, result: Ok(()) });
+                let _ = tx.as_ref().unwrap().send(WriteResult {
+                    path: path,
+                    result: Ok(()),
+                });
             }
         });
     } else {

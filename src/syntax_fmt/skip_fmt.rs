@@ -8,7 +8,7 @@ use move_compiler::shared::ast_debug;
 use move_ir_types::location::*;
 use std::{cell::RefCell, sync::Arc};
 
-use super::syntax_extractor::{SingleSyntaxExtractor, Preprocessor};
+use super::syntax_extractor::{Preprocessor, SingleSyntaxExtractor};
 
 #[derive(Debug, Default)]
 pub struct SkipExtractor {

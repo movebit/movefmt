@@ -2,7 +2,7 @@
 // Copyright (c) The BitsLab.MoveBit Contributors
 // SPDX-License-Identifier: Apache-2.0
 
-use super::syntax_extractor::{SingleSyntaxExtractor, Preprocessor};
+use super::syntax_extractor::{Preprocessor, SingleSyntaxExtractor};
 use crate::core::token_tree::TokenTree;
 use crate::tools::utils::*;
 use move_compiler::parser::ast::*;

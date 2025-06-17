@@ -5,9 +5,9 @@ use movefmt::{
     tools::movefmt_diff,
     tools::utils::*,
 };
-use tracing_subscriber::EnvFilter;
-use std::time::Instant;
 use std::path::Path;
+use std::time::Instant;
+use tracing_subscriber::EnvFilter;
 
 fn scan_dir(dir: &str) -> usize {
     let mut num: usize = 0;

@@ -16,7 +16,7 @@ use move_compiler::shared::ast_debug;
 use move_compiler::shared::Identifier;
 use move_ir_types::location::*;
 
-use super::syntax_extractor::{SingleSyntaxExtractor, Preprocessor};
+use super::syntax_extractor::{Preprocessor, SingleSyntaxExtractor};
 
 #[derive(Debug, Default)]
 pub struct FunExtractor {

@@ -10,7 +10,7 @@ use crate::syntax_fmt::fun_fmt::FunExtractor;
 use crate::syntax_fmt::let_fmt::LetExtractor;
 use crate::syntax_fmt::quant_fmt::QuantExtractor;
 use crate::syntax_fmt::skip_fmt::{SkipExtractor, SkipType};
-use crate::syntax_fmt::syntax_extractor::{SingleSyntaxExtractor, Preprocessor};
+use crate::syntax_fmt::syntax_extractor::{Preprocessor, SingleSyntaxExtractor};
 use crate::syntax_fmt::{big_block_fmt, expr_fmt, fun_fmt, spec_fmt};
 use crate::tools::utils::*;
 use commentfmt::comment::contains_comment;
@@ -187,26 +187,45 @@ impl Format {
         let lexer = Lexer::new(content, FileHash::empty());
         let parse = crate::core::token_tree::Parser::new(lexer, &defs, content.to_string());
         self.token_tree = parse.parse_tokens();
-       
+
         let defs = Arc::new(defs);
         let pool = rayon::ThreadPoolBuilder::new()
-            .num_threads(7)  // 根据 extractor 数量设置线程数
+            .num_threads(7)
             .build()
             .unwrap();
 
-        // tokio
         pool.install(|| {
             rayon::scope(|s| {
-                s.spawn(|_| self.syntax_extractor.branch_extractor.preprocess(defs.clone()));
+                s.spawn(|_| {
+                    self.syntax_extractor
+                        .branch_extractor
+                        .preprocess(defs.clone())
+                });
                 s.spawn(|_| self.syntax_extractor.fun_extractor.preprocess(defs.clone()));
-                s.spawn(|_| self.syntax_extractor.call_extractor.preprocess(defs.clone()));
+                s.spawn(|_| {
+                    self.syntax_extractor
+                        .call_extractor
+                        .preprocess(defs.clone())
+                });
                 s.spawn(|_| self.syntax_extractor.let_extractor.preprocess(defs.clone()));
-                s.spawn(|_| self.syntax_extractor.bin_op_extractor.preprocess(defs.clone()));
-                s.spawn(|_| self.syntax_extractor.quant_extractor.preprocess(defs.clone()));
-                s.spawn(|_| self.syntax_extractor.skip_extractor.preprocess(defs.clone()));
+                s.spawn(|_| {
+                    self.syntax_extractor
+                        .bin_op_extractor
+                        .preprocess(defs.clone())
+                });
+                s.spawn(|_| {
+                    self.syntax_extractor
+                        .quant_extractor
+                        .preprocess(defs.clone())
+                });
+                s.spawn(|_| {
+                    self.syntax_extractor
+                        .skip_extractor
+                        .preprocess(defs.clone())
+                });
             });
         });
-        
+
         Ok("parse ok".to_string())
     }
 
@@ -2238,7 +2257,7 @@ pub fn format_entry(content: impl AsRef<str>, config: Config) -> Result<String, 
         content,
         FormatContext::new(content.to_string()),
     );
-    // Todo: 
+    // Todo:
     full_fmt.generate_token_tree(content)?;
     timer = timer.done_parsing();
 

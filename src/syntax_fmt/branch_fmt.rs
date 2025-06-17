@@ -8,10 +8,10 @@ use commentfmt::Config;
 use move_compiler::parser::ast::Definition;
 use move_compiler::parser::ast::*;
 use move_ir_types::location::*;
-use std::{cell::RefCell, sync::Arc};
 use std::collections::HashMap;
+use std::{cell::RefCell, sync::Arc};
 
-use super::syntax_extractor::{SingleSyntaxExtractor, Preprocessor};
+use super::syntax_extractor::{Preprocessor, SingleSyntaxExtractor};
 
 #[derive(Debug)]
 pub struct LetIfElseBlock {

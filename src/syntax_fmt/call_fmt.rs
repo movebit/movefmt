@@ -12,7 +12,7 @@ use move_compiler::parser::ast::*;
 use move_compiler::parser::lexer::Tok;
 use move_ir_types::location::*;
 
-use super::syntax_extractor::{SingleSyntaxExtractor, Preprocessor};
+use super::syntax_extractor::{Preprocessor, SingleSyntaxExtractor};
 
 #[derive(Debug, Default)]
 pub struct CallExtractor {

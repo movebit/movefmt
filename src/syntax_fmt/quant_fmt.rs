@@ -9,7 +9,7 @@ use move_compiler::parser::ast::*;
 use move_compiler::shared::ast_debug;
 use std::{cell::RefCell, sync::Arc};
 
-use super::syntax_extractor::{SingleSyntaxExtractor, Preprocessor};
+use super::syntax_extractor::{Preprocessor, SingleSyntaxExtractor};
 
 #[derive(Debug, Default)]
 pub struct QuantExtractor {
