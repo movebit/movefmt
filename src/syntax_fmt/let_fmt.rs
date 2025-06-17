@@ -9,10 +9,10 @@ use move_compiler::parser::ast::*;
 use move_compiler::parser::lexer::Tok;
 use move_compiler::shared::ast_debug;
 use move_ir_types::location::*;
-use std::cell::RefCell;
 use std::collections::HashMap;
+use std::{cell::RefCell, sync::Arc};
 
-use super::syntax_extractor::SingleSyntaxExtractor;
+use super::syntax_extractor::{Preprocessor, SingleSyntaxExtractor};
 
 #[derive(Debug, Default)]
 pub struct LetExtractor {
@@ -338,14 +338,16 @@ impl LetExtractor {
     }
 }
 
-impl LetExtractor {
-    pub(crate) fn preprocess(&mut self, module_defs: Vec<Definition>) {
+impl Preprocessor for LetExtractor {
+    fn preprocess(&mut self, module_defs: Arc<Vec<Definition>>) {
         for d in module_defs.iter() {
             self.collect_definition(d);
         }
         self.collect_long_op_exp();
     }
+}
 
+impl LetExtractor {
     pub(crate) fn is_long_bin_op(&self, token: TokenTree) -> bool {
         for bin_op_exp in self.long_bin_op_exp_vec.iter() {
             if let Exp_::BinopExp(_, m, _) = &bin_op_exp.value {
@@ -477,7 +479,7 @@ fn get_bin_op_exp(fmt_buffer: String) {
     let mut let_extractor = LetExtractor::new(fmt_buffer.clone());
     let (defs, _) =
         parse_file_string(&mut get_compile_env(), FileHash::empty(), &fmt_buffer).unwrap();
-    let_extractor.preprocess(defs);
+    let_extractor.preprocess(Arc::new(defs));
     for bin_op_exp in let_extractor.bin_op_exp_vec.iter() {
         let bin_op_exp_str =
             &let_extractor.source[bin_op_exp.loc.start() as usize..bin_op_exp.loc.end() as usize];
@@ -513,7 +515,7 @@ fn get_long_assign(fmt_buffer: String) {
     let mut let_extractor = LetExtractor::new(fmt_buffer.clone());
     let (defs, _) =
         parse_file_string(&mut get_compile_env(), FileHash::empty(), &fmt_buffer).unwrap();
-    let_extractor.preprocess(defs);
+    let_extractor.preprocess(Arc::new(defs));
     for (idx, _) in let_extractor.let_assign_loc_vec.iter().enumerate() {
         let rhs_exp_loc = &let_extractor.let_assign_rhs_exp[idx].loc;
         let rhs_exp_str =

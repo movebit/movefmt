@@ -24,11 +24,25 @@ use colored::Colorize;
 
 const ERR_EMPTY_INPUT_FROM_STDIN: i32 = 1;
 const ERR_INVALID_MOVE_CODE_FROM_STDIN: i32 = 2;
+const ERR_FMT: i32 = 3;
+const ERR_WRITE: i32 = 4;
+const ENABLE_THREAD: bool = false;
 
 #[derive(Error, Debug)]
 enum MoveFmtError {
-    #[error("Format failed with exit code: {0}")]
+    #[error("Format failed by Stdin with exit code: {0}")]
     ErrStdin(i32),
+
+    #[error("Format failed with exit code: {0}")]
+    ErrFmt(i32),
+
+    #[error("Failed to write file")]
+    ErrWrite(i32),
+}
+
+struct WriteResult {
+    path: PathBuf,
+    result: std::io::Result<()>,
 }
 
 fn main() {
@@ -262,7 +276,6 @@ fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> 
     let mut success_cnt = 0;
     let mut skips_cnt_expected = 0;
     let mut skips_cnt_not_belong_to_any_package = 0;
-    let mut skips_cnt_parse_not_ok = 0;
     tracing::info!(
         "config.[verbose, indent] = [{:?}, {:?}], {:?}",
         config.verbose(),
@@ -275,6 +288,35 @@ fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> 
             println!("Using movefmt config file {}", path.display());
         }
     }
+
+    let mut files = files;
+    let files_len = files.len();
+    let mut no_files_argument = files.is_empty();
+    if no_files_argument {
+        if let Ok(current_dir) = std::env::current_dir() {
+            for x in walkdir::WalkDir::new(current_dir) {
+                let x = match x {
+                    Ok(x) => x,
+                    Err(_) => {
+                        break;
+                    }
+                };
+                if x.file_type().is_file()
+                    && x.file_name().to_str().unwrap().ends_with(".move")
+                    && !x.file_name().to_str().unwrap().contains(".fmt")
+                    && !x.file_name().to_str().unwrap().contains(".out")
+                {
+                    files.push((x.clone().into_path(), false));
+                }
+            }
+        } else {
+            return Err(format_err!(
+                "Failed to get the current directory when file argument is not specified."
+            ));
+        }
+    }
+
+    let (pool, tx, rx) = get_item_for_mutil_thread(ENABLE_THREAD);
 
     for (file, is_specified_file) in files {
         if !file.exists() {
@@ -302,6 +344,18 @@ fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> 
                     use_config_path = Some(path);
                 }
             }
+        }
+
+        if !use_config.auto_apply_package()
+            && no_files_argument
+            && use_config.verbose() == Verbosity::Verbose
+        {
+            tracing::warn!("\n{}",
+            "No file argument is supplied, movefmt runs on current directory by default, \nformatting all .move files within it......".yellow());
+            println!(
+                "----------------------------------------------------------------------------\n"
+            );
+            no_files_argument = false;
         }
 
         if !is_specified_file && should_escape_not_in_package(&file, &use_config) {
@@ -351,10 +405,11 @@ fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> 
                 };
                 match emit_mode {
                     EmitMode::NewFile => {
-                        std::fs::write(mk_result_filepath(&file.to_path_buf()), formatted_text)?
+                        let file_path = mk_result_filepath(&file.to_path_buf());
+                        write_file(file_path, formatted_text, ENABLE_THREAD, &pool, &tx)?;
                     }
                     EmitMode::Overwrite => {
-                        std::fs::write(&file, formatted_text)?;
+                        write_file(file, formatted_text, ENABLE_THREAD, &pool, &tx)?;
                     }
                     EmitMode::Stdout => {
                         println!("{}", formatted_text);
@@ -370,7 +425,7 @@ fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> 
                             // Only for github CI
                             if std::env::var("CI").is_ok() {
                                 return Err(format_err!(
-                                    "check failed, source code maybe not formatted before."
+                                    "CHECK FAILED, your source code has not been formatted with movefmt."
                                 ));
                             }
                         }
@@ -378,7 +433,6 @@ fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> 
                 }
             }
             Err(diags) => {
-                skips_cnt_parse_not_ok += 1;
                 let mut files_source_text: move_compiler::diagnostics::FilesSourceText =
                     HashMap::new();
                 files_source_text.insert(
@@ -394,7 +448,20 @@ fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> 
                     // https://github.com/movebit/movefmt/issues/2
                     eprintln!("file '{:?}' skipped because of parse not ok", file);
                 }
+                return Err(MoveFmtError::ErrFmt(ERR_FMT).into());
             }
+        }
+    }
+
+    if ENABLE_THREAD {
+        let mut counter = 0;
+        while counter != files_len {
+            let WriteResult { path, result } = rx.as_ref().unwrap().recv().unwrap();
+            if result.is_err() {
+                eprintln!("Failed to write file({}): {:?}", path.display(), result);
+                return Err(MoveFmtError::ErrWrite(ERR_WRITE).into());
+            }
+            counter += 1;
         }
     }
 
@@ -402,12 +469,6 @@ fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> 
         println!(
             "\n----------------------------------------------------------------------------\n"
         );
-        if skips_cnt_parse_not_ok > 0 {
-            println!(
-                "{:?} files skipped because of parse failed",
-                skips_cnt_parse_not_ok
-            );
-        }
         if skips_cnt_expected > 0 {
             println!(
                 "{:?} files skipped because escaped by movefmt.toml",
@@ -524,32 +585,6 @@ fn determine_operation(matches: &Matches) -> Result<Operation, OperationError> {
             return Ok(Operation::Stdin {
                 exit_code: ERR_INVALID_MOVE_CODE_FROM_STDIN,
             });
-        }
-    }
-
-    if files.is_empty() {
-        tracing::warn!("\n{}",
-            "No file argument is supplied, movefmt runs on current directory by default, \nformatting all .move files within it......".yellow());
-        println!("----------------------------------------------------------------------------\n");
-        if let Ok(current_dir) = std::env::current_dir() {
-            for x in walkdir::WalkDir::new(current_dir) {
-                let x = match x {
-                    Ok(x) => x,
-                    Err(_) => {
-                        break;
-                    }
-                };
-                if x.file_type().is_file()
-                    && x.file_name().to_str().unwrap().ends_with(".move")
-                    && !x.file_name().to_str().unwrap().contains(".fmt")
-                    && !x.file_name().to_str().unwrap().contains(".out")
-                {
-                    files.push((x.clone().into_path(), false));
-                }
-            }
-        } else {
-            eprintln!("Failed to get the current directory.");
-            return Ok(Operation::Help(HelpOp::None));
         }
     }
 
@@ -685,6 +720,11 @@ fn should_escape_not_in_package(file: &Path, use_config: &Config) -> bool {
                 if let Some(parent) = ancestor.parent() {
                     let toml_path = parent.join("Move.toml");
                     if toml_path.exists() {
+                        if let Ok(toml_content) = std::fs::read_to_string(&toml_path) {
+                            if toml_content.contains("https://github.com/MystenLabs/sui.git") {
+                                return true;
+                            }
+                        }
                         return false;
                     } else {
                         return true;
@@ -694,4 +734,53 @@ fn should_escape_not_in_package(file: &Path, use_config: &Config) -> bool {
         }
     }
     true
+}
+
+fn get_item_for_mutil_thread(
+    is_enable_thread: bool,
+) -> (
+    Option<rayon::ThreadPool>,
+    Option<std::sync::mpsc::Sender<WriteResult>>,
+    Option<std::sync::mpsc::Receiver<WriteResult>>,
+) {
+    if is_enable_thread {
+        let pool = rayon::ThreadPoolBuilder::new()
+            .num_threads(4)
+            .build()
+            .unwrap();
+        // let pool = ThreadPool::new(4);
+        let (tx, rx) = std::sync::mpsc::channel();
+        (Some(pool), Some(tx), Some(rx))
+    } else {
+        (None, None, None)
+    }
+}
+
+fn write_file(
+    path: PathBuf,
+    content: String,
+    is_enable_thread: bool,
+    pool: &Option<rayon::ThreadPool>,
+    tx: &Option<std::sync::mpsc::Sender<WriteResult>>,
+) -> Result<()> {
+    if is_enable_thread {
+        let tx = tx.clone();
+        pool.as_ref().unwrap().spawn(move || {
+            let write_result = std::fs::write(path.clone(), content);
+            if write_result.is_err() {
+                let _ = tx.as_ref().unwrap().send(WriteResult {
+                    path: path,
+                    result: write_result,
+                });
+            } else {
+                let _ = tx.as_ref().unwrap().send(WriteResult {
+                    path: path,
+                    result: Ok(()),
+                });
+            }
+        });
+    } else {
+        std::fs::write(&path, content)?;
+    }
+    Ok(())
 }

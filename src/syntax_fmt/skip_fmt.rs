@@ -6,9 +6,9 @@ use crate::core::token_tree::*;
 use move_compiler::parser::ast::*;
 use move_compiler::shared::ast_debug;
 use move_ir_types::location::*;
-use std::cell::RefCell;
+use std::{cell::RefCell, sync::Arc};
 
-use super::syntax_extractor::SingleSyntaxExtractor;
+use super::syntax_extractor::{Preprocessor, SingleSyntaxExtractor};
 
 #[derive(Debug, Default)]
 pub struct SkipExtractor {
@@ -86,13 +86,15 @@ impl SingleSyntaxExtractor for SkipExtractor {
     }
 }
 
-impl SkipExtractor {
-    pub(crate) fn preprocess(&mut self, module_defs: Vec<Definition>) {
+impl Preprocessor for SkipExtractor {
+    fn preprocess(&mut self, module_defs: Arc<Vec<Definition>>) {
         for d in module_defs.iter() {
             self.collect_definition(d);
         }
     }
+}
 
+impl SkipExtractor {
     pub(crate) fn should_skip_block_body(&self, kind: &NestKind, skip_type: SkipType) -> bool {
         let (body_attributes, body_loc_vec) = match skip_type {
             SkipType::SkipModuleBody => (&self.module_attributes, &self.module_body_loc_vec),

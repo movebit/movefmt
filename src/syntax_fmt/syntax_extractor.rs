@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use move_compiler::parser::ast::*;
 
 pub trait SingleSyntaxExtractor {
@@ -12,4 +14,8 @@ pub trait SingleSyntaxExtractor {
     fn collect_module(&mut self, d: &ModuleDefinition);
     fn collect_script(&mut self, d: &Script);
     fn collect_definition(&mut self, d: &Definition);
+}
+
+pub trait Preprocessor {
+    fn preprocess(&mut self, module_defs: Arc<Vec<Definition>>);
 }

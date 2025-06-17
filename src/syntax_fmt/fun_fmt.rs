@@ -2,6 +2,8 @@
 // Copyright (c) The BitsLab.MoveBit Contributors
 // SPDX-License-Identifier: Apache-2.0
 
+use std::sync::Arc;
+
 use crate::core::token_tree::{NestKind, NestKind_, TokenTree};
 use crate::syntax_fmt::expr_fmt;
 use crate::tools::utils::*;
@@ -14,7 +16,7 @@ use move_compiler::shared::ast_debug;
 use move_compiler::shared::Identifier;
 use move_ir_types::location::*;
 
-use super::syntax_extractor::SingleSyntaxExtractor;
+use super::syntax_extractor::{Preprocessor, SingleSyntaxExtractor};
 
 #[derive(Debug, Default)]
 pub struct FunExtractor {
@@ -120,6 +122,14 @@ impl SingleSyntaxExtractor for FunExtractor {
     }
 }
 
+impl Preprocessor for FunExtractor {
+    fn preprocess(&mut self, module_defs: Arc<Vec<Definition>>) {
+        for d in module_defs.iter() {
+            self.collect_definition(d);
+        }
+    }
+}
+
 fn get_nth_line(s: &str, n: usize) -> Option<&str> {
     s.lines().nth(n)
 }
@@ -136,12 +146,6 @@ fn get_space_cnt_before_line_str(s: &str) -> usize {
 }
 
 impl FunExtractor {
-    pub(crate) fn preprocess(&mut self, module_defs: Vec<Definition>) {
-        for d in module_defs.iter() {
-            self.collect_definition(d);
-        }
-    }
-
     pub(crate) fn is_generic_ty_in_fun_header(&self, kind: &NestKind) -> bool {
         let loc_vec = &self.loc_vec;
         let body_loc_vec = &self.body_loc_vec;
@@ -407,7 +411,7 @@ pub(crate) fn process_block_comment_before_fun_header(
     let buf = fmt_buffer.clone();
     let mut result = fmt_buffer.clone();
     let mut fun_extractor = FunExtractor::new(fmt_buffer.clone());
-    fun_extractor.preprocess(get_defs(fmt_buffer.clone()));
+    fun_extractor.preprocess(Arc::new(get_defs(fmt_buffer.clone())));
     let mut insert_char_nums = 0;
     for (fun_idx, (fun_start_line, _)) in fun_extractor.loc_line_vec.iter().enumerate() {
         let fun_header_str =
@@ -433,7 +437,7 @@ pub(crate) fn process_fun_header_too_long(fmt_buffer: String, config: Config) ->
     let buf = fmt_buffer.clone();
     let mut result = fmt_buffer.clone();
     let mut fun_extractor = FunExtractor::new(fmt_buffer.clone());
-    fun_extractor.preprocess(get_defs(fmt_buffer.clone()));
+    fun_extractor.preprocess(Arc::new(get_defs(fmt_buffer.clone())));
     let mut insert_char_nums = 0;
     let mut fun_idx = 0;
     for fun_loc in fun_extractor.loc_vec.iter() {
@@ -520,7 +524,7 @@ pub(crate) fn process_fun_ret_ty(fmt_buffer: String, config: Config) -> String {
     let buf = fmt_buffer.clone();
     let mut result = fmt_buffer.clone();
     let mut fun_extractor = FunExtractor::new(fmt_buffer.clone());
-    fun_extractor.preprocess(get_defs(fmt_buffer.clone()));
+    fun_extractor.preprocess(Arc::new(get_defs(fmt_buffer.clone())));
     let mut insert_char_nums = 0;
     let mut fun_idx = 0;
     for fun_loc in fun_extractor.loc_vec.iter() {

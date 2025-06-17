@@ -8,10 +8,10 @@ use commentfmt::Config;
 use move_compiler::parser::ast::Definition;
 use move_compiler::parser::ast::*;
 use move_ir_types::location::*;
-use std::cell::RefCell;
 use std::collections::HashMap;
+use std::{cell::RefCell, sync::Arc};
 
-use super::syntax_extractor::SingleSyntaxExtractor;
+use super::syntax_extractor::{Preprocessor, SingleSyntaxExtractor};
 
 #[derive(Debug)]
 pub struct LetIfElseBlock {
@@ -297,13 +297,15 @@ impl SingleSyntaxExtractor for BranchExtractor {
     }
 }
 
-impl BranchExtractor {
-    pub fn preprocess(&mut self, module_defs: Vec<Definition>) {
+impl Preprocessor for BranchExtractor {
+    fn preprocess(&mut self, module_defs: Arc<Vec<Definition>>) {
         for d in module_defs.iter() {
             self.collect_definition(d);
         }
     }
+}
 
+impl BranchExtractor {
     fn get_loc_range(&self, loc: Loc) -> lsp_types::Range {
         self.line_mapping.translate(loc.start(), loc.end()).unwrap()
     }
