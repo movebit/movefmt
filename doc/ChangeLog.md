@@ -8,6 +8,7 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.2.2">v1.2.2</a><br/>
 <a href="#v1.2.1">v1.2.1</a><br/>
 <a href="#v1.2.0">v1.2.0</a><br/>
 <a href="#v1.0.9">v1.0.9</a><br/>
@@ -24,6 +25,18 @@
 </td>
 </tr>
 </table>
+
+<a id="v1.2.2"></a>
+## 2025-06-17, Version v1.2.2
+### Features
+* [[`f1d314b`](https://github.com/movebit/movefmt/commit/f1d314bb0710b2ca1c5aa54c24c5059dfb3cd0b4)] - try to support mutli-threads for write files (hapeeeeee)
+(hapeeeeee)
+* [[`61d42d0`](https://github.com/movebit/movefmt/commit/61d42d0e41ae2db115cdab3bf2a866dc2b9adb97)] - generate token tree impl multi-threads (hapeeeeee)
+* [[`f3770d0`](https://github.com/movebit/movefmt/commit/f3770d07e31bb27da1b8dd7c684876003787bdff)] - Add preprocess trait for syntax extractor (hapeeeeee)
+* [[`e4f4381`](https://github.com/movebit/movefmt/commit/e4f43819227e137fe4194d9184600d7c532cf65b)] - dependence: add rayon for mutil-threads (hapeeeeee)
+* [[`477d729`](https://github.com/movebit/movefmt/commit/477d729d7ce37fc62afc4bbf46922198b523fae9)] - optimize log about file argument and check option (robinlzw)
+* [[`27c3c92`](https://github.com/movebit/movefmt/commit/27c3c924c48688afaac56b22007edc823e1722f5)] - fix issue#67: auto_apply_package recognize aptos project (robinlzw)
+* [[`42683f2`](https://github.com/movebit/movefmt/commit/42683f2cdcf490d2c6b9ec52dae7610ff7227041)] - fix issue#62: return error code when fmt failed (robinlzw)
 
 <a id="v1.2.1"></a>
 
