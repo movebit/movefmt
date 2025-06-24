@@ -34,6 +34,15 @@ sudo tar -xvzf aarch64-linux-musl-cross.tgz
 
 After installation, you’ll have access to compilers like `aarch64-linux-gnu-gcc`.
 
+On MacOS:
+```bash
+rustup target add aarch64-apple-darwin
+
+cargo build --target aarch64-apple-darwin --release
+# debug version
+cargo build --target aarch64-apple-darwin
+```
+
 ## 1.3 Step 3: Create `.cargo/config.toml`
 
 Create or edit the `.cargo/config.toml` file in the root of your project and add the following:
