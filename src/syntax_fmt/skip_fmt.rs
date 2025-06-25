@@ -52,7 +52,10 @@ impl SingleSyntaxExtractor for SkipExtractor {
 
     fn collect_const(&mut self, _c: &Constant) {}
 
-    fn collect_struct(&mut self, _s: &StructDefinition) {}
+    fn collect_struct(&mut self, s: &StructDefinition) {
+        self.struct_attributes.push(s.attributes.clone());
+        self.struct_body_loc_vec.push(s.loc);
+    }
 
     fn collect_function(&mut self, d: &Function) {
         self.fun_attributes.push(d.attributes.clone());
@@ -65,6 +68,9 @@ impl SingleSyntaxExtractor for SkipExtractor {
         for m in d.members.iter() {
             if let ModuleMember::Function(x) = &m {
                 self.collect_function(x)
+            }
+            if let ModuleMember::Struct(x) = &m {
+                self.collect_struct(x)
             }
         }
     }
