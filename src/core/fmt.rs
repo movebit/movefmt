@@ -1401,8 +1401,8 @@ impl Format {
         if fun_body
             && self
                 .syntax_extractor
-                .fun_extractor
-                .should_skip_this_fun_body(kind)
+                .skip_extractor
+                .should_skip_block_body(kind, SkipType::SkipFunBody)
         {
             let fun_body_str = &self.format_context.borrow().content
                 [kind.start_pos as usize..kind.end_pos as usize + 1];

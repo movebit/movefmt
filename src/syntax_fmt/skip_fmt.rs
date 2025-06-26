@@ -166,3 +166,41 @@ impl SkipExtractor {
         false
     }
 }
+
+#[allow(dead_code)]
+fn get_fun_attributes(fmt_buffer: String) {
+    // let buf = fmt_buffer.clone();
+    // let mut result = fmt_buffer.clone();
+    let skip_extractor = SkipExtractor::new(fmt_buffer.clone());
+    for attributes in skip_extractor.fun_attributes {
+        for attribute in attributes {
+            // ast_debug::print(&attribute.value);
+            let attribute_str = ast_debug::display(&attribute.value);
+            eprintln!("{:?}", attribute_str);
+        }
+    }
+}
+
+#[test]
+fn test_get_fun_attributes() {
+    get_fun_attributes(
+        "
+module 0x42::LambdaTest1 {  
+    #[test]
+    #[test(user = @0x1)]
+    #[fmt::skip]
+    #[test(bob = @0x345)]
+    #[expected_failure(abort_code = 0x10007, location = Self)]
+    /** Public inline function */  
+    #[expected_failure(abort_code = 0x8000f, location = Self)]
+    public inline fun inline_mul(/** Input parameter a */ a: u64,   
+                                 /** Input parameter b */ b: u64)   
+    /** Returns a u64 value */ : u64 {  
+        /** Multiply a and b */  
+        a * b  
+    }  
+}
+"
+        .to_string(),
+    );
+}
