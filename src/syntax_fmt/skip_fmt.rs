@@ -21,10 +21,13 @@ pub struct SkipExtractor {
     pub skipped_body_loc_vec: RefCell<Vec<Loc>>,
     pub source: String,
 }
+
+#[derive(PartialEq)]
 pub enum SkipType {
     SkipModuleBody,
     SkipStructBody,
     SkipFunBody,
+    SkipNone,
 }
 
 impl SingleSyntaxExtractor for SkipExtractor {
@@ -52,7 +55,10 @@ impl SingleSyntaxExtractor for SkipExtractor {
 
     fn collect_const(&mut self, _c: &Constant) {}
 
-    fn collect_struct(&mut self, _s: &StructDefinition) {}
+    fn collect_struct(&mut self, s: &StructDefinition) {
+        self.struct_attributes.push(s.attributes.clone());
+        self.struct_body_loc_vec.push(s.loc);
+    }
 
     fn collect_function(&mut self, d: &Function) {
         self.fun_attributes.push(d.attributes.clone());
@@ -65,6 +71,9 @@ impl SingleSyntaxExtractor for SkipExtractor {
         for m in d.members.iter() {
             if let ModuleMember::Function(x) = &m {
                 self.collect_function(x)
+            }
+            if let ModuleMember::Struct(x) = &m {
+                self.collect_struct(x)
             }
         }
     }
@@ -96,10 +105,14 @@ impl Preprocessor for SkipExtractor {
 
 impl SkipExtractor {
     pub(crate) fn should_skip_block_body(&self, kind: &NestKind, skip_type: SkipType) -> bool {
+        if SkipType::SkipNone == skip_type {
+            return false;
+        }
         let (body_attributes, body_loc_vec) = match skip_type {
             SkipType::SkipModuleBody => (&self.module_attributes, &self.module_body_loc_vec),
             SkipType::SkipStructBody => (&self.struct_attributes, &self.struct_body_loc_vec),
             SkipType::SkipFunBody => (&self.fun_attributes, &self.fun_body_loc_vec),
+            _ => (&vec![], &vec![]),
         };
 
         let len = body_loc_vec.len();
@@ -159,4 +172,42 @@ impl SkipExtractor {
 
         false
     }
+}
+
+#[allow(dead_code)]
+fn get_fun_attributes(fmt_buffer: String) {
+    // let buf = fmt_buffer.clone();
+    // let mut result = fmt_buffer.clone();
+    let skip_extractor = SkipExtractor::new(fmt_buffer.clone());
+    for attributes in skip_extractor.fun_attributes {
+        for attribute in attributes {
+            // ast_debug::print(&attribute.value);
+            let attribute_str = ast_debug::display(&attribute.value);
+            eprintln!("{:?}", attribute_str);
+        }
+    }
+}
+
+#[test]
+fn test_get_fun_attributes() {
+    get_fun_attributes(
+        "
+module 0x42::LambdaTest1 {  
+    #[test]
+    #[test(user = @0x1)]
+    #[fmt::skip]
+    #[test(bob = @0x345)]
+    #[expected_failure(abort_code = 0x10007, location = Self)]
+    /** Public inline function */  
+    #[expected_failure(abort_code = 0x8000f, location = Self)]
+    public inline fun inline_mul(/** Input parameter a */ a: u64,   
+                                 /** Input parameter b */ b: u64)   
+    /** Returns a u64 value */ : u64 {  
+        /** Multiply a and b */  
+        a * b  
+    }  
+}
+"
+        .to_string(),
+    );
 }

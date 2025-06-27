@@ -1397,12 +1397,15 @@ impl Format {
         }
 
         let nested_token_head = self.format_context.borrow().pre_simple_token.get_end_tok();
-        let fun_body = note.map(|x| x == Note::FunBody).unwrap_or_default();
-        if fun_body
-            && self
-                .syntax_extractor
-                .fun_extractor
-                .should_skip_this_fun_body(kind)
+        let block_body_ty = match note.unwrap_or_default() {
+            Note::StructDefinition => SkipType::SkipStructBody,
+            Note::FunBody => SkipType::SkipFunBody,
+            _ => SkipType::SkipNone,
+        };
+        if self
+            .syntax_extractor
+            .skip_extractor
+            .should_skip_block_body(kind, block_body_ty)
         {
             let fun_body_str = &self.format_context.borrow().content
                 [kind.start_pos as usize..kind.end_pos as usize + 1];

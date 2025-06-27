@@ -4,3 +4,7 @@ ar = "aarch64-unknown-linux-gnu-gcc"
 
 [target.aarch64-unknown-linux-musl]
 linker = "aarch64-linux-musl-gcc"
+
+[target.aarch64-apple-darwin]
+linker = "clang"
+ar = "ar"
