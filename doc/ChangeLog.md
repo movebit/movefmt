@@ -8,6 +8,7 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.2.3">v1.2.3</a><br/>
 <a href="#v1.2.2">v1.2.2</a><br/>
 <a href="#v1.2.1">v1.2.1</a><br/>
 <a href="#v1.2.0">v1.2.0</a><br/>
@@ -25,6 +26,16 @@
 </td>
 </tr>
 </table>
+
+
+<a id="v1.2.3"></a>
+## 2025-06-27, Version v1.2.3
+### Features
+* [[`438977e`](https://github.com/movebit/movefmt/commit/438977e52925b238e8e5d16ebafb14a804e62e82)] - issue#73: supporting skip struct (robinlzw)
+* [[`4420c91`](https://github.com/movebit/movefmt/commit/4420c917514fd47422dd1156b1a38d58fc5b6638)] - Optimize the skipping fun_body feature (robinlzw)
+* [[`de8e138`](https://github.com/movebit/movefmt/commit/de8e138525a7e9828e713b7e85867e1236ba3e26)] - skip_fmt support Struct (robinlzw)
+* [[`a777b4e`](https://github.com/movebit/movefmt/commit/a777b4e18a824928cb472dc54dd397e731df6ba1)] - config cross building on aarch64-apple-darwin (robinlzw)
+
 
 <a id="v1.2.2"></a>
 ## 2025-06-17, Version v1.2.2
