@@ -21,10 +21,13 @@ pub struct SkipExtractor {
     pub skipped_body_loc_vec: RefCell<Vec<Loc>>,
     pub source: String,
 }
+
+#[derive(PartialEq)]
 pub enum SkipType {
     SkipModuleBody,
     SkipStructBody,
     SkipFunBody,
+    SkipNone,
 }
 
 impl SingleSyntaxExtractor for SkipExtractor {
@@ -102,10 +105,14 @@ impl Preprocessor for SkipExtractor {
 
 impl SkipExtractor {
     pub(crate) fn should_skip_block_body(&self, kind: &NestKind, skip_type: SkipType) -> bool {
+        if SkipType::SkipNone == skip_type {
+            return false;
+        }
         let (body_attributes, body_loc_vec) = match skip_type {
             SkipType::SkipModuleBody => (&self.module_attributes, &self.module_body_loc_vec),
             SkipType::SkipStructBody => (&self.struct_attributes, &self.struct_body_loc_vec),
             SkipType::SkipFunBody => (&self.fun_attributes, &self.fun_body_loc_vec),
+            _ => (&vec![], &vec![]),
         };
 
         let len = body_loc_vec.len();
