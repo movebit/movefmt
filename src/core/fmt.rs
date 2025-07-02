@@ -1400,6 +1400,7 @@ impl Format {
         let block_body_ty = match note.unwrap_or_default() {
             Note::StructDefinition => SkipType::SkipStructBody,
             Note::FunBody => SkipType::SkipFunBody,
+            Note::ModuleDef => SkipType::SkipModuleBody,
             _ => SkipType::SkipNone,
         };
         if self
@@ -1407,30 +1408,10 @@ impl Format {
             .skip_extractor
             .should_skip_block_body(kind, block_body_ty)
         {
-            let fun_body_str = &self.format_context.borrow().content
+            let blk_body_str = &self.format_context.borrow().content
                 [kind.start_pos as usize..kind.end_pos as usize + 1];
-            tracing::trace!("should_skip_this_fun_body = {:?}", fun_body_str);
-            self.push_str(fun_body_str);
-
-            for c in &self.comments[self.comments_index.get()..] {
-                if c.start_offset > kind.end_pos {
-                    break;
-                }
-                self.comments_index.set(self.comments_index.get() + 1);
-            }
-            self.cur_line.set(self.translate_line(kind.end_pos));
-            return;
-        }
-
-        if self
-            .syntax_extractor
-            .skip_extractor
-            .should_skip_block_body(kind, SkipType::SkipModuleBody)
-        {
-            let body_str = &self.format_context.borrow().content
-                [kind.start_pos as usize..kind.end_pos as usize + 1];
-            tracing::trace!("should_skip_block_body = {:?}", body_str);
-            self.push_str(body_str);
+            eprintln!("should_skip_block_body = {:?}", blk_body_str);
+            self.push_str(blk_body_str);
 
             for c in &self.comments[self.comments_index.get()..] {
                 if c.start_offset > kind.end_pos {
