@@ -1369,34 +1369,7 @@ impl Format {
                 && !elements.is_empty())
     }
 
-    fn format_nested_token(&self, nested_token: &TokenTree, next_token: Option<&TokenTree>) {
-        let TokenTree::Nested {
-            elements,
-            kind,
-            note,
-        } = nested_token
-        else {
-            return;
-        };
-
-        let (delimiter, has_colon) = analyze_token_tree_delimiter(elements);
-        let (mut b_new_line_mode, opt_component_break_mode) =
-            self.get_break_mode_begin_nested(nested_token, delimiter);
-
-        let mut b_add_indent = true;
-        for i in 0..elements.len() {
-            let ele_str = elements[i].simple_str().unwrap_or_default();
-            if !matches!(ele_str, "#" | "" | "module") || i > 16 {
-                break;
-            }
-            if elements[i].simple_str().unwrap_or_default() == "module" {
-                b_add_indent = false;
-                b_new_line_mode |= true;
-                break;
-            }
-        }
-
-        let nested_token_head = self.format_context.borrow().pre_simple_token.get_end_tok();
+    fn need_skip_nested_token(&self, kind: &NestKind, note: &Option<Note>) -> bool {
         let block_body_ty = match note.unwrap_or_default() {
             Note::StructDefinition => SkipType::SkipStructBody,
             Note::FunBody => SkipType::SkipFunBody,
@@ -1420,9 +1393,42 @@ impl Format {
                 self.comments_index.set(self.comments_index.get() + 1);
             }
             self.cur_line.set(self.translate_line(kind.end_pos));
+            return true;
+        }
+        false
+    }
+
+    fn format_nested_token(&self, nested_token: &TokenTree, next_token: Option<&TokenTree>) {
+        let TokenTree::Nested {
+            elements,
+            kind,
+            note,
+        } = nested_token
+        else {
+            return;
+        };
+        if self.need_skip_nested_token(&kind, note) {
             return;
         }
 
+        let (delimiter, has_colon) = analyze_token_tree_delimiter(elements);
+        let (mut b_new_line_mode, opt_component_break_mode) =
+            self.get_break_mode_begin_nested(nested_token, delimiter);
+
+        let mut b_add_indent = true;
+        for i in 0..elements.len() {
+            let ele_str = elements[i].simple_str().unwrap_or_default();
+            if !matches!(ele_str, "#" | "" | "module") || i > 16 {
+                break;
+            }
+            if elements[i].simple_str().unwrap_or_default() == "module" {
+                b_add_indent = false;
+                b_new_line_mode |= true;
+                break;
+            }
+        }
+
+        let nested_token_head = self.format_context.borrow().pre_simple_token.get_end_tok();
         let b_add_space_around_brace =
             self.judge_add_space_around_brace(nested_token, b_new_line_mode);
 
