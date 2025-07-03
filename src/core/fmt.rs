@@ -1353,12 +1353,11 @@ impl Format {
         // eg2: When the braces are used for use
         // use A::B::{C, D}
         // shouldn't formated like `use A::B::{ C, D }`
-        let b_not_arithmetic_op_brace = Tok::Plus != nested_token_head
-            && Tok::Minus != nested_token_head
-            && Tok::Star != nested_token_head
-            && Tok::Slash != nested_token_head
-            && Tok::Percent != nested_token_head
-            && kind.kind == NestKind_::Brace;
+        let is_arithmetic_op = matches!(
+            nested_token_head,
+            Tok::Plus | Tok::Minus | Tok::Star | Tok::Slash | Tok::Percent
+        );
+        let b_not_arithmetic_op_brace = !is_arithmetic_op && kind.kind == NestKind_::Brace;
         let b_not_use_brace = Tok::ColonColon != nested_token_head && kind.kind == NestKind_::Brace;
         let nested_blk_str = &self.format_context.borrow().content
             [kind.start_pos as usize + 1..kind.end_pos as usize];
