@@ -1947,17 +1947,6 @@ impl Format {
 
             match c.comment_kind() {
                 CommentKind::DocComment => {
-                    // let buffer = self.ret.clone();
-                    // let len: usize = c.content.len();
-                    // let x: usize = buffer.borrow().len();
-                    // if len + 2 < x {
-                    //     if let Some(ch) = buffer.clone().borrow().chars().nth(x - len - 2) {
-                    //         if !ch.is_ascii_whitespace() {
-                    //             // insert black space after '//'
-                    //             self.ret.borrow_mut().insert(x - len - 1, ' ');
-                    //         }
-                    //     }
-                    // }
                     self.new_line(None);
                     last_cmt_is_block_cmt = false;
                 }
@@ -2065,11 +2054,7 @@ impl Format {
             if self.translate_line(add_line_comment_pos) != self.translate_line(c.start_offset) {
                 break;
             }
-            // if (self.translate_line(c.start_offset) - self.cur_line.get()) > 1 {
-            //     tracing::debug!("add a black line");
-            //     self.new_line(None);
-            // }
-            // self.push_str(c.content.as_str());
+
             let kind = c.comment_kind();
             let fmted_cmt_str = c.format_comment(
                 kind,
@@ -2077,17 +2062,6 @@ impl Format {
                 0,
                 &self.global_cfg,
             );
-            /*
-            let buffer = self.ret.clone();
-            if !buffer.clone().borrow().chars().last().unwrap_or(' ').is_ascii_whitespace()
-            && !buffer.clone().borrow().chars().last().unwrap_or(' ').eq(&'('){
-                self.push_str(" ");
-                // insert 2 black space before '//'
-                // if let Some(_) = fmted_cmt_str.find("//") {
-                //     self.push_str(" ");
-                // }
-            }
-            */
             if self.no_space_or_new_line_for_comment() {
                 self.push_str(" ");
             }
