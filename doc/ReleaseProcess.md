@@ -1,7 +1,7 @@
 ## 1.merge code into develop branch
 ```
 # like this:
-git merge fea/optimize_241209
+git merge fea/optimize_241209 --squash
 ```
 
 ## 2.push to remote repo

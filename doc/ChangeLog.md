@@ -8,6 +8,7 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.2.4">v1.2.4</a><br/>
 <a href="#v1.2.3">v1.2.3</a><br/>
 <a href="#v1.2.2">v1.2.2</a><br/>
 <a href="#v1.2.1">v1.2.1</a><br/>
@@ -26,6 +27,16 @@
 </td>
 </tr>
 </table>
+
+
+<a id="v1.2.4"></a>
+## 2025-07-08, Version v1.2.4
+### Features
+* [[`5a77082`](https://github.com/movebit/movefmt/commit/5a7708226265b5802ba86d9966be762547d8340b)] - update aptos-core dependence (robinlzw)
+* [[`a5fe78e`](https://github.com/movebit/movefmt/commit/a5fe78e551a0b94bb6b0d66bf4333b5c26ac1c52)] - delete obsolete code (robinlzw)
+* [[`552bf62`](https://github.com/movebit/movefmt/commit/552bf62430997191e45cd7cf29c09ae451ee0cf5)] - optimize fn judge_add_space_around_brace() (robinlzw)
+* [[`367d94a`](https://github.com/movebit/movefmt/commit/367d94a8a566efb5056cd123f8ee2ec3c183a178)] - add fn need_skip_nested_token(); optimize fn format_nested_token() (robinlzw)
+* [[`c912122`](https://github.com/movebit/movefmt/commit/c9121221353ebdbdc6c47b6228b85dec63c0499c)] - optimize skip_module (robinlzw)
 
 
 <a id="v1.2.3"></a>
