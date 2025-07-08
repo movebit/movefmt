@@ -1353,12 +1353,11 @@ impl Format {
         // eg2: When the braces are used for use
         // use A::B::{C, D}
         // shouldn't formated like `use A::B::{ C, D }`
-        let b_not_arithmetic_op_brace = Tok::Plus != nested_token_head
-            && Tok::Minus != nested_token_head
-            && Tok::Star != nested_token_head
-            && Tok::Slash != nested_token_head
-            && Tok::Percent != nested_token_head
-            && kind.kind == NestKind_::Brace;
+        let is_arithmetic_op = matches!(
+            nested_token_head,
+            Tok::Plus | Tok::Minus | Tok::Star | Tok::Slash | Tok::Percent
+        );
+        let b_not_arithmetic_op_brace = !is_arithmetic_op && kind.kind == NestKind_::Brace;
         let b_not_use_brace = Tok::ColonColon != nested_token_head && kind.kind == NestKind_::Brace;
         let nested_blk_str = &self.format_context.borrow().content
             [kind.start_pos as usize + 1..kind.end_pos as usize];
@@ -1367,6 +1366,35 @@ impl Format {
                 && b_not_use_brace
                 && !b_new_line_mode
                 && !elements.is_empty())
+    }
+
+    fn need_skip_nested_token(&self, kind: &NestKind, note: &Option<Note>) -> bool {
+        let block_body_ty = match note.unwrap_or_default() {
+            Note::StructDefinition => SkipType::SkipStructBody,
+            Note::FunBody => SkipType::SkipFunBody,
+            Note::ModuleDef => SkipType::SkipModuleBody,
+            _ => SkipType::SkipNone,
+        };
+        if self
+            .syntax_extractor
+            .skip_extractor
+            .should_skip_block_body(kind, block_body_ty)
+        {
+            let blk_body_str = &self.format_context.borrow().content
+                [kind.start_pos as usize..kind.end_pos as usize + 1];
+            eprintln!("should_skip_block_body = {:?}", blk_body_str);
+            self.push_str(blk_body_str);
+
+            for c in &self.comments[self.comments_index.get()..] {
+                if c.start_offset > kind.end_pos {
+                    break;
+                }
+                self.comments_index.set(self.comments_index.get() + 1);
+            }
+            self.cur_line.set(self.translate_line(kind.end_pos));
+            return true;
+        }
+        false
     }
 
     fn format_nested_token(&self, nested_token: &TokenTree, next_token: Option<&TokenTree>) {
@@ -1378,6 +1406,9 @@ impl Format {
         else {
             return;
         };
+        if self.need_skip_nested_token(&kind, note) {
+            return;
+        }
 
         let (delimiter, has_colon) = analyze_token_tree_delimiter(elements);
         let (mut b_new_line_mode, opt_component_break_mode) =
@@ -1397,51 +1428,6 @@ impl Format {
         }
 
         let nested_token_head = self.format_context.borrow().pre_simple_token.get_end_tok();
-        let block_body_ty = match note.unwrap_or_default() {
-            Note::StructDefinition => SkipType::SkipStructBody,
-            Note::FunBody => SkipType::SkipFunBody,
-            _ => SkipType::SkipNone,
-        };
-        if self
-            .syntax_extractor
-            .skip_extractor
-            .should_skip_block_body(kind, block_body_ty)
-        {
-            let fun_body_str = &self.format_context.borrow().content
-                [kind.start_pos as usize..kind.end_pos as usize + 1];
-            tracing::trace!("should_skip_this_fun_body = {:?}", fun_body_str);
-            self.push_str(fun_body_str);
-
-            for c in &self.comments[self.comments_index.get()..] {
-                if c.start_offset > kind.end_pos {
-                    break;
-                }
-                self.comments_index.set(self.comments_index.get() + 1);
-            }
-            self.cur_line.set(self.translate_line(kind.end_pos));
-            return;
-        }
-
-        if self
-            .syntax_extractor
-            .skip_extractor
-            .should_skip_block_body(kind, SkipType::SkipModuleBody)
-        {
-            let body_str = &self.format_context.borrow().content
-                [kind.start_pos as usize..kind.end_pos as usize + 1];
-            tracing::trace!("should_skip_block_body = {:?}", body_str);
-            self.push_str(body_str);
-
-            for c in &self.comments[self.comments_index.get()..] {
-                if c.start_offset > kind.end_pos {
-                    break;
-                }
-                self.comments_index.set(self.comments_index.get() + 1);
-            }
-            self.cur_line.set(self.translate_line(kind.end_pos));
-            return;
-        }
-
         let b_add_space_around_brace =
             self.judge_add_space_around_brace(nested_token, b_new_line_mode);
 
@@ -1961,17 +1947,6 @@ impl Format {
 
             match c.comment_kind() {
                 CommentKind::DocComment => {
-                    // let buffer = self.ret.clone();
-                    // let len: usize = c.content.len();
-                    // let x: usize = buffer.borrow().len();
-                    // if len + 2 < x {
-                    //     if let Some(ch) = buffer.clone().borrow().chars().nth(x - len - 2) {
-                    //         if !ch.is_ascii_whitespace() {
-                    //             // insert black space after '//'
-                    //             self.ret.borrow_mut().insert(x - len - 1, ' ');
-                    //         }
-                    //     }
-                    // }
                     self.new_line(None);
                     last_cmt_is_block_cmt = false;
                 }
@@ -2079,11 +2054,7 @@ impl Format {
             if self.translate_line(add_line_comment_pos) != self.translate_line(c.start_offset) {
                 break;
             }
-            // if (self.translate_line(c.start_offset) - self.cur_line.get()) > 1 {
-            //     tracing::debug!("add a black line");
-            //     self.new_line(None);
-            // }
-            // self.push_str(c.content.as_str());
+
             let kind = c.comment_kind();
             let fmted_cmt_str = c.format_comment(
                 kind,
@@ -2091,17 +2062,6 @@ impl Format {
                 0,
                 &self.global_cfg,
             );
-            /*
-            let buffer = self.ret.clone();
-            if !buffer.clone().borrow().chars().last().unwrap_or(' ').is_ascii_whitespace()
-            && !buffer.clone().borrow().chars().last().unwrap_or(' ').eq(&'('){
-                self.push_str(" ");
-                // insert 2 black space before '//'
-                // if let Some(_) = fmted_cmt_str.find("//") {
-                //     self.push_str(" ");
-                // }
-            }
-            */
             if self.no_space_or_new_line_for_comment() {
                 self.push_str(" ");
             }

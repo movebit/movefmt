@@ -129,6 +129,8 @@ pub enum Note {
     ApplyName,
     /// This is a address that contained modules.
     ModuleAddress,
+    /// This is a module definition.
+    ModuleDef,
     /// default
     Unkownwn,
 }
@@ -221,6 +223,7 @@ pub struct Parser<'a> {
     fun_body: HashSet<u32>, // start pos.
     apple_name: HashSet<u32>,
     address_module: Vec<(u32, u32)>,
+    module_body: HashSet<u32>, // end pos.
     source: String,
 }
 
@@ -236,6 +239,7 @@ impl<'a> Parser<'a> {
             fun_body: Default::default(),
             apple_name: Default::default(),
             address_module: vec![],
+            module_body: Default::default(),
             source,
         };
         x.collect_various_information();
@@ -355,6 +359,11 @@ impl<'a> Parser<'a> {
         debug_assert_eq!(self.lexer.peek(), kind.end_tok());
         let end = self.lexer.start_loc() as u32;
         self.lexer.advance().unwrap();
+
+        if note.is_none() && kind == NestKind_::Brace && self.module_body.contains(&(end + 1)) {
+            note = Some(Note::ModuleDef);
+        }
+
         TokenTree::Nested {
             elements: ret,
             kind: NestKind {
@@ -421,6 +430,7 @@ impl<'a> Parser<'a> {
         }
 
         fn collect_module(p: &mut Parser, d: &ModuleDefinition) {
+            p.module_body.insert(d.loc.end());
             for m in d.members.iter() {
                 match &m {
                     ModuleMember::Function(x) => collect_function(p, x),
