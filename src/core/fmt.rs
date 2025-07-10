@@ -831,90 +831,92 @@ impl Format {
         let TokenTree::Nested { elements, kind, .. } = token else {
             return (false, None);
         };
+        if NestKind_::ParentTheses != kind.kind {
+            return (false, None);
+        }
+        if elements.len() == 1 && elements[0].simple_str().is_none() {
+            return (false, None);
+        }
+        let mut new_line_mode = false;
+        let nested_token_len = self.get_kind_len_after_trim_space(*kind, true);
+
+        let mut opt_component_break_mode = nested_token_len
+            + self.depth.get() * self.local_cfg.indent_size
+            >= self.global_cfg.max_width();
+
+        let maybe_in_fun_header = self
+            .syntax_extractor
+            .fun_extractor
+            .is_parameter_paren_in_fun_header(kind);
+        if matches!(
+            self.format_context.borrow().pre_simple_token.get_end_tok(),
+            Tok::If | Tok::While
+        ) {
+            new_line_mode = false;
+        } else if maybe_in_fun_header.0 {
+            new_line_mode |= maybe_in_fun_header.1 > self.global_cfg.max_width();
+            // Reserve 25% space for return ty and specifier
+            new_line_mode |= (self.get_cur_line_len() + nested_token_len) as f32
+                > self.local_cfg.max_len_no_add_line;
+
+            let nested_and_comma_pair = expr_fmt::get_nested_and_comma_num(elements);
+            if self
+                .global_cfg
+                .prefer_one_line_for_short_fn_header_para_list()
+            {
+                opt_component_break_mode |= (nested_and_comma_pair.0 >= 4
+                    || nested_and_comma_pair.1 > 2)
+                    && token.token_len() as f32 > self.local_cfg.max_len_no_add_line;
+            } else {
+                opt_component_break_mode |= nested_and_comma_pair.1 > 1;
+            }
+
+            new_line_mode |= opt_component_break_mode;
+        } else if self.get_cur_line_len() > self.global_cfg.max_width() {
+            new_line_mode = true;
+        } else {
+            let elements_str = serde_json::to_string(&elements).unwrap_or_default();
+            let has_multi_para = elements_str.matches("\"content\":\",\"").count() > 2;
+            let is_in_fun_call = self.syntax_extractor.call_extractor.paren_in_call(kind);
+            if is_in_fun_call {
+                new_line_mode |= self.get_break_mode_of_fun_call(
+                    token,
+                    nested_token_len,
+                    &mut opt_component_break_mode,
+                );
+            } else {
+                new_line_mode |= has_multi_para
+                    && self.format_context.borrow().pre_simple_token.get_end_tok()
+                        == Tok::Identifier;
+            }
+            if elements[0].simple_str().is_some() {
+                let is_plus_nested_over_width = self.get_cur_line_len() + nested_token_len
+                    > self.global_cfg.max_width()
+                    && nested_token_len > 8;
+                let is_nested_len_too_large =
+                    nested_token_len as f32 > 2.0 * self.local_cfg.max_len_no_add_line;
+                new_line_mode |= is_plus_nested_over_width || is_nested_len_too_large;
+            }
+
+            let first_ele_len =
+                analyze_token_tree_length(&[elements[0].clone()], self.global_cfg.max_width());
+            let is_plus_first_ele_over_width = self.get_cur_line_len() + first_ele_len
+                > self.global_cfg.max_width()
+                && first_ele_len > 8;
+
+            new_line_mode |= is_plus_first_ele_over_width;
+            new_line_mode |= opt_component_break_mode && has_multi_para;
+        }
+
         let nested_blk_str =
             &self.format_context.borrow().content[kind.start_pos as usize..kind.end_pos as usize];
-        let nested_token_len = self.get_kind_len_after_trim_space(*kind, true);
-        let first_ele_len =
-            analyze_token_tree_length(&[elements[0].clone()], self.global_cfg.max_width());
-
-        let mut new_line_mode = false;
-        if NestKind_::ParentTheses == kind.kind {
-            if elements.len() == 1 && elements[0].simple_str().is_none() {
-                return (false, None);
-            }
-            let nested_and_comma_pair = expr_fmt::get_nested_and_comma_num(elements);
-            let mut opt_component_break_mode = nested_token_len
-                + self.depth.get() * self.local_cfg.indent_size
-                >= self.global_cfg.max_width();
-
-            let maybe_in_fun_header = self
-                .syntax_extractor
-                .fun_extractor
-                .is_parameter_paren_in_fun_header(kind);
-            if matches!(
-                self.format_context.borrow().pre_simple_token.get_end_tok(),
-                Tok::If | Tok::While
-            ) {
-                new_line_mode = false;
-            } else if maybe_in_fun_header.0 {
-                new_line_mode |= maybe_in_fun_header.1 > self.global_cfg.max_width();
-                // Reserve 25% space for return ty and specifier
-                new_line_mode |= (self.get_cur_line_len() + nested_token_len) as f32
-                    > self.local_cfg.max_len_no_add_line;
-
-                if self
-                    .global_cfg
-                    .prefer_one_line_for_short_fn_header_para_list()
-                {
-                    opt_component_break_mode |= (nested_and_comma_pair.0 >= 4
-                        || nested_and_comma_pair.1 > 2)
-                        && token.token_len() as f32 > self.local_cfg.max_len_no_add_line;
-                } else {
-                    opt_component_break_mode |= nested_and_comma_pair.1 > 1;
-                }
-
-                new_line_mode |= opt_component_break_mode;
-            } else if self.get_cur_line_len() > self.global_cfg.max_width() {
-                new_line_mode = true;
-            } else {
-                let elements_str = serde_json::to_string(&elements).unwrap_or_default();
-                let has_multi_para = elements_str.matches("\"content\":\",\"").count() > 2;
-                let is_in_fun_call = self.syntax_extractor.call_extractor.paren_in_call(kind);
-                if is_in_fun_call {
-                    new_line_mode |= self.get_break_mode_of_fun_call(
-                        token,
-                        nested_token_len,
-                        &mut opt_component_break_mode,
-                    );
-                } else {
-                    new_line_mode |= has_multi_para
-                        && self.format_context.borrow().pre_simple_token.get_end_tok()
-                            == Tok::Identifier;
-                }
-                if elements[0].simple_str().is_some() {
-                    let is_plus_nested_over_width = self.get_cur_line_len() + nested_token_len
-                        > self.global_cfg.max_width()
-                        && nested_token_len > 8;
-                    let is_nested_len_too_large =
-                        nested_token_len as f32 > 2.0 * self.local_cfg.max_len_no_add_line;
-                    new_line_mode |= is_plus_nested_over_width || is_nested_len_too_large;
-                }
-                let is_plus_first_ele_over_width = self.get_cur_line_len() + first_ele_len
-                    > self.global_cfg.max_width()
-                    && first_ele_len > 8;
-
-                new_line_mode |= is_plus_first_ele_over_width;
-                new_line_mode |= opt_component_break_mode && has_multi_para;
-            }
-            if !new_line_mode
-                && contains_comment(&nested_blk_str)
-                && nested_blk_str.find("//").is_some()
-            {
-                new_line_mode = true;
-            }
-            return (new_line_mode, Some(opt_component_break_mode));
+        if !new_line_mode
+            && contains_comment(&nested_blk_str)
+            && nested_blk_str.find("//").is_some()
+        {
+            new_line_mode = true;
         }
-        (new_line_mode, None)
+        return (new_line_mode, Some(opt_component_break_mode));
     }
 
     fn get_break_mode_begin_nested(
