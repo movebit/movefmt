@@ -46,13 +46,13 @@ impl FormatContext {
 }
 
 pub struct SyntaxExtractor {
-    pub branch_extractor: BranchExtractor,
-    pub fun_extractor: FunExtractor,
-    pub call_extractor: CallExtractor,
-    pub let_extractor: LetExtractor,
-    pub bin_op_extractor: BinOpExtractor,
-    pub quant_extractor: QuantExtractor,
-    pub skip_extractor: SkipExtractor,
+    pub(crate) branch_extractor: BranchExtractor,
+    pub(crate) fun_extractor: FunExtractor,
+    pub(crate) call_extractor: CallExtractor,
+    pub(crate) let_extractor: LetExtractor,
+    pub(crate) bin_op_extractor: BinOpExtractor,
+    pub(crate) quant_extractor: QuantExtractor,
+    pub(crate) skip_extractor: SkipExtractor,
 }
 
 pub struct Format {
@@ -71,8 +71,8 @@ pub struct Format {
 
 #[derive(Clone, Default)]
 pub struct FormatConfig {
-    pub max_with: usize,
-    pub indent_size: usize,
+    pub(crate) indent_size: usize,
+    pub(crate) max_len_no_add_line: f32,
 }
 
 fn is_bin_op(op_token: Tok) -> bool {
@@ -139,8 +139,8 @@ impl Format {
         Self {
             comments_index: Default::default(),
             local_cfg: FormatConfig {
-                max_with: global_cfg.max_width(),
                 indent_size: global_cfg.indent_size(),
+                max_len_no_add_line: global_cfg.max_width() as f32 * 0.75,
             },
             global_cfg,
             depth: Default::default(),
@@ -779,7 +779,6 @@ impl Format {
         &self,
         token: &TokenTree,
         nested_token_len: usize,
-        max_len_when_no_add_line: f32,
         opt_component_break_mode: &mut bool,
     ) -> bool {
         let TokenTree::Nested { elements, kind, .. } = token else {
@@ -820,7 +819,7 @@ impl Format {
 
         if !*opt_component_break_mode
             && has_multi_para
-            && (nested_token_len as f32 > max_len_when_no_add_line
+            && (nested_token_len as f32 > self.local_cfg.max_len_no_add_line
                 || (!self.global_cfg.prefer_one_line_for_short_call_para_list() && new_line_mode))
         {
             *opt_component_break_mode = true;
@@ -832,7 +831,6 @@ impl Format {
         let TokenTree::Nested { elements, kind, .. } = token else {
             return (false, None);
         };
-        let max_len_when_no_add_line = self.global_cfg.max_width() as f32 * 0.75;
         let nested_blk_str =
             &self.format_context.borrow().content[kind.start_pos as usize..kind.end_pos as usize];
         let nested_token_len = self.get_kind_len_after_trim_space(*kind, true);
@@ -861,8 +859,8 @@ impl Format {
             } else if maybe_in_fun_header.0 {
                 new_line_mode |= maybe_in_fun_header.1 > self.global_cfg.max_width();
                 // Reserve 25% space for return ty and specifier
-                new_line_mode |=
-                    (self.get_cur_line_len() + nested_token_len) as f32 > max_len_when_no_add_line;
+                new_line_mode |= (self.get_cur_line_len() + nested_token_len) as f32
+                    > self.local_cfg.max_len_no_add_line;
 
                 if self
                     .global_cfg
@@ -870,7 +868,7 @@ impl Format {
                 {
                     opt_component_break_mode |= (nested_and_comma_pair.0 >= 4
                         || nested_and_comma_pair.1 > 2)
-                        && token.token_len() as f32 > max_len_when_no_add_line;
+                        && token.token_len() as f32 > self.local_cfg.max_len_no_add_line;
                 } else {
                     opt_component_break_mode |= nested_and_comma_pair.1 > 1;
                 }
@@ -886,7 +884,6 @@ impl Format {
                     new_line_mode |= self.get_break_mode_of_fun_call(
                         token,
                         nested_token_len,
-                        max_len_when_no_add_line,
                         &mut opt_component_break_mode,
                     );
                 } else {
@@ -899,7 +896,7 @@ impl Format {
                         > self.global_cfg.max_width()
                         && nested_token_len > 8;
                     let is_nested_len_too_large =
-                        nested_token_len as f32 > 2.0 * max_len_when_no_add_line;
+                        nested_token_len as f32 > 2.0 * self.local_cfg.max_len_no_add_line;
                     new_line_mode |= is_plus_nested_over_width || is_nested_len_too_large;
                 }
                 let is_plus_first_ele_over_width = self.get_cur_line_len() + first_ele_len
@@ -933,24 +930,14 @@ impl Format {
         else {
             return (false, None);
         };
-        let stct_def = note
-            .map(|x| x == Note::StructDefinition)
-            .unwrap_or_default();
-        let fun_body = note.map(|x| x == Note::FunBody).unwrap_or_default();
-        let max_len_when_no_add_line = self.global_cfg.max_width() as f32 * 0.75;
+        let max_len_no_add_line = self.local_cfg.max_len_no_add_line;
         let nested_blk_str =
             &self.format_context.borrow().content[kind.start_pos as usize..kind.end_pos as usize];
         let nested_token_len = self.get_kind_len_after_trim_space(*kind, true);
-        if fun_body {
-            self.process_fn_header();
-        }
-
         if elements.is_empty() {
-            return (
-                nested_token_len as f32 > max_len_when_no_add_line
-                    || (contains_comment(nested_blk_str) && nested_blk_str.lines().count() > 1),
-                None,
-            );
+            let should_break = nested_token_len as f32 > max_len_no_add_line
+                || (contains_comment(nested_blk_str) && nested_blk_str.lines().count() > 1);
+            return (should_break, None);
         }
 
         // 20240329 updated
@@ -959,25 +946,22 @@ impl Format {
         // 20240425 updated
         // The value of new_line_mode here is not associated with Paren, only with Brace.
         // Because Paren may come from fn_para or call or expression statements...
+        let is_stct_def = note.map_or(false, |x| x == Note::StructDefinition);
         let mut new_line_mode = {
-            delimiter
-                .map(|x| x == Delimiter::Semicolon)
-                .unwrap_or_default()
-                || stct_def
-                || fun_body
+            delimiter.map_or(false, |d| d == Delimiter::Semicolon)
+                || is_stct_def
+                || note.map_or(false, |x| x == Note::FunBody)
                 || (self.get_cur_line_len() + nested_token_len > self.global_cfg.max_width()
                     && nested_token_len > 8
                     && kind.kind == NestKind_::Brace)
         };
         if new_line_mode && kind.kind != NestKind_::Type {
-            if stct_def {
+            if is_stct_def {
                 return (true, Some(true));
             }
             return (true, None);
         }
 
-        let first_ele_len =
-            analyze_token_tree_length(&[elements[0].clone()], self.global_cfg.max_width());
         match kind.kind {
             NestKind_::Type => {
                 // added in 20240112: if type in fun header, not change new line
@@ -988,6 +972,9 @@ impl Format {
                 {
                     return (false, None);
                 }
+
+                let first_ele_len =
+                    analyze_token_tree_length(&[elements[0].clone()], self.global_cfg.max_width());
                 new_line_mode = self.get_cur_line_len() + first_ele_len
                     > self.global_cfg.max_width()
                     && first_ele_len > 8;
@@ -997,7 +984,7 @@ impl Format {
                 let is_annotation =
                     self.format_context.borrow().pre_simple_token.get_end_tok() == Tok::NumSign;
                 new_line_mode = (is_annotation && nested_token_len > self.global_cfg.max_width())
-                    || (!is_annotation && nested_token_len as f32 > max_len_when_no_add_line);
+                    || (!is_annotation && nested_token_len as f32 > max_len_no_add_line);
                 if elements.len() > 32 {
                     let mut bin_op_cnt = 0;
                     let mut complex_ele_cnt = 0;
@@ -1014,14 +1001,14 @@ impl Format {
                 }
             }
             NestKind_::Lambda => {
-                if delimiter.is_none() && nested_token_len as f32 <= max_len_when_no_add_line {
+                if delimiter.is_none() && nested_token_len as f32 <= max_len_no_add_line {
                     new_line_mode = false;
                 }
             }
             NestKind_::Brace => {
                 new_line_mode = (has_special_key_for_break_line_in_code_buf(self.last_line())
                     && nested_token_len > 4)
-                    || nested_token_len as f32 > max_len_when_no_add_line
+                    || nested_token_len as f32 > max_len_no_add_line
                     || (self.last_line().len() + nested_token_len > self.global_cfg.max_width()
                         && nested_token_len > 4)
                     || (contains_comment(nested_blk_str) && nested_blk_str.lines().count() > 1);
@@ -1411,6 +1398,9 @@ impl Format {
         }
 
         let (delimiter, has_colon) = analyze_token_tree_delimiter(elements);
+        if note.map_or(false, |x| x == Note::FunBody) {
+            self.process_fn_header();
+        }
         let (mut b_new_line_mode, opt_component_break_mode) =
             self.get_break_mode_begin_nested(nested_token, delimiter);
 
