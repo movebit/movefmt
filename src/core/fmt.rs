@@ -720,7 +720,7 @@ impl Format {
                 && d == t_str
                 && t_str.unwrap_or_default() == ","
                 && token_to_ability(
-                    self.format_context.borrow().pre_simple_token.get_end_tok(),
+                    self.get_pre_simple_tok(),
                     &self
                         .format_context
                         .borrow()
@@ -848,10 +848,7 @@ impl Format {
             .syntax_extractor
             .fun_extractor
             .is_parameter_paren_in_fun_header(kind);
-        if matches!(
-            self.format_context.borrow().pre_simple_token.get_end_tok(),
-            Tok::If | Tok::While
-        ) {
+        if matches!(self.get_pre_simple_tok(), Tok::If | Tok::While) {
             new_line_mode = false;
         } else if maybe_in_fun_header.0 {
             new_line_mode |= maybe_in_fun_header.1 > self.global_cfg.max_width();
@@ -885,9 +882,7 @@ impl Format {
                     &mut opt_component_break_mode,
                 );
             } else {
-                new_line_mode |= has_multi_para
-                    && self.format_context.borrow().pre_simple_token.get_end_tok()
-                        == Tok::Identifier;
+                new_line_mode |= has_multi_para && self.get_pre_simple_tok() == Tok::Identifier;
             }
             if elements[0].simple_str().is_some() {
                 let is_plus_nested_over_width = self.get_cur_line_len() + nested_token_len
@@ -983,8 +978,7 @@ impl Format {
             }
             NestKind_::ParentTheses => return self.get_break_mode_begin_paren(token),
             NestKind_::Bracket => {
-                let is_annotation =
-                    self.format_context.borrow().pre_simple_token.get_end_tok() == Tok::NumSign;
+                let is_annotation = self.get_pre_simple_tok() == Tok::NumSign;
                 new_line_mode = (is_annotation && nested_token_len > self.global_cfg.max_width())
                     || (!is_annotation && nested_token_len as f32 > max_len_no_add_line);
                 if elements.len() > 32 {
@@ -1267,7 +1261,7 @@ impl Format {
                 pound_sign = Some(internal_token_idx)
             }
 
-            if Tok::Period == self.format_context.borrow().pre_simple_token.get_end_tok() {
+            if Tok::Period == self.get_pre_simple_tok() {
                 let in_link_access =
                     expr_fmt::process_link_access(elements, internal_token_idx + 1);
                 let mut last_dot_idx = in_link_access.1;
@@ -1333,7 +1327,7 @@ impl Format {
         let TokenTree::Nested { elements, kind, .. } = nested_token else {
             return true;
         };
-        let nested_token_head = self.format_context.borrow().pre_simple_token.get_end_tok();
+        let nested_token_head = self.get_pre_simple_tok();
         // optimize in 20240425
         // there are 2 cases which not add space
         // eg1: When braces are used for arithmetic operations
@@ -1419,7 +1413,7 @@ impl Format {
             }
         }
 
-        let nested_token_head = self.format_context.borrow().pre_simple_token.get_end_tok();
+        let nested_token_head = self.get_pre_simple_tok();
         let b_add_space_around_brace =
             self.judge_add_space_around_brace(nested_token, b_new_line_mode);
 
@@ -1481,7 +1475,7 @@ impl Format {
         };
 
         // optimize in 20241212
-        let pre_tok = self.format_context.borrow().pre_simple_token.get_end_tok();
+        let pre_tok = self.get_pre_simple_tok();
         if !matches!(pre_tok, Tok::RParen | Tok::Else) && *tok != Tok::Else {
             return;
         }
@@ -1518,7 +1512,7 @@ impl Format {
         if *tok == Tok::Else {
             let get_cur_line_len = self.get_cur_line_len();
             let has_special_key = get_cur_line_len != self.last_line().len();
-            if self.format_context.borrow().pre_simple_token.get_end_tok() == Tok::RBrace {
+            if self.get_pre_simple_tok() == Tok::RBrace {
                 // case1
                 if has_special_key {
                     // process case:
@@ -1617,10 +1611,7 @@ impl Format {
         """
         */
         if (self.translate_line(*pos) - self.cur_line.get()) > 1
-            && expr_fmt::need_break_cur_line_when_trim_blank_lines(
-                &self.format_context.borrow().pre_simple_token.get_end_tok(),
-                tok,
-            )
+            && expr_fmt::need_break_cur_line_when_trim_blank_lines(&self.get_pre_simple_tok(), tok)
         {
             // There are multiple blank lines between the cur_line and the current code simple_token
             tracing::debug!(
@@ -1912,7 +1903,7 @@ impl Format {
                 // comment
                 fun func() {}
                 */
-                if self.format_context.borrow().pre_simple_token.get_end_tok() != Tok::NumSign {
+                if self.get_pre_simple_tok() != Tok::NumSign {
                     self.new_line(None);
                 }
             }
@@ -2181,7 +2172,7 @@ impl Format {
             }
         }
 
-        if self.format_context.borrow().pre_simple_token.get_end_tok() == Tok::AtSign {
+        if self.get_pre_simple_tok() == Tok::AtSign {
             return false;
         }
 
@@ -2195,6 +2186,10 @@ impl Format {
 
     fn process_last_empty_line(&mut self) {
         *self.ret.borrow_mut() = process_last_empty_line_util(self.ret.clone().into_inner());
+    }
+
+    fn get_pre_simple_tok(&self) -> Tok {
+        self.format_context.borrow().pre_simple_token.get_end_tok()
     }
 }
 
