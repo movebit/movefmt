@@ -25,6 +25,9 @@ use std::cell::RefCell;
 use std::result::Result::*;
 use std::sync::Arc;
 
+const EXIST_MULTI_MODULE_TAG: &str = "module fmt";
+const EXIST_MULTI_ADDRESS_TAG: &str = "address fmt";
+
 pub struct FormatContext {
     pub content: String,
     pub pre_simple_token: TokenTree,
@@ -113,7 +116,7 @@ fn token_to_ability(token: Tok, content: &str) -> Option<Ability_> {
     }
 }
 
-fn global_tuning_on_module_body(module_body: String, config: Config) -> String {
+fn tune_module_buf(module_body: String, config: &Config) -> String {
     let mut ret_module_body = fun_fmt::fmt_fun(module_body.clone(), config.clone());
     if module_body.contains("spec ") {
         ret_module_body = spec_fmt::fmt_spec(ret_module_body.clone(), config.clone());
@@ -230,140 +233,87 @@ impl Format {
     }
 
     pub fn format_token_trees(mut self) -> String {
-        let length = self.token_tree.len();
-        let mut index = 0;
-        let mut pound_sign = None;
-        while index < length {
-            let t = self.token_tree.get(index).unwrap();
+        let mut pound_sign_idx = None;
+        for (index, t) in self.token_tree.clone().into_iter().enumerate() {
             if t.is_pound() {
-                pound_sign = Some(index);
+                pound_sign_idx = Some(index);
             }
-            let new_line = pound_sign.map(|x| (x + 1) == index).unwrap_or_default();
+            let new_line = pound_sign_idx.map_or(false, |x| (x + 1) == index);
 
-            let mut return_cp_buf = self.ret.clone().into_inner();
-            let mut nested_ele_vec = vec![];
-            let mut nested_kind = NestKind {
-                kind: NestKind_::Type,
-                start_pos: 0,
-                end_pos: 0,
+            let mut fmt_operator = || {
+                self.format_token_trees_internal(&t, self.token_tree.get(index + 1), new_line);
+                if new_line {
+                    self.new_line(Some(t.end_pos()));
+                    pound_sign_idx = None;
+                }
             };
-            let mut is_module_block = false;
-            let mut is_address_block = false;
-            if let TokenTree::Nested { elements, kind, .. } = t {
-                nested_ele_vec = elements.clone();
-                nested_kind = *kind;
-                is_module_block = self.syntax_extractor.skip_extractor.is_module_block(kind);
+
+            let mut return_buf_cp = self.ret.clone().into_inner();
+            let TokenTree::Nested {
+                kind: nkind, note, ..
+            } = t
+            else {
+                fmt_operator();
+                continue;
+            };
+            let skip_extractor = self.syntax_extractor.skip_extractor.clone();
+            let is_mod_blk = skip_extractor.is_module_block(&nkind);
+            let is_addr_blk = note.map_or(false, |x| x == Note::ModuleAddress);
+            if is_mod_blk {
+                *self.ret.borrow_mut() = EXIST_MULTI_MODULE_TAG.to_string();
             }
-            if is_module_block {
-                *self.ret.borrow_mut() = "module fmt".to_string();
-            } else if nested_kind.kind == NestKind_::Brace {
-                for i in 0..nested_ele_vec.len() {
-                    let ele_str = nested_ele_vec[i].simple_str().unwrap_or_default();
-                    if !matches!(ele_str, "#" | "" | "module") || i > 16 {
-                        break;
-                    }
-                    if nested_ele_vec[i].simple_str().unwrap_or_default() == "module" {
-                        is_address_block = true;
-                        break;
-                    }
-                }
-                if is_address_block {
-                    *self.ret.borrow_mut() = "address fmt".to_string();
-                }
+            if is_addr_blk {
+                *self.ret.borrow_mut() = EXIST_MULTI_ADDRESS_TAG.to_string();
             }
-            self.format_token_trees_internal(t, self.token_tree.get(index + 1), new_line);
-            if new_line {
-                self.new_line(Some(t.end_pos()));
-                pound_sign = None;
-            }
+
+            fmt_operator();
+
+            let cfg = self.global_cfg.clone();
             // top level
-            if is_module_block {
+            if is_mod_blk {
                 self.new_line(Some(t.end_pos()));
-                if !self
-                    .syntax_extractor
-                    .skip_extractor
-                    .has_skipped_module_body(&nested_kind)
-                {
-                    *self.ret.borrow_mut() = global_tuning_on_module_body(
-                        self.ret.clone().into_inner(),
-                        self.global_cfg.clone(),
-                    );
-                    *self.ret.borrow_mut() =
-                        process_last_empty_line_util(self.ret.clone().into_inner());
+                if !skip_extractor.has_skipped_module_body(&nkind) {
+                    *self.ret.borrow_mut() = tune_module_buf(self.ret.clone().into_inner(), &cfg);
+                    *self.ret.borrow_mut() = update_last_line(self.ret.clone().into_inner());
                 }
                 let module_body_buf = self.ret.clone().into_inner();
-                return_cp_buf.push_str(&module_body_buf["module fmt".to_string().len()..]);
-                *self.ret.borrow_mut() = return_cp_buf;
-            } else if is_address_block {
-                // cur_is_address_block
+                return_buf_cp.push_str(&module_body_buf[EXIST_MULTI_MODULE_TAG.len()..]);
+                *self.ret.borrow_mut() = return_buf_cp;
+            } else if is_addr_blk {
                 self.new_line(Some(t.end_pos()));
-                // self.ret just one address_block, that's also current address_block
-                let corse_ret_buf = self.ret.clone().into_inner();
-                let def_vec =
-                    parse_file_string(&mut get_compile_env(), FileHash::empty(), &corse_ret_buf)
-                        .unwrap_or_default()
-                        .0;
+                let mut fmt_buf = self.ret.borrow_mut();
+                let def_vec_result =
+                    parse_file_string(&mut get_compile_env(), FileHash::empty(), &*fmt_buf);
+                let def_vec = def_vec_result.unwrap_or_default().0;
 
                 let mut last_mod_end_loc = 0;
-                let mut fine_ret_buf = "".to_string();
-                let mut module_idx = 0;
-                for i in 0..nested_ele_vec.len() {
-                    // for every module_block in address_block
-                    if let TokenTree::Nested { kind, .. } = nested_ele_vec[i] {
-                        is_module_block =
-                            self.syntax_extractor.skip_extractor.is_module_block(&kind);
-                        let need_global_tuning_on_module_body = !self
-                            .syntax_extractor
-                            .skip_extractor
-                            .has_skipped_module_body(&nested_kind);
-
-                        if is_module_block && need_global_tuning_on_module_body {
-                            if let Some(Definition::Address(address_def)) = def_vec.first() {
-                                let mod_def = address_def.modules[module_idx].clone();
-                                let tuning_mod_body = global_tuning_on_module_body(
-                                    corse_ret_buf
-                                        [mod_def.loc.start() as usize..mod_def.loc.end() as usize]
-                                        .to_string(),
-                                    self.global_cfg.clone(),
-                                );
-                                fine_ret_buf.push_str(
-                                    &corse_ret_buf[last_mod_end_loc..mod_def.loc.start() as usize],
-                                );
-                                fine_ret_buf.push_str(&tuning_mod_body);
-                                last_mod_end_loc = mod_def.loc.end() as usize;
-                            }
-                            module_idx += 1;
-                        }
-                    }
-                }
-                if last_mod_end_loc == 0 {
-                    fine_ret_buf = corse_ret_buf.clone();
-                }
-                if last_mod_end_loc < corse_ret_buf.clone().len() {
-                    fine_ret_buf.push_str(&corse_ret_buf[last_mod_end_loc..corse_ret_buf.len()]);
+                let mut fmt_slice = "".to_string();
+                let Some(Definition::Address(address_def)) = def_vec.first() else {
+                    return_buf_cp.push_str(&fmt_buf[EXIST_MULTI_ADDRESS_TAG.len()..]);
+                    *fmt_buf = return_buf_cp.clone();
+                    continue;
+                };
+                for mod_def in &address_def.modules {
+                    let m = &fmt_buf[mod_def.loc.start() as usize..mod_def.loc.end() as usize];
+                    let tuning_mod_body = tune_module_buf(m.to_string(), &cfg);
+                    fmt_slice.push_str(&fmt_buf[last_mod_end_loc..mod_def.loc.start() as usize]);
+                    fmt_slice.push_str(&tuning_mod_body);
+                    last_mod_end_loc = mod_def.loc.end() as usize;
                 }
 
-                tracing::debug!("return_cp_buf = {:?}", return_cp_buf);
-                tracing::debug!(
-                    "fine_ret_buf = {:?}",
-                    &fine_ret_buf["address fmt".to_string().len()..]
-                );
-                return_cp_buf.push_str(&fine_ret_buf["address fmt".to_string().len()..]);
-                *self.ret.borrow_mut() = return_cp_buf.clone();
-            } else if nested_kind.kind == NestKind_::Brace {
-                // is script
+                fmt_slice.push_str(&fmt_buf[last_mod_end_loc..fmt_buf.len()]);
+
+                tracing::debug!("return_buf_cp = {:?}", return_buf_cp);
+                tracing::debug!("fmt_slice = {:?}", fmt_slice);
+                return_buf_cp.push_str(&fmt_slice[EXIST_MULTI_ADDRESS_TAG.len()..]);
+                *fmt_buf = return_buf_cp.clone();
+            } else if nkind.kind == NestKind_::Brace {
                 self.new_line(Some(t.end_pos()));
-                tracing::debug!("33 return_cp_buf = {:?}", return_cp_buf);
-                tracing::debug!("33 self.ret = {:?}", &self.ret);
-                *self.ret.borrow_mut() = global_tuning_on_module_body(
-                    self.ret.clone().into_inner(),
-                    self.global_cfg.clone(),
-                );
-                *self.ret.borrow_mut() =
-                    process_last_empty_line_util(self.ret.clone().into_inner());
+                tracing::debug!("<script> return_buf_cp = {:?}", return_buf_cp);
+                tracing::debug!("<script> self.ret = {:?}", &self.ret);
+                *self.ret.borrow_mut() = tune_module_buf(self.ret.clone().into_inner(), &cfg);
+                *self.ret.borrow_mut() = update_last_line(self.ret.clone().into_inner());
             }
-
-            index += 1;
         }
         self.add_comments(u32::MAX, "end_of_move_file".to_string());
         self.remove_trailing_whitespaces();
@@ -2203,7 +2153,7 @@ impl Format {
     }
 
     fn process_last_empty_line(&mut self) {
-        *self.ret.borrow_mut() = process_last_empty_line_util(self.ret.clone().into_inner());
+        *self.ret.borrow_mut() = update_last_line(self.ret.clone().into_inner());
     }
 
     fn get_pre_simple_tok(&self) -> Tok {

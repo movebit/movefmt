@@ -10,7 +10,7 @@ use std::{cell::RefCell, sync::Arc};
 
 use super::syntax_extractor::{Preprocessor, SingleSyntaxExtractor};
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct SkipExtractor {
     pub module_attributes: Vec<Vec<Attributes>>,
     pub struct_attributes: Vec<Vec<Attributes>>,

@@ -384,7 +384,7 @@ pub fn remove_trailing_whitespaces_util(input_str: String) -> String {
         .join("\n")
 }
 
-pub fn process_last_empty_line_util(input_str: String) -> String {
+pub fn update_last_line(input_str: String) -> String {
     let mut lines = input_str.lines().collect::<Vec<&str>>();
     let last_line = lines.last().unwrap_or(&"");
 
