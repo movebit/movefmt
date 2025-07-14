@@ -31,6 +31,16 @@ pub struct NestKind {
     pub end_pos: u32,
 }
 
+impl Default for NestKind {
+    fn default() -> Self {
+        NestKind {
+            kind: NestKind_::Type,
+            start_pos: 0,
+            end_pos: 0,
+        }
+    }
+}
+
 impl NestKind {
     pub fn start_token_tree(&self) -> TokenTree {
         TokenTree::SimpleToken {
