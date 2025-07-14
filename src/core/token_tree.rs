@@ -498,19 +498,14 @@ impl<'a> Parser<'a> {
                 }
                 Exp_::Call(name, _, _tys, es) => {
                     if name.loc.end() > es.loc.start() {
-                        tracing::debug!("name loc end > exp loc end: {:?}", e);
+                        tracing::debug!("<Exp_::Call>name loc end > exp loc end: {:?}", e);
                         tracing::debug!(
                             "code spniet: {:?}",
                             &p.source[es.loc.start() as usize..name.loc.end() as usize]
                         );
                     } else {
                         p.type_lambda_pair.push((name.loc.end(), es.loc.start()));
-                        tracing::debug!(
-                            "code spniet: {:?}",
-                            &p.source[name.loc.end() as usize..es.loc.start() as usize]
-                        );
                     }
-                    tracing::debug!("in call, es = {:?}", es.value);
                     es.value.iter().for_each(|e| collect_expr(p, e));
                 }
                 Exp_::Pack(name, tys, es) => {
@@ -525,19 +520,9 @@ impl<'a> Parser<'a> {
                             let ty_vec = tys.clone().unwrap();
                             let last_ty = ty_vec.last();
                             if last_ty.is_some() {
-                                tracing::debug!(
-                                    "Pack -- code spniet: {:?}",
-                                    &p.source[name.loc.end() as usize
-                                        ..last_ty.unwrap().loc.end() as usize]
-                                );
                                 let end_str = &p.source
                                     [last_ty.unwrap().loc.end() as usize..e.loc.end() as usize];
                                 if let Some(idx) = end_str.find('>') {
-                                    tracing::debug!(
-                                        "Pack 22-- code spniet: {:?}",
-                                        &p.source[name.loc.end() as usize
-                                            ..last_ty.unwrap().loc.end() as usize + idx + 1]
-                                    );
                                     p.type_lambda_pair.push((
                                         name.loc.end(),
                                         last_ty.unwrap().loc.end() + idx as u32 + 1,
