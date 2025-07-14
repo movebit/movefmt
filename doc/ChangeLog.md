@@ -8,6 +8,7 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.2.5">v1.2.5</a><br/>
 <a href="#v1.2.4">v1.2.4</a><br/>
 <a href="#v1.2.3">v1.2.3</a><br/>
 <a href="#v1.2.2">v1.2.2</a><br/>
@@ -27,6 +28,15 @@
 </td>
 </tr>
 </table>
+
+
+<a id="v1.2.5"></a>
+## 2025-07-14, Version v1.2.5
+* [[`23f49f5`](https://github.com/movebit/movefmt/commit/23f49f5fbe0361a0eaf3a0da9b8be4bf7f52a99f)] - fix issue#75: Optimize fn format_token_trees() (robinlzw)
+* [[`b596127`](https://github.com/movebit/movefmt/commit/b596127fba348f7b05422fe6198fdaf80dd37213)] - optimize fn get_break_mode_begin_nested() (robinlzw)
+* [[`b6726c0`](https://github.com/movebit/movefmt/commit/b6726c083b500e8f796e200479c9721c2f42f2c5)] - add fn get_pre_simple_tok() (robinlzw)
+* [[`ce5f91a`](https://github.com/movebit/movefmt/commit/ce5f91a77280c9bcf96c0aa3d66b5954b36e9a24)] - optimize fn get_break_mode_begin_paren() (robinlzw)
+* [[`08534f6`](https://github.com/movebit/movefmt/commit/08534f6dc77ef83f92d03658e7490bdaa067797b)] - first try: Optimize fn get_break_mode_begin_nested() (robinlzw)
 
 
 <a id="v1.2.4"></a>
