@@ -619,11 +619,14 @@ impl CallExtractor {
 
 fn judge_link_call_exp(exp: &Exp) -> (bool, u32) {
     let mut current_continue_call_cnt = 0;
-    if let Exp_::Call(_, CallKind::Receiver, _tys, es) = &exp.value {
+    if let Exp_::Call(_, CallKind::Receiver, _, es) = &exp.value {
         current_continue_call_cnt += 1;
-        es.value.iter().for_each(|e| {
-            current_continue_call_cnt += judge_link_call_exp(e).1;
-        });
+        for e in es.value.iter() {
+            if let Exp_::Call(_, CallKind::Receiver, _, _) = &e.value {
+                current_continue_call_cnt += judge_link_call_exp(e).1;
+                break;
+            }
+        }
     }
     (current_continue_call_cnt > 3, current_continue_call_cnt)
 }
@@ -641,7 +644,17 @@ fn get_call(fmt_buffer: String) {
 
 #[allow(dead_code)]
 fn judge_fn_link_call(fmt_buffer: String) {
-    let call_extractor = CallExtractor::new(fmt_buffer.clone());
+    use crate::tools::utils::*;
+    use move_command_line_common::files::FileHash;
+    use move_compiler::parser::{ast::*, syntax::parse_file_string};
+    let mut call_extractor = CallExtractor::new(fmt_buffer.clone());
+    let (defs, _) = parse_file_string(
+        &mut get_compile_env(),
+        FileHash::empty(),
+        &fmt_buffer.clone(),
+    )
+    .unwrap();
+    call_extractor.preprocess(defs.into());
     for call_exp in call_extractor.link_call_exp_vec.iter() {
         eprintln!(
             "call_exp = \n{:?}\n\n",
@@ -717,4 +730,61 @@ fn test_get_call() {
         }
 "
         .to_string());
+}
+
+#[test]
+fn test_judge_fn_link_call2() {
+    judge_fn_link_call(
+        "
+        module test {
+            fun settle_single_trade<M: store + copy + drop>(
+                self: &mut Market<M>,
+                user_addr: address,
+                price: Option<u64>,
+                orig_size: u64,
+                remaining_size: &mut u64,
+                is_bid: bool,
+                metadata: M,
+                order_id: OrderIdType,
+                client_order_id: Option<u64>,
+                callbacks: &MarketClearinghouseCallbacks<M>,
+                fill_sizes: &mut vector<u64>
+            ): Option<OrderCancellationReason> {
+                let result = self.order_book
+                    .get_single_match_for_taker(price, *remaining_size, is_bid);
+                let (
+                    maker_order, maker_matched_size
+                ) = result.destroy_single_order_match();
+                if (!self.config.allow_self_trade && maker_order.get_account() == user_addr) {
+                    self.cancel_maker_order_internal(
+                        &maker_order,
+                        maker_order.get_client_order_id(),
+                        maker_order.get_account(),
+                        maker_order.get_order_id(),
+                        maker_matched_size,
+                        callbacks
+                    );
+                    return option::none();
+                };
+                let fill_id = self.next_fill_id();
+                let settle_result = callbacks.settle_trade(
+                    user_addr,
+                    order_id,
+                    maker_order.get_account(),
+                    maker_order.get_order_id(),
+                    fill_id,
+                    is_bid,
+                    maker_order.get_price(), // Order is always matched at the price of the maker
+                    maker_matched_size,
+                    metadata,
+                    maker_order.get_metadata_from_order()
+                );
+                option::none()
+            }
+
+        }
+
+"
+        .to_string(),
+    );
 }
