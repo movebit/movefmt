@@ -619,11 +619,14 @@ impl CallExtractor {
 
 fn judge_link_call_exp(exp: &Exp) -> (bool, u32) {
     let mut current_continue_call_cnt = 0;
-    if let Exp_::Call(_, CallKind::Receiver, _tys, es) = &exp.value {
+    if let Exp_::Call(_, CallKind::Receiver, _, es) = &exp.value {
         current_continue_call_cnt += 1;
-        es.value.iter().for_each(|e| {
-            current_continue_call_cnt += judge_link_call_exp(e).1;
-        });
+        for e in es.value.iter() {
+            if let Exp_::Call(_, CallKind::Receiver, _, _) = &e.value {
+                current_continue_call_cnt += judge_link_call_exp(e).1;
+                break;
+            }
+        }
     }
     (current_continue_call_cnt > 3, current_continue_call_cnt)
 }
