@@ -8,6 +8,7 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.2.6">v1.2.6</a><br/>
 <a href="#v1.2.5">v1.2.5</a><br/>
 <a href="#v1.2.4">v1.2.4</a><br/>
 <a href="#v1.2.3">v1.2.3</a><br/>
@@ -28,6 +29,14 @@
 </td>
 </tr>
 </table>
+
+
+<a id="v1.2.6"></a>
+## 2025-07-15, Version v1.2.6
+* [[`34f93b1`](https://github.com/movebit/movefmt/commit/34f93b10cdc25b02b2946ff50e805fbef69d3d3e)] - fix bug issue#76: wrong checking on chain call, leading to incorrect formatting (robinlzw)
+* [[`88249ce`](https://github.com/movebit/movefmt/commit/88249cefb8478b4edc8902c94cf0a078e5c2dd2e)] - add UT for judging link_call (robinlzw)
+* [[`97a0468`](https://github.com/movebit/movefmt/commit/97a04689461c85c3e19f1dfd7d5daac80c0796b5)] - remove useless log (robinlzw)
+* [[`f267af2`](https://github.com/movebit/movefmt/commit/f267af291be90a803ec5090c0eb8c4b378b34760)] - add bug move file (robinlzw)
 
 
 <a id="v1.2.5"></a>
