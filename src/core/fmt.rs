@@ -982,6 +982,19 @@ impl Format {
                 }
             }
             NestKind_::Lambda => {
+                new_line_mode |=
+                    (self.get_cur_line_len() + nested_len) as f32 > max_len_no_add_line;
+                let mut opt_component_break_mode = false;
+                let nested_and_comma_pair = expr_fmt::get_nested_and_comma_num(elements);
+                if self.global_cfg.prefer_one_line_for_short_lambda_para_list() {
+                    opt_component_break_mode |= (nested_and_comma_pair.0 >= 4
+                        || nested_and_comma_pair.1 > 2)
+                        && token.token_len() as f32 > max_len_no_add_line;
+                } else {
+                    opt_component_break_mode |= nested_and_comma_pair.1 > 1;
+                }
+
+                new_line_mode |= opt_component_break_mode;
                 if delimiter.is_none() && nested_len as f32 <= max_len_no_add_line {
                     new_line_mode = false;
                 }
