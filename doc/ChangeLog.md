@@ -8,6 +8,7 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.2.7">v1.2.7</a><br/>
 <a href="#v1.2.6">v1.2.6</a><br/>
 <a href="#v1.2.5">v1.2.5</a><br/>
 <a href="#v1.2.4">v1.2.4</a><br/>
@@ -29,6 +30,12 @@
 </td>
 </tr>
 </table>
+
+
+<a id="v1.2.7"></a>
+## 2025-07-25, Version v1.2.7
+* [[`344643e`](https://github.com/movebit/movefmt/commit/344643ed90713aa428c94db757f4d5c1a73f8c42)] - update aptos-core dependence (robinlzw)
+* [[`036722d`](https://github.com/movebit/movefmt/commit/036722d2734c48c2e813a2dcab1e79e0c568cdd0)] - add option  for solving issue#77 (robinlzw)
 
 
 <a id="v1.2.6"></a>
