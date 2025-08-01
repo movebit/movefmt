@@ -19,7 +19,6 @@ pub struct CallExtractor {
     pub call_loc_vec: Vec<Loc>,
     pub call_paren_loc_vec: Vec<Loc>,
     pub pack_in_call_loc_vec: Vec<Loc>,
-    pub receiver_style_call_exp_vec: Vec<Exp>,
     pub link_call_exp_vec: Vec<Exp>,
     pub source: String,
     pub line_mapping: FileLineMappingOneFile,
@@ -31,7 +30,6 @@ impl SingleSyntaxExtractor for CallExtractor {
             call_loc_vec: vec![],
             call_paren_loc_vec: vec![],
             pack_in_call_loc_vec: vec![],
-            receiver_style_call_exp_vec: vec![],
             link_call_exp_vec: vec![],
             source: fmt_buffer.clone(),
             line_mapping: FileLineMappingOneFile::default(),
@@ -121,9 +119,10 @@ impl SingleSyntaxExtractor for CallExtractor {
         match &e.value {
             Exp_::Call(name, _, _tys, es) => {
                 if name.loc.end() > es.loc.start() {
-                    // self.receiver_style_call_exp_vec.push(e.clone());
-                    if judge_link_call_exp(e).0 {
+                    if is_chained_call(e).0 {
                         self.link_call_exp_vec.push(e.clone());
+                    } else {
+                        es.value.iter().for_each(|e| self.collect_expr(e));
                     }
                 } else {
                     self.call_loc_vec.push(e.loc);
@@ -617,18 +616,18 @@ impl CallExtractor {
     }
 }
 
-fn judge_link_call_exp(exp: &Exp) -> (bool, u32) {
-    let mut current_continue_call_cnt = 0;
+fn is_chained_call(exp: &Exp) -> (bool, u32) {
+    let mut continue_call_cnt = 0;
     if let Exp_::Call(_, CallKind::Receiver, _, es) = &exp.value {
-        current_continue_call_cnt += 1;
+        continue_call_cnt += 1;
         for e in es.value.iter() {
             if let Exp_::Call(_, CallKind::Receiver, _, _) = &e.value {
-                current_continue_call_cnt += judge_link_call_exp(e).1;
+                continue_call_cnt += is_chained_call(e).1;
                 break;
             }
         }
     }
-    (current_continue_call_cnt > 3, current_continue_call_cnt)
+    (continue_call_cnt > 3, continue_call_cnt)
 }
 
 #[allow(dead_code)]
