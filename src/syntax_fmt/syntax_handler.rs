@@ -17,5 +17,5 @@ pub trait SingleSyntaxExtractor {
 }
 
 pub trait Preprocessor {
-    fn preprocess(&mut self, module_defs: Arc<Vec<Definition>>);
+    fn preprocess(&mut self, module_defs: &Arc<Vec<Definition>>);
 }

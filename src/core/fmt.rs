@@ -3,14 +3,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::core::token_tree::*;
-use crate::syntax_fmt::bin_op_fmt::BinOpExtractor;
-use crate::syntax_fmt::branch_fmt::BranchExtractor;
-use crate::syntax_fmt::call_fmt::CallExtractor;
-use crate::syntax_fmt::fun_fmt::FunExtractor;
-use crate::syntax_fmt::let_fmt::LetExtractor;
-use crate::syntax_fmt::quant_fmt::QuantExtractor;
-use crate::syntax_fmt::skip_fmt::{SkipExtractor, SkipType};
-use crate::syntax_fmt::syntax_extractor::{Preprocessor, SingleSyntaxExtractor};
+use crate::syntax_fmt::bin_op_fmt::BinOpHandler;
+use crate::syntax_fmt::branch_fmt::BranchHandler;
+use crate::syntax_fmt::call_fmt::CallHandler;
+use crate::syntax_fmt::fun_fmt::FunHandler;
+use crate::syntax_fmt::let_fmt::LetHandler;
+use crate::syntax_fmt::quant_fmt::QuantHandler;
+use crate::syntax_fmt::skip_fmt::{SkipHandler, SkipType};
+use crate::syntax_fmt::syntax_handler::{Preprocessor, SingleSyntaxExtractor};
 use crate::syntax_fmt::{big_block_fmt, expr_fmt, fun_fmt, spec_fmt};
 use crate::tools::utils::*;
 use commentfmt::comment::contains_comment;
@@ -48,28 +48,28 @@ impl FormatContext {
     }
 }
 
-pub struct SyntaxExtractor {
-    pub(crate) branch_extractor: BranchExtractor,
-    pub(crate) fun_extractor: FunExtractor,
-    pub(crate) call_extractor: CallExtractor,
-    pub(crate) let_extractor: LetExtractor,
-    pub(crate) bin_op_extractor: BinOpExtractor,
-    pub(crate) quant_extractor: QuantExtractor,
-    pub(crate) skip_extractor: SkipExtractor,
+pub struct SyntaxHandler {
+    pub(crate) branch_extractor: BranchHandler,
+    pub(crate) fun_extractor: FunHandler,
+    pub(crate) call_extractor: CallHandler,
+    pub(crate) let_extractor: LetHandler,
+    pub(crate) bin_op_extractor: BinOpHandler,
+    pub(crate) quant_extractor: QuantHandler,
+    pub(crate) skip_extractor: SkipHandler,
 }
 
 pub struct Format {
-    pub local_cfg: FormatConfig,
-    pub global_cfg: Config,
-    pub depth: Cell<usize>,
-    pub token_tree: Vec<TokenTree>,
-    pub comments: Vec<Comment>,
-    pub line_mapping: FileLineMappingOneFile,
-    pub comments_index: Cell<usize>,
-    pub ret: RefCell<String>,
-    pub cur_line: Cell<u32>,
-    pub format_context: RefCell<FormatContext>,
-    pub syntax_extractor: SyntaxExtractor,
+    pub(crate) local_cfg: FormatConfig,
+    pub(crate) global_cfg: Config,
+    pub(crate) depth: Cell<usize>,
+    pub(crate) token_tree: Vec<TokenTree>,
+    pub(crate) comments: Vec<Comment>,
+    pub(crate) line_mapping: FileLineMappingOneFile,
+    pub(crate) comments_index: Cell<usize>,
+    pub(crate) ret: RefCell<String>,
+    pub(crate) cur_line: Cell<u32>,
+    pub(crate) format_context: RefCell<FormatContext>,
+    pub(crate) syntax_handler: SyntaxHandler,
 }
 
 #[derive(Clone, Default)]
@@ -130,14 +130,14 @@ impl Format {
         let ce: CommentExtrator = CommentExtrator::new(content).unwrap();
         let mut line_mapping = FileLineMappingOneFile::default();
         line_mapping.update(content);
-        let syntax_extractor = SyntaxExtractor {
-            branch_extractor: BranchExtractor::new(content.to_string()),
-            fun_extractor: FunExtractor::new(content.to_string()),
-            call_extractor: CallExtractor::new(content.to_string()),
-            let_extractor: LetExtractor::new(content.to_string()),
-            bin_op_extractor: BinOpExtractor::new(content.to_string()),
-            quant_extractor: QuantExtractor::new(content.to_string()),
-            skip_extractor: SkipExtractor::new(content.to_string()),
+        let syntax_handler = SyntaxHandler {
+            branch_extractor: BranchHandler::new(content.to_string()),
+            fun_extractor: FunHandler::new(content.to_string()),
+            call_extractor: CallHandler::new(content.to_string()),
+            let_extractor: LetHandler::new(content.to_string()),
+            bin_op_extractor: BinOpHandler::new(content.to_string()),
+            quant_extractor: QuantHandler::new(content.to_string()),
+            skip_extractor: SkipHandler::new(content.to_string()),
         };
         Self {
             comments_index: Default::default(),
@@ -153,7 +153,7 @@ impl Format {
             ret: Default::default(),
             cur_line: Default::default(),
             format_context: format_context.into(),
-            syntax_extractor,
+            syntax_handler,
         }
     }
 
@@ -164,23 +164,14 @@ impl Format {
         self.token_tree = parse.parse_tokens();
 
         let defs = Arc::new(defs);
-        self.syntax_extractor
-            .branch_extractor
-            .preprocess(defs.clone());
-        self.syntax_extractor.fun_extractor.preprocess(defs.clone());
-        self.syntax_extractor
-            .call_extractor
-            .preprocess(defs.clone());
-        self.syntax_extractor.let_extractor.preprocess(defs.clone());
-        self.syntax_extractor
-            .bin_op_extractor
-            .preprocess(defs.clone());
-        self.syntax_extractor
-            .quant_extractor
-            .preprocess(defs.clone());
-        self.syntax_extractor
-            .skip_extractor
-            .preprocess(defs.clone());
+        let handler = &mut self.syntax_handler;
+        handler.branch_extractor.preprocess(&defs);
+        handler.fun_extractor.preprocess(&defs);
+        handler.call_extractor.preprocess(&defs);
+        handler.let_extractor.preprocess(&defs);
+        handler.bin_op_extractor.preprocess(&defs);
+        handler.quant_extractor.preprocess(&defs);
+        handler.skip_extractor.preprocess(&defs);
         Ok("parse ok".to_string())
     }
 
@@ -199,33 +190,13 @@ impl Format {
 
         pool.install(|| {
             rayon::scope(|s| {
-                s.spawn(|_| {
-                    self.syntax_extractor
-                        .branch_extractor
-                        .preprocess(defs.clone())
-                });
-                s.spawn(|_| self.syntax_extractor.fun_extractor.preprocess(defs.clone()));
-                s.spawn(|_| {
-                    self.syntax_extractor
-                        .call_extractor
-                        .preprocess(defs.clone())
-                });
-                s.spawn(|_| self.syntax_extractor.let_extractor.preprocess(defs.clone()));
-                s.spawn(|_| {
-                    self.syntax_extractor
-                        .bin_op_extractor
-                        .preprocess(defs.clone())
-                });
-                s.spawn(|_| {
-                    self.syntax_extractor
-                        .quant_extractor
-                        .preprocess(defs.clone())
-                });
-                s.spawn(|_| {
-                    self.syntax_extractor
-                        .skip_extractor
-                        .preprocess(defs.clone())
-                });
+                s.spawn(|_| self.syntax_handler.branch_extractor.preprocess(&defs));
+                s.spawn(|_| self.syntax_handler.fun_extractor.preprocess(&defs));
+                s.spawn(|_| self.syntax_handler.call_extractor.preprocess(&defs));
+                s.spawn(|_| self.syntax_handler.let_extractor.preprocess(&defs));
+                s.spawn(|_| self.syntax_handler.bin_op_extractor.preprocess(&defs));
+                s.spawn(|_| self.syntax_handler.quant_extractor.preprocess(&defs));
+                s.spawn(|_| self.syntax_handler.skip_extractor.preprocess(&defs));
             });
         });
 
@@ -256,7 +227,7 @@ impl Format {
                 fmt_operator();
                 continue;
             };
-            let skip_extractor = self.syntax_extractor.skip_extractor.clone();
+            let skip_extractor = self.syntax_handler.skip_extractor.clone();
             let is_mod_blk = skip_extractor.is_module_block(&nkind);
             let is_addr_blk = note.map_or(false, |x| x == Note::ModuleAddress);
             if is_mod_blk {
@@ -390,7 +361,7 @@ impl Format {
             if self.translate_line(next_token_start_pos)
                 <= self.translate_line(current.end_pos()) + 1
                 && self
-                    .syntax_extractor
+                    .syntax_handler
                     .let_extractor
                     .is_long_bin_op(current.clone())
             {
@@ -399,7 +370,7 @@ impl Format {
         }
 
         let judge_equal_tok_is_long_op_fn = || {
-            self.syntax_extractor.let_extractor.is_long_assign(
+            self.syntax_handler.let_extractor.is_long_assign(
                 current.clone(),
                 next.clone(),
                 self.global_cfg.clone(),
@@ -411,17 +382,13 @@ impl Format {
         if cur_token_str == "="
             && next.unwrap().simple_str().unwrap_or_default() != "vector"
             && next_tok != Tok::LBrace
-            && self
-                .syntax_extractor
-                .call_extractor
-                .component_is_complex_blk(
-                    self.global_cfg.clone(),
-                    kind,
-                    elements,
-                    index as i64,
-                    self.get_cur_line_len(),
-                )
-                != 2
+            && self.syntax_handler.call_extractor.component_is_complex_blk(
+                self.global_cfg.clone(),
+                kind,
+                elements,
+                index as i64,
+                self.get_cur_line_len(),
+            ) != 2
         {
             tracing::debug!("\n\n----------\n");
             return judge_equal_tok_is_long_op_fn();
@@ -438,7 +405,7 @@ impl Format {
     ) -> bool {
         if matches!(next_token, Tok::AmpAmp | Tok::PipePipe)
             && self
-                .syntax_extractor
+                .syntax_handler
                 .let_extractor
                 .is_long_bin_op(next_t.unwrap().clone())
         {
@@ -481,7 +448,7 @@ impl Format {
 
         if is_bin_op(next_token) {
             let r_exp_len_tuple = self
-                .syntax_extractor
+                .syntax_handler
                 .bin_op_extractor
                 .get_bin_op_right_part_len(next_t.unwrap().clone());
             if r_exp_len_tuple.0 == 0 && r_exp_len_tuple.1 < 8 {
@@ -497,7 +464,7 @@ impl Format {
                 + next_t.unwrap().simple_str().unwrap_or_default().len()
                 + r_exp_len_tuple.1;
             if len_bin_op_full >= self.global_cfg.max_width() {
-                self.syntax_extractor
+                self.syntax_handler
                     .bin_op_extractor
                     .record_long_op(r_exp_len_tuple.0);
                 return true;
@@ -513,7 +480,7 @@ impl Format {
     ) -> bool {
         if current.get_end_tok() == Tok::Colon {
             let (quant_exp_idx, quant_body_len) = self
-                .syntax_extractor
+                .syntax_handler
                 .quant_extractor
                 .get_quant_body_len(next_t.unwrap().clone());
             if quant_body_len < 8 {
@@ -525,7 +492,7 @@ impl Format {
                 return false;
             }
             if len_plus_cur_token + quant_body_len > self.global_cfg.max_width() {
-                self.syntax_extractor
+                self.syntax_handler
                     .quant_extractor
                     .record_long_quant_exp(quant_exp_idx);
                 return true;
@@ -738,7 +705,7 @@ impl Format {
         let elements_str = serde_json::to_string(&elements).unwrap_or_default();
         let has_multi_para = elements_str.matches("\"content\":\",\"").count() > 2;
         if self
-            .syntax_extractor
+            .syntax_handler
             .call_extractor
             .get_call_component_split_mode(
                 self.global_cfg.clone(),
@@ -754,7 +721,7 @@ impl Format {
                 .repeat((self.depth.get() + 1) * self.local_cfg.indent_size)
                 .len();
             if self
-                .syntax_extractor
+                .syntax_handler
                 .call_extractor
                 .get_call_component_split_mode(
                     self.global_cfg.clone(),
@@ -795,7 +762,7 @@ impl Format {
             >= self.global_cfg.max_width();
 
         let maybe_in_fun_header = self
-            .syntax_extractor
+            .syntax_handler
             .fun_extractor
             .is_parameter_paren_in_fun_header(kind);
         if matches!(self.get_pre_simple_tok(), Tok::If | Tok::While) {
@@ -824,7 +791,7 @@ impl Format {
         } else {
             let elements_str = serde_json::to_string(&elements).unwrap_or_default();
             let has_multi_para = elements_str.matches("\"content\":\",\"").count() > 2;
-            let is_in_fun_call = self.syntax_extractor.call_extractor.paren_in_call(kind);
+            let is_in_fun_call = self.syntax_handler.call_extractor.paren_in_call(kind);
             if is_in_fun_call {
                 new_line_mode |= self.get_break_mode_of_fun_call(
                     token,
@@ -879,14 +846,14 @@ impl Format {
 
     fn get_break_mode_begin_branch_blk(&self, kind: &NestKind) -> bool {
         if self
-            .syntax_extractor
+            .syntax_handler
             .branch_extractor
             .com_if_else
             .then_loc_vec
             .iter()
             .any(|&x| x.start() == kind.start_pos)
             || self
-                .syntax_extractor
+                .syntax_handler
                 .branch_extractor
                 .com_if_else
                 .else_loc_vec
@@ -949,7 +916,7 @@ impl Format {
             NestKind_::Type => {
                 // added in 20240112: if type in fun header, not change new line
                 if self
-                    .syntax_extractor
+                    .syntax_handler
                     .fun_extractor
                     .is_generic_ty_in_fun_header(kind)
                 {
@@ -1198,7 +1165,7 @@ impl Format {
         let mut internal_token_idx = 0;
 
         let is_call = kind.kind == NestKind_::ParentTheses
-            && self.syntax_extractor.call_extractor.paren_in_call(kind);
+            && self.syntax_handler.call_extractor.paren_in_call(kind);
         let mut need_get_break_mode_on_component = component_break_mode;
         if elements.len() > 32 && kind.kind == NestKind_::Bracket && !component_break_mode {
             need_get_break_mode_on_component = false;
@@ -1220,7 +1187,7 @@ impl Format {
             if is_call {
                 new_line |= component_break_mode
                     && self
-                        .syntax_extractor
+                        .syntax_handler
                         .call_extractor
                         .should_call_component_split(
                             self.global_cfg.clone(),
@@ -1250,7 +1217,7 @@ impl Format {
                     in_link_access.0 > 3 && last_dot_idx > internal_token_idx;
                 if !need_process_link {
                     let in_link_call = self
-                        .syntax_extractor
+                        .syntax_handler
                         .call_extractor
                         .is_in_link_call(elements, internal_token_idx + 1);
                     last_dot_idx = in_link_call.1;
@@ -1340,7 +1307,7 @@ impl Format {
             _ => SkipType::SkipNone,
         };
         if self
-            .syntax_extractor
+            .syntax_handler
             .skip_extractor
             .should_skip_block_body(kind, block_body_ty)
         {
@@ -1468,7 +1435,7 @@ impl Format {
         if Tok::LBrace != *tok
             && content != "for"
             && self
-                .syntax_extractor
+                .syntax_handler
                 .branch_extractor
                 .need_new_line_after_branch(
                     self.last_line(),
@@ -1512,7 +1479,7 @@ impl Format {
                 }
 
                 // case3
-                if self.syntax_extractor.branch_extractor.else_branch_too_long(
+                if self.syntax_handler.branch_extractor.else_branch_too_long(
                     self.last_line(),
                     next_token.unwrap().start_pos() as ByteIndex,
                     self.global_cfg.clone(),
@@ -1522,7 +1489,7 @@ impl Format {
 
                 // case4 -- process `else if`
                 let is_in_nested_else_branch = self
-                    .syntax_extractor
+                    .syntax_handler
                     .branch_extractor
                     .is_nested_within_an_outer_else(*pos);
                 if next_token.unwrap().simple_str().unwrap_or_default() == "if"
@@ -1546,7 +1513,7 @@ impl Format {
             if self.format_context.borrow().cur_nested_kind.kind != NestKind_::Bracket {
                 let tok_end_pos = *pos + content.len() as u32;
                 let mut nested_branch_depth = self
-                    .syntax_extractor
+                    .syntax_handler
                     .branch_extractor
                     .added_new_line_after_branch(tok_end_pos);
 
@@ -1726,7 +1693,7 @@ impl Format {
             return;
         }
         if self
-            .syntax_extractor
+            .syntax_handler
             .bin_op_extractor
             .need_inc_depth_by_long_op(next_token.unwrap().clone())
         {
@@ -1739,7 +1706,7 @@ impl Format {
         }
 
         if self
-            .syntax_extractor
+            .syntax_handler
             .let_extractor
             .need_inc_depth_by_long_op(next_token.unwrap().clone())
         {
@@ -1760,11 +1727,11 @@ impl Format {
         let is_next_tok_bin_op = is_bin_op(next_token.unwrap().get_start_tok());
         if (is_cur_tok_bin_op
             && self
-                .syntax_extractor
+                .syntax_handler
                 .bin_op_extractor
                 .need_inc_depth_by_long_op(token.clone()))
             || self
-                .syntax_extractor
+                .syntax_handler
                 .bin_op_extractor
                 .need_inc_depth_by_long_op(next_token.unwrap().clone())
         {
@@ -1777,12 +1744,12 @@ impl Format {
         }
 
         if self
-            .syntax_extractor
+            .syntax_handler
             .let_extractor
             .need_inc_depth_by_long_op(token.clone())
             || (is_next_tok_bin_op
                 && self
-                    .syntax_extractor
+                    .syntax_handler
                     .let_extractor
                     .need_inc_depth_by_long_op(next_token.unwrap().clone()))
         {
@@ -1791,7 +1758,7 @@ impl Format {
         }
 
         if self
-            .syntax_extractor
+            .syntax_handler
             .quant_extractor
             .need_inc_depth_by_long_quant_exp(next_token.unwrap().clone())
         {
@@ -1801,7 +1768,7 @@ impl Format {
 
     fn need_dec_depth_when_cur_is_simple(&self, token: &TokenTree) {
         if self
-            .syntax_extractor
+            .syntax_handler
             .bin_op_extractor
             .need_dec_depth_by_long_op(token.clone())
             > 0
@@ -1809,22 +1776,22 @@ impl Format {
             tracing::debug!(
                 "bin_op_extractor.need_dec_depth_by_long_op({:?}), dec = {}",
                 token.simple_str(),
-                self.syntax_extractor
+                self.syntax_handler
                     .bin_op_extractor
                     .need_dec_depth_by_long_op(token.clone())
             );
         }
 
         let mut nested_break_line_depth = self
-            .syntax_extractor
+            .syntax_handler
             .bin_op_extractor
             .need_dec_depth_by_long_op(token.clone())
             + self
-                .syntax_extractor
+                .syntax_handler
                 .let_extractor
                 .need_dec_depth_by_long_op(token.clone())
             + self
-                .syntax_extractor
+                .syntax_handler
                 .quant_extractor
                 .need_dec_depth_by_long_quant_exp(token.clone());
 

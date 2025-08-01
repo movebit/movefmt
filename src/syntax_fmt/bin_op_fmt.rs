@@ -2,7 +2,7 @@
 // Copyright (c) The BitsLab.MoveBit Contributors
 // SPDX-License-Identifier: Apache-2.0
 
-use super::syntax_extractor::{Preprocessor, SingleSyntaxExtractor};
+use super::syntax_handler::{Preprocessor, SingleSyntaxExtractor};
 use crate::core::token_tree::TokenTree;
 use crate::tools::utils::*;
 use move_compiler::parser::ast::*;
@@ -12,14 +12,14 @@ use std::sync::Arc;
 use std::vec;
 
 #[derive(Debug, Default)]
-pub struct BinOpExtractor {
+pub struct BinOpHandler {
     pub bin_op_exp_vec: Vec<Exp>,
     pub split_bin_op_vec: RefCell<Vec<usize>>,
     pub source: String,
     pub line_mapping: FileLineMappingOneFile,
 }
 
-impl SingleSyntaxExtractor for BinOpExtractor {
+impl SingleSyntaxExtractor for BinOpHandler {
     fn new(fmt_buffer: String) -> Self {
         let mut this_bin_op_extractor = Self {
             bin_op_exp_vec: vec![],
@@ -248,15 +248,15 @@ impl SingleSyntaxExtractor for BinOpExtractor {
     }
 }
 
-impl Preprocessor for BinOpExtractor {
-    fn preprocess(&mut self, module_defs: Arc<Vec<Definition>>) {
+impl Preprocessor for BinOpHandler {
+    fn preprocess(&mut self, module_defs: &Arc<Vec<Definition>>) {
         for d in module_defs.iter() {
             self.collect_definition(d);
         }
     }
 }
 
-impl BinOpExtractor {
+impl BinOpHandler {
     pub(crate) fn get_bin_op_right_part_len(&self, token: TokenTree) -> (usize, usize) {
         for (idx, bin_op_exp) in self.bin_op_exp_vec.iter().enumerate() {
             if let Exp_::BinopExp(_, m, r) = &bin_op_exp.value {
@@ -313,10 +313,10 @@ impl BinOpExtractor {
 fn get_bin_op_exp(fmt_buffer: String) {
     use move_command_line_common::files::FileHash;
     use move_compiler::parser::syntax::parse_file_string;
-    let mut bin_op_extractor = BinOpExtractor::new(fmt_buffer.clone());
+    let mut bin_op_extractor = BinOpHandler::new(fmt_buffer.clone());
     let (defs, _) =
         parse_file_string(&mut get_compile_env(), FileHash::empty(), &fmt_buffer).unwrap();
-    bin_op_extractor.preprocess(Arc::new(defs));
+    bin_op_extractor.preprocess(&Arc::new(defs));
     for bin_op_exp in bin_op_extractor.bin_op_exp_vec.iter() {
         let bin_op_exp_str = &bin_op_extractor.source
             [bin_op_exp.loc.start() as usize..bin_op_exp.loc.end() as usize];

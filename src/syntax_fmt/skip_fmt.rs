@@ -8,10 +8,10 @@ use move_compiler::shared::ast_debug;
 use move_ir_types::location::*;
 use std::{cell::RefCell, sync::Arc};
 
-use super::syntax_extractor::{Preprocessor, SingleSyntaxExtractor};
+use super::syntax_handler::{Preprocessor, SingleSyntaxExtractor};
 
 #[derive(Clone, Debug, Default)]
-pub struct SkipExtractor {
+pub struct SkipHandler {
     pub module_attributes: Vec<Vec<Attributes>>,
     pub struct_attributes: Vec<Vec<Attributes>>,
     pub fun_attributes: Vec<Vec<Attributes>>,
@@ -30,7 +30,7 @@ pub enum SkipType {
     SkipNone,
 }
 
-impl SingleSyntaxExtractor for SkipExtractor {
+impl SingleSyntaxExtractor for SkipHandler {
     fn new(fmt_buffer: String) -> Self {
         let this_skip_extractor = Self {
             module_attributes: vec![],
@@ -95,15 +95,15 @@ impl SingleSyntaxExtractor for SkipExtractor {
     }
 }
 
-impl Preprocessor for SkipExtractor {
-    fn preprocess(&mut self, module_defs: Arc<Vec<Definition>>) {
+impl Preprocessor for SkipHandler {
+    fn preprocess(&mut self, module_defs: &Arc<Vec<Definition>>) {
         for d in module_defs.iter() {
             self.collect_definition(d);
         }
     }
 }
 
-impl SkipExtractor {
+impl SkipHandler {
     pub(crate) fn should_skip_block_body(&self, kind: &NestKind, skip_type: SkipType) -> bool {
         if SkipType::SkipNone == skip_type {
             return false;
@@ -178,7 +178,7 @@ impl SkipExtractor {
 fn get_fun_attributes(fmt_buffer: String) {
     // let buf = fmt_buffer.clone();
     // let mut result = fmt_buffer.clone();
-    let skip_extractor = SkipExtractor::new(fmt_buffer.clone());
+    let skip_extractor = SkipHandler::new(fmt_buffer.clone());
     for attributes in skip_extractor.fun_attributes {
         for attribute in attributes {
             // ast_debug::print(&attribute.value);

@@ -2,7 +2,7 @@
 // Copyright (c) The BitsLab.MoveBit Contributors
 // SPDX-License-Identifier: Apache-2.0
 
-use super::syntax_extractor::SingleSyntaxExtractor;
+use super::syntax_handler::SingleSyntaxExtractor;
 use crate::tools::utils::*;
 use commentfmt::comment::contains_comment;
 use commentfmt::Config;

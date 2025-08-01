@@ -12,10 +12,10 @@ use move_compiler::parser::ast::*;
 use move_compiler::parser::lexer::Tok;
 use move_ir_types::location::*;
 
-use super::syntax_extractor::{Preprocessor, SingleSyntaxExtractor};
+use super::syntax_handler::{Preprocessor, SingleSyntaxExtractor};
 
 #[derive(Debug, Default)]
-pub struct CallExtractor {
+pub struct CallHandler {
     pub call_loc_vec: Vec<Loc>,
     pub call_paren_loc_vec: Vec<Loc>,
     pub pack_in_call_loc_vec: Vec<Loc>,
@@ -24,7 +24,7 @@ pub struct CallExtractor {
     pub line_mapping: FileLineMappingOneFile,
 }
 
-impl SingleSyntaxExtractor for CallExtractor {
+impl SingleSyntaxExtractor for CallHandler {
     fn new(fmt_buffer: String) -> Self {
         let mut this_call_extractor = Self {
             call_loc_vec: vec![],
@@ -268,15 +268,15 @@ impl SingleSyntaxExtractor for CallExtractor {
     }
 }
 
-impl Preprocessor for CallExtractor {
-    fn preprocess(&mut self, module_defs: Arc<Vec<Definition>>) {
+impl Preprocessor for CallHandler {
+    fn preprocess(&mut self, module_defs: &Arc<Vec<Definition>>) {
         for d in module_defs.iter() {
             self.collect_definition(d);
         }
     }
 }
 
-impl CallExtractor {
+impl CallHandler {
     // fn_call(comp1, comp2, nested_call_maybe_too_long(...), comp4);
     // >>
     // fn_call(comp1, comp2,
@@ -551,7 +551,7 @@ pub(crate) fn parse_nested_token_nums(
     }
 }
 
-impl CallExtractor {
+impl CallHandler {
     pub(crate) fn get_call_component_split_mode(
         &self,
         config: Config,
@@ -632,7 +632,7 @@ fn is_chained_call(exp: &Exp) -> (bool, u32) {
 
 #[allow(dead_code)]
 fn get_call(fmt_buffer: String) {
-    let call_extractor = CallExtractor::new(fmt_buffer.clone());
+    let call_extractor = CallHandler::new(fmt_buffer.clone());
     for call_loc in call_extractor.call_paren_loc_vec.iter() {
         eprintln!(
             "call_exp = \n{}\n\n",
@@ -646,14 +646,14 @@ fn judge_fn_link_call(fmt_buffer: String) {
     use crate::tools::utils::*;
     use move_command_line_common::files::FileHash;
     use move_compiler::parser::{ast::*, syntax::parse_file_string};
-    let mut call_extractor = CallExtractor::new(fmt_buffer.clone());
+    let mut call_extractor = CallHandler::new(fmt_buffer.clone());
     let (defs, _) = parse_file_string(
         &mut get_compile_env(),
         FileHash::empty(),
         &fmt_buffer.clone(),
     )
     .unwrap();
-    call_extractor.preprocess(defs.into());
+    call_extractor.preprocess(&Arc::new(defs));
     for call_exp in call_extractor.link_call_exp_vec.iter() {
         eprintln!(
             "call_exp = \n{:?}\n\n",
