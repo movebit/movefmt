@@ -46,10 +46,12 @@ fn scan_dir(dir: &str) -> usize {
 #[test]
 fn test_single_file() {
     eprintln!("================== test_single_file ===================");
-    std::env::set_var("MOVEFMT_LOG", "movefmt=DEBUG");
-    tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_env("MOVEFMT_LOG"))
-        .init();
+    if std::env::var("MOVEFMT_LOG").is_err() {
+        std::env::set_var("MOVEFMT_LOG", "movefmt=ERROR");
+        tracing_subscriber::fmt()
+            .with_env_filter(EnvFilter::from_env("MOVEFMT_LOG"))
+            .init();
+    }
 
     test_on_file(Path::new("./tests/issues/issue57/input1.move"));
 }
