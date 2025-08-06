@@ -8,7 +8,7 @@ use move_compiler::parser::ast::*;
 use move_compiler::parser::syntax::parse_file_string;
 use move_ir_types::location::*;
 
-use super::syntax_handler::SingleSyntaxExtractor;
+use super::syntax_trait::SingleSyntaxExtractor;
 
 #[derive(Debug, Default)]
 pub struct BigBlockExtractor {

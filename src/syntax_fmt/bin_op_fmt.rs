@@ -2,7 +2,7 @@
 // Copyright (c) The BitsLab.MoveBit Contributors
 // SPDX-License-Identifier: Apache-2.0
 
-use super::syntax_handler::{Preprocessor, SingleSyntaxExtractor};
+use super::syntax_trait::{Preprocessor, SingleSyntaxExtractor};
 use crate::core::token_tree::TokenTree;
 use crate::tools::utils::*;
 use move_compiler::parser::ast::*;
@@ -11,7 +11,7 @@ use std::cell::RefCell;
 use std::sync::Arc;
 use std::vec;
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct BinOpHandler {
     pub bin_op_exp_vec: Vec<Exp>,
     pub split_bin_op_vec: RefCell<Vec<usize>>,
@@ -253,6 +253,14 @@ impl Preprocessor for BinOpHandler {
         for d in module_defs.iter() {
             self.collect_definition(d);
         }
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
     }
 }
 

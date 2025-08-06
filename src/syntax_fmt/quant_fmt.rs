@@ -9,9 +9,9 @@ use move_compiler::parser::ast::*;
 use move_compiler::shared::ast_debug;
 use std::{cell::RefCell, sync::Arc};
 
-use super::syntax_handler::{Preprocessor, SingleSyntaxExtractor};
+use super::syntax_trait::{Preprocessor, SingleSyntaxExtractor};
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct QuantHandler {
     pub quant_exp_vec: Vec<Exp>,
     pub split_quant_vec: RefCell<Vec<usize>>,
@@ -245,6 +245,14 @@ impl Preprocessor for QuantHandler {
         for d in module_defs.iter() {
             self.collect_definition(d);
         }
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
     }
 }
 

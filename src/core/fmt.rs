@@ -10,7 +10,8 @@ use crate::syntax_fmt::fun_fmt::FunHandler;
 use crate::syntax_fmt::let_fmt::LetHandler;
 use crate::syntax_fmt::quant_fmt::QuantHandler;
 use crate::syntax_fmt::skip_fmt::{SkipHandler, SkipType};
-use crate::syntax_fmt::syntax_handler::{Preprocessor, SingleSyntaxExtractor};
+use crate::syntax_fmt::syntax_handler::SyntaxHandlerV2;
+use crate::syntax_fmt::syntax_trait::{Preprocessor, SingleSyntaxExtractor};
 use crate::syntax_fmt::{big_block_fmt, expr_fmt, fun_fmt, spec_fmt};
 use crate::tools::utils::*;
 use commentfmt::comment::contains_comment;
@@ -70,6 +71,7 @@ pub struct Format {
     pub(crate) cur_line: Cell<u32>,
     pub(crate) format_context: RefCell<FormatContext>,
     pub(crate) syntax_handler: SyntaxHandler,
+    pub(crate) syntax_handler2: SyntaxHandlerV2,
 }
 
 #[derive(Clone, Default)]
@@ -139,6 +141,7 @@ impl Format {
             quant_handler: QuantHandler::new(content.to_string()),
             skip_handler: SkipHandler::new(content.to_string()),
         };
+        let syntax_handler2 = SyntaxHandlerV2::new(content);
         Self {
             comments_index: Default::default(),
             local_cfg: FormatConfig {
@@ -154,6 +157,7 @@ impl Format {
             cur_line: Default::default(),
             format_context: format_context.into(),
             syntax_handler,
+            syntax_handler2,
         }
     }
 
@@ -164,14 +168,24 @@ impl Format {
         self.token_tree = parse.parse_tokens();
 
         let defs = Arc::new(defs);
-        let handler = &mut self.syntax_handler;
-        handler.branch_handler.preprocess(&defs);
-        handler.fun_handler.preprocess(&defs);
-        handler.call_handler.preprocess(&defs);
-        handler.let_handler.preprocess(&defs);
-        handler.bin_op_handler.preprocess(&defs);
-        handler.quant_handler.preprocess(&defs);
-        handler.skip_handler.preprocess(&defs);
+        self.syntax_handler2.preprocess(&defs);
+
+        self.syntax_handler.branch_handler = self
+            .syntax_handler2
+            .handler_immut::<BranchHandler>()
+            .clone();
+        self.syntax_handler.fun_handler =
+            self.syntax_handler2.handler_immut::<FunHandler>().clone();
+        self.syntax_handler.call_handler =
+            self.syntax_handler2.handler_immut::<CallHandler>().clone();
+        self.syntax_handler.let_handler =
+            self.syntax_handler2.handler_immut::<LetHandler>().clone();
+        self.syntax_handler.bin_op_handler =
+            self.syntax_handler2.handler_immut::<BinOpHandler>().clone();
+        self.syntax_handler.quant_handler =
+            self.syntax_handler2.handler_immut::<QuantHandler>().clone();
+        self.syntax_handler.skip_handler =
+            self.syntax_handler2.handler_immut::<SkipHandler>().clone();
         Ok("parse ok".to_string())
     }
 

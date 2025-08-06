@@ -12,9 +12,9 @@ use move_compiler::parser::ast::*;
 use move_compiler::parser::lexer::Tok;
 use move_ir_types::location::*;
 
-use super::syntax_handler::{Preprocessor, SingleSyntaxExtractor};
+use super::syntax_trait::{Preprocessor, SingleSyntaxExtractor};
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct CallHandler {
     pub call_loc_vec: Vec<Loc>,
     pub call_paren_loc_vec: Vec<Loc>,
@@ -273,6 +273,14 @@ impl Preprocessor for CallHandler {
         for d in module_defs.iter() {
             self.collect_definition(d);
         }
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
     }
 }
 

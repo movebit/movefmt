@@ -11,9 +11,9 @@ use move_ir_types::location::*;
 use std::collections::HashMap;
 use std::{cell::RefCell, sync::Arc};
 
-use super::syntax_handler::{Preprocessor, SingleSyntaxExtractor};
+use super::syntax_trait::{Preprocessor, SingleSyntaxExtractor};
 
-#[derive(Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct LetIfElseBlock {
     pub let_if_else_block_loc_vec: Vec<Loc>,
     pub then_in_let_loc_vec: Vec<Loc>,
@@ -25,7 +25,7 @@ pub struct LetIfElseBlock {
     pub else_in_let: Vec<lsp_types::Range>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct ComIfElseBlock {
     pub if_else_blk_loc_vec: Vec<Loc>,
     pub then_loc_vec: Vec<Loc>,
@@ -33,7 +33,7 @@ pub struct ComIfElseBlock {
     pub else_with_if_vec: Vec<bool>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct BranchHandler {
     pub let_if_else: LetIfElseBlock,
     pub com_if_else: ComIfElseBlock,
@@ -302,6 +302,14 @@ impl Preprocessor for BranchHandler {
         for d in module_defs.iter() {
             self.collect_definition(d);
         }
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
     }
 }
 

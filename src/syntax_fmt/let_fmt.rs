@@ -12,9 +12,9 @@ use move_ir_types::location::*;
 use std::collections::HashMap;
 use std::{cell::RefCell, sync::Arc};
 
-use super::syntax_handler::{Preprocessor, SingleSyntaxExtractor};
+use super::syntax_trait::{Preprocessor, SingleSyntaxExtractor};
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct LetHandler {
     pub bin_op_exp_vec: Vec<Exp>,
     pub long_bin_op_exp_vec: Vec<Exp>,
@@ -344,6 +344,14 @@ impl Preprocessor for LetHandler {
             self.collect_definition(d);
         }
         self.collect_long_op_exp();
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
     }
 }
 
