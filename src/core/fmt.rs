@@ -10,8 +10,7 @@ use crate::syntax_fmt::fun_fmt::FunHandler;
 use crate::syntax_fmt::let_fmt::LetHandler;
 use crate::syntax_fmt::quant_fmt::QuantHandler;
 use crate::syntax_fmt::skip_fmt::{SkipHandler, SkipType};
-use crate::syntax_fmt::syntax_handler::SyntaxHandlerV2;
-use crate::syntax_fmt::syntax_trait::{Preprocessor, SingleSyntaxExtractor};
+use crate::syntax_fmt::syntax_handler::SyntaxHandler;
 use crate::syntax_fmt::{big_block_fmt, expr_fmt, fun_fmt, spec_fmt};
 use crate::tools::utils::*;
 use commentfmt::comment::contains_comment;
@@ -49,16 +48,6 @@ impl FormatContext {
     }
 }
 
-pub struct SyntaxHandler {
-    pub(crate) branch_handler: BranchHandler,
-    pub(crate) fun_handler: FunHandler,
-    pub(crate) call_handler: CallHandler,
-    pub(crate) let_handler: LetHandler,
-    pub(crate) bin_op_handler: BinOpHandler,
-    pub(crate) quant_handler: QuantHandler,
-    pub(crate) skip_handler: SkipHandler,
-}
-
 pub struct Format {
     pub(crate) local_cfg: FormatConfig,
     pub(crate) global_cfg: Config,
@@ -71,7 +60,6 @@ pub struct Format {
     pub(crate) cur_line: Cell<u32>,
     pub(crate) format_context: RefCell<FormatContext>,
     pub(crate) syntax_handler: SyntaxHandler,
-    pub(crate) syntax_handler2: SyntaxHandlerV2,
 }
 
 #[derive(Clone, Default)]
@@ -132,16 +120,6 @@ impl Format {
         let ce: CommentExtrator = CommentExtrator::new(content).unwrap();
         let mut line_mapping = FileLineMappingOneFile::default();
         line_mapping.update(content);
-        let syntax_handler = SyntaxHandler {
-            branch_handler: BranchHandler::new(content.to_string()),
-            fun_handler: FunHandler::new(content.to_string()),
-            call_handler: CallHandler::new(content.to_string()),
-            let_handler: LetHandler::new(content.to_string()),
-            bin_op_handler: BinOpHandler::new(content.to_string()),
-            quant_handler: QuantHandler::new(content.to_string()),
-            skip_handler: SkipHandler::new(content.to_string()),
-        };
-        let syntax_handler2 = SyntaxHandlerV2::new(content);
         Self {
             comments_index: Default::default(),
             local_cfg: FormatConfig {
@@ -156,8 +134,7 @@ impl Format {
             ret: Default::default(),
             cur_line: Default::default(),
             format_context: format_context.into(),
-            syntax_handler,
-            syntax_handler2,
+            syntax_handler: SyntaxHandler::new(content),
         }
     }
 
@@ -168,53 +145,7 @@ impl Format {
         self.token_tree = parse.parse_tokens();
 
         let defs = Arc::new(defs);
-        self.syntax_handler2.preprocess(&defs);
-
-        self.syntax_handler.branch_handler = self
-            .syntax_handler2
-            .handler_immut::<BranchHandler>()
-            .clone();
-        self.syntax_handler.fun_handler =
-            self.syntax_handler2.handler_immut::<FunHandler>().clone();
-        self.syntax_handler.call_handler =
-            self.syntax_handler2.handler_immut::<CallHandler>().clone();
-        self.syntax_handler.let_handler =
-            self.syntax_handler2.handler_immut::<LetHandler>().clone();
-        self.syntax_handler.bin_op_handler =
-            self.syntax_handler2.handler_immut::<BinOpHandler>().clone();
-        self.syntax_handler.quant_handler =
-            self.syntax_handler2.handler_immut::<QuantHandler>().clone();
-        self.syntax_handler.skip_handler =
-            self.syntax_handler2.handler_immut::<SkipHandler>().clone();
-        Ok("parse ok".to_string())
-    }
-
-    #[allow(dead_code)]
-    fn generate_token_tree_par(&mut self, content: &str) -> Result<String, Diagnostics> {
-        let (defs, _) = parse_file_string(&mut get_compile_env(), FileHash::empty(), content)?;
-        let lexer = Lexer::new(content, FileHash::empty());
-        let parse = crate::core::token_tree::Parser::new(lexer, &defs, content.to_string());
-        self.token_tree = parse.parse_tokens();
-
-        let defs = Arc::new(defs);
-        let pool = rayon::ThreadPoolBuilder::new()
-            .num_threads(7)
-            .build()
-            .unwrap();
-
-        let handler = &mut self.syntax_handler;
-        pool.install(|| {
-            rayon::scope(|s| {
-                s.spawn(|_| handler.branch_handler.preprocess(&defs));
-                s.spawn(|_| handler.fun_handler.preprocess(&defs));
-                s.spawn(|_| handler.call_handler.preprocess(&defs));
-                s.spawn(|_| handler.let_handler.preprocess(&defs));
-                s.spawn(|_| handler.bin_op_handler.preprocess(&defs));
-                s.spawn(|_| handler.quant_handler.preprocess(&defs));
-                s.spawn(|_| handler.skip_handler.preprocess(&defs));
-            });
-        });
-
+        self.syntax_handler.preprocess(&defs);
         Ok("parse ok".to_string())
     }
 
@@ -242,7 +173,7 @@ impl Format {
                 fmt_operator();
                 continue;
             };
-            let skip_handler = self.syntax_handler.skip_handler.clone();
+            let skip_handler = self.syntax_handler.handler_immut::<SkipHandler>();
             let is_mod_blk = skip_handler.is_module_block(&nkind);
             let is_addr_blk = note.map_or(false, |x| x == Note::ModuleAddress);
             if is_mod_blk {
@@ -370,20 +301,21 @@ impl Format {
         kind: &NestKind,
         elements: &[TokenTree],
     ) -> bool {
-        let handler = &self.syntax_handler;
+        let let_handler = self.syntax_handler.handler_immut::<LetHandler>();
+        let call_handler = self.syntax_handler.handler_immut::<CallHandler>();
         let cur_token_str = current.simple_str().unwrap_or_default();
         if matches!(cur_token_str, "==>" | "<==>") {
             let next_token_start_pos = next.unwrap().start_pos();
             if self.translate_line(next_token_start_pos)
                 <= self.translate_line(current.end_pos()) + 1
-                && handler.let_handler.is_long_bin_op(current.clone())
+                && let_handler.is_long_bin_op(current.clone())
             {
                 return true;
             }
         }
 
         let judge_equal_tok_is_long_op_fn = || {
-            handler.let_handler.is_long_assign(
+            let_handler.is_long_assign(
                 current.clone(),
                 next.clone(),
                 self.global_cfg.clone(),
@@ -395,7 +327,7 @@ impl Format {
         if cur_token_str == "="
             && next.unwrap().simple_str().unwrap_or_default() != "vector"
             && next_tok != Tok::LBrace
-            && handler.call_handler.component_is_complex_blk(
+            && call_handler.component_is_complex_blk(
                 self.global_cfg.clone(),
                 kind,
                 elements,
@@ -416,9 +348,10 @@ impl Format {
         next_t: Option<&TokenTree>,
         next_token: Tok,
     ) -> bool {
-        let handler = &self.syntax_handler;
+        let let_handler = self.syntax_handler.handler_immut::<LetHandler>();
+        let bin_op_handler = self.syntax_handler.handler_immut::<BinOpHandler>();
         if matches!(next_token, Tok::AmpAmp | Tok::PipePipe)
-            && handler.let_handler.is_long_bin_op(next_t.unwrap().clone())
+            && let_handler.is_long_bin_op(next_t.unwrap().clone())
         {
             return true;
         }
@@ -458,9 +391,7 @@ impl Format {
         };
 
         if is_bin_op(next_token) {
-            let r_exp_len_tuple = handler
-                .bin_op_handler
-                .get_bin_op_right_part_len(next_t.unwrap().clone());
+            let r_exp_len_tuple = bin_op_handler.get_bin_op_right_part_len(next_t.unwrap().clone());
             if r_exp_len_tuple.0 == 0 && r_exp_len_tuple.1 < 8 {
                 return false;
             }
@@ -474,7 +405,7 @@ impl Format {
                 + next_t.unwrap().simple_str().unwrap_or_default().len()
                 + r_exp_len_tuple.1;
             if len_bin_op_full >= self.global_cfg.max_width() {
-                handler.bin_op_handler.record_long_op(r_exp_len_tuple.0);
+                bin_op_handler.record_long_op(r_exp_len_tuple.0);
                 return true;
             }
         }
@@ -486,7 +417,7 @@ impl Format {
         current: &TokenTree,
         next_t: Option<&TokenTree>,
     ) -> bool {
-        let quant_handler = &self.syntax_handler.quant_handler;
+        let quant_handler = self.syntax_handler.handler_immut::<QuantHandler>();
         if current.get_end_tok() == Tok::Colon {
             let (quant_exp_idx, quant_body_len) =
                 quant_handler.get_quant_body_len(next_t.unwrap().clone());
@@ -706,7 +637,7 @@ impl Format {
         let TokenTree::Nested { elements, kind, .. } = token else {
             return false;
         };
-        let call_handler = &self.syntax_handler.call_handler;
+        let call_handler = self.syntax_handler.handler_immut::<CallHandler>();
         let mut new_line_mode = false;
         let elements_str = serde_json::to_string(&elements).unwrap_or_default();
         let has_multi_para = elements_str.matches("\"content\":\",\"").count() > 2;
@@ -752,7 +683,6 @@ impl Format {
         if elements.len() == 1 && elements[0].simple_str().is_none() {
             return (false, None);
         }
-        let handler = &self.syntax_handler;
         let mut new_line_mode = false;
         let nested_token_len = self.get_kind_len_after_trim_space(*kind, true);
 
@@ -760,7 +690,10 @@ impl Format {
             + self.depth.get() * self.local_cfg.indent_size
             >= self.global_cfg.max_width();
 
-        let maybe_in_fun_header = handler.fun_handler.is_parameter_paren_in_fun_header(kind);
+        let maybe_in_fun_header = self
+            .syntax_handler
+            .handler_immut::<FunHandler>()
+            .is_parameter_paren_in_fun_header(kind);
         if matches!(self.get_pre_simple_tok(), Tok::If | Tok::While) {
             new_line_mode = false;
         } else if maybe_in_fun_header.0 {
@@ -787,7 +720,10 @@ impl Format {
         } else {
             let elements_str = serde_json::to_string(&elements).unwrap_or_default();
             let has_multi_para = elements_str.matches("\"content\":\",\"").count() > 2;
-            let is_in_fun_call = handler.call_handler.paren_in_call(kind);
+            let is_in_fun_call = self
+                .syntax_handler
+                .handler_immut::<CallHandler>()
+                .paren_in_call(kind);
             if is_in_fun_call {
                 new_line_mode |= self.get_break_mode_of_fun_call(
                     token,
@@ -841,7 +777,7 @@ impl Format {
     }
 
     fn get_break_mode_begin_branch_blk(&self, kind: &NestKind) -> bool {
-        let branch_handler = &self.syntax_handler.branch_handler;
+        let branch_handler = self.syntax_handler.handler_immut::<BranchHandler>();
         if branch_handler
             .com_if_else
             .then_loc_vec
@@ -875,7 +811,6 @@ impl Format {
         else {
             return (false, None);
         };
-        let handler = &self.syntax_handler;
         let max_len_no_add_line = self.local_cfg.max_len_no_add_line;
         let max_line_width = self.global_cfg.max_width();
         let nested_blk_str =
@@ -909,7 +844,11 @@ impl Format {
         match kind.kind {
             NestKind_::Type => {
                 // added in 20240112: if type in fun header, not change new line
-                if handler.fun_handler.is_generic_ty_in_fun_header(kind) {
+                if self
+                    .syntax_handler
+                    .handler_immut::<FunHandler>()
+                    .is_generic_ty_in_fun_header(kind)
+                {
                     return (false, None);
                 }
 
@@ -1147,7 +1086,7 @@ impl Format {
         let TokenTree::Nested { elements, kind, .. } = nested_token else {
             return;
         };
-        let call_handler = &self.syntax_handler.call_handler;
+        let call_handler = self.syntax_handler.handler_immut::<CallHandler>();
         let nestd_kind_len = self.get_kind_len_after_trim_space(*kind, false);
         let old_kind = self.format_context.borrow_mut().cur_nested_kind;
         self.format_context.borrow_mut().cur_nested_kind = *kind;
@@ -1293,7 +1232,7 @@ impl Format {
         };
         if self
             .syntax_handler
-            .skip_handler
+            .handler_immut::<SkipHandler>()
             .should_skip_block_body(kind, block_body_ty)
         {
             let blk_body_str = &self.format_context.borrow().content
@@ -1407,7 +1346,7 @@ impl Format {
             return;
         };
 
-        let branch_handler = &self.syntax_handler.branch_handler;
+        let branch_handler = self.syntax_handler.handler_immut::<BranchHandler>();
         // optimize in 20241212
         let pre_tok = self.get_pre_simple_tok();
         if !matches!(pre_tok, Tok::RParen | Tok::Else) && *tok != Tok::Else {
@@ -1415,7 +1354,6 @@ impl Format {
         }
 
         // added in 20240115
-        // updated in 20240124
         // updated in 20241212: fix https://github.com/movebit/movefmt/issues/43
         let end_pos_of_if_cond_or_else = self.format_context.borrow().pre_simple_token.end_pos();
         if Tok::LBrace != *tok
@@ -1494,7 +1432,7 @@ impl Format {
                 let tok_end_pos = *pos + content.len() as u32;
                 let mut nested_branch_depth = self
                     .syntax_handler
-                    .branch_handler
+                    .handler_immut::<BranchHandler>()
                     .added_new_line_after_branch(tok_end_pos);
 
                 let mut need_add_new_line = false;
@@ -1672,9 +1610,9 @@ impl Format {
         if !new_line_after || next_token.is_none() {
             return;
         }
-        let handler = &self.syntax_handler;
-        if handler
-            .bin_op_handler
+        if self
+            .syntax_handler
+            .handler_immut::<BinOpHandler>()
             .need_inc_depth_by_long_op(next_token.unwrap().clone())
         {
             tracing::debug!(
@@ -1685,8 +1623,9 @@ impl Format {
             return;
         }
 
-        if handler
-            .let_handler
+        if self
+            .syntax_handler
+            .handler_immut::<LetHandler>()
             .need_inc_depth_by_long_op(next_token.unwrap().clone())
         {
             self.inc_depth();
@@ -1702,16 +1641,11 @@ impl Format {
         if !new_line_after || next_token.is_none() {
             return;
         }
-        let handler = &self.syntax_handler;
+        let bin_op_handler = self.syntax_handler.handler_immut::<BinOpHandler>();
         let is_cur_tok_bin_op = is_bin_op(token.get_end_tok());
         let is_next_tok_bin_op = is_bin_op(next_token.unwrap().get_start_tok());
-        if (is_cur_tok_bin_op
-            && handler
-                .bin_op_handler
-                .need_inc_depth_by_long_op(token.clone()))
-            || handler
-                .bin_op_handler
-                .need_inc_depth_by_long_op(next_token.unwrap().clone())
+        if (is_cur_tok_bin_op && bin_op_handler.need_inc_depth_by_long_op(token.clone()))
+            || bin_op_handler.need_inc_depth_by_long_op(next_token.unwrap().clone())
         {
             tracing::debug!(
                 "bin_op_handler.need_inc_depth_by_long_op22({:?})",
@@ -1721,18 +1655,18 @@ impl Format {
             return;
         }
 
-        if handler.let_handler.need_inc_depth_by_long_op(token.clone())
+        let let_handler = self.syntax_handler.handler_immut::<LetHandler>();
+        if let_handler.need_inc_depth_by_long_op(token.clone())
             || (is_next_tok_bin_op
-                && handler
-                    .let_handler
-                    .need_inc_depth_by_long_op(next_token.unwrap().clone()))
+                && let_handler.need_inc_depth_by_long_op(next_token.unwrap().clone()))
         {
             self.inc_depth();
             return;
         }
 
-        if handler
-            .quant_handler
+        if self
+            .syntax_handler
+            .handler_immut::<QuantHandler>()
             .need_inc_depth_by_long_quant_exp(next_token.unwrap().clone())
         {
             self.inc_depth();
@@ -1740,27 +1674,22 @@ impl Format {
     }
 
     fn need_dec_depth_when_cur_is_simple(&self, token: &TokenTree) {
-        let handler = &self.syntax_handler;
-        if handler
-            .bin_op_handler
-            .need_dec_depth_by_long_op(token.clone())
-            > 0
-        {
+        let bin_op_handler = self.syntax_handler.handler_immut::<BinOpHandler>();
+        let let_handler = self.syntax_handler.handler_immut::<LetHandler>();
+
+        if bin_op_handler.need_dec_depth_by_long_op(token.clone()) > 0 {
             tracing::debug!(
                 "bin_op_handler.need_dec_depth_by_long_op({:?}), dec = {}",
                 token.simple_str(),
-                handler
-                    .bin_op_handler
-                    .need_dec_depth_by_long_op(token.clone())
+                bin_op_handler.need_dec_depth_by_long_op(token.clone())
             );
         }
 
-        let mut nested_break_line_depth = handler
-            .bin_op_handler
-            .need_dec_depth_by_long_op(token.clone())
-            + handler.let_handler.need_dec_depth_by_long_op(token.clone())
-            + handler
-                .quant_handler
+        let mut nested_break_line_depth = bin_op_handler.need_dec_depth_by_long_op(token.clone())
+            + let_handler.need_dec_depth_by_long_op(token.clone())
+            + self
+                .syntax_handler
+                .handler_immut::<QuantHandler>()
                 .need_dec_depth_by_long_quant_exp(token.clone());
 
         if nested_break_line_depth > 0 {
