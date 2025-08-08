@@ -8,6 +8,7 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.2.8">v1.2.8</a><br/>
 <a href="#v1.2.7">v1.2.7</a><br/>
 <a href="#v1.2.6">v1.2.6</a><br/>
 <a href="#v1.2.5">v1.2.5</a><br/>
@@ -30,6 +31,17 @@
 </td>
 </tr>
 </table>
+
+
+<a id="v1.2.8"></a>
+## 2025-08-08, Version v1.2.8
+* [[`84d43e2`](https://github.com/movebit/movefmt/commit/84d43e2c9e38ccad862b698eb5d1d14e10ee68af)] - update aptos-core dependence (robinlzw)
+* [[`d251dc8`](https://github.com/movebit/movefmt/commit/d251dc882320789b71771f17f73fdba06e082c90)] - upgrade SyntaxHandler (robinlzw)
+* [[`1e9f2c0`](https://github.com/movebit/movefmt/commit/1e9f2c0b6923409ff0c8d65c22919378249a45c2)] - add syntax_trait mod, first try improving by SyntaxHandlerV2 (robinlzw)
+* [[`f712069`](https://github.com/movebit/movefmt/commit/f712069cadd5bfee47ecae21e91e82d1f45cd0f5)] - add checking on env::var(MOVEFMT_LOG) (robinlzw)
+* [[`a03ae68`](https://github.com/movebit/movefmt/commit/a03ae68142372935eddb106fa1196262c40ec541)] - optimize SyntaxHandler (robinlzw)
+* [[`a1f291c`](https://github.com/movebit/movefmt/commit/a1f291cfac5e9fa72ada735d73dc3760cf1a79b6)] - optimize preprocess() for syntax handler (robinlzw)
+* [[`0b6ab32`](https://github.com/movebit/movefmt/commit/0b6ab32d8a6bdcbf8fdd95cb6ab4d4119097c9ef)] - optimize CallExtractor (robinlzw)
 
 
 <a id="v1.2.7"></a>
