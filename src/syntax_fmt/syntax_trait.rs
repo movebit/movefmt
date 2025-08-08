@@ -17,5 +17,9 @@ pub trait SingleSyntaxExtractor {
 }
 
 pub trait Preprocessor {
-    fn preprocess(&mut self, module_defs: Arc<Vec<Definition>>);
+    fn preprocess(&mut self, module_defs: &Arc<Vec<Definition>>);
+
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any;
+
+    fn as_any(&self) -> &dyn std::any::Any;
 }

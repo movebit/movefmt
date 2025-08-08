@@ -12,10 +12,10 @@ use move_ir_types::location::*;
 use std::collections::HashMap;
 use std::{cell::RefCell, sync::Arc};
 
-use super::syntax_extractor::{Preprocessor, SingleSyntaxExtractor};
+use super::syntax_trait::{Preprocessor, SingleSyntaxExtractor};
 
-#[derive(Debug, Default)]
-pub struct LetExtractor {
+#[derive(Clone, Debug, Default)]
+pub struct LetHandler {
     pub bin_op_exp_vec: Vec<Exp>,
     pub long_bin_op_exp_vec: Vec<Exp>,
     pub let_assign_loc_vec: Vec<Loc>,
@@ -26,7 +26,7 @@ pub struct LetExtractor {
     pub line_mapping: FileLineMappingOneFile,
 }
 
-impl SingleSyntaxExtractor for LetExtractor {
+impl SingleSyntaxExtractor for LetHandler {
     fn new(fmt_buffer: String) -> Self {
         let mut this_let_extractor = Self {
             bin_op_exp_vec: vec![],
@@ -277,7 +277,7 @@ impl SingleSyntaxExtractor for LetExtractor {
     }
 }
 
-impl LetExtractor {
+impl LetHandler {
     fn collect_long_op_exp(&mut self) {
         self.multi_ampamp_or_pipepipe_exp();
         for bin_op_exp in self.bin_op_exp_vec.iter() {
@@ -338,16 +338,24 @@ impl LetExtractor {
     }
 }
 
-impl Preprocessor for LetExtractor {
-    fn preprocess(&mut self, module_defs: Arc<Vec<Definition>>) {
+impl Preprocessor for LetHandler {
+    fn preprocess(&mut self, module_defs: &Arc<Vec<Definition>>) {
         for d in module_defs.iter() {
             self.collect_definition(d);
         }
         self.collect_long_op_exp();
     }
+
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
 }
 
-impl LetExtractor {
+impl LetHandler {
     pub(crate) fn is_long_bin_op(&self, token: TokenTree) -> bool {
         for bin_op_exp in self.long_bin_op_exp_vec.iter() {
             if let Exp_::BinopExp(_, m, _) = &bin_op_exp.value {
@@ -476,10 +484,10 @@ impl LetExtractor {
 fn get_bin_op_exp(fmt_buffer: String) {
     use move_command_line_common::files::FileHash;
     use move_compiler::parser::syntax::parse_file_string;
-    let mut let_extractor = LetExtractor::new(fmt_buffer.clone());
+    let mut let_extractor = LetHandler::new(fmt_buffer.clone());
     let (defs, _) =
         parse_file_string(&mut get_compile_env(), FileHash::empty(), &fmt_buffer).unwrap();
-    let_extractor.preprocess(Arc::new(defs));
+    let_extractor.preprocess(&Arc::new(defs));
     for bin_op_exp in let_extractor.bin_op_exp_vec.iter() {
         let bin_op_exp_str =
             &let_extractor.source[bin_op_exp.loc.start() as usize..bin_op_exp.loc.end() as usize];
@@ -512,10 +520,10 @@ fn get_bin_op_exp(fmt_buffer: String) {
 fn get_long_assign(fmt_buffer: String) {
     use move_command_line_common::files::FileHash;
     use move_compiler::parser::syntax::parse_file_string;
-    let mut let_extractor = LetExtractor::new(fmt_buffer.clone());
+    let mut let_extractor = LetHandler::new(fmt_buffer.clone());
     let (defs, _) =
         parse_file_string(&mut get_compile_env(), FileHash::empty(), &fmt_buffer).unwrap();
-    let_extractor.preprocess(Arc::new(defs));
+    let_extractor.preprocess(&Arc::new(defs));
     for (idx, _) in let_extractor.let_assign_loc_vec.iter().enumerate() {
         let rhs_exp_loc = &let_extractor.let_assign_rhs_exp[idx].loc;
         let rhs_exp_str =

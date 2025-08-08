@@ -15,10 +15,10 @@ use move_compiler::parser::syntax::parse_file_string;
 use move_compiler::shared::Identifier;
 use move_ir_types::location::*;
 
-use super::syntax_extractor::{Preprocessor, SingleSyntaxExtractor};
+use super::syntax_trait::{Preprocessor, SingleSyntaxExtractor};
 
-#[derive(Debug, Default)]
-pub struct FunExtractor {
+#[derive(Clone, Debug, Default)]
+pub struct FunHandler {
     pub loc_vec: Vec<Loc>,
     pub para_span_vec: Vec<Loc>,
     pub ret_ty_loc_vec: Vec<Loc>,
@@ -28,7 +28,7 @@ pub struct FunExtractor {
     pub source: String,
 }
 
-impl SingleSyntaxExtractor for FunExtractor {
+impl SingleSyntaxExtractor for FunHandler {
     fn new(fmt_buffer: String) -> Self {
         let mut this_fun_extractor = Self {
             loc_vec: vec![],
@@ -117,11 +117,18 @@ impl SingleSyntaxExtractor for FunExtractor {
     }
 }
 
-impl Preprocessor for FunExtractor {
-    fn preprocess(&mut self, module_defs: Arc<Vec<Definition>>) {
+impl Preprocessor for FunHandler {
+    fn preprocess(&mut self, module_defs: &Arc<Vec<Definition>>) {
         for d in module_defs.iter() {
             self.collect_definition(d);
         }
+    }
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
     }
 }
 
@@ -140,7 +147,7 @@ fn get_space_cnt_before_line_str(s: &str) -> usize {
     result
 }
 
-impl FunExtractor {
+impl FunHandler {
     pub(crate) fn is_generic_ty_in_fun_header(&self, kind: &NestKind) -> bool {
         let loc_vec = &self.loc_vec;
         let body_loc_vec = &self.body_loc_vec;
@@ -368,8 +375,8 @@ pub(crate) fn process_block_comment_before_fun_header(
 ) -> String {
     let buf = fmt_buffer.clone();
     let mut result = fmt_buffer.clone();
-    let mut fun_extractor = FunExtractor::new(fmt_buffer.clone());
-    fun_extractor.preprocess(Arc::new(get_defs(fmt_buffer.clone())));
+    let mut fun_extractor = FunHandler::new(fmt_buffer.clone());
+    fun_extractor.preprocess(&Arc::new(get_defs(fmt_buffer.clone())));
     let mut insert_char_nums = 0;
     for (fun_idx, (fun_start_line, _)) in fun_extractor.loc_line_vec.iter().enumerate() {
         let fun_header_str =
@@ -394,8 +401,8 @@ pub(crate) fn process_block_comment_before_fun_header(
 pub(crate) fn process_fun_header_too_long(fmt_buffer: String, config: Config) -> String {
     let buf = fmt_buffer.clone();
     let mut result = fmt_buffer.clone();
-    let mut fun_extractor = FunExtractor::new(fmt_buffer.clone());
-    fun_extractor.preprocess(Arc::new(get_defs(fmt_buffer.clone())));
+    let mut fun_extractor = FunHandler::new(fmt_buffer.clone());
+    fun_extractor.preprocess(&Arc::new(get_defs(fmt_buffer.clone())));
     let mut insert_char_nums = 0;
     let mut fun_idx = 0;
     for fun_loc in fun_extractor.loc_vec.iter() {
@@ -481,8 +488,8 @@ pub(crate) fn process_fun_ret_ty(fmt_buffer: String, config: Config) -> String {
     // : u64 {}
     let buf = fmt_buffer.clone();
     let mut result = fmt_buffer.clone();
-    let mut fun_extractor = FunExtractor::new(fmt_buffer.clone());
-    fun_extractor.preprocess(Arc::new(get_defs(fmt_buffer.clone())));
+    let mut fun_extractor = FunHandler::new(fmt_buffer.clone());
+    fun_extractor.preprocess(&Arc::new(get_defs(fmt_buffer.clone())));
     let mut insert_char_nums = 0;
     let mut fun_idx = 0;
     for fun_loc in fun_extractor.loc_vec.iter() {

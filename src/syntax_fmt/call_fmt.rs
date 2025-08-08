@@ -12,26 +12,24 @@ use move_compiler::parser::ast::*;
 use move_compiler::parser::lexer::Tok;
 use move_ir_types::location::*;
 
-use super::syntax_extractor::{Preprocessor, SingleSyntaxExtractor};
+use super::syntax_trait::{Preprocessor, SingleSyntaxExtractor};
 
-#[derive(Debug, Default)]
-pub struct CallExtractor {
+#[derive(Clone, Debug, Default)]
+pub struct CallHandler {
     pub call_loc_vec: Vec<Loc>,
     pub call_paren_loc_vec: Vec<Loc>,
     pub pack_in_call_loc_vec: Vec<Loc>,
-    pub receiver_style_call_exp_vec: Vec<Exp>,
     pub link_call_exp_vec: Vec<Exp>,
     pub source: String,
     pub line_mapping: FileLineMappingOneFile,
 }
 
-impl SingleSyntaxExtractor for CallExtractor {
+impl SingleSyntaxExtractor for CallHandler {
     fn new(fmt_buffer: String) -> Self {
         let mut this_call_extractor = Self {
             call_loc_vec: vec![],
             call_paren_loc_vec: vec![],
             pack_in_call_loc_vec: vec![],
-            receiver_style_call_exp_vec: vec![],
             link_call_exp_vec: vec![],
             source: fmt_buffer.clone(),
             line_mapping: FileLineMappingOneFile::default(),
@@ -121,9 +119,10 @@ impl SingleSyntaxExtractor for CallExtractor {
         match &e.value {
             Exp_::Call(name, _, _tys, es) => {
                 if name.loc.end() > es.loc.start() {
-                    // self.receiver_style_call_exp_vec.push(e.clone());
-                    if judge_link_call_exp(e).0 {
+                    if is_chained_call(e).0 {
                         self.link_call_exp_vec.push(e.clone());
+                    } else {
+                        es.value.iter().for_each(|e| self.collect_expr(e));
                     }
                 } else {
                     self.call_loc_vec.push(e.loc);
@@ -269,15 +268,23 @@ impl SingleSyntaxExtractor for CallExtractor {
     }
 }
 
-impl Preprocessor for CallExtractor {
-    fn preprocess(&mut self, module_defs: Arc<Vec<Definition>>) {
+impl Preprocessor for CallHandler {
+    fn preprocess(&mut self, module_defs: &Arc<Vec<Definition>>) {
         for d in module_defs.iter() {
             self.collect_definition(d);
         }
     }
+
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
 }
 
-impl CallExtractor {
+impl CallHandler {
     // fn_call(comp1, comp2, nested_call_maybe_too_long(...), comp4);
     // >>
     // fn_call(comp1, comp2,
@@ -552,7 +559,7 @@ pub(crate) fn parse_nested_token_nums(
     }
 }
 
-impl CallExtractor {
+impl CallHandler {
     pub(crate) fn get_call_component_split_mode(
         &self,
         config: Config,
@@ -617,23 +624,23 @@ impl CallExtractor {
     }
 }
 
-fn judge_link_call_exp(exp: &Exp) -> (bool, u32) {
-    let mut current_continue_call_cnt = 0;
+fn is_chained_call(exp: &Exp) -> (bool, u32) {
+    let mut continue_call_cnt = 0;
     if let Exp_::Call(_, CallKind::Receiver, _, es) = &exp.value {
-        current_continue_call_cnt += 1;
+        continue_call_cnt += 1;
         for e in es.value.iter() {
             if let Exp_::Call(_, CallKind::Receiver, _, _) = &e.value {
-                current_continue_call_cnt += judge_link_call_exp(e).1;
+                continue_call_cnt += is_chained_call(e).1;
                 break;
             }
         }
     }
-    (current_continue_call_cnt > 3, current_continue_call_cnt)
+    (continue_call_cnt > 3, continue_call_cnt)
 }
 
 #[allow(dead_code)]
 fn get_call(fmt_buffer: String) {
-    let call_extractor = CallExtractor::new(fmt_buffer.clone());
+    let call_extractor = CallHandler::new(fmt_buffer.clone());
     for call_loc in call_extractor.call_paren_loc_vec.iter() {
         eprintln!(
             "call_exp = \n{}\n\n",
@@ -647,14 +654,14 @@ fn judge_fn_link_call(fmt_buffer: String) {
     use crate::tools::utils::*;
     use move_command_line_common::files::FileHash;
     use move_compiler::parser::{ast::*, syntax::parse_file_string};
-    let mut call_extractor = CallExtractor::new(fmt_buffer.clone());
+    let mut call_extractor = CallHandler::new(fmt_buffer.clone());
     let (defs, _) = parse_file_string(
         &mut get_compile_env(),
         FileHash::empty(),
         &fmt_buffer.clone(),
     )
     .unwrap();
-    call_extractor.preprocess(defs.into());
+    call_extractor.preprocess(&Arc::new(defs));
     for call_exp in call_extractor.link_call_exp_vec.iter() {
         eprintln!(
             "call_exp = \n{:?}\n\n",

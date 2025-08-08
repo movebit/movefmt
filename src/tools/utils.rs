@@ -30,7 +30,7 @@ impl PathBufHashMap {
 }
 /// A thin wrapper on `FileLineMapping`
 /// Sometimes only handle one file.
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 #[repr(transparent)]
 pub struct FileLineMappingOneFile {
     mapping: FileLineMapping,
@@ -57,7 +57,7 @@ impl FileLineMappingOneFile {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct FileLineMapping {
     m: HashMap<PathBuf /* filepath */, Vec<ByteIndex>>,
 }

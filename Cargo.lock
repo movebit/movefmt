@@ -852,7 +852,7 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 [[package]]
 name = "legacy-move-compiler"
 version = "0.0.1"
-source = "git+https://github.com/aptos-labs/aptos-core.git?rev=55149c52f9e3424dd1f28ef676cf308f694c6737#55149c52f9e3424dd1f28ef676cf308f694c6737"
+source = "git+https://github.com/aptos-labs/aptos-core.git?rev=4c39d3a0274b40655b589e5b6ee57b676abea149#4c39d3a0274b40655b589e5b6ee57b676abea149"
 dependencies = [
  "anyhow",
  "bcs",
@@ -959,7 +959,7 @@ dependencies = [
 [[package]]
 name = "move-binary-format"
 version = "0.0.3"
-source = "git+https://github.com/aptos-labs/aptos-core.git?rev=55149c52f9e3424dd1f28ef676cf308f694c6737#55149c52f9e3424dd1f28ef676cf308f694c6737"
+source = "git+https://github.com/aptos-labs/aptos-core.git?rev=4c39d3a0274b40655b589e5b6ee57b676abea149#4c39d3a0274b40655b589e5b6ee57b676abea149"
 dependencies = [
  "anyhow",
  "backtrace",
@@ -975,12 +975,12 @@ dependencies = [
 [[package]]
 name = "move-borrow-graph"
 version = "0.0.1"
-source = "git+https://github.com/aptos-labs/aptos-core.git?rev=55149c52f9e3424dd1f28ef676cf308f694c6737#55149c52f9e3424dd1f28ef676cf308f694c6737"
+source = "git+https://github.com/aptos-labs/aptos-core.git?rev=4c39d3a0274b40655b589e5b6ee57b676abea149#4c39d3a0274b40655b589e5b6ee57b676abea149"
 
 [[package]]
 name = "move-bytecode-source-map"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?rev=55149c52f9e3424dd1f28ef676cf308f694c6737#55149c52f9e3424dd1f28ef676cf308f694c6737"
+source = "git+https://github.com/aptos-labs/aptos-core.git?rev=4c39d3a0274b40655b589e5b6ee57b676abea149#4c39d3a0274b40655b589e5b6ee57b676abea149"
 dependencies = [
  "anyhow",
  "bcs",
@@ -995,7 +995,7 @@ dependencies = [
 [[package]]
 name = "move-bytecode-spec"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?rev=55149c52f9e3424dd1f28ef676cf308f694c6737#55149c52f9e3424dd1f28ef676cf308f694c6737"
+source = "git+https://github.com/aptos-labs/aptos-core.git?rev=4c39d3a0274b40655b589e5b6ee57b676abea149#4c39d3a0274b40655b589e5b6ee57b676abea149"
 dependencies = [
  "once_cell",
  "quote",
@@ -1005,7 +1005,7 @@ dependencies = [
 [[package]]
 name = "move-bytecode-verifier"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?rev=55149c52f9e3424dd1f28ef676cf308f694c6737#55149c52f9e3424dd1f28ef676cf308f694c6737"
+source = "git+https://github.com/aptos-labs/aptos-core.git?rev=4c39d3a0274b40655b589e5b6ee57b676abea149#4c39d3a0274b40655b589e5b6ee57b676abea149"
 dependencies = [
  "fail",
  "move-binary-format",
@@ -1019,7 +1019,7 @@ dependencies = [
 [[package]]
 name = "move-command-line-common"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?rev=55149c52f9e3424dd1f28ef676cf308f694c6737#55149c52f9e3424dd1f28ef676cf308f694c6737"
+source = "git+https://github.com/aptos-labs/aptos-core.git?rev=4c39d3a0274b40655b589e5b6ee57b676abea149#4c39d3a0274b40655b589e5b6ee57b676abea149"
 dependencies = [
  "anyhow",
  "difference",
@@ -1036,7 +1036,7 @@ dependencies = [
 [[package]]
 name = "move-core-types"
 version = "0.0.4"
-source = "git+https://github.com/aptos-labs/aptos-core.git?rev=55149c52f9e3424dd1f28ef676cf308f694c6737#55149c52f9e3424dd1f28ef676cf308f694c6737"
+source = "git+https://github.com/aptos-labs/aptos-core.git?rev=4c39d3a0274b40655b589e5b6ee57b676abea149#4c39d3a0274b40655b589e5b6ee57b676abea149"
 dependencies = [
  "anyhow",
  "bcs",
@@ -1058,7 +1058,7 @@ dependencies = [
 [[package]]
 name = "move-ir-types"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?rev=55149c52f9e3424dd1f28ef676cf308f694c6737#55149c52f9e3424dd1f28ef676cf308f694c6737"
+source = "git+https://github.com/aptos-labs/aptos-core.git?rev=4c39d3a0274b40655b589e5b6ee57b676abea149#4c39d3a0274b40655b589e5b6ee57b676abea149"
 dependencies = [
  "hex",
  "move-command-line-common",
@@ -1071,7 +1071,7 @@ dependencies = [
 [[package]]
 name = "move-symbol-pool"
 version = "0.1.0"
-source = "git+https://github.com/aptos-labs/aptos-core.git?rev=55149c52f9e3424dd1f28ef676cf308f694c6737#55149c52f9e3424dd1f28ef676cf308f694c6737"
+source = "git+https://github.com/aptos-labs/aptos-core.git?rev=4c39d3a0274b40655b589e5b6ee57b676abea149#4c39d3a0274b40655b589e5b6ee57b676abea149"
 dependencies = [
  "once_cell",
  "serde",
