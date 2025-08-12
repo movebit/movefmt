@@ -1322,14 +1322,6 @@ impl Format {
             if nested_token_head == Tok::NumSign && kind.kind == NestKind_::Bracket {
                 return;
             }
-            if next_token.is_some()
-                && matches!(
-                    next_token.unwrap().simple_str().unwrap_or_default(),
-                    "module" | "public"
-                )
-            {
-                return;
-            }
             self.push_str(" ");
         }
     }
