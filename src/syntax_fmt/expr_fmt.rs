@@ -157,6 +157,9 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
         }
     }
 
+    if matches!(next_start_tok, Tok::Script | Tok::Struct | Tok::Use) {
+        return false;
+    }
     let mut is_next_tok_nested = false;
     let mut next_tok_nested_kind = NestKind_::Brace;
     let mut next_tok_simple_content = "".to_string();
