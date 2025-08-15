@@ -170,7 +170,7 @@ impl OutputWriter {
         }
 
         match &mut self.terminal {
-            Some(ref mut t) => {
+            Some(t) => {
                 if let Some(color) = color {
                     t.fg(color).unwrap();
                 }

@@ -260,7 +260,7 @@ fn test_dir() {
     num += scan_dir("./tests/bug2");
     eprintln!("formated {} files", num);
 
-    let duration = start.elapsed(); // 计算耗时
+    let duration = start.elapsed();
     println!("Speed time : {:?} ms", duration.as_millis());
 }
 
