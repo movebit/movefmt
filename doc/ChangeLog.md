@@ -8,6 +8,7 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.2.9">v1.2.9</a><br/>
 <a href="#v1.2.8">v1.2.8</a><br/>
 <a href="#v1.2.7">v1.2.7</a><br/>
 <a href="#v1.2.6">v1.2.6</a><br/>
@@ -31,6 +32,13 @@
 </td>
 </tr>
 </table>
+
+
+<a id="v1.2.8"></a>
+## 2025-08-15, Version v1.2.9
+* [[`2626798`](https://github.com/movebit/movefmt/commit/2626798e088ed5c7a7bbe44796c2da48e401ed40)] - upgrade toolchain, remove experimental code, optimize app (robinlzw)
+* [[`a75e8f1`](https://github.com/movebit/movefmt/commit/a75e8f17a5d0302c68403740c82452ea21292af1)] - optimize expr_fmt::nedd_space() (robinlzw)
+* [[`fdf4934`](https://github.com/movebit/movefmt/commit/fdf493484d107f6bba4d108b71fd8ac84e0b9ad7)] - optimize format_nested_token() (robinlzw)
 
 
 <a id="v1.2.8"></a>
