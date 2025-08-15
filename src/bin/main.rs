@@ -25,8 +25,6 @@ use colored::Colorize;
 const ERR_EMPTY_INPUT_FROM_STDIN: i32 = 1;
 const ERR_INVALID_MOVE_CODE_FROM_STDIN: i32 = 2;
 const ERR_FMT: i32 = 3;
-const ERR_WRITE: i32 = 4;
-const ENABLE_THREAD: bool = false;
 
 #[derive(Error, Debug)]
 enum MoveFmtError {
@@ -35,14 +33,6 @@ enum MoveFmtError {
 
     #[error("Format failed with exit code: {0}")]
     ErrFmt(i32),
-
-    #[error("Failed to write file")]
-    ErrWrite(i32),
-}
-
-struct WriteResult {
-    path: PathBuf,
-    result: std::io::Result<()>,
 }
 
 fn main() {
@@ -290,9 +280,7 @@ fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> 
     }
 
     let mut files = files;
-    let files_len = files.len();
-    let mut no_files_argument = files.is_empty();
-    if no_files_argument {
+    if files.is_empty() {
         if let Ok(current_dir) = std::env::current_dir() {
             for x in walkdir::WalkDir::new(current_dir) {
                 let x = match x {
@@ -309,14 +297,24 @@ fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> 
                     files.push((x.clone().into_path(), false));
                 }
             }
+
+            if use_config.verbose() == Verbosity::Verbose {
+                tracing::warn!(
+                    "\n{}\n{}{}\n{}",
+                    "No file argument supplied.".red(),
+                    "If no movefmt.toml in any subdirectory sets ".yellow(),
+                    "`auto_apply_package = true`,".green(),
+                    "movefmt will format all *.move files in the current directory by default."
+                        .yellow()
+                );
+                println!("----------------------------------------------------------------------------\n");
+            }
         } else {
             return Err(format_err!(
                 "Failed to get the current directory when file argument is not specified."
             ));
         }
     }
-
-    let (pool, tx, rx) = get_item_for_mutil_thread(ENABLE_THREAD);
 
     for (file, is_specified_file) in files {
         if !file.exists() {
@@ -344,18 +342,6 @@ fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> 
                     use_config_path = Some(path);
                 }
             }
-        }
-
-        if !use_config.auto_apply_package()
-            && no_files_argument
-            && use_config.verbose() == Verbosity::Verbose
-        {
-            tracing::warn!("\n{}",
-            "No file argument is supplied, movefmt runs on current directory by default, \nformatting all .move files within it......".yellow());
-            println!(
-                "----------------------------------------------------------------------------\n"
-            );
-            no_files_argument = false;
         }
 
         if !is_specified_file && should_escape_not_in_package(&file, &use_config) {
@@ -405,11 +391,10 @@ fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> 
                 };
                 match emit_mode {
                     EmitMode::NewFile => {
-                        let file_path = mk_result_filepath(&file.to_path_buf());
-                        write_file(file_path, formatted_text, ENABLE_THREAD, &pool, &tx)?;
+                        std::fs::write(mk_result_filepath(&file.to_path_buf()), formatted_text)?
                     }
                     EmitMode::Overwrite => {
-                        write_file(file, formatted_text, ENABLE_THREAD, &pool, &tx)?;
+                        std::fs::write(&file, formatted_text)?;
                     }
                     EmitMode::Stdout => {
                         println!("{}", formatted_text);
@@ -450,18 +435,6 @@ fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> 
                 }
                 return Err(MoveFmtError::ErrFmt(ERR_FMT).into());
             }
-        }
-    }
-
-    if ENABLE_THREAD {
-        let mut counter = 0;
-        while counter != files_len {
-            let WriteResult { path, result } = rx.as_ref().unwrap().recv().unwrap();
-            if result.is_err() {
-                eprintln!("Failed to write file({}): {:?}", path.display(), result);
-                return Err(MoveFmtError::ErrWrite(ERR_WRITE).into());
-            }
-            counter += 1;
         }
     }
 
@@ -734,53 +707,4 @@ fn should_escape_not_in_package(file: &Path, use_config: &Config) -> bool {
         }
     }
     true
-}
-
-fn get_item_for_mutil_thread(
-    is_enable_thread: bool,
-) -> (
-    Option<rayon::ThreadPool>,
-    Option<std::sync::mpsc::Sender<WriteResult>>,
-    Option<std::sync::mpsc::Receiver<WriteResult>>,
-) {
-    if is_enable_thread {
-        let pool = rayon::ThreadPoolBuilder::new()
-            .num_threads(4)
-            .build()
-            .unwrap();
-        // let pool = ThreadPool::new(4);
-        let (tx, rx) = std::sync::mpsc::channel();
-        (Some(pool), Some(tx), Some(rx))
-    } else {
-        (None, None, None)
-    }
-}
-
-fn write_file(
-    path: PathBuf,
-    content: String,
-    is_enable_thread: bool,
-    pool: &Option<rayon::ThreadPool>,
-    tx: &Option<std::sync::mpsc::Sender<WriteResult>>,
-) -> Result<()> {
-    if is_enable_thread {
-        let tx = tx.clone();
-        pool.as_ref().unwrap().spawn(move || {
-            let write_result = std::fs::write(path.clone(), content);
-            if write_result.is_err() {
-                let _ = tx.as_ref().unwrap().send(WriteResult {
-                    path: path,
-                    result: write_result,
-                });
-            } else {
-                let _ = tx.as_ref().unwrap().send(WriteResult {
-                    path: path,
-                    result: Ok(()),
-                });
-            }
-        });
-    } else {
-        std::fs::write(&path, content)?;
-    }
-    Ok(())
 }
