@@ -1079,7 +1079,7 @@ dependencies = [
 
 [[package]]
 name = "movefmt"
-version = "1.2.8"
+version = "1.2.9"
 dependencies = [
  "anyhow",
  "bisection",
