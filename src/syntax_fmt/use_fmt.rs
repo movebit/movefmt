@@ -236,7 +236,7 @@ pub fn optimize_brace_of_use(fmt_buffer: String, config: Config) -> String {
 fn test_optimize_brace_of_use_1() {
     if std::env::var("MOVEFMT_LOG").is_err() {
         use tracing_subscriber::EnvFilter;
-        std::env::set_var("MOVEFMT_LOG", "movefmt=DEBUG");
+        unsafe { std::env::set_var("MOVEFMT_LOG", "movefmt=DEBUG") };
         tracing_subscriber::fmt()
             .with_env_filter(EnvFilter::from_env("MOVEFMT_LOG"))
             .init();
