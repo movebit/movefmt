@@ -4,8 +4,8 @@
 
 use super::syntax_trait::SingleSyntaxExtractor;
 use crate::tools::utils::*;
-use commentfmt::comment::contains_comment;
 use commentfmt::Config;
+use commentfmt::comment::contains_comment;
 use move_command_line_common::files::FileHash;
 use move_compiler::parser::ast::Definition;
 use move_compiler::parser::ast::*;

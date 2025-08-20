@@ -6,8 +6,8 @@ use std::sync::Arc;
 
 use crate::core::token_tree::*;
 use crate::tools::utils::FileLineMappingOneFile;
-use commentfmt::comment::contains_comment;
 use commentfmt::Config;
+use commentfmt::comment::contains_comment;
 use move_compiler::parser::ast::*;
 use move_compiler::parser::lexer::Tok;
 use move_ir_types::location::*;
@@ -596,8 +596,14 @@ impl CallHandler {
             &mut bin_op_cnt,
             &mut nested_token_cnt,
         );
-        tracing::debug!("nested_token_cnt = {}, comma_cnt = {}, bin_op_cnt = {}, line_cnt = {}, simple_token_cnt = {}", 
-            nested_token_cnt, comma_cnt, bin_op_cnt, line_cnt, simple_token_cnt);
+        tracing::debug!(
+            "nested_token_cnt = {}, comma_cnt = {}, bin_op_cnt = {}, line_cnt = {}, simple_token_cnt = {}",
+            nested_token_cnt,
+            comma_cnt,
+            bin_op_cnt,
+            line_cnt,
+            simple_token_cnt
+        );
         if len < config.max_width()
             && nested_token_cnt <= 2
             && comma_cnt < 3

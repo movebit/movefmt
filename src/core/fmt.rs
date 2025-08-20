@@ -32,7 +32,6 @@ const MAX_ANALYZE_LENGTH: usize = 64;
 const MIN_BREAK_LENGTH: usize = 32;
 const MIN_NESTED_LENGTH: usize = 16;
 
-
 pub struct FormatContext {
     pub content: String,
     pub pre_simple_token: TokenTree,
@@ -102,29 +101,32 @@ fn is_bin_op(op_token: Tok) -> bool {
 }
 
 fn is_statement_start_token(tok: Tok) -> bool {
-    matches!(tok, Tok::Friend
-        | Tok::Const
-        | Tok::Fun
-        | Tok::While
-        | Tok::Use
-        | Tok::Struct
-        | Tok::Spec
-        | Tok::Return
-        | Tok::Public
-        | Tok::Native
-        | Tok::Inline
-        | Tok::Move
-        | Tok::Module
-        | Tok::Loop
-        | Tok::Let
-        | Tok::Invariant
-        | Tok::If
-        | Tok::Continue
-        | Tok::Break
-        | Tok::NumSign
-        | Tok::Amp
-        | Tok::LParen
-        | Tok::Abort)
+    matches!(
+        tok,
+        Tok::Friend
+            | Tok::Const
+            | Tok::Fun
+            | Tok::While
+            | Tok::Use
+            | Tok::Struct
+            | Tok::Spec
+            | Tok::Return
+            | Tok::Public
+            | Tok::Native
+            | Tok::Inline
+            | Tok::Move
+            | Tok::Module
+            | Tok::Loop
+            | Tok::Let
+            | Tok::Invariant
+            | Tok::If
+            | Tok::Continue
+            | Tok::Break
+            | Tok::NumSign
+            | Tok::Amp
+            | Tok::LParen
+            | Tok::Abort
+    )
 }
 
 fn token_to_ability(token: Tok, content: &str) -> Option<Ability_> {
@@ -501,8 +503,7 @@ impl Format {
         if kind_outer.end_pos - current.end_pos() < MIN_NESTED_LENGTH.try_into().unwrap() {
             return false;
         }
-        let b_judge_next_token =
-            next.is_some() && Self::check_next_tok_canbe_break(next);
+        let b_judge_next_token = next.is_some() && Self::check_next_tok_canbe_break(next);
         if matches!(kind_outer.kind, NestKind_::Brace | NestKind_::ParentTheses)
             && b_judge_next_token
             && Self::is_long_nested_token(current).0
@@ -1107,7 +1108,10 @@ impl Format {
 
         let is_call = kind.kind == NestKind_::ParentTheses && call_handler.paren_in_call(kind);
         let mut need_get_break_mode_on_component = component_break_mode;
-        if elements.len() > MIN_BREAK_LENGTH && kind.kind == NestKind_::Bracket && !component_break_mode {
+        if elements.len() > MIN_BREAK_LENGTH
+            && kind.kind == NestKind_::Bracket
+            && !component_break_mode
+        {
             need_get_break_mode_on_component = false;
         }
         while internal_token_idx < len {
@@ -1509,7 +1513,8 @@ impl Format {
             return;
         };
 
-        let not_break_special_tok = *tok == Tok::NumTypedValue && content.len() > MAX_ANALYZE_LENGTH;
+        let not_break_special_tok =
+            *tok == Tok::NumTypedValue && content.len() > MAX_ANALYZE_LENGTH;
         let last_line_len_after_trim_leading_space = self
             .last_line()
             .clone()

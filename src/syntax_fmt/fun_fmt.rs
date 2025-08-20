@@ -592,8 +592,10 @@ fn test_rewrite_fun_header_1() {
 fn test_rewrite_fun_header_2() {
     fun_header_specifier_fmt(": u64 /* acquires comment1 */ acquires SomeStruct ", "    ");
     fun_header_specifier_fmt(": u64 acquires SomeStruct/* acquires comment2 */ ", "    ");
-    fun_header_specifier_fmt(": u64 /* acquires comment3 */ acquires /* acquires comment4 */ SomeStruct /* acquires comment5 */", 
-        "    ");
+    fun_header_specifier_fmt(
+        ": u64 /* acquires comment3 */ acquires /* acquires comment4 */ SomeStruct /* acquires comment5 */",
+        "    ",
+    );
     fun_header_specifier_fmt("acquires R reads R writes T, S reads G<u64> ", "    ");
     fun_header_specifier_fmt("fun f11() !reads *(0x42) ", "    ");
 }

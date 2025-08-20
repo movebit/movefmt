@@ -1,13 +1,13 @@
 // Copyright © Aptos Foundation
 // Copyright (c) The BitsLab.MoveBit Contributors
 // SPDX-License-Identifier: Apache-2.0
-use anyhow::{format_err, Result};
-use commentfmt::{load_config, CliOptions, Config, EmitMode, Verbosity};
+use anyhow::{Result, format_err};
+use commentfmt::{CliOptions, Config, EmitMode, Verbosity, load_config};
 use getopts::{Matches, Options};
 use io::Error as IoError;
 use movefmt::{
     core::fmt::format_entry,
-    tools::movefmt_diff::{make_diff, print_mismatches_default_message, DIFF_CONTEXT_SIZE},
+    tools::movefmt_diff::{DIFF_CONTEXT_SIZE, make_diff, print_mismatches_default_message},
     tools::utils::*,
 };
 use std::collections::HashMap;
@@ -243,7 +243,8 @@ fn format_string(content_origin: String, options: GetOptsOptions) -> Result<i32>
                     if options.quiet.is_none() || !options.quiet.unwrap() {
                         tracing::warn!(
                             "\n{}\n--------------------------------------------------------------------",
-                            "The formatted result of the Move code read from stdin is as follows:".green()
+                            "The formatted result of the Move code read from stdin is as follows:"
+                                .green()
                         );
                     }
                     println!("{}", formatted_text);
@@ -307,7 +308,9 @@ fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> 
                     "movefmt will format all *.move files in the current directory by default."
                         .yellow()
                 );
-                println!("----------------------------------------------------------------------------\n");
+                println!(
+                    "----------------------------------------------------------------------------\n"
+                );
             }
         } else {
             return Err(format_err!(
@@ -674,11 +677,7 @@ fn should_escape(
                 p = std::env::current_dir().ok().unwrap_or_default().join(p);
             }
 
-            if file.starts_with(&p) {
-                Some(p)
-            } else {
-                None
-            }
+            if file.starts_with(&p) { Some(p) } else { None }
         });
     escape
 }

@@ -87,8 +87,7 @@ fn test_content(content_origin: &str, p: impl AsRef<Path>) {
         Err(err) => {
             unreachable!(
                 "should be able to parse after format:err{:?},after format:\n\n################\n{}\n###############",
-                err,
-                content_format
+                err, content_format
             );
         }
     };
