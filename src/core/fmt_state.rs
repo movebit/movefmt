@@ -194,7 +194,7 @@ impl FunctionalFormat {
     pub fn format_token_trees(self) -> String {
         let initial_state = FormatState::with_capacity(self.context.content.len() * 2);
         let final_state = self.format_tokens_with_state(initial_state);
-        
+
         // Final cleanup
         self.finalize_output(final_state).output
     }
@@ -202,38 +202,45 @@ impl FunctionalFormat {
     /// Core method for formatting with state
     fn format_tokens_with_state(&self, mut state: FormatState) -> FormatState {
         let mut pound_sign_idx = None;
-        
+
         for (index, token) in self.context.token_tree.iter().enumerate() {
             if token.is_pound() {
                 pound_sign_idx = Some(index);
             }
-            
+
             let new_line = pound_sign_idx.map_or(false, |x| (x + 1) == index);
             let next_token = self.context.token_tree.get(index + 1);
-            
+
             // Handle special module and address blocks
             if let Some(result_state) = self.try_format_special_block(token, state.clone()) {
                 state = result_state;
                 continue;
             }
-            
+
             // Format current token
             state = self.format_token_with_state(token, next_token, new_line, state);
-            
+
             if new_line {
                 state = self.add_new_line_with_state(Some(token.end_pos()), state);
                 pound_sign_idx = None;
             }
         }
-        
+
         // Add remaining comments
         state = self.add_remaining_comments_with_state(state);
         state
     }
 
     /// Try to format special blocks (module, address, etc.)
-    fn try_format_special_block(&self, token: &TokenTree, mut state: FormatState) -> Option<FormatState> {
-        let TokenTree::Nested { kind: nkind, note, .. } = token else {
+    fn try_format_special_block(
+        &self,
+        token: &TokenTree,
+        mut state: FormatState,
+    ) -> Option<FormatState> {
+        let TokenTree::Nested {
+            kind: nkind, note, ..
+        } = token
+        else {
             return None;
         };
 
@@ -245,13 +252,13 @@ impl FunctionalFormat {
             state = state.push_str(EXIST_MULTI_MODULE_TAG);
             state = self.format_token_with_state(token, None, false, state);
             state = self.add_new_line_with_state(Some(token.end_pos()), state);
-            
+
             if !skip_handler.has_skipped_module_body(nkind) {
                 let tuned = tune_module_buf(state.output.clone(), &self.context.global_cfg);
                 state.output = tuned;
                 state.output = update_last_line(state.output);
             }
-            
+
             // Remove the tag and return the processed state
             if state.output.starts_with(EXIST_MULTI_MODULE_TAG) {
                 state.output = state.output[EXIST_MULTI_MODULE_TAG.len()..].to_string();
@@ -261,7 +268,7 @@ impl FunctionalFormat {
             state = state.push_str(EXIST_MULTI_ADDRESS_TAG);
             state = self.format_token_with_state(token, None, false, state);
             state = self.add_new_line_with_state(Some(token.end_pos()), state);
-            
+
             // Process modules inside the address block
             state = self.process_address_modules(state);
             Some(state)
@@ -272,27 +279,25 @@ impl FunctionalFormat {
 
     /// Process modules inside the address block
     fn process_address_modules(&self, mut state: FormatState) -> FormatState {
-        let def_vec_result = parse_file_string(
-            &mut get_compile_env(), 
-            FileHash::empty(), 
-            &state.output
-        );
-        
+        let def_vec_result =
+            parse_file_string(&mut get_compile_env(), FileHash::empty(), &state.output);
+
         if let Ok((def_vec, _)) = def_vec_result {
             if let Some(Definition::Address(address_def)) = def_vec.first() {
                 let mut last_mod_end_loc = 0;
                 let mut fmt_slice = String::new();
-                
+
                 for mod_def in &address_def.modules {
                     let m = &state.output[mod_def.loc.start() as usize..mod_def.loc.end() as usize];
                     let tuning_mod_body = tune_module_buf(m.to_string(), &self.context.global_cfg);
-                    fmt_slice.push_str(&state.output[last_mod_end_loc..mod_def.loc.start() as usize]);
+                    fmt_slice
+                        .push_str(&state.output[last_mod_end_loc..mod_def.loc.start() as usize]);
                     fmt_slice.push_str(&tuning_mod_body);
                     last_mod_end_loc = mod_def.loc.end() as usize;
                 }
-                
+
                 fmt_slice.push_str(&state.output[last_mod_end_loc..]);
-                
+
                 if fmt_slice.starts_with(EXIST_MULTI_ADDRESS_TAG) {
                     state.output = fmt_slice[EXIST_MULTI_ADDRESS_TAG.len()..].to_string();
                 } else {
@@ -300,7 +305,7 @@ impl FunctionalFormat {
                 }
             }
         }
-        
+
         state
     }
 
@@ -329,7 +334,12 @@ impl FunctionalFormat {
         next_token: Option<&TokenTree>,
         state: FormatState,
     ) -> FormatState {
-        let TokenTree::Nested { elements, kind, note } = token else {
+        let TokenTree::Nested {
+            elements,
+            kind,
+            note,
+        } = token
+        else {
             return state;
         };
 
@@ -339,17 +349,19 @@ impl FunctionalFormat {
         }
 
         let (delimiter, has_colon) = analyze_token_tree_delimiter(elements);
-        let (break_mode, component_break_mode) = 
+        let (break_mode, component_break_mode) =
             self.get_break_mode_begin_nested(token, delimiter, &state);
 
         // Process the start part
-        let mut state = self.format_nested_start_with_state(
-            kind, elements, break_mode, state
-        );
+        let mut state = self.format_nested_start_with_state(kind, elements, break_mode, state);
 
         // Format inner elements
         state = self.format_nested_elements_with_state(
-            token, delimiter, has_colon, component_break_mode.unwrap_or(break_mode), state
+            token,
+            delimiter,
+            has_colon,
+            component_break_mode.unwrap_or(break_mode),
+            state,
         );
 
         // Process the end part
@@ -377,7 +389,13 @@ impl FunctionalFormat {
         new_line_after: bool,
         mut state: FormatState,
     ) -> FormatState {
-        let TokenTree::SimpleToken { content, pos, tok: _, note: _ } = token else {
+        let TokenTree::SimpleToken {
+            content,
+            pos,
+            tok: _,
+            note: _,
+        } = token
+        else {
             return state;
         };
 
@@ -411,13 +429,13 @@ impl FunctionalFormat {
         if let Some(pos) = comment_pos {
             state = self.process_same_line_comment_with_state(pos, false, state);
         }
-        
+
         state = state.push_str("\n");
-        
+
         // Add indentation
         let indent = " ".repeat(state.depth * self.context.local_cfg.indent_size);
         state = state.push_str(&indent);
-        
+
         state
     }
 
@@ -429,14 +447,14 @@ impl FunctionalFormat {
         mut state: FormatState,
     ) -> FormatState {
         let mut comments_processed = 0;
-        
+
         for comment in &self.context.comments[state.comments_index..] {
             if comment.start_offset > pos {
                 break;
             }
 
             let comment_line = self.translate_line(comment.start_offset);
-            
+
             // Handle new lines before the comment
             if (comment_line - state.cur_line) > 1 {
                 if state.get_pre_simple_tok() != Tok::NumSign {
@@ -483,9 +501,9 @@ impl FunctionalFormat {
             }
 
             comments_processed += 1;
-            state = state.set_cur_line(self.translate_line(
-                comment.start_offset + (comment.content.len() as u32) - 1
-            ));
+            state = state.set_cur_line(
+                self.translate_line(comment.start_offset + (comment.content.len() as u32) - 1),
+            );
         }
 
         state = state.advance_comments_index(comments_processed);
@@ -511,10 +529,14 @@ impl FunctionalFormat {
         false // TODO
     }
 
-    fn skip_nested_token_with_state(&self, token: &TokenTree, mut state: FormatState) -> FormatState {
+    fn skip_nested_token_with_state(
+        &self,
+        token: &TokenTree,
+        mut state: FormatState,
+    ) -> FormatState {
         if let TokenTree::Nested { kind, .. } = token {
-            let blk_body_str = &self.context.content
-                [kind.start_pos as usize..=kind.end_pos as usize];
+            let blk_body_str =
+                &self.context.content[kind.start_pos as usize..=kind.end_pos as usize];
             state = state.push_str(blk_body_str);
             state = state.set_cur_line(self.translate_line(kind.end_pos));
         }
@@ -522,10 +544,10 @@ impl FunctionalFormat {
     }
 
     fn get_break_mode_begin_nested(
-        &self, 
-        _token: &TokenTree, 
+        &self,
+        _token: &TokenTree,
         _delimiter: Option<Delimiter>,
-        _state: &FormatState
+        _state: &FormatState,
     ) -> (bool, Option<bool>) {
         (false, None) // TODO
     }
@@ -539,12 +561,12 @@ impl FunctionalFormat {
     ) -> FormatState {
         // Format start token
         state = self.format_token_with_state(&kind.start_token_tree(), None, break_mode, state);
-        
+
         if break_mode {
             state = state.inc_depth();
             state = self.add_new_line_with_state(Some(kind.start_pos), state);
         }
-        
+
         state
     }
 
@@ -605,11 +627,11 @@ impl FunctionalFormat {
 
         state = state.push_str(content);
         state = state.set_cur_line(self.translate_line(*pos));
-        
+
         if !new_line_after && expr_fmt::need_space(token, next_token) {
             state = state.push_str(" ");
         }
-        
+
         state
     }
 
@@ -635,7 +657,8 @@ impl FunctionalFormat {
 
     // Helper method
     fn translate_line(&self, pos: u32) -> u32 {
-        self.context.line_mapping
+        self.context
+            .line_mapping
             .translate(pos, pos)
             .unwrap_or_default()
             .start
@@ -670,7 +693,10 @@ impl FunctionalFormat {
 }
 
 /// Public API function - replaces the original format_entry
-pub fn format_entry_functional(content: impl AsRef<str>, config: Config) -> Result<String, Diagnostics> {
+pub fn format_entry_functional(
+    content: impl AsRef<str>,
+    config: Config,
+) -> Result<String, Diagnostics> {
     let content = content.as_ref();
     let format = FunctionalFormat::new(config, content)?;
     Ok(format.format_token_trees())
@@ -685,7 +711,7 @@ mod tests {
         let state1 = FormatState::new();
         let state2 = state1.clone().push_str("hello");
         let state3 = state2.clone().inc_depth();
-        
+
         // Verify state immutability
         assert_eq!(state1.output, "");
         assert_eq!(state2.output, "hello");
@@ -701,7 +727,7 @@ mod tests {
             .push_str("\n    return 42;")
             .dec_depth()
             .push_str("\n}");
-        
+
         assert!(final_state.output.contains("fn test() {"));
         assert_eq!(final_state.depth, 0);
     }
@@ -710,14 +736,13 @@ mod tests {
     fn test_basic_formatting() {
         let content = "fun test(){return 42;}";
         let config = Config::default();
-        
+
         match format_entry_functional(content, config) {
             Ok(result) => {
                 assert!(!result.is_empty());
                 // Basic formatting verification
             }
-            Err(_) => {
-            }
+            Err(_) => {}
         }
     }
 }

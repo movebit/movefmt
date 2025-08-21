@@ -1484,7 +1484,7 @@ impl Format {
         """
         */
         if (self.translate_line(*pos) - self.cur_line.get()) > 1
-            && expr_fmt::need_break_cur_line_when_trim_blank_lines(&self.get_pre_simple_tok(), tok)
+            && expr_fmt::need_newline_when_trim_blank_line(&self.get_pre_simple_tok(), tok)
         {
             // There are multiple blank lines between the cur_line and the current code simple_token
             tracing::debug!(

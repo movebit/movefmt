@@ -228,14 +228,14 @@ fn format_string(content_origin: String, options: GetOptsOptions) -> Result<i32>
         //     println!("Using experimental functional formatter");
         // }
     }
-    
+
     // TODO: This feature is expected to be available in September 2025
     // let format_result = if options.use_functional {
     //     format_entry_functional(content_origin.clone(), use_config.clone())
     // } else {
     //    format_entry(content_origin.clone(), use_config.clone())
     // };
-    
+
     match format_entry(content_origin.clone(), use_config.clone()) {
         Ok(formatted_text) => {
             let emit_mode = if let Some(op_emit) = options.emit_mode {
@@ -397,14 +397,14 @@ fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> 
         if use_config.verbose() == Verbosity::Verbose {
             println!("Formatting {}", file.display());
         }
-        
+
         // TODO: This feature is expected to be available in September 2025
         // let format_result = if options.use_functional {
         //     format_entry_functional(content_origin.clone(), use_config.clone())
         // } else {
         //    format_entry(content_origin.clone(), use_config.clone())
         // };
-        
+
         match format_entry(content_origin.clone(), use_config.clone()) {
             Ok(formatted_text) => {
                 success_cnt += 1;
