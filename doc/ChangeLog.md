@@ -8,6 +8,7 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.3.0">v1.3.0</a><br/>
 <a href="#v1.2.9">v1.2.9</a><br/>
 <a href="#v1.2.8">v1.2.8</a><br/>
 <a href="#v1.2.7">v1.2.7</a><br/>
@@ -34,7 +35,16 @@
 </table>
 
 
-<a id="v1.2.8"></a>
+<a id="v1.3.0"></a>
+## 2025-08-22, Version v1.3.0
+* [[`72d1c70`](https://github.com/movebit/movefmt/commit/72d1c701b11d555ed9ece59c54158088ed56e6b9)] - optimize expr_fmt (robinlzw)
+* [[`50d88ac`](https://github.com/movebit/movefmt/commit/50d88acc1b6e39fb41c64232df2bc1923949d785)] - add experimental module: fmt_state (robinlzw)
+* [[`021fc6c`](https://github.com/movebit/movefmt/commit/021fc6c07284f951235d41a5be7356aa8158883b)] - optmize code (robinlzw)
+* [[`7057bbd`](https://github.com/movebit/movefmt/commit/7057bbdf18dcb3171d6a695261fa54ded401098c)] - optimize magic number, add is_statement_start_token() (robinlzw)
+* [[`cace7ec`](https://github.com/movebit/movefmt/commit/cace7ecb74e35fc641989b12c1609c43afc584c2)] - update rustc edition (robinlzw)
+
+
+<a id="v1.2.9"></a>
 ## 2025-08-15, Version v1.2.9
 * [[`2626798`](https://github.com/movebit/movefmt/commit/2626798e088ed5c7a7bbe44796c2da48e401ed40)] - upgrade toolchain, remove experimental code, optimize app (robinlzw)
 * [[`a75e8f1`](https://github.com/movebit/movefmt/commit/a75e8f17a5d0302c68403740c82452ea21292af1)] - optimize expr_fmt::nedd_space() (robinlzw)
