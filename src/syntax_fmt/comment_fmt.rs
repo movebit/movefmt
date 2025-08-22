@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::core::token_tree::{Comment, CommentKind};
-use commentfmt::{comment::*, shape::*, Config};
+use commentfmt::{Config, comment::*, shape::*};
 
 impl Comment {
     /// format comment

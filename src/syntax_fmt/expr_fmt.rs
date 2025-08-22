@@ -2,14 +2,76 @@
 // Copyright (c) The BitsLab.MoveBit Contributors
 // SPDX-License-Identifier: Apache-2.0
 
-// use crate::core::token_tree::{NestKind_, Note, TokenTree};
 use crate::core::token_tree::*;
 use move_compiler::parser::lexer::Tok;
+use once_cell::sync::Lazy;
+
+const NO_BREAK_TOKENS: &[Tok] = &[
+    Tok::Script,
+    Tok::Module,
+    Tok::Struct,
+    Tok::Fun,
+    Tok::Spec,
+    Tok::Const,
+    Tok::Friend,
+    Tok::If,
+    Tok::Inline,
+    Tok::Public,
+    Tok::Use,
+    Tok::While,
+    Tok::Native,
+    Tok::NumSign,
+    Tok::Exclaim,
+    Tok::ExclaimEqual,
+    Tok::Percent,
+    Tok::Star,
+    Tok::Plus,
+    Tok::Minus,
+    Tok::Period,
+    Tok::PeriodPeriod,
+    Tok::Slash,
+    Tok::Comma,
+    Tok::Colon,
+    Tok::ColonColon,
+    Tok::Less,
+    Tok::LessEqual,
+    Tok::LessLess,
+    Tok::Equal,
+    Tok::Greater,
+    Tok::GreaterEqual,
+    Tok::GreaterGreater,
+    Tok::Acquires,
+    Tok::As,
+    Tok::Invariant,
+    Tok::EqualEqual,
+];
+
+const NO_BREAK_PAIRS: &[(Tok, Tok)] = &[
+    (Tok::Amp, Tok::Identifier),
+    (Tok::Amp, Tok::LParen),
+    (Tok::Amp, Tok::NumValue),
+    (Tok::AtSign, Tok::Identifier),
+    (Tok::AtSign, Tok::LParen),
+    (Tok::AtSign, Tok::NumValue),
+    (Tok::Identifier, Tok::Identifier),
+    (Tok::LBrace, Tok::Identifier),
+    (Tok::LBrace, Tok::Module),
+    (Tok::LBrace, Tok::NumTypedValue),
+    (Tok::LBrace, Tok::NumValue),
+    (Tok::LParen, Tok::Identifier),
+    (Tok::LParen, Tok::NumTypedValue),
+    (Tok::LParen, Tok::NumValue),
+    (Tok::RBrace, Tok::RBrace),
+];
+
+static NO_BREAK_TOKENS_VEC: Lazy<Vec<Tok>> = Lazy::new(|| NO_BREAK_TOKENS.to_vec());
+
+static NO_BREAK_PAIRS_VEC: Lazy<Vec<(Tok, Tok)>> = Lazy::new(|| NO_BREAK_PAIRS.to_vec());
 
 pub enum TokType {
-    /// abc like token,
+    /// abc like token, e.g., 'if', 'let', 'my_var'
     Alphabet,
-    /// + - ...
+    /// + - * / % ! == >= <= ...
     MathSign,
     ///
     Sign,
@@ -90,6 +152,7 @@ fn is_to_or_except(token: &Option<&TokenTree>) -> bool {
     }
 }
 
+// Counts nested structures and commas within a slice of TokenTrees
 pub(crate) fn get_nested_and_comma_num(elements: &[TokenTree]) -> (usize, usize) {
     let mut result = (0, 0);
     for ele in elements {
@@ -118,6 +181,7 @@ pub(crate) fn get_nested_and_comma_num(elements: &[TokenTree]) -> (usize, usize)
     result
 }
 
+// Determines if a space is needed between the current and next token for formatting.
 pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool {
     if next.is_none() {
         return false;
@@ -350,60 +414,7 @@ pub(crate) fn process_link_access(elements: &[TokenTree], idx: usize) -> (usize,
     (continue_dot_cnt, index - 2)
 }
 
-pub(crate) fn need_break_cur_line_when_trim_blank_lines(current: &Tok, next: &Tok) -> bool {
-    !matches!(
-        (current, next),
-        (
-            Tok::Script
-                | Tok::Module
-                | Tok::Struct
-                | Tok::Fun
-                | Tok::Spec
-                | Tok::Const
-                | Tok::Friend
-                | Tok::If
-                | Tok::Inline
-                | Tok::Public
-                | Tok::Use
-                | Tok::While
-                | Tok::Native
-                | Tok::NumSign
-                | Tok::Exclaim
-                | Tok::ExclaimEqual
-                | Tok::Percent
-                | Tok::Star
-                | Tok::Plus
-                | Tok::Minus
-                | Tok::Period
-                | Tok::PeriodPeriod
-                | Tok::Slash
-                | Tok::Comma
-                | Tok::Colon
-                | Tok::ColonColon
-                | Tok::Less
-                | Tok::LessEqual
-                | Tok::LessLess
-                | Tok::Equal
-                | Tok::Greater
-                | Tok::GreaterEqual
-                | Tok::GreaterGreater
-                | Tok::Acquires
-                | Tok::As
-                | Tok::Invariant
-                | Tok::EqualEqual,
-            _
-        ) | (
-            Tok::AtSign | Tok::Amp,
-            Tok::NumValue | Tok::Identifier | Tok::LParen
-        ) | (Tok::RBrace, Tok::RBrace)
-            | (
-                Tok::LBrace,
-                Tok::Module | Tok::Identifier | Tok::NumValue | Tok::NumTypedValue
-            )
-            | (
-                Tok::LParen,
-                Tok::Identifier | Tok::NumValue | Tok::NumTypedValue
-            )
-            | (Tok::Identifier, Tok::Identifier)
-    )
+// Determines whether a newline is needed for the current line when trimming blank lines.
+pub(crate) fn need_newline_when_trim_blank_line(current: &Tok, next: &Tok) -> bool {
+    !(NO_BREAK_TOKENS_VEC.contains(current) || NO_BREAK_PAIRS_VEC.contains(&(*current, *next)))
 }

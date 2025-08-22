@@ -1,13 +1,14 @@
 // Copyright © Aptos Foundation
 // Copyright (c) The BitsLab.MoveBit Contributors
 // SPDX-License-Identifier: Apache-2.0
-use anyhow::{format_err, Result};
-use commentfmt::{load_config, CliOptions, Config, EmitMode, Verbosity};
+use anyhow::{Result, format_err};
+use commentfmt::{CliOptions, Config, EmitMode, Verbosity, load_config};
 use getopts::{Matches, Options};
 use io::Error as IoError;
 use movefmt::{
     core::fmt::format_entry,
-    tools::movefmt_diff::{make_diff, print_mismatches_default_message, DIFF_CONTEXT_SIZE},
+    // core::fmt_state::format_entry_functional,
+    tools::movefmt_diff::{DIFF_CONTEXT_SIZE, make_diff, print_mismatches_default_message},
     tools::utils::*,
 };
 use std::collections::HashMap;
@@ -154,6 +155,7 @@ fn make_opts() -> Options {
     opts.optflag("v", "verbose", "Print verbose output");
     opts.optflag("q", "quiet", "Print less output");
     opts.optflag("V", "version", "Show version information");
+    // opts.optflag("", "functional", "Use the new functional formatter (experimental)");
     let help_topic_msg = "Show help".to_owned();
     opts.optflagopt("h", "help", &help_topic_msg, "=TOPIC");
     opts.optflag("i", "stdin", "Receive code text from stdin");
@@ -222,7 +224,18 @@ fn format_string(content_origin: String, options: GetOptsOptions) -> Result<i32>
         if let Some(path) = config_path.as_ref() {
             println!("Using movefmt config file {}", path.display());
         }
+        // if options.use_functional {
+        //     println!("Using experimental functional formatter");
+        // }
     }
+
+    // TODO: This feature is expected to be available in September 2025
+    // let format_result = if options.use_functional {
+    //     format_entry_functional(content_origin.clone(), use_config.clone())
+    // } else {
+    //    format_entry(content_origin.clone(), use_config.clone())
+    // };
+
     match format_entry(content_origin.clone(), use_config.clone()) {
         Ok(formatted_text) => {
             let emit_mode = if let Some(op_emit) = options.emit_mode {
@@ -243,7 +256,8 @@ fn format_string(content_origin: String, options: GetOptsOptions) -> Result<i32>
                     if options.quiet.is_none() || !options.quiet.unwrap() {
                         tracing::warn!(
                             "\n{}\n--------------------------------------------------------------------",
-                            "The formatted result of the Move code read from stdin is as follows:".green()
+                            "The formatted result of the Move code read from stdin is as follows:"
+                                .green()
                         );
                     }
                     println!("{}", formatted_text);
@@ -307,7 +321,9 @@ fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> 
                     "movefmt will format all *.move files in the current directory by default."
                         .yellow()
                 );
-                println!("----------------------------------------------------------------------------\n");
+                println!(
+                    "----------------------------------------------------------------------------\n"
+                );
             }
         } else {
             return Err(format_err!(
@@ -381,6 +397,14 @@ fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> 
         if use_config.verbose() == Verbosity::Verbose {
             println!("Formatting {}", file.display());
         }
+
+        // TODO: This feature is expected to be available in September 2025
+        // let format_result = if options.use_functional {
+        //     format_entry_functional(content_origin.clone(), use_config.clone())
+        // } else {
+        //    format_entry(content_origin.clone(), use_config.clone())
+        // };
+
         match format_entry(content_origin.clone(), use_config.clone()) {
             Ok(formatted_text) => {
                 success_cnt += 1;
@@ -572,6 +596,7 @@ struct GetOptsOptions {
     config_path: Option<PathBuf>,
     emit_mode: Option<EmitMode>,
     inline_config: HashMap<String, String>,
+    // use_functional: bool,
 }
 
 impl GetOptsOptions {
@@ -588,6 +613,7 @@ impl GetOptsOptions {
                 None
             },
             config_path: matches.opt_str("config-path").map(PathBuf::from),
+            // use_functional: matches.opt_present("functional"),
             ..Default::default()
         };
         if options.verbose.is_some() && options.quiet.is_some() {
@@ -674,11 +700,7 @@ fn should_escape(
                 p = std::env::current_dir().ok().unwrap_or_default().join(p);
             }
 
-            if file.starts_with(&p) {
-                Some(p)
-            } else {
-                None
-            }
+            if file.starts_with(&p) { Some(p) } else { None }
         });
     escape
 }

@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::tools::utils::FileLineMappingOneFile;
-use commentfmt::comment::contains_comment;
 use commentfmt::Config;
+use commentfmt::comment::contains_comment;
 use move_compiler::parser::ast::Definition;
 use move_compiler::parser::ast::*;
 use move_ir_types::location::*;

@@ -4,8 +4,8 @@
 
 use super::syntax_trait::SingleSyntaxExtractor;
 use crate::tools::utils::*;
-use commentfmt::comment::contains_comment;
 use commentfmt::Config;
+use commentfmt::comment::contains_comment;
 use move_command_line_common::files::FileHash;
 use move_compiler::parser::ast::Definition;
 use move_compiler::parser::ast::*;
@@ -522,7 +522,7 @@ fn test_process_spec_fn_header_too_long_1() {
 fn test_process_pragma_1() {
     if std::env::var("MOVEFMT_LOG").is_err() {
         use tracing_subscriber::EnvFilter;
-        std::env::set_var("MOVEFMT_LOG", "movefmt=DEBUG");
+        unsafe { std::env::set_var("MOVEFMT_LOG", "movefmt=DEBUG") };
         tracing_subscriber::fmt()
             .with_env_filter(EnvFilter::from_env("MOVEFMT_LOG"))
             .init();
@@ -583,7 +583,7 @@ fn test_process_pragma_1() {
 fn test_process_pragma_2() {
     if std::env::var("MOVEFMT_LOG").is_err() {
         use tracing_subscriber::EnvFilter;
-        std::env::set_var("MOVEFMT_LOG", "movefmt=DEBUG");
+        unsafe { std::env::set_var("MOVEFMT_LOG", "movefmt=DEBUG") };
         tracing_subscriber::fmt()
             .with_env_filter(EnvFilter::from_env("MOVEFMT_LOG"))
             .init();

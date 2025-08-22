@@ -1096,6 +1096,7 @@ dependencies = [
  "lsp-types",
  "move-command-line-common",
  "move-ir-types",
+ "once_cell",
  "pprof",
  "rayon",
  "regex",

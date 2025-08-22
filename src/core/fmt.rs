@@ -28,6 +28,10 @@ use std::sync::Arc;
 const EXIST_MULTI_MODULE_TAG: &str = "module fmt";
 const EXIST_MULTI_ADDRESS_TAG: &str = "address fmt";
 
+const MAX_ANALYZE_LENGTH: usize = 64;
+const MIN_BREAK_LENGTH: usize = 32;
+const MIN_NESTED_LENGTH: usize = 16;
+
 pub struct FormatContext {
     pub content: String,
     pub pre_simple_token: TokenTree,
@@ -93,6 +97,35 @@ fn is_bin_op(op_token: Tok) -> bool {
             | Tok::PeriodPeriod
             | Tok::EqualEqualGreater
             | Tok::LessEqualEqualGreater
+    )
+}
+
+fn is_statement_start_token(tok: Tok) -> bool {
+    matches!(
+        tok,
+        Tok::Friend
+            | Tok::Const
+            | Tok::Fun
+            | Tok::While
+            | Tok::Use
+            | Tok::Struct
+            | Tok::Spec
+            | Tok::Return
+            | Tok::Public
+            | Tok::Native
+            | Tok::Inline
+            | Tok::Move
+            | Tok::Module
+            | Tok::Loop
+            | Tok::Let
+            | Tok::Invariant
+            | Tok::If
+            | Tok::Continue
+            | Tok::Break
+            | Tok::NumSign
+            | Tok::Amp
+            | Tok::LParen
+            | Tok::Abort
     )
 }
 
@@ -242,13 +275,13 @@ impl Format {
         let (mut result, mut elements_len) = (false, 0);
         if let TokenTree::Nested { elements, kind, .. } = current {
             result = matches!(kind.kind, NestKind_::Brace | NestKind_::ParentTheses)
-                && analyze_token_tree_length(elements, 64) > 32;
+                && analyze_token_tree_length(elements, MAX_ANALYZE_LENGTH) > MIN_BREAK_LENGTH;
             elements_len = elements.len();
         }
         (result, elements_len)
     }
 
-    fn check_next_token_canbe_break_in_nested(next: Option<&TokenTree>) -> bool {
+    fn check_next_tok_canbe_break(next: Option<&TokenTree>) -> bool {
         if let Some((next_tok, next_content)) = next.map(|x| match x {
             TokenTree::SimpleToken {
                 content,
@@ -260,32 +293,12 @@ impl Format {
                 (kind.kind.start_tok(), kind.kind.start_tok().to_string())
             }
         }) {
-            match next_tok {
-                Tok::Friend
-                | Tok::Const
-                | Tok::Fun
-                | Tok::While
-                | Tok::Use
-                | Tok::Struct
-                | Tok::Spec
-                | Tok::Return
-                | Tok::Public
-                | Tok::Native
-                | Tok::Inline
-                | Tok::Move
-                | Tok::Module
-                | Tok::Loop
-                | Tok::Let
-                | Tok::Invariant
-                | Tok::If
-                | Tok::Continue
-                | Tok::Break
-                | Tok::NumSign
-                | Tok::Amp
-                | Tok::LParen
-                | Tok::Abort => true,
-                Tok::Identifier => next_content.as_str() == "entry",
-                _ => false,
+            if is_statement_start_token(next_tok) {
+                true
+            } else if next_tok == Tok::Identifier {
+                next_content.as_str() == "entry"
+            } else {
+                false
             }
         } else {
             true
@@ -381,7 +394,7 @@ impl Format {
                     ..
                 } = nested_nested_in_current_tree
                 {
-                    if nested_nested_in_current_tree.token_len() > 32
+                    if nested_nested_in_current_tree.token_len() as usize > MIN_BREAK_LENGTH
                         && tmp_kind.kind == NestKind_::Brace
                     {
                         return false;
@@ -449,7 +462,7 @@ impl Format {
             return false;
         }
 
-        let b_judge_next_token = Self::check_next_token_canbe_break_in_nested(next);
+        let b_judge_next_token = Self::check_next_tok_canbe_break(next);
 
         // special case for `}}`
         if let TokenTree::Nested { kind, .. } = current {
@@ -487,11 +500,10 @@ impl Format {
         current: &TokenTree,
         next: Option<&TokenTree>,
     ) -> bool {
-        if kind_outer.end_pos - current.end_pos() < 16 {
+        if kind_outer.end_pos - current.end_pos() < MIN_NESTED_LENGTH.try_into().unwrap() {
             return false;
         }
-        let b_judge_next_token =
-            next.is_some() && Self::check_next_token_canbe_break_in_nested(next);
+        let b_judge_next_token = next.is_some() && Self::check_next_tok_canbe_break(next);
         if matches!(kind_outer.kind, NestKind_::Brace | NestKind_::ParentTheses)
             && b_judge_next_token
             && Self::is_long_nested_token(current).0
@@ -589,7 +601,7 @@ impl Format {
             next_token = next_tok;
         }
 
-        if nested_kind_len > 16 && kind.kind != NestKind_::Type {
+        if nested_kind_len > MIN_NESTED_LENGTH && kind.kind != NestKind_::Type {
             new_line |=
                 self.check_cur_token_is_long_bin_op(t, next_t, next_token, index, kind, &elements);
             if !new_line && next_t.is_some() {
@@ -862,7 +874,7 @@ impl Format {
                 let is_annotation = self.get_pre_simple_tok() == Tok::NumSign;
                 new_line_mode = (is_annotation && nested_len > max_line_width)
                     || (!is_annotation && nested_len as f32 > max_len_no_add_line);
-                if elements.len() > 32 {
+                if elements.len() > MIN_BREAK_LENGTH {
                     let mut bin_op_cnt = 0;
                     let mut complex_ele_cnt = 0;
                     for ele in elements {
@@ -914,7 +926,7 @@ impl Format {
 
                 // case5: has too much nested blks
                 let (nested_cnt, _) = expr_fmt::get_nested_and_comma_num(elements);
-                new_line_mode |= nested_cnt >= 2 && nested_len > 32;
+                new_line_mode |= nested_cnt >= 2 && nested_len > MIN_BREAK_LENGTH;
 
                 // case6: has too much control blks
                 new_line_mode |= self.get_control_blk_cnt(elements) >= 2;
@@ -1096,7 +1108,10 @@ impl Format {
 
         let is_call = kind.kind == NestKind_::ParentTheses && call_handler.paren_in_call(kind);
         let mut need_get_break_mode_on_component = component_break_mode;
-        if elements.len() > 32 && kind.kind == NestKind_::Bracket && !component_break_mode {
+        if elements.len() > MIN_BREAK_LENGTH
+            && kind.kind == NestKind_::Bracket
+            && !component_break_mode
+        {
             need_get_break_mode_on_component = false;
         }
         while internal_token_idx < len {
@@ -1275,7 +1290,7 @@ impl Format {
         let mut b_add_indent = true;
         for i in 0..elements.len() {
             let ele_str = elements[i].simple_str().unwrap_or_default();
-            if !matches!(ele_str, "#" | "" | "module") || i > 16 {
+            if !matches!(ele_str, "#" | "" | "module") || i > MIN_NESTED_LENGTH {
                 break;
             }
             if elements[i].simple_str().unwrap_or_default() == "module" {
@@ -1386,7 +1401,7 @@ impl Format {
                     + content.len()
                     + 2
                     + next_token.unwrap().token_len() as usize
-                    > self.global_cfg.max_width() - 16
+                    > self.global_cfg.max_width() - MIN_NESTED_LENGTH
                 {
                     new_line_before_else = true;
                 }
@@ -1469,7 +1484,7 @@ impl Format {
         """
         */
         if (self.translate_line(*pos) - self.cur_line.get()) > 1
-            && expr_fmt::need_break_cur_line_when_trim_blank_lines(&self.get_pre_simple_tok(), tok)
+            && expr_fmt::need_newline_when_trim_blank_line(&self.get_pre_simple_tok(), tok)
         {
             // There are multiple blank lines between the cur_line and the current code simple_token
             tracing::debug!(
@@ -1498,7 +1513,8 @@ impl Format {
             return;
         };
 
-        let not_break_special_tok = *tok == Tok::NumTypedValue && content.len() > 64;
+        let not_break_special_tok =
+            *tok == Tok::NumTypedValue && content.len() > MAX_ANALYZE_LENGTH;
         let last_line_len_after_trim_leading_space = self
             .last_line()
             .clone()

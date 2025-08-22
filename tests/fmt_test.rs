@@ -47,7 +47,7 @@ fn scan_dir(dir: &str) -> usize {
 fn test_single_file() {
     eprintln!("================== test_single_file ===================");
     if std::env::var("MOVEFMT_LOG").is_err() {
-        std::env::set_var("MOVEFMT_LOG", "movefmt=ERROR");
+        unsafe { std::env::set_var("MOVEFMT_LOG", "movefmt=ERROR") };
         tracing_subscriber::fmt()
             .with_env_filter(EnvFilter::from_env("MOVEFMT_LOG"))
             .init();
@@ -87,8 +87,7 @@ fn test_content(content_origin: &str, p: impl AsRef<Path>) {
         Err(err) => {
             unreachable!(
                 "should be able to parse after format:err{:?},after format:\n\n################\n{}\n###############",
-                err,
-                content_format
+                err, content_format
             );
         }
     };
@@ -239,7 +238,7 @@ fn extract_tokens(content: &str) -> Result<Vec<ExtractToken>, Vec<String>> {
 #[test]
 fn test_dir() {
     let start = Instant::now();
-    std::env::set_var("MOVEFMT_LOG", "movefmt=WARN");
+    unsafe { std::env::set_var("MOVEFMT_LOG", "movefmt=WARN") };
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_env("MOVEFMT_LOG"))
         .init();

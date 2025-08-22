@@ -4,8 +4,8 @@
 
 use lsp_types::{Location, Position};
 use move_command_line_common::files::FileHash;
-use move_compiler::shared::{CompilationEnv, LanguageVersion};
 use move_compiler::Flags;
+use move_compiler::shared::{CompilationEnv, LanguageVersion};
 use move_ir_types::location::*;
 
 use std::collections::HashMap;
@@ -416,22 +416,24 @@ pub fn cpu_pprof(_seconds: u64) {
         .blocklist(&["libc", "libgcc", "pthread", "vdso"])
         .build()
         .unwrap();
-    std::thread::spawn(move || loop {
-        std::thread::sleep(Duration::new(_seconds, 0));
-        match guard.report().build() {
-            Result::Ok(report) => {
-                // let mut tmp = std::env::temp_dir();
-                let mut tmp = PathBuf::from_str("/Users/yuyang/.movefmt").unwrap();
+    std::thread::spawn(move || {
+        loop {
+            std::thread::sleep(Duration::new(_seconds, 0));
+            match guard.report().build() {
+                Result::Ok(report) => {
+                    // let mut tmp = std::env::temp_dir();
+                    let mut tmp = PathBuf::from_str("/Users/yuyang/.movefmt").unwrap();
 
-                tmp.push("movefmt-flamegraph.svg");
-                let file = File::create(tmp.clone()).unwrap();
-                report.flamegraph(file).unwrap();
-                tracing::debug!("pprof file at {:?}", tmp.as_path());
-            }
-            Result::Err(e) => {
-                tracing::error!("build report failed,err:{}", e);
-            }
-        };
+                    tmp.push("movefmt-flamegraph.svg");
+                    let file = File::create(tmp.clone()).unwrap();
+                    report.flamegraph(file).unwrap();
+                    tracing::debug!("pprof file at {:?}", tmp.as_path());
+                }
+                Result::Err(e) => {
+                    tracing::error!("build report failed,err:{}", e);
+                }
+            };
+        }
     });
 }
 #[cfg(target_os = "windows")]
