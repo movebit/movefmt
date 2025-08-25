@@ -117,9 +117,10 @@ impl SingleSyntaxExtractor for CallHandler {
 
     fn collect_expr(&mut self, e: &Exp) {
         match &e.value {
-            Exp_::Call(name, _, _tys, es) => {
+            Exp_::Call(name, call_kind, _tys, es) => {
                 if name.loc.end() > es.loc.start() {
-                    if is_chained_call(e).0 {
+                    if is_chained_call(e).0 &&
+                        *call_kind == CallKind::Receiver {
                         self.link_call_exp_vec.push(e.clone());
                     } else {
                         es.value.iter().for_each(|e| self.collect_expr(e));
@@ -411,21 +412,15 @@ impl CallHandler {
             return (false, 0);
         }
 
-        // TODO: last_call_name_loc_vec canbe removed, it's same effect as link_call_exp_vec
-        let mut last_call_name_loc_vec = vec![];
-        for link_call_loc in self.link_call_exp_vec.iter() {
-            if let Exp_::Call(name, CallKind::Receiver, _tys, _) = &link_call_loc.value {
-                last_call_name_loc_vec.push(name.loc);
-            }
-        }
-
         let mut index = idx;
         while index <= elements.len() - 2 {
             let t = elements.get(index).unwrap();
             if t.simple_str().unwrap_or_default().contains('.') {
-                for last_call_name_loc in last_call_name_loc_vec.iter() {
-                    if t.end_pos() == last_call_name_loc.start() {
-                        return (true, index);
+                for last_call_name_loc in self.link_call_exp_vec.iter() {
+                    if let Exp_::Call(name, ..) = &last_call_name_loc.value {
+                        if t.end_pos() == name.loc.start() {
+                            return (true, index);
+                        }
                     }
                 }
             }
