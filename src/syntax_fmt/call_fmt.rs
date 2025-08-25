@@ -411,6 +411,7 @@ impl CallHandler {
             return (false, 0);
         }
 
+        // TODO: last_call_name_loc_vec canbe removed, it's same effect as link_call_exp_vec
         let mut last_call_name_loc_vec = vec![];
         for link_call_loc in self.link_call_exp_vec.iter() {
             if let Exp_::Call(name, CallKind::Receiver, _tys, _) = &link_call_loc.value {

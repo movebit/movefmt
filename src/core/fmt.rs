@@ -348,7 +348,6 @@ impl Format {
                 self.get_cur_line_len(),
             ) != 2
         {
-            tracing::debug!("\n\n----------\n");
             return judge_equal_tok_is_long_op_fn();
         }
 
