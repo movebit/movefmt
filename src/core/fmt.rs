@@ -616,27 +616,26 @@ impl Format {
     }
 
     fn process_fn_header(&self) {
-        let cur_ret = self.ret.clone().into_inner();
-        if let Some(last_fun_idx) = cur_ret.rfind("fun") {
-            let fun_header: &str = &cur_ret[last_fun_idx..];
-            if let Some(specifier_idx) = fun_header.rfind("fun") {
-                let indent_str = " "
-                    .to_string()
-                    .repeat((self.depth.get() + 1) * self.local_cfg.indent_size);
-                let fun_specifier_fmted_str = fun_fmt::fun_header_specifier_fmt(
-                    &fun_header[specifier_idx + 1..],
-                    &indent_str,
-                );
+        let mut ret = self.ret.borrow_mut();
+        let cur = ret.as_str();
+        let Some(last_fun_idx) = cur.rfind("fun") else {
+            return;
+        };
 
-                let ret_copy = &self.ret.clone().into_inner()[0..last_fun_idx + specifier_idx + 1];
-                let mut new_ret = ret_copy.to_string();
-                new_ret.push_str(fun_specifier_fmted_str.as_str());
-                *self.ret.borrow_mut() = new_ret.to_string();
-            }
-        }
-        if self.ret.clone().into_inner().contains("writes") {
-            tracing::debug!("self.last_line = {:?}", self.last_line());
-        }
+        let fun_header = &cur[last_fun_idx..];
+        let Some(specifier_idx) = fun_header.find("fun") else {
+            return;
+        };
+
+        let indent = " ".repeat((self.depth.get() + 1) * self.local_cfg.indent_size);
+        let fun_specifier_fmted_str =
+            fun_fmt::fun_header_specifier_fmt(&fun_header[specifier_idx + 1..], &indent);
+
+        *ret = format!(
+            "{}{}",
+            &cur[..=last_fun_idx + specifier_idx],
+            fun_specifier_fmted_str
+        );
     }
 
     fn get_break_mode_of_fun_call(
@@ -1176,7 +1175,7 @@ impl Format {
                     while internal_token_idx <= last_dot_idx + 1 {
                         is_dot_new_line = match elements.get(internal_token_idx + 1) {
                             None => false,
-                            Some(next_t) => next_t.simple_str().unwrap_or_default().contains('.'),
+                            Some(next_t) => next_t.get_start_tok() == Tok::Period,
                         };
                         self.format_single_token(
                             &nested_token,
