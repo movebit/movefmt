@@ -119,8 +119,7 @@ impl SingleSyntaxExtractor for CallHandler {
         match &e.value {
             Exp_::Call(name, call_kind, _tys, es) => {
                 if name.loc.end() > es.loc.start() {
-                    if is_chained_call(e).0 &&
-                        *call_kind == CallKind::Receiver {
+                    if is_chained_call(e).0 && *call_kind == CallKind::Receiver {
                         self.link_call_exp_vec.push(e.clone());
                     } else {
                         es.value.iter().for_each(|e| self.collect_expr(e));
@@ -408,26 +407,15 @@ impl CallHandler {
     }
 
     pub(crate) fn is_in_link_call(&self, elements: &[TokenTree], idx: usize) -> (bool, usize) {
-        if idx >= elements.len() - 1 {
-            return (false, 0);
-        }
-
-        let mut index = idx;
-        while index <= elements.len() - 2 {
-            let t = elements.get(index).unwrap();
-            if t.simple_str().unwrap_or_default().contains('.') {
-                for last_call_name_loc in self.link_call_exp_vec.iter() {
-                    if let Exp_::Call(name, ..) = &last_call_name_loc.value {
-                        if t.end_pos() == name.loc.start() {
-                            return (true, index);
-                        }
-                    }
-                }
-            }
-            index += 1;
-        }
-
-        (false, 0)
+        (idx..elements.len().saturating_sub(1))
+            .find(|&i| {
+                let t = &elements[i];
+                t.get_end_tok() == Tok::Period
+                    && self.link_call_exp_vec.iter().any(
+                        |c| matches!(&c.value, Exp_::Call(n, ..) if t.end_pos() == n.loc.start()),
+                    )
+            })
+            .map_or((false, 0), |i| (true, i))
     }
 
     pub(crate) fn component_is_complex_blk(
