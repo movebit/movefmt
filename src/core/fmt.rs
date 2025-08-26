@@ -72,61 +72,59 @@ pub struct FormatConfig {
     pub(crate) max_len_no_add_line: f32,
 }
 
-fn is_bin_op(op_token: Tok) -> bool {
-    matches!(
-        op_token,
-        Tok::Equal
-            | Tok::EqualEqual
-            | Tok::ExclaimEqual
-            | Tok::Less
-            | Tok::Greater
-            | Tok::LessEqual
-            | Tok::GreaterEqual
-            | Tok::PipePipe
-            | Tok::AmpAmp
-            | Tok::Caret
-            | Tok::Pipe
-            | Tok::Amp
-            | Tok::LessLess
-            | Tok::GreaterGreater
-            | Tok::Plus
-            | Tok::Minus
-            | Tok::Star
-            | Tok::Slash
-            | Tok::Percent
-            | Tok::PeriodPeriod
-            | Tok::EqualEqualGreater
-            | Tok::LessEqualEqualGreater
-    )
-}
+const BIN_OPS: [Tok; 22] = [
+    Tok::Equal,
+    Tok::EqualEqual,
+    Tok::ExclaimEqual,
+    Tok::Less,
+    Tok::Greater,
+    Tok::LessEqual,
+    Tok::GreaterEqual,
+    Tok::PipePipe,
+    Tok::AmpAmp,
+    Tok::Caret,
+    Tok::Pipe,
+    Tok::Amp,
+    Tok::LessLess,
+    Tok::GreaterGreater,
+    Tok::Plus,
+    Tok::Minus,
+    Tok::Star,
+    Tok::Slash,
+    Tok::Percent,
+    Tok::PeriodPeriod,
+    Tok::EqualEqualGreater,
+    Tok::LessEqualEqualGreater,
+];
 
-fn is_statement_start_token(tok: Tok) -> bool {
-    matches!(
-        tok,
-        Tok::Friend
-            | Tok::Const
-            | Tok::Fun
-            | Tok::While
-            | Tok::Use
-            | Tok::Struct
-            | Tok::Spec
-            | Tok::Return
-            | Tok::Public
-            | Tok::Native
-            | Tok::Inline
-            | Tok::Move
-            | Tok::Module
-            | Tok::Loop
-            | Tok::Let
-            | Tok::Invariant
-            | Tok::If
-            | Tok::Continue
-            | Tok::Break
-            | Tok::NumSign
-            | Tok::Amp
-            | Tok::LParen
-            | Tok::Abort
-    )
+const STMT_START_TOKS: [Tok; 23] = [
+    Tok::Friend,
+    Tok::Const,
+    Tok::Fun,
+    Tok::While,
+    Tok::Use,
+    Tok::Struct,
+    Tok::Spec,
+    Tok::Return,
+    Tok::Public,
+    Tok::Native,
+    Tok::Inline,
+    Tok::Move,
+    Tok::Module,
+    Tok::Loop,
+    Tok::Let,
+    Tok::Invariant,
+    Tok::If,
+    Tok::Continue,
+    Tok::Break,
+    Tok::NumSign,
+    Tok::Amp,
+    Tok::LParen,
+    Tok::Abort,
+];
+
+fn is_bin_op(tok: Tok) -> bool {
+    BIN_OPS.contains(&tok)
 }
 
 fn token_to_ability(token: Tok, content: &str) -> Option<Ability_> {
@@ -293,7 +291,7 @@ impl Format {
                 (kind.kind.start_tok(), kind.kind.start_tok().to_string())
             }
         }) {
-            if is_statement_start_token(next_tok) {
+            if STMT_START_TOKS.contains(&next_tok) {
                 true
             } else if next_tok == Tok::Identifier {
                 next_content.as_str() == "entry"
@@ -546,7 +544,7 @@ impl Format {
                         let ele = elements.get(idx).unwrap();
                         idx -= 1;
                         if let Some(key) = ele.simple_str() {
-                            if key.contains("fun") {
+                            if key.contains(&Tok::Fun.to_string()) {
                                 break;
                             }
                         }
@@ -582,7 +580,7 @@ impl Format {
         }) {
             if new_line
                 && d == t_str
-                && t_str.unwrap_or_default() == ","
+                && t_str.unwrap_or_default() == &Tok::Comma.to_string()
                 && token_to_ability(
                     self.get_pre_simple_tok(),
                     &self
@@ -618,12 +616,12 @@ impl Format {
     fn process_fn_header(&self) {
         let mut ret = self.ret.borrow_mut();
         let cur = ret.as_str();
-        let Some(last_fun_idx) = cur.rfind("fun") else {
+        let Some(last_fun_idx) = cur.rfind(&Tok::Fun.to_string()) else {
             return;
         };
 
         let fun_header = &cur[last_fun_idx..];
-        let Some(specifier_idx) = fun_header.find("fun") else {
+        let Some(specifier_idx) = fun_header.find(&Tok::Fun.to_string()) else {
             return;
         };
 
@@ -1138,7 +1136,7 @@ impl Format {
             }
 
             if internal_token_idx == len - 1
-                && cur_token_tree.simple_str().unwrap_or_default() == ","
+                && cur_token_tree.simple_str().unwrap_or_default() == &Tok::Comma.to_string()
             {
                 internal_token_idx += 1;
                 continue;
@@ -1385,7 +1383,8 @@ impl Format {
         let mut new_line_before_else = false;
         if *tok == Tok::Else {
             let get_cur_line_len = self.get_cur_line_len();
-            let has_special_key = get_cur_line_len != self.last_line().len();
+            let last_line_len = self.last_line().len();
+            let has_special_key = get_cur_line_len != last_line_len;
             if self.get_pre_simple_tok() == Tok::RBrace {
                 // case1
                 if has_special_key {
@@ -1395,7 +1394,7 @@ impl Format {
                 }
             } else if next_token.is_some() {
                 // case2
-                if self.last_line().len()
+                if last_line_len
                     + content.len()
                     + 2
                     + next_token.unwrap().token_len() as usize
@@ -1738,7 +1737,6 @@ impl Format {
             if c.start_offset > pos {
                 break;
             }
-
             let this_cmt_start_line = self.translate_line(c.start_offset);
             if (this_cmt_start_line - self.cur_line.get()) > 1 {
                 tracing::debug!(
@@ -1789,9 +1787,10 @@ impl Format {
                     let line_start = this_cmt_start_line;
                     let line_end = self.translate_line(end);
 
+                    let no_space = &[Tok::RParen.to_string(), Tok::Comma.to_string(), Tok::Semicolon.to_string()];
                     if line_start != line_end {
                         self.new_line(None);
-                    } else if content != ")" && content != "," && content != ";" {
+                    } else if !no_space.contains(&content) {
                         self.push_str(" ");
                     }
                     last_cmt_is_block_cmt = true;
