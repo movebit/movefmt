@@ -1084,6 +1084,44 @@ impl Format {
         }
     }
 
+    fn format_dot_exp_chain(
+        &self,
+        elements: &[TokenTree],
+        idx: &mut usize,
+        nested_token: &TokenTree,
+        pound_sign: &mut Option<usize>,
+    ) -> bool {
+        let (link_len, mut last_dot_idx) = expr_fmt::process_link_access(elements, *idx + 1);
+        let mut need_process_link = link_len > 3 && last_dot_idx > *idx;
+
+        if !need_process_link {
+            let in_link_call = self
+                .syntax_handler
+                .handler_immut::<CallHandler>()
+                .is_in_link_call(elements, *idx + 1);
+            last_dot_idx = in_link_call.1;
+            need_process_link = in_link_call.0 && last_dot_idx > *idx;
+        }
+
+        if !need_process_link {
+            return false;
+        }
+
+        tracing::debug!("before process_link, last_line = {}", self.last_line());
+        self.inc_depth();
+        while *idx <= last_dot_idx + 1 {
+            let next_is_dot = elements
+                .get(*idx + 1)
+                .map_or(false, |t| t.get_start_tok() == Tok::Period);
+
+            self.format_single_token(nested_token, *idx, false, next_is_dot, pound_sign);
+            *idx += 1;
+        }
+        self.dec_depth();
+
+        true
+    }
+
     fn format_each_token_in_nested_elements(
         &self,
         nested_token: &TokenTree,
@@ -1146,47 +1184,15 @@ impl Format {
                 pound_sign = Some(internal_token_idx)
             }
 
-            if Tok::Period == self.get_pre_simple_tok() {
-                let in_link_access =
-                    expr_fmt::process_link_access(elements, internal_token_idx + 1);
-                let mut last_dot_idx = in_link_access.1;
-                let mut need_process_link =
-                    in_link_access.0 > 3 && last_dot_idx > internal_token_idx;
-                if !need_process_link {
-                    let in_link_call =
-                        call_handler.is_in_link_call(elements, internal_token_idx + 1);
-                    last_dot_idx = in_link_call.1;
-                    if in_link_call.0 && last_dot_idx > internal_token_idx {
-                        tracing::trace!(
-                            "in_link_call, in_link_call = {:?}, last_line = {}",
-                            in_link_call,
-                            self.last_line()
-                        );
-                        need_process_link = true;
-                    }
-                }
-
-                if need_process_link {
-                    tracing::debug!("before process_link, last_line = {}", self.last_line());
-                    self.inc_depth();
-                    let mut is_dot_new_line;
-                    while internal_token_idx <= last_dot_idx + 1 {
-                        is_dot_new_line = match elements.get(internal_token_idx + 1) {
-                            None => false,
-                            Some(next_t) => next_t.get_start_tok() == Tok::Period,
-                        };
-                        self.format_single_token(
-                            &nested_token,
-                            internal_token_idx,
-                            false,
-                            is_dot_new_line,
-                            &mut pound_sign,
-                        );
-                        internal_token_idx += 1;
-                    }
-                    self.dec_depth();
-                    continue;
-                }
+            if Tok::Period == self.get_pre_simple_tok()
+                && self.format_dot_exp_chain(
+                    elements,
+                    &mut internal_token_idx,
+                    nested_token,
+                    &mut pound_sign,
+                )
+            {
+                continue;
             }
 
             self.format_single_token(
@@ -1394,10 +1400,7 @@ impl Format {
                 }
             } else if next_token.is_some() {
                 // case2
-                if last_line_len
-                    + content.len()
-                    + 2
-                    + next_token.unwrap().token_len() as usize
+                if last_line_len + content.len() + 2 + next_token.unwrap().token_len() as usize
                     > self.global_cfg.max_width() - MIN_NESTED_LENGTH
                 {
                     new_line_before_else = true;
@@ -1787,7 +1790,11 @@ impl Format {
                     let line_start = this_cmt_start_line;
                     let line_end = self.translate_line(end);
 
-                    let no_space = &[Tok::RParen.to_string(), Tok::Comma.to_string(), Tok::Semicolon.to_string()];
+                    let no_space = &[
+                        Tok::RParen.to_string(),
+                        Tok::Comma.to_string(),
+                        Tok::Semicolon.to_string(),
+                    ];
                     if line_start != line_end {
                         self.new_line(None);
                     } else if !no_space.contains(&content) {
@@ -2056,11 +2063,10 @@ pub fn format_entry(content: impl AsRef<str>, config: Config) -> Result<String, 
         content,
         FormatContext::new(content.to_string()),
     );
-    // Todo:
+
     full_fmt.generate_token_tree(content)?;
     timer = timer.done_parsing();
 
-    // wait for notify
     let result = full_fmt.format_token_trees();
     timer = timer.done_formatting();
     if config.verbose() == Verbosity::Verbose {
