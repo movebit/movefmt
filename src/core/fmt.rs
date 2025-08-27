@@ -1044,23 +1044,21 @@ impl Format {
     fn format_single_token(
         &self,
         nested_token: &TokenTree,
-        internal_token_idx: usize,
-        pound_sign_new_line: bool,
+        token_idx: usize,
         new_line: bool,
-        pound_sign: &mut Option<usize>,
     ) {
         let TokenTree::Nested { elements, .. } = nested_token else {
             return;
         };
-        let token = elements.get(internal_token_idx).unwrap();
-        let next_t = elements.get(internal_token_idx + 1);
+        let token = elements.get(token_idx).unwrap();
+        let next_t = elements.get(token_idx + 1);
 
-        self.format_token_trees_internal(token, next_t, pound_sign_new_line || new_line);
+        let pre_tok_is_num_sign = Tok::NumSign == self.get_pre_simple_tok();
+        self.format_token_trees_internal(token, next_t, pre_tok_is_num_sign || new_line);
 
-        if pound_sign_new_line {
-            tracing::debug!("in loop<TokenTree::Nested> pound_sign_new_line = true");
+        if pre_tok_is_num_sign {
+            tracing::debug!("in loop<TokenTree::Nested> pre_tok_is_num_sign = true");
             self.new_line(Some(token.end_pos()));
-            *pound_sign = None;
             return;
         }
 
@@ -1089,7 +1087,6 @@ impl Format {
         elements: &[TokenTree],
         idx: &mut usize,
         nested_token: &TokenTree,
-        pound_sign: &mut Option<usize>,
     ) -> bool {
         let (link_len, mut last_dot_idx) = expr_fmt::process_link_access(elements, *idx + 1);
         let mut need_process_link = link_len > 3 && last_dot_idx > *idx;
@@ -1114,7 +1111,7 @@ impl Format {
                 .get(*idx + 1)
                 .map_or(false, |t| t.get_start_tok() == Tok::Period);
 
-            self.format_single_token(nested_token, *idx, false, next_is_dot, pound_sign);
+            self.format_single_token(nested_token, *idx, next_is_dot);
             *idx += 1;
         }
         self.dec_depth();
@@ -1122,7 +1119,7 @@ impl Format {
         true
     }
 
-    fn format_each_token_in_nested_elements(
+    fn format_nested_elements(
         &self,
         nested_token: &TokenTree,
         delimiter: Option<Delimiter>,
@@ -1136,29 +1133,23 @@ impl Format {
         let nestd_kind_len = self.get_kind_len_after_trim_space(*kind, false);
         let old_kind = self.format_context.borrow_mut().cur_nested_kind;
         self.format_context.borrow_mut().cur_nested_kind = *kind;
-        let mut pound_sign = None;
-        let len = elements.len();
-        let mut internal_token_idx = 0;
+        let nested_ele_len = elements.len();
+        let mut token_idx = 0;
 
         let is_call = kind.kind == NestKind_::ParentTheses && call_handler.paren_in_call(kind);
         let mut need_get_break_mode_on_component = component_break_mode;
-        if elements.len() > MIN_BREAK_LENGTH
-            && kind.kind == NestKind_::Bracket
-            && !component_break_mode
-        {
+        if nested_ele_len > MIN_BREAK_LENGTH && kind.kind == NestKind_::Bracket && !component_break_mode {
             need_get_break_mode_on_component = false;
         }
-        while internal_token_idx < len {
-            let pound_sign_new_line = pound_sign
-                .map(|x| (x + 1) == internal_token_idx)
-                .unwrap_or_default();
-
-            let cur_token_tree = elements.get(internal_token_idx).unwrap();
+        let last_is_comma = elements
+            .last()
+            .map_or(false, |t| t.get_start_tok() == Tok::Comma);
+        while token_idx < nested_ele_len {
             let mut new_line = self.need_new_line_for_cur_tok_finished(
                 nested_token,
                 delimiter,
                 has_colon,
-                internal_token_idx,
+                token_idx,
                 need_get_break_mode_on_component,
                 nestd_kind_len,
             );
@@ -1168,41 +1159,23 @@ impl Format {
                         self.global_cfg.clone(),
                         kind,
                         elements,
-                        internal_token_idx,
+                        token_idx,
                         self.get_cur_line_len(),
                     );
             }
 
-            if internal_token_idx == len - 1
-                && cur_token_tree.simple_str().unwrap_or_default() == &Tok::Comma.to_string()
-            {
-                internal_token_idx += 1;
-                continue;
-            }
-
-            if cur_token_tree.is_pound() {
-                pound_sign = Some(internal_token_idx)
+            if token_idx == nested_ele_len - 1 && last_is_comma {
+                break;
             }
 
             if Tok::Period == self.get_pre_simple_tok()
-                && self.format_dot_exp_chain(
-                    elements,
-                    &mut internal_token_idx,
-                    nested_token,
-                    &mut pound_sign,
-                )
+                && self.format_dot_exp_chain(elements, &mut token_idx, nested_token)
             {
                 continue;
             }
 
-            self.format_single_token(
-                &nested_token,
-                internal_token_idx,
-                pound_sign_new_line,
-                new_line,
-                &mut pound_sign,
-            );
-            internal_token_idx += 1;
+            self.format_single_token(&nested_token, token_idx, new_line);
+            token_idx += 1;
         }
 
         self.format_context.borrow_mut().cur_nested_kind = old_kind;
@@ -1316,7 +1289,7 @@ impl Format {
         );
 
         // step4 -- format element
-        self.format_each_token_in_nested_elements(
+        self.format_nested_elements(
             nested_token,
             delimiter,
             has_colon,

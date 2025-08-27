@@ -383,7 +383,7 @@ impl CallHandler {
     ) -> bool {
         let current = elements.get(index).unwrap();
         let next_t = elements.get(index + 1);
-        if current.simple_str() != Some(",") || next_t.is_none() {
+        if current.get_end_tok() != Tok::Comma || next_t.is_none() {
             return false;
         }
         let component_lenth = analyze_token_tree_length(&[next_t.unwrap().clone()], 10);
