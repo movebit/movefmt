@@ -12,3 +12,6 @@ pub mod spec_fmt;
 pub mod syntax_handler;
 pub mod syntax_trait;
 pub mod use_fmt;
+
+#[cfg(test)]
+mod test_dot_link;
