@@ -118,6 +118,8 @@ impl SingleSyntaxExtractor for CallHandler {
     fn collect_expr(&mut self, e: &Exp) {
         match &e.value {
             Exp_::Call(name, call_kind, _tys, es) => {
+                self.call_loc_vec.push(e.loc);
+                self.call_paren_loc_vec.push(es.loc);
                 if name.loc.end() > es.loc.start() {
                     if is_chained_call(e).0 && *call_kind == CallKind::Receiver {
                         self.link_call_exp_vec.push(e.clone());
@@ -125,8 +127,6 @@ impl SingleSyntaxExtractor for CallHandler {
                         es.value.iter().for_each(|e| self.collect_expr(e));
                     }
                 } else {
-                    self.call_loc_vec.push(e.loc);
-                    self.call_paren_loc_vec.push(es.loc);
                     es.value.iter().for_each(|e| self.collect_expr(e));
                 }
             }
@@ -395,11 +395,7 @@ impl CallHandler {
 
     pub(crate) fn paren_in_call(&self, kind: &NestKind) -> bool {
         for call_loc in self.call_paren_loc_vec.iter() {
-            tracing::trace!(
-                "call_exp = \n{}\n\n",
-                &self.source[call_loc.start() as usize..call_loc.end() as usize]
-            );
-            if kind.start_pos == call_loc.start() {
+            if kind.end_pos + 1 == call_loc.end() {
                 return true;
             }
         }
@@ -630,7 +626,18 @@ fn is_chained_call(exp: &Exp) -> (bool, u32) {
 
 #[allow(dead_code)]
 fn get_call(fmt_buffer: String) {
-    let call_extractor = CallHandler::new(fmt_buffer.clone());
+    use crate::tools::utils::*;
+    use move_command_line_common::files::FileHash;
+    use move_compiler::parser::syntax::parse_file_string;
+    let mut call_extractor = CallHandler::new(fmt_buffer.clone());
+    let (defs, _) = parse_file_string(
+        &mut get_compile_env(),
+        FileHash::empty(),
+        &fmt_buffer.clone(),
+    )
+    .unwrap();
+    call_extractor.preprocess(&Arc::new(defs));
+
     for call_loc in call_extractor.call_paren_loc_vec.iter() {
         eprintln!(
             "call_exp = \n{}\n\n",
@@ -727,6 +734,25 @@ fn test_get_call() {
         }
 "
         .to_string());
+}
+
+#[test]
+fn test_get_call2() {
+    get_call(
+        "
+module 0x42::M {
+
+    fun fmt_error(address: address, x: u64, address2: address): () {
+
+        let taker1_expected_fill_sizes = vector::empty<u64>();
+        let taker1_total_fill_size = taker1_expected_fill_sizes.fold(
+            0, |acc, x| acc + x
+        );
+    }
+}
+"
+        .to_string(),
+    );
 }
 
 #[test]
