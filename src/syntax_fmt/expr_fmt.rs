@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::core::token_tree::*;
-use move_compiler::parser::lexer::Tok;
+use move_compiler::parser::lexer::{ Lexer, Tok };
 use once_cell::sync::Lazy;
 
 const NO_BREAK_TOKENS: &[Tok] = &[
@@ -142,6 +142,150 @@ impl From<Tok> for TokType {
         }
     }
 }
+
+#[derive(Debug, PartialEq)]
+pub enum ChainMember {
+    Field(String),
+    Call(String, Vec<Vec<ChainMember>>), // function name + argument list (each arg is itself a chain)
+}
+
+struct DotChainParser<'a> {
+    lexer: Lexer<'a>,
+    result: Vec<ChainMember>,
+}
+// let mut lexer = Lexer::new(specifier, FileHash::empty());
+// lexer.advance().unwrap();
+// while lexer.peek() != Tok::EOF {
+//     fun_specifiers_code.push((
+//         lexer.start_loc() as u32,
+//         (lexer.start_loc() + lexer.content().len()) as u32,
+//         lexer.content().to_string(),
+//     ));
+//     if lexer.advance().is_err() {
+//         break;
+//     }
+// }
+// impl DotChainParser {
+//     fn new(codespan_str: &str) -> Self {
+//         Self {
+//             lexer: Lexer::new(codespan_str, FileHash::empty()),
+//             result: Vec::new(),
+//         }
+//     }
+
+//     fn current(&self) -> &Tok {
+//         &self.lexer.peek()
+//     }
+
+//     fn current_word(&self) -> &str {
+//         &self.lexer.content()
+//     }
+
+//     fn advance(&mut self) {
+//         self.lexer.advance().unwrap();
+//     }
+
+//     fn parse_chain(&mut self) -> Option<()> {
+//         let first = match self.current() {
+//             Tok::Identifier => {
+//                 let n = self.current_word().to_string();
+//                 self.advance();
+//                 n
+//             }
+//             _ => return None,
+//         };
+//         self.result.push(ChainMember::Field(first));
+
+//         while matches!(self.current(), Tok::Dot) {
+//             self.advance();
+//             self.parse_postfix()?;
+//         }
+//         Some(())
+//     }
+
+//     fn parse_postfix(&mut self) -> Option<()> {
+//         let name = match self.current() {
+//             Tok::Identifier => {
+//                 let n = self.current_word().to_string();
+//                 self.advance();
+//                 n
+//             }
+//             _ => return None,
+//         };
+    
+//         // Treat as Call if followed by '<' or '('
+//         let is_call = matches!(self.current(), Tok::Less | Tok::LParen);
+//         let args = self.parse_call_args()?; // consumes <>() or (); returns empty vec if none
+//         if is_call || !args.is_empty() {
+//             self.result.push(ChainMember::Call(name, args));
+//         } else {
+//             self.result.push(ChainMember::Field(name));
+//         }
+//         Some(())
+//     }
+
+//     fn parse_call_args(&mut self) -> Option<Vec<Vec<ChainMember>>> {
+//         // Optional generic arguments <...>
+//         if matches!(self.current(), Tok::Less) {
+//             self.advance();
+//             while !matches!(self.current(), Tok::Greater) && !matches!(self.current(), Tok::EOF) {
+//                 self.advance();
+//             }
+//             if matches!(self.current(), Tok::Greater) {
+//                 self.advance();
+//             } else {
+//                 return None;
+//             }
+//         }
+
+//         if !matches!(self.current(), Tok::LParen) {
+//             return Some(Vec::new());
+//         }
+//         self.advance();
+
+//         let mut all = Vec::new();
+//         loop {
+//             if matches!(self.current(), Tok::RParen) {
+//                 break;
+//             }
+//             let mut sub = Vec::new();
+//             {
+//                 let mut p2 = DotChainParser {
+//                     tokens: self.tokens.clone(),
+//                     result: sub,
+//                 };
+//                 p2.parse_chain()?;
+//                 sub = p2.result;
+//             }
+//             all.push(sub);
+
+//             if matches!(self.current(), Tok::Comma) {
+//                 self.advance();
+//             } else {
+//                 break;
+//             }
+//         }
+
+//         if matches!(self.current(), Tok::RParen) {
+//             self.advance();
+//             Some(all)
+//         } else {
+//             None
+//         }
+//     }
+// }
+
+// pub fn parse_dot_chain(codespan_str: &str) -> Option<Vec<ChainMember>> {
+//     let mut p = DotChainParser::new(codespan_str);
+//     p.parse_chain().and_then(|_| {
+//         if matches!(p.current(), Tok::EOF) {
+//             Some(p.result)
+//         } else {
+//             None
+//         }
+//     })
+// }
+
 fn is_to_or_except(token: &Option<&TokenTree>) -> bool {
     match token {
         None => false,
