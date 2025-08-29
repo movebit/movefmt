@@ -8,6 +8,7 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.3.1">v1.3.1</a><br/>
 <a href="#v1.3.0">v1.3.0</a><br/>
 <a href="#v1.2.9">v1.2.9</a><br/>
 <a href="#v1.2.8">v1.2.8</a><br/>
@@ -33,6 +34,19 @@
 </td>
 </tr>
 </table>
+
+
+<a id="v1.3.1"></a>
+## 2025-08-29, Version v1.3.1
+* [[`a7e4f88`](https://github.com/movebit/movefmt/commit/a7e4f88567736953dc3aa34bfe741708ebb64268)] - fix bug: issue#80 (robinlzw)
+* [[`62b6097`](https://github.com/movebit/movefmt/commit/62b60976f0d06aa7fce0cb26bfa3f15fa15c6a32)] - first try: fix issue #79 (robinlzw)
+* [[`b152418`](https://github.com/movebit/movefmt/commit/b152418503c13234e546cf08b35386dcd3ab881b)] - optimize format_single_token() and format_nested_elements() (robinlzw)
+* [[`94acfec`](https://github.com/movebit/movefmt/commit/94acfecc4dbfb980f108c3e7f3fbe26ef132801a)] - add format_dot_exp_chain() (robinlzw)
+* [[`e189b15`](https://github.com/movebit/movefmt/commit/e189b15ce55f265f15cde3dcaa0315a885b2cbdb)] - optimize core; delete is_statement_start_token() (robinlzw)
+* [[`4b05d4a`](https://github.com/movebit/movefmt/commit/4b05d4a61cf16076a6cf37e6117f1e493b1c239a)] - optimize process_fn_header() (robinlzw)
+* [[`d5f8d7e`](https://github.com/movebit/movefmt/commit/d5f8d7e6acfee352eac721aa2ab94c6b6caf1286)] - optimize is_in_link_call() (robinlzw)
+* [[`a7f48f7`](https://github.com/movebit/movefmt/commit/a7f48f73e0267897cc5b73563caae3623be7ed33)] - delete redundant loop in is_in_link_call() (robinlzw)
+* [[`b0e0633`](https://github.com/movebit/movefmt/commit/b0e06333b224ce83ec4114661213c030fe85e187)] - add ut for bug #issue79 (robinlzw)
 
 
 <a id="v1.3.0"></a>
