@@ -72,61 +72,59 @@ pub struct FormatConfig {
     pub(crate) max_len_no_add_line: f32,
 }
 
-fn is_bin_op(op_token: Tok) -> bool {
-    matches!(
-        op_token,
-        Tok::Equal
-            | Tok::EqualEqual
-            | Tok::ExclaimEqual
-            | Tok::Less
-            | Tok::Greater
-            | Tok::LessEqual
-            | Tok::GreaterEqual
-            | Tok::PipePipe
-            | Tok::AmpAmp
-            | Tok::Caret
-            | Tok::Pipe
-            | Tok::Amp
-            | Tok::LessLess
-            | Tok::GreaterGreater
-            | Tok::Plus
-            | Tok::Minus
-            | Tok::Star
-            | Tok::Slash
-            | Tok::Percent
-            | Tok::PeriodPeriod
-            | Tok::EqualEqualGreater
-            | Tok::LessEqualEqualGreater
-    )
-}
+const BIN_OPS: [Tok; 22] = [
+    Tok::Equal,
+    Tok::EqualEqual,
+    Tok::ExclaimEqual,
+    Tok::Less,
+    Tok::Greater,
+    Tok::LessEqual,
+    Tok::GreaterEqual,
+    Tok::PipePipe,
+    Tok::AmpAmp,
+    Tok::Caret,
+    Tok::Pipe,
+    Tok::Amp,
+    Tok::LessLess,
+    Tok::GreaterGreater,
+    Tok::Plus,
+    Tok::Minus,
+    Tok::Star,
+    Tok::Slash,
+    Tok::Percent,
+    Tok::PeriodPeriod,
+    Tok::EqualEqualGreater,
+    Tok::LessEqualEqualGreater,
+];
 
-fn is_statement_start_token(tok: Tok) -> bool {
-    matches!(
-        tok,
-        Tok::Friend
-            | Tok::Const
-            | Tok::Fun
-            | Tok::While
-            | Tok::Use
-            | Tok::Struct
-            | Tok::Spec
-            | Tok::Return
-            | Tok::Public
-            | Tok::Native
-            | Tok::Inline
-            | Tok::Move
-            | Tok::Module
-            | Tok::Loop
-            | Tok::Let
-            | Tok::Invariant
-            | Tok::If
-            | Tok::Continue
-            | Tok::Break
-            | Tok::NumSign
-            | Tok::Amp
-            | Tok::LParen
-            | Tok::Abort
-    )
+const STMT_START_TOKS: [Tok; 23] = [
+    Tok::Friend,
+    Tok::Const,
+    Tok::Fun,
+    Tok::While,
+    Tok::Use,
+    Tok::Struct,
+    Tok::Spec,
+    Tok::Return,
+    Tok::Public,
+    Tok::Native,
+    Tok::Inline,
+    Tok::Move,
+    Tok::Module,
+    Tok::Loop,
+    Tok::Let,
+    Tok::Invariant,
+    Tok::If,
+    Tok::Continue,
+    Tok::Break,
+    Tok::NumSign,
+    Tok::Amp,
+    Tok::LParen,
+    Tok::Abort,
+];
+
+fn is_bin_op(tok: Tok) -> bool {
+    BIN_OPS.contains(&tok)
 }
 
 fn token_to_ability(token: Tok, content: &str) -> Option<Ability_> {
@@ -293,7 +291,7 @@ impl Format {
                 (kind.kind.start_tok(), kind.kind.start_tok().to_string())
             }
         }) {
-            if is_statement_start_token(next_tok) {
+            if STMT_START_TOKS.contains(&next_tok) {
                 true
             } else if next_tok == Tok::Identifier {
                 next_content.as_str() == "entry"
@@ -348,7 +346,6 @@ impl Format {
                 self.get_cur_line_len(),
             ) != 2
         {
-            tracing::debug!("\n\n----------\n");
             return judge_equal_tok_is_long_op_fn();
         }
 
@@ -547,7 +544,7 @@ impl Format {
                         let ele = elements.get(idx).unwrap();
                         idx -= 1;
                         if let Some(key) = ele.simple_str() {
-                            if key.contains("fun") {
+                            if key.contains(&Tok::Fun.to_string()) {
                                 break;
                             }
                         }
@@ -583,7 +580,7 @@ impl Format {
         }) {
             if new_line
                 && d == t_str
-                && t_str.unwrap_or_default() == ","
+                && t_str.unwrap_or_default() == &Tok::Comma.to_string()
                 && token_to_ability(
                     self.get_pre_simple_tok(),
                     &self
@@ -617,27 +614,26 @@ impl Format {
     }
 
     fn process_fn_header(&self) {
-        let cur_ret = self.ret.clone().into_inner();
-        if let Some(last_fun_idx) = cur_ret.rfind("fun") {
-            let fun_header: &str = &cur_ret[last_fun_idx..];
-            if let Some(specifier_idx) = fun_header.rfind("fun") {
-                let indent_str = " "
-                    .to_string()
-                    .repeat((self.depth.get() + 1) * self.local_cfg.indent_size);
-                let fun_specifier_fmted_str = fun_fmt::fun_header_specifier_fmt(
-                    &fun_header[specifier_idx + 1..],
-                    &indent_str,
-                );
+        let mut ret = self.ret.borrow_mut();
+        let cur = ret.as_str();
+        let Some(last_fun_idx) = cur.rfind(&Tok::Fun.to_string()) else {
+            return;
+        };
 
-                let ret_copy = &self.ret.clone().into_inner()[0..last_fun_idx + specifier_idx + 1];
-                let mut new_ret = ret_copy.to_string();
-                new_ret.push_str(fun_specifier_fmted_str.as_str());
-                *self.ret.borrow_mut() = new_ret.to_string();
-            }
-        }
-        if self.ret.clone().into_inner().contains("writes") {
-            tracing::debug!("self.last_line = {:?}", self.last_line());
-        }
+        let fun_header = &cur[last_fun_idx..];
+        let Some(specifier_idx) = fun_header.find(&Tok::Fun.to_string()) else {
+            return;
+        };
+
+        let indent = " ".repeat((self.depth.get() + 1) * self.local_cfg.indent_size);
+        let fun_specifier_fmted_str =
+            fun_fmt::fun_header_specifier_fmt(&fun_header[specifier_idx + 1..], &indent);
+
+        *ret = format!(
+            "{}{}",
+            &cur[..=last_fun_idx + specifier_idx],
+            fun_specifier_fmted_str
+        );
     }
 
     fn get_break_mode_of_fun_call(
@@ -890,22 +886,22 @@ impl Format {
                 }
             }
             NestKind_::Lambda => {
+                if nested_len as f32 <= max_line_width as f32 - max_len_no_add_line {
+                    return (false, None);
+                }
                 new_line_mode |=
                     (self.get_cur_line_len() + nested_len) as f32 > max_len_no_add_line;
-                let mut opt_component_break_mode = false;
+
                 let nested_and_comma_pair = expr_fmt::get_nested_and_comma_num(elements);
-                if self.global_cfg.prefer_one_line_for_short_lambda_para_list() {
-                    opt_component_break_mode |= (nested_and_comma_pair.0 >= 4
+                let opt_component_break_mode = if self.global_cfg.prefer_one_line_for_short_lambda_para_list() {
+                    (nested_and_comma_pair.0 >= 4
                         || nested_and_comma_pair.1 > 2)
-                        && token.token_len() as f32 > max_len_no_add_line;
+                        && token.token_len() as f32 > max_len_no_add_line
                 } else {
-                    opt_component_break_mode |= nested_and_comma_pair.1 > 1;
-                }
+                    nested_and_comma_pair.1 > 1
+                };
 
                 new_line_mode |= opt_component_break_mode;
-                if delimiter.is_none() && nested_len as f32 <= max_len_no_add_line {
-                    new_line_mode = false;
-                }
             }
             NestKind_::Brace => {
                 if nested_len > 4 {
@@ -1048,23 +1044,21 @@ impl Format {
     fn format_single_token(
         &self,
         nested_token: &TokenTree,
-        internal_token_idx: usize,
-        pound_sign_new_line: bool,
+        token_idx: usize,
         new_line: bool,
-        pound_sign: &mut Option<usize>,
     ) {
         let TokenTree::Nested { elements, .. } = nested_token else {
             return;
         };
-        let token = elements.get(internal_token_idx).unwrap();
-        let next_t = elements.get(internal_token_idx + 1);
+        let token = elements.get(token_idx).unwrap();
+        let next_t = elements.get(token_idx + 1);
 
-        self.format_token_trees_internal(token, next_t, pound_sign_new_line || new_line);
+        let pre_tok_is_num_sign = Tok::NumSign == self.get_pre_simple_tok();
+        self.format_token_trees_internal(token, next_t, pre_tok_is_num_sign || new_line);
 
-        if pound_sign_new_line {
-            tracing::debug!("in loop<TokenTree::Nested> pound_sign_new_line = true");
+        if pre_tok_is_num_sign {
+            tracing::debug!("in loop<TokenTree::Nested> pre_tok_is_num_sign = true");
             self.new_line(Some(token.end_pos()));
-            *pound_sign = None;
             return;
         }
 
@@ -1088,7 +1082,44 @@ impl Format {
         }
     }
 
-    fn format_each_token_in_nested_elements(
+    fn format_dot_exp_chain(
+        &self,
+        elements: &[TokenTree],
+        idx: &mut usize,
+        nested_token: &TokenTree,
+    ) -> bool {
+        let (link_len, mut last_dot_idx) = expr_fmt::process_link_access(elements, *idx + 1);
+        let mut need_process_link = link_len > 3 && last_dot_idx > *idx;
+
+        if !need_process_link {
+            let in_link_call = self
+                .syntax_handler
+                .handler_immut::<CallHandler>()
+                .is_in_link_call(elements, *idx + 1);
+            last_dot_idx = in_link_call.1;
+            need_process_link = in_link_call.0 && last_dot_idx > *idx;
+        }
+
+        if !need_process_link {
+            return false;
+        }
+
+        tracing::debug!("before process_link, last_line = {}", self.last_line());
+        self.inc_depth();
+        while *idx <= last_dot_idx + 1 {
+            let next_is_dot = elements
+                .get(*idx + 1)
+                .map_or(false, |t| t.get_start_tok() == Tok::Period);
+
+            self.format_single_token(nested_token, *idx, next_is_dot);
+            *idx += 1;
+        }
+        self.dec_depth();
+
+        true
+    }
+
+    fn format_nested_elements(
         &self,
         nested_token: &TokenTree,
         delimiter: Option<Delimiter>,
@@ -1102,29 +1133,23 @@ impl Format {
         let nestd_kind_len = self.get_kind_len_after_trim_space(*kind, false);
         let old_kind = self.format_context.borrow_mut().cur_nested_kind;
         self.format_context.borrow_mut().cur_nested_kind = *kind;
-        let mut pound_sign = None;
-        let len = elements.len();
-        let mut internal_token_idx = 0;
+        let nested_ele_len = elements.len();
+        let mut token_idx = 0;
 
         let is_call = kind.kind == NestKind_::ParentTheses && call_handler.paren_in_call(kind);
         let mut need_get_break_mode_on_component = component_break_mode;
-        if elements.len() > MIN_BREAK_LENGTH
-            && kind.kind == NestKind_::Bracket
-            && !component_break_mode
-        {
+        if nested_ele_len > MIN_BREAK_LENGTH && kind.kind == NestKind_::Bracket && !component_break_mode {
             need_get_break_mode_on_component = false;
         }
-        while internal_token_idx < len {
-            let pound_sign_new_line = pound_sign
-                .map(|x| (x + 1) == internal_token_idx)
-                .unwrap_or_default();
-
-            let cur_token_tree = elements.get(internal_token_idx).unwrap();
+        let last_is_comma = elements
+            .last()
+            .map_or(false, |t| t.get_start_tok() == Tok::Comma);
+        while token_idx < nested_ele_len {
             let mut new_line = self.need_new_line_for_cur_tok_finished(
                 nested_token,
                 delimiter,
                 has_colon,
-                internal_token_idx,
+                token_idx,
                 need_get_break_mode_on_component,
                 nestd_kind_len,
             );
@@ -1134,73 +1159,23 @@ impl Format {
                         self.global_cfg.clone(),
                         kind,
                         elements,
-                        internal_token_idx,
+                        token_idx,
                         self.get_cur_line_len(),
                     );
             }
 
-            if internal_token_idx == len - 1
-                && cur_token_tree.simple_str().unwrap_or_default() == ","
+            if token_idx == nested_ele_len - 1 && last_is_comma {
+                break;
+            }
+
+            if Tok::Period == self.get_pre_simple_tok()
+                && self.format_dot_exp_chain(elements, &mut token_idx, nested_token)
             {
-                internal_token_idx += 1;
                 continue;
             }
 
-            if cur_token_tree.is_pound() {
-                pound_sign = Some(internal_token_idx)
-            }
-
-            if Tok::Period == self.get_pre_simple_tok() {
-                let in_link_access =
-                    expr_fmt::process_link_access(elements, internal_token_idx + 1);
-                let mut last_dot_idx = in_link_access.1;
-                let mut need_process_link =
-                    in_link_access.0 > 3 && last_dot_idx > internal_token_idx;
-                if !need_process_link {
-                    let in_link_call =
-                        call_handler.is_in_link_call(elements, internal_token_idx + 1);
-                    last_dot_idx = in_link_call.1;
-                    if in_link_call.0 && last_dot_idx > internal_token_idx {
-                        tracing::trace!(
-                            "in_link_call, in_link_call = {:?}, last_line = {}",
-                            in_link_call,
-                            self.last_line()
-                        );
-                        need_process_link = true;
-                    }
-                }
-
-                if need_process_link {
-                    tracing::debug!("before process_link, last_line = {}", self.last_line());
-                    self.inc_depth();
-                    let mut is_dot_new_line;
-                    while internal_token_idx <= last_dot_idx + 1 {
-                        is_dot_new_line = match elements.get(internal_token_idx + 1) {
-                            None => false,
-                            Some(next_t) => next_t.simple_str().unwrap_or_default().contains('.'),
-                        };
-                        self.format_single_token(
-                            &nested_token,
-                            internal_token_idx,
-                            false,
-                            is_dot_new_line,
-                            &mut pound_sign,
-                        );
-                        internal_token_idx += 1;
-                    }
-                    self.dec_depth();
-                    continue;
-                }
-            }
-
-            self.format_single_token(
-                &nested_token,
-                internal_token_idx,
-                pound_sign_new_line,
-                new_line,
-                &mut pound_sign,
-            );
-            internal_token_idx += 1;
+            self.format_single_token(&nested_token, token_idx, new_line);
+            token_idx += 1;
         }
 
         self.format_context.borrow_mut().cur_nested_kind = old_kind;
@@ -1314,7 +1289,7 @@ impl Format {
         );
 
         // step4 -- format element
-        self.format_each_token_in_nested_elements(
+        self.format_nested_elements(
             nested_token,
             delimiter,
             has_colon,
@@ -1387,7 +1362,8 @@ impl Format {
         let mut new_line_before_else = false;
         if *tok == Tok::Else {
             let get_cur_line_len = self.get_cur_line_len();
-            let has_special_key = get_cur_line_len != self.last_line().len();
+            let last_line_len = self.last_line().len();
+            let has_special_key = get_cur_line_len != last_line_len;
             if self.get_pre_simple_tok() == Tok::RBrace {
                 // case1
                 if has_special_key {
@@ -1397,10 +1373,7 @@ impl Format {
                 }
             } else if next_token.is_some() {
                 // case2
-                if self.last_line().len()
-                    + content.len()
-                    + 2
-                    + next_token.unwrap().token_len() as usize
+                if last_line_len + content.len() + 2 + next_token.unwrap().token_len() as usize
                     > self.global_cfg.max_width() - MIN_NESTED_LENGTH
                 {
                     new_line_before_else = true;
@@ -1740,7 +1713,6 @@ impl Format {
             if c.start_offset > pos {
                 break;
             }
-
             let this_cmt_start_line = self.translate_line(c.start_offset);
             if (this_cmt_start_line - self.cur_line.get()) > 1 {
                 tracing::debug!(
@@ -1791,9 +1763,14 @@ impl Format {
                     let line_start = this_cmt_start_line;
                     let line_end = self.translate_line(end);
 
+                    let no_space = &[
+                        Tok::RParen.to_string(),
+                        Tok::Comma.to_string(),
+                        Tok::Semicolon.to_string(),
+                    ];
                     if line_start != line_end {
                         self.new_line(None);
-                    } else if content != ")" && content != "," && content != ";" {
+                    } else if !no_space.contains(&content) {
                         self.push_str(" ");
                     }
                     last_cmt_is_block_cmt = true;
@@ -2059,11 +2036,10 @@ pub fn format_entry(content: impl AsRef<str>, config: Config) -> Result<String, 
         content,
         FormatContext::new(content.to_string()),
     );
-    // Todo:
+
     full_fmt.generate_token_tree(content)?;
     timer = timer.done_parsing();
 
-    // wait for notify
     let result = full_fmt.format_token_trees();
     timer = timer.done_formatting();
     if config.verbose() == Verbosity::Verbose {

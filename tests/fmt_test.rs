@@ -53,7 +53,7 @@ fn test_single_file() {
             .init();
     }
 
-    test_on_file(Path::new("./tests/issues/issue57/input1.move"));
+    test_on_file(Path::new("./tests/bug2/issue79/input1.move"));
 }
 
 fn test_on_file(p: impl AsRef<Path>) -> bool {
