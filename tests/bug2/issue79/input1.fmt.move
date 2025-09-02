@@ -41,10 +41,12 @@ module TestMixedLink {
             .some_other_field4
             .some_other_field3
             .some_other_field2
-            .plus_one().plus_one()
             .plus_one()
             .plus_one()
-            .plus_one().x
+            .plus_one()
+            .plus_one()
+            .plus_one()
+            .x
     }
 
     fun test_link2(addr: address): u64 acquires SomeStruct {
@@ -56,10 +58,12 @@ module TestMixedLink {
             .some_other_field4
             .some_other_field3
             .some_other_field2
-            .plus_one().plus_one()
             .plus_one()
             .plus_one()
-            .plus_one().x
+            .plus_one()
+            .plus_one()
+            .plus_one()
+            .x
     }
 
     fun test_link3(addr: address): u64 acquires SomeStruct {
@@ -71,9 +75,11 @@ module TestMixedLink {
             .some_other_field4
             .some_other_field3
             .some_other_field2
-            .plus_one().plus_one()
             .plus_one()
             .plus_one()
-            .plus_one().x
+            .plus_one()
+            .plus_one()
+            .plus_one()
+            .x
     }
 }

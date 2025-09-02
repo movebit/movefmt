@@ -146,13 +146,15 @@ impl From<Tok> for TokType {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ChainMember {
-    Field(String),
-    Call(String, Vec<Vec<ChainMember>>), // function name + argument list (each arg is itself a chain)
+    Field(String, usize),
+    Call(String, Vec<Vec<ChainMember>>, usize), // function name + argument list (each arg is itself a chain)
 }
 
 struct DotChainParser<'a> {
     lexer: Lexer<'a>,
     result: Vec<ChainMember>,
+    cur_idx: usize,
+    last_peroid_idx: usize,
 }
 
 impl<'a> DotChainParser<'a> {
@@ -160,6 +162,8 @@ impl<'a> DotChainParser<'a> {
         Self {
             lexer: Lexer::new(codespan_str, FileHash::empty()),
             result: Vec::new(),
+            cur_idx: 0,
+            last_peroid_idx: 0,
         }
     }
 
@@ -173,11 +177,13 @@ impl<'a> DotChainParser<'a> {
 
     fn advance(&mut self) {
         self.lexer.advance().unwrap();
+        self.cur_idx += 1;
     }
 
     fn parse_chain(&mut self) -> Option<()> {
         self.advance();
-        let first = match self.current() {
+        let period_pos = self.lexer.start_loc();
+        let name = match self.current() {
             Tok::Identifier => {
                 let n = self.current_word().to_string();
                 self.advance();
@@ -185,9 +191,15 @@ impl<'a> DotChainParser<'a> {
             }
             _ => return None,
         };
-        self.result.push(ChainMember::Field(first));
+
+        let is_call = matches!(self.current(), Tok::Less | Tok::LParen);
+        let args = self.parse_call_args()?; // consumes <>() or (); returns empty vec if none
+        if is_call || !args.is_empty() {
+            self.result.push(ChainMember::Call(name, args, period_pos));
+        }
 
         while matches!(self.current(), Tok::Period) {
+            self.last_peroid_idx = self.cur_idx;
             self.advance();
             self.parse_postfix()?;
         }
@@ -195,6 +207,7 @@ impl<'a> DotChainParser<'a> {
     }
 
     fn parse_postfix(&mut self) -> Option<()> {
+        let period_pos = self.lexer.start_loc();
         let name = match self.current() {
             Tok::Identifier => {
                 let n = self.current_word().to_string();
@@ -208,9 +221,9 @@ impl<'a> DotChainParser<'a> {
         let is_call = matches!(self.current(), Tok::Less | Tok::LParen);
         let args = self.parse_call_args()?; // consumes <>() or (); returns empty vec if none
         if is_call || !args.is_empty() {
-            self.result.push(ChainMember::Call(name, args));
+            self.result.push(ChainMember::Call(name, args, period_pos));
         } else {
-            self.result.push(ChainMember::Field(name));
+            self.result.push(ChainMember::Field(name, period_pos));
         }
         Some(())
     }
@@ -236,11 +249,11 @@ impl<'a> DotChainParser<'a> {
         if !matches!(self.current(), Tok::LParen) {
             return Some(Vec::new());
         }
+        let mut arg_start = self.lexer.start_loc();
         self.advance();
 
         let mut all = Vec::new();
-        let mut current_arg = vec![ChainMember::Field("(".to_string())];
-        let mut arg_start = self.lexer.start_loc();
+        let mut current_arg = vec![ChainMember::Field("(".to_string(), arg_start)];
 
         loop {
             match self.current() {
@@ -264,7 +277,7 @@ impl<'a> DotChainParser<'a> {
                     // 2. Handle nested parentheses by depth counting
                     let mut depth = 0;
                     loop {
-                        current_arg.push(ChainMember::Field(self.current_word().to_string()));
+                        current_arg.push(ChainMember::Field(self.current_word().to_string(), self.lexer.start_loc()));
                         match self.current() {
                             Tok::LParen | Tok::Less => depth += 1,
                             Tok::RParen | Tok::Greater => {
@@ -285,14 +298,10 @@ impl<'a> DotChainParser<'a> {
     }
 }
 
-pub fn parse_dot_chain(codespan_str: &str) -> Option<Vec<ChainMember>> {
+pub fn parse_dot_chain(codespan_str: &str) -> Option<(Vec<ChainMember>, usize)> {
     let mut p = DotChainParser::new(codespan_str);
     p.parse_chain().and_then(|_| {
-        if matches!(p.current(), Tok::EOF) {
-            Some(p.result)
-        } else {
-            None
-        }
+        Some((p.result, p.last_peroid_idx))
     })
 }
 
@@ -545,6 +554,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
     }
 }
 
+#[allow(dead_code)]
 pub(crate) fn process_link_access(elements: &[TokenTree], idx: usize) -> (usize, usize) {
     tracing::trace!("process_link_access >>");
     if idx >= elements.len() - 1 {
@@ -599,11 +609,9 @@ fn call_with_mixed_expressions() {
             .plus_one()
             .plus_one()
             .plus_one()
-            .x
+            .x;
+        val + 1;
         "
     );
-    if result.is_some() {
-        println!("result.len = {:?}", result.clone().unwrap().len());
-    }
     println!("result = {:?}", result);
 }

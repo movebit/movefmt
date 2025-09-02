@@ -6,6 +6,7 @@ use crate::core::token_tree::*;
 use crate::syntax_fmt::bin_op_fmt::BinOpHandler;
 use crate::syntax_fmt::branch_fmt::BranchHandler;
 use crate::syntax_fmt::call_fmt::CallHandler;
+use crate::syntax_fmt::expr_fmt::ChainMember;
 use crate::syntax_fmt::fun_fmt::FunHandler;
 use crate::syntax_fmt::let_fmt::LetHandler;
 use crate::syntax_fmt::quant_fmt::QuantHandler;
@@ -20,6 +21,7 @@ use move_compiler::diagnostics::Diagnostics;
 use move_compiler::parser::lexer::{Lexer, Tok};
 use move_compiler::parser::{ast::*, syntax::parse_file_string};
 use move_ir_types::location::ByteIndex;
+use tracing::{debug, warn};
 use std::cell::Cell;
 use std::cell::RefCell;
 use std::result::Result::*;
@@ -1088,25 +1090,41 @@ impl Format {
         idx: &mut usize,
         nested_token: &TokenTree,
     ) -> bool {
-        let (link_len, mut last_dot_idx) = expr_fmt::process_link_access(elements, *idx + 1);
-        let mut need_process_link = link_len > 3 && last_dot_idx > *idx;
+        let dot_exp_start_pos = elements[*idx].start_pos();
+        let end_pos = nested_token.end_pos();
+        let code_snippet = self.format_context.borrow().content[dot_exp_start_pos as usize..end_pos as usize].to_string().clone();
+        let (dot_chain_member, _) = expr_fmt::parse_dot_chain(&code_snippet).unwrap_or_default();
+        if dot_chain_member.is_empty() { return false; }
+        let last_chain_member = dot_chain_member.last().unwrap();
+        let last_tok_pos = dot_exp_start_pos as usize + 
+        match last_chain_member {
+            ChainMember::Field(_, last_pos) => last_pos,
+            ChainMember::Call(_, _, last_pos) => last_pos,
+        };
 
+        let mut need_process_link = dot_chain_member.len() > 3;
         if !need_process_link {
-            let in_link_call = self
-                .syntax_handler
-                .handler_immut::<CallHandler>()
-                .is_in_link_call(elements, *idx + 1);
-            last_dot_idx = in_link_call.1;
-            need_process_link = in_link_call.0 && last_dot_idx > *idx;
+            return false;
         }
+        let mut last_dot_idx = 0;
+        for (dot_idx, ele) in elements.iter().enumerate() {
+            debug!("last_tok_pos = {}, ele_pos = {}", last_tok_pos, ele.start_pos());
+            if last_tok_pos.abs_diff(ele.start_pos() as usize) <= 1 {
+                warn!("---> last_tok_pos = {}, ele_pos = {}", last_tok_pos, ele.start_pos());
+                warn!("last_chain_member = {:?}", last_chain_member);
+                last_dot_idx = dot_idx;
+                break;
+            }
+        }
+        need_process_link &= last_dot_idx > *idx;
 
         if !need_process_link {
             return false;
         }
 
-        tracing::debug!("before process_link, last_line = {}", self.last_line());
+        debug!("before process_link, last_line = {}", self.last_line());
         self.inc_depth();
-        while *idx <= last_dot_idx + 1 {
+        while *idx <= last_dot_idx {
             let next_is_dot = elements
                 .get(*idx + 1)
                 .map_or(false, |t| t.get_start_tok() == Tok::Period);
