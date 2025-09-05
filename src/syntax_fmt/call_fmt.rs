@@ -402,6 +402,7 @@ impl CallHandler {
         false
     }
 
+    #[allow(dead_code)]
     pub(crate) fn is_in_link_call(&self, elements: &[TokenTree], idx: usize) -> (bool, usize) {
         (idx..elements.len().saturating_sub(1))
             .find(|&i| {

@@ -3,7 +3,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::core::token_tree::*;
-use move_compiler::parser::lexer::Tok;
+use move_command_line_common::files::FileHash;
+use move_compiler::parser::lexer::{Lexer, Tok};
 use once_cell::sync::Lazy;
 
 const NO_BREAK_TOKENS: &[Tok] = &[
@@ -142,6 +143,168 @@ impl From<Tok> for TokType {
         }
     }
 }
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ChainMember {
+    Field(String, usize),
+    Call(String, Vec<Vec<ChainMember>>, usize), // function name + argument list (each arg is itself a chain)
+}
+
+struct DotChainParser<'a> {
+    lexer: Lexer<'a>,
+    result: Vec<ChainMember>,
+    cur_idx: usize,
+    last_peroid_idx: usize,
+}
+
+impl<'a> DotChainParser<'a> {
+    fn new(codespan_str: &'a str) -> Self {
+        Self {
+            lexer: Lexer::new(codespan_str, FileHash::empty()),
+            result: Vec::new(),
+            cur_idx: 0,
+            last_peroid_idx: 0,
+        }
+    }
+
+    fn current(&self) -> Tok {
+        self.lexer.peek()
+    }
+
+    fn current_word(&self) -> &str {
+        &self.lexer.content()
+    }
+
+    fn advance(&mut self) {
+        self.lexer.advance().unwrap();
+        self.cur_idx += 1;
+    }
+
+    fn parse_chain(&mut self) -> Option<()> {
+        self.advance();
+        let period_pos = self.lexer.start_loc();
+        let name = match self.current() {
+            Tok::Identifier => {
+                let n = self.current_word().to_string();
+                self.advance();
+                n
+            }
+            _ => return None,
+        };
+
+        let is_call = matches!(self.current(), Tok::Less | Tok::LParen);
+        let args = self.parse_call_args()?; // consumes <>() or (); returns empty vec if none
+        if is_call || !args.is_empty() {
+            self.result.push(ChainMember::Call(name, args, period_pos));
+        }
+
+        while matches!(self.current(), Tok::Period) {
+            self.last_peroid_idx = self.cur_idx;
+            self.advance();
+            self.parse_postfix()?;
+        }
+        Some(())
+    }
+
+    fn parse_postfix(&mut self) -> Option<()> {
+        let period_pos = self.lexer.start_loc();
+        let name = match self.current() {
+            Tok::Identifier => {
+                let n = self.current_word().to_string();
+                self.advance();
+                n
+            }
+            _ => return None,
+        };
+
+        // Treat as Call if followed by '<' or '('
+        let is_call = matches!(self.current(), Tok::Less | Tok::LParen);
+        let args = self.parse_call_args()?; // consumes <>() or (); returns empty vec if none
+        if is_call || !args.is_empty() {
+            self.result.push(ChainMember::Call(name, args, period_pos));
+        } else {
+            self.result.push(ChainMember::Field(name, period_pos));
+        }
+        Some(())
+    }
+
+    fn parse_call_args(&mut self) -> Option<Vec<Vec<ChainMember>>> {
+        // 1. Skip optional <...>
+        if matches!(self.current(), Tok::Less) {
+            self.advance();
+            let mut depth = 1;
+            while depth > 0 && !matches!(self.current(), Tok::EOF) {
+                match self.current() {
+                    Tok::Less => depth += 1,
+                    Tok::Greater => depth -= 1,
+                    _ => {}
+                }
+                self.advance();
+            }
+            if depth != 0 {
+                return None;
+            }
+        }
+
+        if !matches!(self.current(), Tok::LParen) {
+            return Some(Vec::new());
+        }
+        let mut arg_start = self.lexer.start_loc();
+        self.advance();
+
+        let mut all = Vec::new();
+        let mut current_arg = vec![ChainMember::Field("(".to_string(), arg_start)];
+
+        loop {
+            match self.current() {
+                Tok::RParen => {
+                    // Collect last argument (if any)
+                    if arg_start < self.lexer.start_loc() {
+                        all.push(current_arg.clone());
+                    }
+                    self.advance();
+                    return Some(all);
+                }
+                Tok::Comma => {
+                    // Collect current argument
+                    all.push(current_arg.clone());
+                    self.advance();
+                    current_arg.clear();
+                    arg_start = self.lexer.start_loc();
+                }
+                Tok::EOF => return None,
+                _ => {
+                    // 2. Handle nested parentheses by depth counting
+                    let mut depth = 0;
+                    loop {
+                        current_arg.push(ChainMember::Field(self.current_word().to_string(), self.lexer.start_loc()));
+                        match self.current() {
+                            Tok::LParen | Tok::Less => depth += 1,
+                            Tok::RParen | Tok::Greater => {
+                                depth -= 1;
+                                if depth < 0 {
+                                    break; // Outer right parenthesis
+                                }
+                            }
+                            Tok::Comma if depth == 0 => break,
+                            Tok::EOF => return None,
+                            _ => {}
+                        }
+                        self.advance();
+                    }
+                }
+            }
+        }
+    }
+}
+
+pub fn parse_dot_chain(codespan_str: &str) -> Option<(Vec<ChainMember>, usize)> {
+    let mut p = DotChainParser::new(codespan_str);
+    p.parse_chain().and_then(|_| {
+        Some((p.result, p.last_peroid_idx))
+    })
+}
+
 fn is_to_or_except(token: &Option<&TokenTree>) -> bool {
     match token {
         None => false,
@@ -391,6 +554,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
     }
 }
 
+#[allow(dead_code)]
 pub(crate) fn process_link_access(elements: &[TokenTree], idx: usize) -> (usize, usize) {
     tracing::trace!("process_link_access >>");
     if idx >= elements.len() - 1 {
@@ -417,4 +581,37 @@ pub(crate) fn process_link_access(elements: &[TokenTree], idx: usize) -> (usize,
 // Determines whether a newline is needed for the current line when trimming blank lines.
 pub(crate) fn need_newline_when_trim_blank_line(current: &Tok, next: &Tok) -> bool {
     !(NO_BREAK_TOKENS_VEC.contains(current) || NO_BREAK_PAIRS_VEC.contains(&(*current, *next)))
+}
+
+#[test]
+fn nested_call_with_mixed_expressions() {
+    // a.g(x + y * z, h(1 + 2))
+    let result = parse_dot_chain(
+        "a.g(x + y * z, h(1 + 2))"
+    );
+    println!("result = {:?}", result);
+}
+
+
+#[test]
+fn call_with_mixed_expressions() {
+    // a.g(x + y * z, h(1 + 2))
+    let result = parse_dot_chain(
+        "
+        val.some_field
+            .some_other_field6
+            .some_other_field5
+            .some_other_field4
+            .some_other_field3
+            .some_other_field2
+            .plus_one(f1(f2(f3(f4()))))
+            .plus_one()
+            .plus_one()
+            .plus_one()
+            .plus_one()
+            .x;
+        val + 1;
+        "
+    );
+    println!("result = {:?}", result);
 }
