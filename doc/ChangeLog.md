@@ -8,6 +8,7 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.3.2">v1.3.2</a><br/>
 <a href="#v1.3.1">v1.3.1</a><br/>
 <a href="#v1.3.0">v1.3.0</a><br/>
 <a href="#v1.2.9">v1.2.9</a><br/>
@@ -34,6 +35,14 @@
 </td>
 </tr>
 </table>
+
+
+<a id="v1.3.2"></a>
+## 2025-09-05, Version v1.3.2
+* [[`34db7d1`](https://github.com/movebit/movefmt/commit/34db7d1237450093e3f2b74a16ec0c91c114e720)] - adjust code structure (robinlzw)
+* [[`e93617f`](https://github.com/movebit/movefmt/commit/e93617f981f1f05582507cb8d7f18403f08fc87c)] - fix bug #79 {complex mixed dot chain} (robinlzw)
+* [[`fc8959a`](https://github.com/movebit/movefmt/commit/fc8959ad047ccb2812ab096fc9c4e2c99d18763e)] - add DotChainParser for expr_fmt (robinlzw)
+* [[`c921b0c`](https://github.com/movebit/movefmt/commit/c921b0c0c65c46fc176063670da555b9ff224661)] - improve test_dot_link (robinlzw)
 
 
 <a id="v1.3.1"></a>
