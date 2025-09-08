@@ -21,11 +21,11 @@ use move_compiler::diagnostics::Diagnostics;
 use move_compiler::parser::lexer::{Lexer, Tok};
 use move_compiler::parser::{ast::*, syntax::parse_file_string};
 use move_ir_types::location::ByteIndex;
-use tracing::{debug, warn};
 use std::cell::Cell;
 use std::cell::RefCell;
 use std::result::Result::*;
 use std::sync::Arc;
+use tracing::{debug, warn};
 
 const EXIST_MULTI_MODULE_TAG: &str = "module fmt";
 const EXIST_MULTI_ADDRESS_TAG: &str = "address fmt";
@@ -895,13 +895,13 @@ impl Format {
                     (self.get_cur_line_len() + nested_len) as f32 > max_len_no_add_line;
 
                 let nested_and_comma_pair = expr_fmt::get_nested_and_comma_num(elements);
-                let opt_component_break_mode = if self.global_cfg.prefer_one_line_for_short_lambda_para_list() {
-                    (nested_and_comma_pair.0 >= 4
-                        || nested_and_comma_pair.1 > 2)
-                        && token.token_len() as f32 > max_len_no_add_line
-                } else {
-                    nested_and_comma_pair.1 > 1
-                };
+                let opt_component_break_mode =
+                    if self.global_cfg.prefer_one_line_for_short_lambda_para_list() {
+                        (nested_and_comma_pair.0 >= 4 || nested_and_comma_pair.1 > 2)
+                            && token.token_len() as f32 > max_len_no_add_line
+                    } else {
+                        nested_and_comma_pair.1 > 1
+                    };
 
                 new_line_mode |= opt_component_break_mode;
             }
@@ -1043,12 +1043,7 @@ impl Format {
         self.new_line(Some(kind.start_pos));
     }
 
-    fn format_single_token(
-        &self,
-        nested_token: &TokenTree,
-        token_idx: usize,
-        new_line: bool,
-    ) {
+    fn format_single_token(&self, nested_token: &TokenTree, token_idx: usize, new_line: bool) {
         let TokenTree::Nested { elements, .. } = nested_token else {
             return;
         };
@@ -1090,17 +1085,28 @@ impl Format {
         idx: &mut usize,
         nested_token: &TokenTree,
     ) -> bool {
+        let parse_dot_chain_v2_result = expr_fmt::parse_dot_chain_v2(&elements.split_at(*idx).1);
+        println!(
+            "parse_dot_chain_v2_result = {:?}",
+            parse_dot_chain_v2_result
+        );
+
         let dot_exp_start_pos = elements[*idx].start_pos();
         let end_pos = nested_token.end_pos();
-        let code_snippet = self.format_context.borrow().content[dot_exp_start_pos as usize..end_pos as usize].to_string().clone();
+        let code_snippet = self.format_context.borrow().content
+            [dot_exp_start_pos as usize..end_pos as usize]
+            .to_string()
+            .clone();
         let (dot_chain_member, _) = expr_fmt::parse_dot_chain(&code_snippet).unwrap_or_default();
-        if dot_chain_member.is_empty() { return false; }
+        if dot_chain_member.is_empty() {
+            return false;
+        }
         let last_chain_member = dot_chain_member.last().unwrap();
-        let last_tok_pos = dot_exp_start_pos as usize + 
-        match last_chain_member {
-            ChainMember::Field(_, last_pos) => last_pos,
-            ChainMember::Call(_, _, last_pos) => last_pos,
-        };
+        let last_tok_pos = dot_exp_start_pos as usize
+            + match last_chain_member {
+                ChainMember::Field(_, last_pos) => last_pos,
+                ChainMember::Call(_, _, last_pos) => last_pos,
+            };
 
         let mut need_process_link = dot_chain_member.len() > 3;
         if !need_process_link {
@@ -1108,9 +1114,17 @@ impl Format {
         }
         let mut last_dot_idx = 0;
         for (dot_idx, ele) in elements.iter().enumerate() {
-            debug!("last_tok_pos = {}, ele_pos = {}", last_tok_pos, ele.start_pos());
+            debug!(
+                "last_tok_pos = {}, ele_pos = {}",
+                last_tok_pos,
+                ele.start_pos()
+            );
             if last_tok_pos.abs_diff(ele.start_pos() as usize) <= 1 {
-                warn!("---> last_tok_pos = {}, ele_pos = {}", last_tok_pos, ele.start_pos());
+                warn!(
+                    "---> last_tok_pos = {}, ele_pos = {}",
+                    last_tok_pos,
+                    ele.start_pos()
+                );
                 warn!("last_chain_member = {:?}", last_chain_member);
                 last_dot_idx = dot_idx;
                 break;
@@ -1156,7 +1170,10 @@ impl Format {
 
         let is_call = kind.kind == NestKind_::ParentTheses && call_handler.paren_in_call(kind);
         let mut need_get_break_mode_on_component = component_break_mode;
-        if nested_ele_len > MIN_BREAK_LENGTH && kind.kind == NestKind_::Bracket && !component_break_mode {
+        if nested_ele_len > MIN_BREAK_LENGTH
+            && kind.kind == NestKind_::Bracket
+            && !component_break_mode
+        {
             need_get_break_mode_on_component = false;
         }
         let last_is_comma = elements

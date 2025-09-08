@@ -168,11 +168,11 @@ fn slice_to_chain(slice: &[Tok]) -> Vec<ChainMember> {
         .iter()
         .filter_map(|t| match t {
             Tok::Ident(s) => Some(ChainMember::Field(s.clone())),
-            Tok::LParen   => Some(ChainMember::Field("(".to_string())),
-            Tok::RParen   => Some(ChainMember::Field(")".to_string())),
-            Tok::Less     => Some(ChainMember::Field("<".to_string())),
-            Tok::Greater  => Some(ChainMember::Field(">".to_string())),
-            Tok::Comma    => Some(ChainMember::Field(",".to_string())),
+            Tok::LParen => Some(ChainMember::Field("(".to_string())),
+            Tok::RParen => Some(ChainMember::Field(")".to_string())),
+            Tok::Less => Some(ChainMember::Field("<".to_string())),
+            Tok::Greater => Some(ChainMember::Field(">".to_string())),
+            Tok::Comma => Some(ChainMember::Field(",".to_string())),
             _ => None,
         })
         .collect()
@@ -186,8 +186,7 @@ fn pretty_print(chain: &[ChainMember], sep: &str) -> String {
         .map(|m| match m {
             ChainMember::Field(name) => name.clone(),
             ChainMember::Call(name, args) => {
-                let args_str: Vec<String> =
-                    args.iter().map(|arg| pretty_print(arg, " ")).collect();
+                let args_str: Vec<String> = args.iter().map(|arg| pretty_print(arg, " ")).collect();
                 format!("{}({})", name, args_str.join(", "))
             }
         })
