@@ -307,11 +307,11 @@ impl<'a> DotChainParser<'a> {
 pub fn token_trees_to_string(trees: &[TokenTree]) -> Vec<Vec<ChainMemberV2>> {
     let mut all = Vec::new();
     all.push(vec![ChainMemberV2::Field("(".to_string())]);
+    let mut buf = String::new();
     for tt in trees {
-        let mut buf = String::new();
         token_tree_to_string(tt, &mut buf);
-        all.push(vec![ChainMemberV2::Field(buf.clone())]);
     }
+    all.push(vec![ChainMemberV2::Field(buf.clone())]);
     all.push(vec![ChainMemberV2::Field(")".to_string())]);
     all
 }

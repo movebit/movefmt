@@ -1079,18 +1079,13 @@ impl Format {
         }
     }
 
-    fn format_dot_exp_chain(
+    #[allow(dead_code)]
+    fn format_dot_exp_chain_v1(
         &self,
         elements: &[TokenTree],
         idx: &mut usize,
         nested_token: &TokenTree,
     ) -> bool {
-        let parse_dot_chain_v2_result = expr_fmt::parse_dot_chain_v2(&elements.split_at(*idx).1);
-        println!(
-            "parse_dot_chain_v2_result = {:?}",
-            parse_dot_chain_v2_result
-        );
-
         let dot_exp_start_pos = elements[*idx].start_pos();
         let end_pos = nested_token.end_pos();
         let code_snippet = self.format_context.borrow().content
@@ -1139,6 +1134,42 @@ impl Format {
         debug!("before process_link, last_line = {}", self.last_line());
         self.inc_depth();
         while *idx <= last_dot_idx {
+            let next_is_dot = elements
+                .get(*idx + 1)
+                .map_or(false, |t| t.get_start_tok() == Tok::Period);
+
+            self.format_single_token(nested_token, *idx, next_is_dot);
+            *idx += 1;
+        }
+        self.dec_depth();
+
+        true
+    }
+
+    fn format_dot_exp_chain_v2(
+        &self,
+        elements: &[TokenTree],
+        idx: &mut usize,
+        nested_token: &TokenTree,
+    ) -> bool {
+        let parse_dot_chain_v2_result = expr_fmt::parse_dot_chain_v2(&elements.split_at(*idx).1);
+        debug!(
+            "parse_dot_chain_v2_result = {:?}",
+            parse_dot_chain_v2_result
+        );
+
+        let (dot_chain_member, last_dot_idx) = parse_dot_chain_v2_result.unwrap_or_default();
+        let new_idx = *idx + last_dot_idx;
+        debug!("new_idx = {}, last_dot_idx = {}", new_idx, last_dot_idx);
+
+        let need_process_link = dot_chain_member.len() > 3 && new_idx > *idx;
+        if !need_process_link {
+            return false;
+        }
+
+        debug!("before process_link, last_line = {}", self.last_line());
+        self.inc_depth();
+        while *idx <= new_idx {
             let next_is_dot = elements
                 .get(*idx + 1)
                 .map_or(false, |t| t.get_start_tok() == Tok::Period);
@@ -1204,7 +1235,7 @@ impl Format {
             }
 
             if Tok::Period == self.get_pre_simple_tok()
-                && self.format_dot_exp_chain(elements, &mut token_idx, nested_token)
+                && self.format_dot_exp_chain_v2(elements, &mut token_idx, nested_token)
             {
                 continue;
             }
