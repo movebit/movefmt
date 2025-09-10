@@ -147,6 +147,10 @@ fn get_space_cnt_before_line_str(s: &str) -> usize {
     result
 }
 
+fn is_fun_specifiers(specifier: &str) -> bool {
+    matches!(specifier, "acquires" | "reads" | "writes" | "pure" | "!acquires" | "!reads" | "!writes")
+}
+
 impl FunHandler {
     pub(crate) fn is_generic_ty_in_fun_header(&self, kind: &NestKind) -> bool {
         let loc_vec = &self.loc_vec;
@@ -235,10 +239,7 @@ pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &str) -> Str
     let mut fun_specifiers = vec![];
     for token in specifier.split_whitespace() {
         fun_specifiers.push(token);
-        if matches!(
-            token,
-            "acquires" | "reads" | "writes" | "pure" | "!acquires" | "!reads" | "!writes"
-        ) {
+        if is_fun_specifiers(token) {
             specifier_str_set.insert(token.to_string());
         }
     }
@@ -291,10 +292,7 @@ pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &str) -> Str
                     continue;
                 }
 
-                if matches!(
-                    *item_j,
-                    "acquires" | "reads" | "writes" | "pure" | "!acquires" | "!reads" | "!writes"
-                ) {
+                if is_fun_specifiers(*item_j) {
                     current_specifier_idx = j;
                     *last_substr_len = old_last_substr_len;
                     break;
@@ -333,10 +331,7 @@ pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &str) -> Str
             continue;
         }
 
-        if matches!(
-            specifier_set,
-            "acquires" | "reads" | "writes" | "pure" | "!acquires" | "!reads" | "!writes"
-        ) {
+        if is_fun_specifiers(specifier_set) {
             if !found_specifier {
                 first_specifier_idx = last_substr_len - specifier_set.len();
                 found_specifier = true;
