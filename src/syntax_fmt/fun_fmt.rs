@@ -527,52 +527,6 @@ pub(crate) fn process_fun_ret_ty(fmt_buffer: String, config: Config) -> String {
     result
 }
 
-#[allow(dead_code)]
-pub(crate) fn process_fun_annotation(kind: NestKind, elements: Vec<TokenTree>) -> String {
-    fn process_simple_token(token: &TokenTree, next_token: Option<&TokenTree>) -> String {
-        let mut fmt_result_str = "".to_string();
-        fmt_result_str.push_str(token.simple_str().unwrap_or_default());
-        if expr_fmt::need_space(token, next_token) {
-            fmt_result_str.push(' ');
-        }
-        fmt_result_str
-    }
-
-    fn process_nested_token(nested_token_tree: &TokenTree) -> String {
-        let mut fmt_result_str = "".to_string();
-        if let TokenTree::Nested { elements, kind, .. } = nested_token_tree {
-            fmt_result_str.push_str(kind.start_token_tree().simple_str().unwrap_or_default());
-            let mut internal_token_idx = 0;
-            while internal_token_idx < elements.len() {
-                let t = elements.get(internal_token_idx).unwrap();
-                let next_t = elements.get(internal_token_idx + 1);
-                fmt_result_str.push_str(&process_token_trees(t, next_t));
-                internal_token_idx += 1;
-            }
-            fmt_result_str.push_str(kind.end_token_tree().simple_str().unwrap_or_default());
-        }
-        fmt_result_str
-    }
-
-    fn process_token_trees(token: &TokenTree, next_token: Option<&TokenTree>) -> String {
-        match token {
-            TokenTree::Nested { .. } => process_nested_token(token),
-            TokenTree::SimpleToken { .. } => process_simple_token(token, next_token),
-        }
-    }
-
-    if NestKind_::Bracket == kind.kind {
-        let fmt_result_str = process_nested_token(&TokenTree::Nested {
-            elements,
-            kind,
-            note: None,
-        });
-        tracing::debug!("fmt_result_str = {}", fmt_result_str);
-        return fmt_result_str;
-    }
-    "".to_string()
-}
-
 pub fn fmt_fun(fmt_buffer: String, config: Config) -> String {
     let mut result = process_block_comment_before_fun_header(fmt_buffer, config.clone());
     result = process_fun_header_too_long(result, config.clone());
