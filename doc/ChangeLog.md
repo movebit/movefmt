@@ -8,6 +8,7 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.3.3">v1.3.3</a><br/>
 <a href="#v1.3.2">v1.3.2</a><br/>
 <a href="#v1.3.1">v1.3.1</a><br/>
 <a href="#v1.3.0">v1.3.0</a><br/>
@@ -35,6 +36,17 @@
 </td>
 </tr>
 </table>
+
+
+<a id="v1.3.3"></a>
+## 2025-09-11, Version v1.3.3
+* [[`2ce5415`](https://github.com/movebit/movefmt/commit/2ce54157b83c4bfbf728cd613b3fbf5c9e663816)] - fix bug #81 {abnormal behavior on short field chain} (robinlzw)
+* [[`1fcb404`](https://github.com/movebit/movefmt/commit/1fcb404ba77c6f350d512f3b021534b9a8842018)] - add collect_specifier_args(), optimize fun_header_specifier_fmt() (robinlzw)
+* [[`cb4b4f6`](https://github.com/movebit/movefmt/commit/cb4b4f666a8de79a7edcc29139d96d497de11621)] - add is_fun_specifiers() (robinlzw)
+* [[`ebed1ba`](https://github.com/movebit/movefmt/commit/ebed1ba21fa52a209fe81d0b50d4cfab6e177835)] - remove process_fun_annotation() from fun_fmt (robinlzw)
+* [[`70872d9`](https://github.com/movebit/movefmt/commit/70872d95a835133283e02571a21bd8ae19cc4a1e)] - remove link_call_exp_vec from call_fmt (robinlzw)
+* [[`b121e6a`](https://github.com/movebit/movefmt/commit/b121e6ab77881d5a41dbfbe41c2bf6ded32d2c2a)] - add format_dot_exp_chain_v2() (robinlzw)
+* [[`27a5fbf`](https://github.com/movebit/movefmt/commit/27a5fbf78035495dd0b1b59e23e8d9612eadd09d)] - add DotChainParserV2 (robinlzw)
 
 
 <a id="v1.3.2"></a>
