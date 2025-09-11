@@ -1158,15 +1158,17 @@ impl Format {
             parse_dot_chain_v2_result
         );
 
-        let (dot_chain_member, last_dot_idx) = parse_dot_chain_v2_result.unwrap_or_default();
+        let (members, last_dot_idx) = parse_dot_chain_v2_result.unwrap_or_default();
         let new_idx = *idx + last_dot_idx;
         debug!("new_idx = {}, last_dot_idx = {}", new_idx, last_dot_idx);
 
-        let need_process_link = dot_chain_member.len() > 3 && new_idx > *idx;
-        if !need_process_link {
+        let dist = elements[new_idx].end_pos() - elements[*idx].start_pos();
+        let b_process_link =
+            members.len() > 3 && new_idx > *idx && dist as usize > MIN_BREAK_LENGTH;
+        if !b_process_link {
+            // TODO: This can be optimized to avoid recalculating the dot chain on the next entry.
             return false;
         }
-
         debug!("before process_link, last_line = {}", self.last_line());
         self.inc_depth();
         while *idx <= new_idx {
@@ -1293,7 +1295,7 @@ impl Format {
         {
             let blk_body_str = &self.format_context.borrow().content
                 [kind.start_pos as usize..kind.end_pos as usize + 1];
-            eprintln!("should_skip_block_body = {:?}", blk_body_str);
+            debug!("should_skip_block_body = {:?}", blk_body_str);
             self.push_str(blk_body_str);
 
             for c in &self.comments[self.comments_index.get()..] {
