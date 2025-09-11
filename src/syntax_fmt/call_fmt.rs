@@ -19,7 +19,6 @@ pub struct CallHandler {
     pub call_loc_vec: Vec<Loc>,
     pub call_paren_loc_vec: Vec<Loc>,
     pub pack_in_call_loc_vec: Vec<Loc>,
-    pub link_call_exp_vec: Vec<Exp>,
     pub source: String,
     pub line_mapping: FileLineMappingOneFile,
 }
@@ -30,7 +29,6 @@ impl SingleSyntaxExtractor for CallHandler {
             call_loc_vec: vec![],
             call_paren_loc_vec: vec![],
             pack_in_call_loc_vec: vec![],
-            link_call_exp_vec: vec![],
             source: fmt_buffer.clone(),
             line_mapping: FileLineMappingOneFile::default(),
         };
@@ -117,18 +115,10 @@ impl SingleSyntaxExtractor for CallHandler {
 
     fn collect_expr(&mut self, e: &Exp) {
         match &e.value {
-            Exp_::Call(name, call_kind, _tys, es) => {
+            Exp_::Call(_, _, _, es) => {
                 self.call_loc_vec.push(e.loc);
                 self.call_paren_loc_vec.push(es.loc);
-                if name.loc.end() > es.loc.start() {
-                    if is_chained_call(e).0 && *call_kind == CallKind::Receiver {
-                        self.link_call_exp_vec.push(e.clone());
-                    } else {
-                        es.value.iter().for_each(|e| self.collect_expr(e));
-                    }
-                } else {
-                    es.value.iter().for_each(|e| self.collect_expr(e));
-                }
+                es.value.iter().for_each(|e| self.collect_expr(e));
             }
             Exp_::Pack(_, _tys, es) => {
                 self.pack_in_call_loc_vec.push(e.loc);
@@ -402,19 +392,6 @@ impl CallHandler {
         false
     }
 
-    #[allow(dead_code)]
-    pub(crate) fn is_in_link_call(&self, elements: &[TokenTree], idx: usize) -> (bool, usize) {
-        (idx..elements.len().saturating_sub(1))
-            .find(|&i| {
-                let t = &elements[i];
-                t.get_end_tok() == Tok::Period
-                    && self.link_call_exp_vec.iter().any(
-                        |c| matches!(&c.value, Exp_::Call(n, ..) if t.end_pos() == n.loc.start()),
-                    )
-            })
-            .map_or((false, 0), |i| (true, i))
-    }
-
     pub(crate) fn component_is_complex_blk(
         &self,
         config: Config,
@@ -489,17 +466,6 @@ impl CallHandler {
         }
 
         0
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn first_para_is_complex_blk(
-        &self,
-        config: Config,
-        kind: &NestKind,
-        elements: &[TokenTree],
-        cur_ret_last_len: usize,
-    ) -> bool {
-        self.component_is_complex_blk(config, kind, elements, -1, cur_ret_last_len) > 0
     }
 }
 
@@ -611,20 +577,6 @@ impl CallHandler {
     }
 }
 
-fn is_chained_call(exp: &Exp) -> (bool, u32) {
-    let mut continue_call_cnt = 0;
-    if let Exp_::Call(_, CallKind::Receiver, _, es) = &exp.value {
-        continue_call_cnt += 1;
-        for e in es.value.iter() {
-            if let Exp_::Call(_, CallKind::Receiver, _, _) = &e.value {
-                continue_call_cnt += is_chained_call(e).1;
-                break;
-            }
-        }
-    }
-    (continue_call_cnt > 3, continue_call_cnt)
-}
-
 #[allow(dead_code)]
 fn get_call(fmt_buffer: String) {
     use crate::tools::utils::*;
@@ -645,79 +597,6 @@ fn get_call(fmt_buffer: String) {
             &call_extractor.source[call_loc.start() as usize..call_loc.end() as usize]
         );
     }
-}
-
-#[allow(dead_code)]
-fn judge_fn_link_call(fmt_buffer: String) {
-    use crate::tools::utils::*;
-    use move_command_line_common::files::FileHash;
-    use move_compiler::parser::{ast::*, syntax::parse_file_string};
-    let mut call_extractor = CallHandler::new(fmt_buffer.clone());
-    let (defs, _) = parse_file_string(
-        &mut get_compile_env(),
-        FileHash::empty(),
-        &fmt_buffer.clone(),
-    )
-    .unwrap();
-    call_extractor.preprocess(&Arc::new(defs));
-    for call_exp in call_extractor.link_call_exp_vec.iter() {
-        eprintln!(
-            "call_exp = \n{:?}\n\n",
-            &call_extractor.source[call_exp.loc.start() as usize..call_exp.loc.end() as usize]
-        );
-
-        if let Exp_::Call(name, CallKind::Receiver, _tys, es) = &call_exp.value {
-            eprintln!(
-                "name = \n{:?}",
-                &call_extractor.source[name.loc.start() as usize..name.loc.end() as usize]
-            );
-            eprintln!(
-                "es = \n{:?}",
-                &call_extractor.source[es.loc.start() as usize..es.loc.end() as usize]
-            );
-            es.value.iter().for_each(|e| {
-                eprintln!(
-                    "single e = \n{:?}",
-                    &call_extractor.source[e.loc.start() as usize..e.loc.end() as usize]
-                );
-            });
-        }
-    }
-}
-
-#[test]
-fn test_judge_fn_link_call() {
-    judge_fn_link_call(
-        "
-        module 0x42::m {
-
-            struct S has drop { x: u64 }
-        
-            fun plus_one(self: &S): S {
-                self.x = self.x + 1;
-                S { x: self.x }
-            }
- 
-            fun plus_with(self: &S, append: u64): S {
-                let token_data_collection = &mut borrow_global_mut<TokenDataCollection<TokenType>>(signer::address_of(
-                    account
-                )).tokens;
-                self.x = self.x + append;
-                S { x: self.x }
-            }
-
-            fun sum(self: &S, other: &S, append: u64): u64 { self.x + other.x + append }
-               
-            fun test_link_call(s: S) {
-                let p1m = &mut s;
-                let p2m = p1m.plus_one().plus_one().plus_one().plus_one().plus_one().plus_one().plus_one().plus_one().plus_one().plus_one().plus_one().plus_one();
-                let p3m = p1m.plus_one().sum(p2m, 666);
-                let p4m = p1m.plus_one().plus_with(333).sum(p2m, 666);
-                let p5m = p1m.plus_one().plus_with(222).plus_with(333).sum(p2m, 666);
-            }
-        }
-"
-        .to_string());
 }
 
 #[test]
@@ -751,63 +630,6 @@ module 0x42::M {
         );
     }
 }
-"
-        .to_string(),
-    );
-}
-
-#[test]
-fn test_judge_fn_link_call2() {
-    judge_fn_link_call(
-        "
-        module test {
-            fun settle_single_trade<M: store + copy + drop>(
-                self: &mut Market<M>,
-                user_addr: address,
-                price: Option<u64>,
-                orig_size: u64,
-                remaining_size: &mut u64,
-                is_bid: bool,
-                metadata: M,
-                order_id: OrderIdType,
-                client_order_id: Option<u64>,
-                callbacks: &MarketClearinghouseCallbacks<M>,
-                fill_sizes: &mut vector<u64>
-            ): Option<OrderCancellationReason> {
-                let result = self.order_book
-                    .get_single_match_for_taker(price, *remaining_size, is_bid);
-                let (
-                    maker_order, maker_matched_size
-                ) = result.destroy_single_order_match();
-                if (!self.config.allow_self_trade && maker_order.get_account() == user_addr) {
-                    self.cancel_maker_order_internal(
-                        &maker_order,
-                        maker_order.get_client_order_id(),
-                        maker_order.get_account(),
-                        maker_order.get_order_id(),
-                        maker_matched_size,
-                        callbacks
-                    );
-                    return option::none();
-                };
-                let fill_id = self.next_fill_id();
-                let settle_result = callbacks.settle_trade(
-                    user_addr,
-                    order_id,
-                    maker_order.get_account(),
-                    maker_order.get_order_id(),
-                    fill_id,
-                    is_bid,
-                    maker_order.get_price(), // Order is always matched at the price of the maker
-                    maker_matched_size,
-                    metadata,
-                    maker_order.get_metadata_from_order()
-                );
-                option::none()
-            }
-
-        }
-
 "
         .to_string(),
     );

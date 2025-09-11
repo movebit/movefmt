@@ -4,8 +4,7 @@
 
 use std::sync::Arc;
 
-use crate::core::token_tree::{NestKind, NestKind_, TokenTree};
-use crate::syntax_fmt::expr_fmt;
+use crate::core::token_tree::{NestKind, NestKind_};
 use crate::tools::utils::*;
 use commentfmt::Config;
 use move_command_line_common::files::FileHash;
@@ -147,6 +146,13 @@ fn get_space_cnt_before_line_str(s: &str) -> usize {
     result
 }
 
+fn is_fun_specifiers(specifier: &str) -> bool {
+    matches!(
+        specifier,
+        "acquires" | "reads" | "writes" | "pure" | "!acquires" | "!reads" | "!writes"
+    )
+}
+
 impl FunHandler {
     pub(crate) fn is_generic_ty_in_fun_header(&self, kind: &NestKind) -> bool {
         let loc_vec = &self.loc_vec;
@@ -211,113 +217,131 @@ fn get_defs(fmt_buffer: String) -> Vec<Definition> {
         .0
 }
 
+/// Collect arguments that follow a specifier keyword.
+/// Returns the formatted string (may contain new-lines and indent).
+fn collect_specifier_args(
+    fun_specifiers: &[&str],
+    start_idx: usize,
+    specifier: &str,
+    last_substr_len: &mut usize,
+    current_specifier_idx: &mut usize,
+    fun_specifiers_code: &mut Vec<(u32, u32, String)>,
+    indent_str: &str,
+) -> String {
+    let mut args = Vec::new();
+
+    // Nothing to do if we are already at the end.
+    if start_idx + 1 >= fun_specifiers.len() {
+        return String::new();
+    }
+
+    let mut old_last_substr_len = *last_substr_len;
+
+    for (j, &item_j) in fun_specifiers.iter().enumerate().skip(start_idx + 1) {
+        let mut this_token_is_comment = true;
+        let iter_specifier = &specifier[*last_substr_len..];
+
+        // Locate the token in the remaining substring.
+        if let Some(idx) = iter_specifier.find(item_j) {
+            // Check whether this token is **not** inside a comment.
+            for token in &mut *fun_specifiers_code {
+                if token.0 == (idx + *last_substr_len) as u32 {
+                    this_token_is_comment = false;
+                    break;
+                }
+            }
+            old_last_substr_len = *last_substr_len;
+            *last_substr_len = *last_substr_len + idx + item_j.len();
+        }
+
+        // If inside a comment, keep the token as-is.
+        if this_token_is_comment {
+            args.push(item_j.to_string());
+            continue;
+        }
+
+        // Stop collecting when we reach the next specifier keyword.
+        if is_fun_specifiers(item_j) {
+            *current_specifier_idx = j;
+            *last_substr_len = old_last_substr_len;
+            break;
+        } else {
+            // Handle new-lines inside the argument list.
+            let judge_new_line = &specifier[old_last_substr_len..*last_substr_len];
+            if judge_new_line.contains('\n') {
+                args.push("\n".to_string());
+                let tmp_indent_str = " ".repeat(
+                    indent_str
+                        .chars()
+                        .filter(|c| *c == ' ')
+                        .count()
+                        .saturating_sub(2),
+                );
+                args.push(tmp_indent_str);
+            }
+            args.push(item_j.to_string());
+        }
+    }
+
+    args.join(" ")
+}
+
+/// Format function-specifier string (e.g. `acquires Foo, Bar reads Baz`).
+/// Keywords are placed on new lines with proper indent; comments are preserved.
 pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &str) -> String {
     use std::collections::HashSet;
-    let mut specifier_str_set: HashSet<String> = HashSet::new();
 
     tracing::trace!("fun_specifier_str = {}", specifier);
 
+    // Collect all lexer tokens so we can detect which spans are inside comments.
     let mut fun_specifiers_code = vec![];
     let mut lexer = Lexer::new(specifier, FileHash::empty());
-    lexer.advance().unwrap();
-    while lexer.peek() != Tok::EOF {
-        fun_specifiers_code.push((
-            lexer.start_loc() as u32,
-            (lexer.start_loc() + lexer.content().len()) as u32,
-            lexer.content().to_string(),
-        ));
-        if lexer.advance().is_err() {
-            break;
+    if lexer.advance().is_ok() {
+        while lexer.peek() != Tok::EOF {
+            fun_specifiers_code.push((
+                lexer.start_loc() as u32,
+                (lexer.start_loc() + lexer.content().len()) as u32,
+                lexer.content().to_string(),
+            ));
+            if lexer.advance().is_err() {
+                break;
+            }
         }
     }
 
-    // let tokens: Vec<&str> = specifier.split(' ').collect();
-    let mut fun_specifiers = vec![];
-    for token in specifier.split_whitespace() {
-        fun_specifiers.push(token);
-        if matches!(
-            token,
-            "acquires" | "reads" | "writes" | "pure" | "!acquires" | "!reads" | "!writes"
-        ) {
+    // Split specifier into individual words and record recognised keywords.
+    let fun_specifiers: Vec<&str> = specifier.split_whitespace().collect();
+    let mut specifier_str_set: HashSet<String> = HashSet::new();
+
+    for &token in &fun_specifiers {
+        if is_fun_specifiers(token) {
             specifier_str_set.insert(token.to_string());
         }
     }
-    // 20240329 updated
-    // https://github.com/movebit/movefmt/issues/3
-    if specifier_str_set.len() == 1 {
+
+    // Fast path: zero or one keyword → return input untouched.
+    // See: https://github.com/movebit/movefmt/issues/3
+    if specifier_str_set.len() <= 1 {
         return specifier.to_string();
     }
 
-    let mut fun_specifier_fmted_str = "".to_string();
+    let mut result = String::new();
     let mut found_specifier = false;
     let mut first_specifier_idx = 0;
-
     let mut current_specifier_idx = 0;
     let mut last_substr_len = 0;
+
     for i in 0..fun_specifiers.len() {
         if i < current_specifier_idx {
             continue;
         }
-        let specifier_set = fun_specifiers[i];
 
-        let mut parse_access_specifier_list = |last_substr_len: &mut usize,
-                                               fun_specifiers_code: &mut Vec<(
-            u32,
-            u32,
-            String,
-        )>| {
-            let mut chain: Vec<_> = vec![];
-            if i + 1 == fun_specifiers.len() {
-                return chain;
-            }
-            let mut old_last_substr_len = *last_substr_len;
-            for (j, item_j) in fun_specifiers.iter().enumerate().skip(i + 1) {
-                let mut this_token_is_comment = true;
-                let iter_specifier = &specifier[*last_substr_len..];
-                if let Some(idx) = iter_specifier.find(item_j) {
-                    // if this token's pos not comment
-                    for token in &mut *fun_specifiers_code {
-                        if token.0 == (idx + *last_substr_len) as u32 {
-                            this_token_is_comment = false;
-                            break;
-                        }
-                    }
-                    old_last_substr_len = *last_substr_len;
-                    *last_substr_len = *last_substr_len + idx + item_j.len();
-                }
+        let specifier_token = fun_specifiers[i];
 
-                if this_token_is_comment {
-                    chain.push(item_j.to_string());
-                    continue;
-                }
-
-                if matches!(
-                    *item_j,
-                    "acquires" | "reads" | "writes" | "pure" | "!acquires" | "!reads" | "!writes"
-                ) {
-                    current_specifier_idx = j;
-                    *last_substr_len = old_last_substr_len;
-                    break;
-                } else {
-                    let judge_new_line = &specifier[old_last_substr_len..*last_substr_len];
-                    if judge_new_line.contains('\n') {
-                        chain.push("\n".to_string());
-                        let tmp_indent_str = " ".to_string().repeat(
-                            indent_str.to_owned().chars().filter(|c| *c == ' ').count() - 2,
-                        );
-                        chain.push(tmp_indent_str.clone());
-                    }
-
-                    chain.push(item_j.to_string());
-                }
-            }
-            chain
-        };
-
+        // Check whether the current token is inside a comment.
         let mut this_token_is_comment = true;
         let iter_specifier = &specifier[last_substr_len..];
-        if let Some(idx) = iter_specifier.find(specifier_set) {
-            // if this token's pos not comment
+        if let Some(idx) = iter_specifier.find(specifier_token) {
             for token_idx in 0..fun_specifiers_code.len() {
                 let token = &fun_specifiers_code[token_idx];
                 if token.0 == (idx + last_substr_len) as u32 {
@@ -326,42 +350,53 @@ pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &str) -> Str
                     break;
                 }
             }
-            last_substr_len = last_substr_len + idx + specifier_set.len();
+            last_substr_len = last_substr_len + idx + specifier_token.len();
         }
 
+        // Skip tokens that live inside comments.
         if this_token_is_comment {
             continue;
         }
 
-        if matches!(
-            specifier_set,
-            "acquires" | "reads" | "writes" | "pure" | "!acquires" | "!reads" | "!writes"
-        ) {
+        if is_fun_specifiers(specifier_token) {
             if !found_specifier {
-                first_specifier_idx = last_substr_len - specifier_set.len();
+                first_specifier_idx = last_substr_len - specifier_token.len();
                 found_specifier = true;
             }
 
-            fun_specifier_fmted_str.push('\n');
-            fun_specifier_fmted_str.push_str(indent_str);
-            fun_specifier_fmted_str.push_str(specifier_set);
-            if specifier_set != "pure" {
-                fun_specifier_fmted_str.push(' ');
-                fun_specifier_fmted_str.push_str(
-                    &(parse_access_specifier_list(&mut last_substr_len, &mut fun_specifiers_code)
-                        .join(" ")),
+            // Place the keyword on a new line with indent.
+            result.push('\n');
+            result.push_str(indent_str);
+            result.push_str(specifier_token);
+
+            // Collect arguments that follow the keyword (except for "pure").
+            if specifier_token != "pure" {
+                let args = collect_specifier_args(
+                    &fun_specifiers,
+                    i,
+                    specifier,
+                    &mut last_substr_len,
+                    &mut current_specifier_idx,
+                    &mut fun_specifiers_code,
+                    indent_str,
                 );
+
+                if !args.is_empty() {
+                    result.push(' ');
+                    result.push_str(&args);
+                }
             }
         }
 
-        if last_substr_len == specifier.len() {
+        if last_substr_len >= specifier.len() {
             break;
         }
     }
 
+    // Re-assemble the final string.
     let mut ret_str = specifier[0..first_specifier_idx].to_string();
     if found_specifier {
-        ret_str.push_str(fun_specifier_fmted_str.as_str());
+        ret_str.push_str(&result);
         ret_str.push(' ');
     } else {
         ret_str = specifier.to_string();
@@ -527,52 +562,6 @@ pub(crate) fn process_fun_ret_ty(fmt_buffer: String, config: Config) -> String {
     result
 }
 
-#[allow(dead_code)]
-pub(crate) fn process_fun_annotation(kind: NestKind, elements: Vec<TokenTree>) -> String {
-    fn process_simple_token(token: &TokenTree, next_token: Option<&TokenTree>) -> String {
-        let mut fmt_result_str = "".to_string();
-        fmt_result_str.push_str(token.simple_str().unwrap_or_default());
-        if expr_fmt::need_space(token, next_token) {
-            fmt_result_str.push(' ');
-        }
-        fmt_result_str
-    }
-
-    fn process_nested_token(nested_token_tree: &TokenTree) -> String {
-        let mut fmt_result_str = "".to_string();
-        if let TokenTree::Nested { elements, kind, .. } = nested_token_tree {
-            fmt_result_str.push_str(kind.start_token_tree().simple_str().unwrap_or_default());
-            let mut internal_token_idx = 0;
-            while internal_token_idx < elements.len() {
-                let t = elements.get(internal_token_idx).unwrap();
-                let next_t = elements.get(internal_token_idx + 1);
-                fmt_result_str.push_str(&process_token_trees(t, next_t));
-                internal_token_idx += 1;
-            }
-            fmt_result_str.push_str(kind.end_token_tree().simple_str().unwrap_or_default());
-        }
-        fmt_result_str
-    }
-
-    fn process_token_trees(token: &TokenTree, next_token: Option<&TokenTree>) -> String {
-        match token {
-            TokenTree::Nested { .. } => process_nested_token(token),
-            TokenTree::SimpleToken { .. } => process_simple_token(token, next_token),
-        }
-    }
-
-    if NestKind_::Bracket == kind.kind {
-        let fmt_result_str = process_nested_token(&TokenTree::Nested {
-            elements,
-            kind,
-            note: None,
-        });
-        tracing::debug!("fmt_result_str = {}", fmt_result_str);
-        return fmt_result_str;
-    }
-    "".to_string()
-}
-
 pub fn fmt_fun(fmt_buffer: String, config: Config) -> String {
     let mut result = process_block_comment_before_fun_header(fmt_buffer, config.clone());
     result = process_fun_header_too_long(result, config.clone());
@@ -582,22 +571,29 @@ pub fn fmt_fun(fmt_buffer: String, config: Config) -> String {
 
 #[test]
 fn test_rewrite_fun_header_1() {
-    fun_header_specifier_fmt("acquires *(make_up_address(x))", "    ");
-    fun_header_specifier_fmt("!reads *(0x42), *(0x43)", "    ");
-    fun_header_specifier_fmt(": u32 !reads *(0x42), *(0x43)", "    ");
-    fun_header_specifier_fmt(": /*(bool, bool)*/ (bool, bool) ", "    ");
+    let cases = [
+        "acquires *(make_up_address(x))",
+        "!reads *(0x42), *(0x43)",
+        ": u32 !reads *(0x42), *(0x43)",
+        ": /*(bool, bool)*/ (bool, bool) ",
+    ];
+    for input in cases {
+        fun_header_specifier_fmt(input, "    ");
+    }
 }
 
 #[test]
 fn test_rewrite_fun_header_2() {
-    fun_header_specifier_fmt(": u64 /* acquires comment1 */ acquires SomeStruct ", "    ");
-    fun_header_specifier_fmt(": u64 acquires SomeStruct/* acquires comment2 */ ", "    ");
-    fun_header_specifier_fmt(
+    let cases = [
+        ": u64 /* acquires comment1 */ acquires SomeStruct ",
+        ": u64 acquires SomeStruct/* acquires comment2 */ ",
         ": u64 /* acquires comment3 */ acquires /* acquires comment4 */ SomeStruct /* acquires comment5 */",
-        "    ",
-    );
-    fun_header_specifier_fmt("acquires R reads R writes T, S reads G<u64> ", "    ");
-    fun_header_specifier_fmt("fun f11() !reads *(0x42) ", "    ");
+        "acquires R reads R writes T, S reads G<u64> ",
+        "fun f11() !reads *(0x42) ",
+    ];
+    for input in cases {
+        fun_header_specifier_fmt(input, "    ");
+    }
 }
 
 #[test]

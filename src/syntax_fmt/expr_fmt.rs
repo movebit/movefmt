@@ -195,7 +195,10 @@ impl<'a> DotChainParser<'a> {
         let is_call = matches!(self.current(), Tok::Less | Tok::LParen);
         let args = self.parse_call_args()?; // consumes <>() or (); returns empty vec if none
         if is_call || !args.is_empty() {
-            self.result.push(ChainMember::Call(name, args, period_pos));
+            self.result
+                .push(ChainMember::Call(name.clone(), args, period_pos));
+        } else {
+            self.result.push(ChainMember::Field(name, period_pos));
         }
 
         while matches!(self.current(), Tok::Period) {
@@ -277,7 +280,10 @@ impl<'a> DotChainParser<'a> {
                     // 2. Handle nested parentheses by depth counting
                     let mut depth = 0;
                     loop {
-                        current_arg.push(ChainMember::Field(self.current_word().to_string(), self.lexer.start_loc()));
+                        current_arg.push(ChainMember::Field(
+                            self.current_word().to_string(),
+                            self.lexer.start_loc(),
+                        ));
                         match self.current() {
                             Tok::LParen | Tok::Less => depth += 1,
                             Tok::RParen | Tok::Greater => {
@@ -298,11 +304,157 @@ impl<'a> DotChainParser<'a> {
     }
 }
 
+pub fn token_trees_to_string(trees: &[TokenTree]) -> Vec<Vec<ChainMemberV2>> {
+    let mut all = Vec::new();
+    all.push(vec![ChainMemberV2::Field("(".to_string())]);
+    let mut buf = String::new();
+    for tt in trees {
+        token_tree_to_string(tt, &mut buf);
+    }
+    all.push(vec![ChainMemberV2::Field(buf.clone())]);
+    all.push(vec![ChainMemberV2::Field(")".to_string())]);
+    all
+}
+
+fn token_tree_to_string(tt: &TokenTree, buf: &mut String) {
+    match tt {
+        TokenTree::SimpleToken { content, .. } => {
+            buf.push_str(content);
+        }
+        TokenTree::Nested { elements, kind, .. } => {
+            buf.push_str(&kind.kind.start_tok().to_string());
+            for (idx, inner) in elements.iter().enumerate() {
+                token_tree_to_string(inner, buf);
+                if idx != elements.len() - 1 {
+                    buf.push(' ');
+                }
+            }
+            buf.push_str(&kind.kind.end_tok().to_string());
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ChainMemberV2 {
+    Field(String),
+    Call(String, Vec<Vec<ChainMemberV2>>), // function name + argument list (each arg is itself a chain)
+}
+
+struct DotChainParserV2 {
+    toktree_vec: Vec<TokenTree>,
+    result: Vec<ChainMemberV2>,
+    cursor: usize,
+    last_peroid_idx: usize,
+}
+
+impl<'a> DotChainParserV2 {
+    fn new(elements: &[TokenTree]) -> Self {
+        Self {
+            toktree_vec: elements.to_vec(),
+            result: Vec::new(),
+            cursor: 0,
+            last_peroid_idx: 0,
+        }
+    }
+
+    fn current(&self) -> TokenTree {
+        self.toktree_vec[self.cursor].clone()
+    }
+
+    fn current_word(&self) -> String {
+        self.current().simple_str().unwrap_or_default().to_string()
+    }
+
+    fn current_tok(&self) -> Tok {
+        self.current().get_start_tok()
+    }
+
+    fn current_nested_end_tok(&self) -> Tok {
+        self.current().get_end_tok()
+    }
+
+    fn advance(&mut self) {
+        if self.cursor < self.toktree_vec.len() - 1 {
+            self.cursor += 1;
+        }
+    }
+
+    fn parse_chain(&mut self) -> Option<()> {
+        let name = match self.current() {
+            TokenTree::SimpleToken { .. } => {
+                let n = self.current_word();
+                self.advance();
+                n
+            }
+            _ => return None,
+        };
+
+        let is_call = matches!(self.current_tok(), Tok::Less | Tok::LParen);
+        let args = self.parse_call_args()?; // consumes <>() or (); returns empty vec if none
+        if is_call || !args.is_empty() {
+            self.result.push(ChainMemberV2::Call(name, args));
+        } else {
+            self.result.push(ChainMemberV2::Field(name));
+        }
+
+        while matches!(self.current_tok(), Tok::Period) {
+            self.last_peroid_idx = self.cursor;
+            self.advance();
+            self.parse_postfix()?;
+        }
+        Some(())
+    }
+
+    fn parse_postfix(&mut self) -> Option<()> {
+        let name = match self.current() {
+            TokenTree::SimpleToken { .. } => {
+                let n = self.current_word();
+                self.advance();
+                n
+            }
+            _ => return None,
+        };
+
+        // Treat as Call if followed by '<' or '('
+        let is_call = matches!(self.current_tok(), Tok::Less | Tok::LParen);
+        let args = self.parse_call_args()?; // consumes <>() or (); returns empty vec if none
+        if is_call || !args.is_empty() {
+            self.result.push(ChainMemberV2::Call(name, args));
+        } else {
+            self.result.push(ChainMemberV2::Field(name));
+        }
+        Some(())
+    }
+
+    fn parse_call_args(&mut self) -> Option<Vec<Vec<ChainMemberV2>>> {
+        // 1. Skip optional <...>
+        if self.current_tok() == Tok::Less && self.current_nested_end_tok() == Tok::Greater {
+            self.advance();
+        }
+
+        if self.current_tok() != Tok::LParen && self.current_nested_end_tok() != Tok::RParen {
+            return Some(Vec::new());
+        }
+
+        let TokenTree::Nested { elements, .. } = self.current() else {
+            return Some(Vec::new());
+        };
+
+        self.advance();
+        Some(token_trees_to_string(&elements))
+    }
+}
+
 pub fn parse_dot_chain(codespan_str: &str) -> Option<(Vec<ChainMember>, usize)> {
     let mut p = DotChainParser::new(codespan_str);
-    p.parse_chain().and_then(|_| {
-        Some((p.result, p.last_peroid_idx))
-    })
+    p.parse_chain()
+        .and_then(|_| Some((p.result, p.last_peroid_idx)))
+}
+
+pub fn parse_dot_chain_v2(trees: &[TokenTree]) -> Option<(Vec<ChainMemberV2>, usize)> {
+    let mut p = DotChainParserV2::new(trees);
+    p.parse_chain()
+        .and_then(|_| Some((p.result, p.last_peroid_idx)))
 }
 
 fn is_to_or_except(token: &Option<&TokenTree>) -> bool {
@@ -586,12 +738,9 @@ pub(crate) fn need_newline_when_trim_blank_line(current: &Tok, next: &Tok) -> bo
 #[test]
 fn nested_call_with_mixed_expressions() {
     // a.g(x + y * z, h(1 + 2))
-    let result = parse_dot_chain(
-        "a.g(x + y * z, h(1 + 2))"
-    );
+    let result = parse_dot_chain("a.g(x + y * z, h(1 + 2))");
     println!("result = {:?}", result);
 }
-
 
 #[test]
 fn call_with_mixed_expressions() {
@@ -611,7 +760,7 @@ fn call_with_mixed_expressions() {
             .plus_one()
             .x;
         val + 1;
-        "
+        ",
     );
     println!("result = {:?}", result);
 }
