@@ -288,7 +288,8 @@ fn collect_specifier_args(
 
 /// Format function-specifier string (e.g. `acquires Foo, Bar reads Baz`).
 /// Keywords are placed on new lines with proper indent; comments are preserved.
-pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &str) -> String {
+#[allow(dead_code)]
+pub(crate) fn fun_header_specifier_fmt_original(specifier: &str, indent_str: &str) -> String {
     use std::collections::HashSet;
 
     tracing::trace!("fun_specifier_str = {}", specifier);
@@ -402,6 +403,196 @@ pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &str) -> Str
         ret_str = specifier.to_string();
     }
     ret_str
+}
+
+/// Format function-specifier string (e.g. `acquires Foo, Bar reads Baz`).
+/// Keywords are placed on new lines with proper indent; comments are preserved.
+/// This is the optimized version.
+pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &str) -> String {
+    tracing::trace!("fun_specifier_str = {}", specifier);
+
+    // Early return for empty or whitespace-only input
+    if specifier.trim().is_empty() {
+        return specifier.to_string();
+    }
+
+    // Collect lexer tokens and count specifiers in one pass
+    let (token_positions, specifier_count) = collect_tokens_and_count_specifiers(specifier);
+
+    // Fast path: zero or one keyword → return input untouched.
+    // See: https://github.com/movebit/movefmt/issues/3
+    if specifier_count <= 1 {
+        return specifier.to_string();
+    }
+
+    // Pre-calculate indent for arguments to avoid repeated computation
+    let arg_indent = calculate_arg_indent(indent_str);
+
+    // Process tokens and format specifiers
+    format_specifiers_optimized(specifier, &token_positions, indent_str, &arg_indent)
+}
+
+/// Collect token positions and count specifiers in a single pass
+fn collect_tokens_and_count_specifiers(specifier: &str) -> (Vec<(u32, u32, String)>, usize) {
+    let mut token_positions = Vec::new();
+    let mut specifier_count = 0;
+
+    let mut lexer = Lexer::new(specifier, FileHash::empty());
+    if lexer.advance().is_ok() {
+        while lexer.peek() != Tok::EOF {
+            let content = lexer.content().to_string();
+            token_positions.push((
+                lexer.start_loc() as u32,
+                (lexer.start_loc() + content.len()) as u32,
+                content.clone(),
+            ));
+
+            // Count specifiers while we're at it
+            if is_fun_specifiers(&content) {
+                specifier_count += 1;
+            }
+
+            if lexer.advance().is_err() {
+                break;
+            }
+        }
+    }
+
+    (token_positions, specifier_count)
+}
+
+/// Pre-calculate argument indentation to avoid repeated computation
+fn calculate_arg_indent(indent_str: &str) -> String {
+    let space_count = indent_str.chars().filter(|&c| c == ' ').count();
+    " ".repeat(space_count.saturating_sub(2))
+}
+
+/// Optimized specifier formatting with better memory management
+fn format_specifiers_optimized(
+    specifier: &str,
+    token_positions: &[(u32, u32, String)],
+    indent_str: &str,
+    arg_indent: &str,
+) -> String {
+    let tokens: Vec<&str> = specifier.split_whitespace().collect();
+    let mut token_positions = token_positions.to_vec(); // Make mutable copy
+
+    // Pre-allocate result string with estimated capacity
+    let estimated_size = specifier.len() + (tokens.len() * (indent_str.len() + 10));
+    let mut result = String::with_capacity(estimated_size);
+
+    let mut found_specifier = false;
+    let mut first_specifier_idx = 0;
+    let mut current_pos = 0;
+    let mut i = 0;
+
+    while i < tokens.len() {
+        let token = tokens[i];
+
+        // Find token position in original string
+        if let Some(token_idx) = specifier[current_pos..].find(token) {
+            let absolute_pos = current_pos + token_idx;
+
+            // Check if token is in comment (optimized lookup)
+            let is_comment = !is_token_at_position(&mut token_positions, absolute_pos as u32);
+            current_pos = absolute_pos + token.len();
+
+            if !is_comment && is_fun_specifiers(token) {
+                if !found_specifier {
+                    first_specifier_idx = absolute_pos;
+                    found_specifier = true;
+                }
+
+                // Format specifier
+                result.push('\n');
+                result.push_str(indent_str);
+                result.push_str(token);
+
+                // Collect arguments for non-pure specifiers
+                if token != "pure" {
+                    let args = collect_args_optimized(
+                        &tokens,
+                        i,
+                        specifier,
+                        &mut current_pos,
+                        &mut i, // This will be updated to skip processed tokens
+                        arg_indent,
+                    );
+
+                    if !args.is_empty() {
+                        result.push(' ');
+                        result.push_str(&args);
+                    }
+                }
+            }
+        }
+
+        i += 1;
+        if current_pos >= specifier.len() {
+            break;
+        }
+    }
+
+    // Assemble final result
+    if found_specifier {
+        let mut final_result = String::with_capacity(first_specifier_idx + result.len() + 1);
+        final_result.push_str(&specifier[..first_specifier_idx]);
+        final_result.push_str(&result);
+        final_result.push(' ');
+        final_result
+    } else {
+        specifier.to_string()
+    }
+}
+
+/// Optimized token position lookup with removal
+fn is_token_at_position(token_positions: &mut Vec<(u32, u32, String)>, pos: u32) -> bool {
+    if let Some(index) = token_positions
+        .iter()
+        .position(|(start, _, _)| *start == pos)
+    {
+        token_positions.remove(index);
+        true
+    } else {
+        false
+    }
+}
+
+/// Optimized argument collection with better string handling
+fn collect_args_optimized(
+    tokens: &[&str],
+    start_idx: usize,
+    specifier: &str,
+    current_pos: &mut usize,
+    next_i: &mut usize,
+    arg_indent: &str,
+) -> String {
+    let mut args = Vec::new();
+
+    for (j, token) in tokens.iter().enumerate().skip(start_idx + 1) {
+        // Stop at next specifier
+        if is_fun_specifiers(token) {
+            *next_i = j - 1; // Set to process this specifier next
+            break;
+        }
+
+        // Find token in remaining string
+        if let Some(token_idx) = specifier[*current_pos..].find(token) {
+            let absolute_pos = *current_pos + token_idx;
+            let between_text = &specifier[*current_pos..absolute_pos];
+
+            // Handle newlines more efficiently
+            if between_text.contains('\n') {
+                args.push("\n"); // added one space with '\n' and arg_indent
+                args.push(arg_indent); // added one space with arg_indent and token
+            }
+
+            args.push(token);
+            *current_pos = absolute_pos + token.len();
+        }
+    }
+
+    args.join(" ")
 }
 
 pub(crate) fn process_block_comment_before_fun_header(
@@ -578,7 +769,13 @@ fn test_rewrite_fun_header_1() {
         ": /*(bool, bool)*/ (bool, bool) ",
     ];
     for input in cases {
-        fun_header_specifier_fmt(input, "    ");
+        let original_result = fun_header_specifier_fmt_original(input, "    ");
+        let optimized_result = fun_header_specifier_fmt(input, "    ");
+        assert_eq!(
+            original_result, optimized_result,
+            "Mismatch for input: '{}'",
+            input
+        );
     }
 }
 
@@ -592,21 +789,94 @@ fn test_rewrite_fun_header_2() {
         "fun f11() !reads *(0x42) ",
     ];
     for input in cases {
-        fun_header_specifier_fmt(input, "    ");
+        let original_result = fun_header_specifier_fmt_original(input, "    ");
+        let optimized_result = fun_header_specifier_fmt(input, "    ");
+        assert_eq!(
+            original_result, optimized_result,
+            "Mismatch for input: '{}'",
+            input
+        );
     }
 }
 
 #[test]
 fn test_rewrite_fun_header_3() {
-    fun_header_specifier_fmt(
+    let input = "
+        // comment1
+        econia: &signer)
+        acquires // acquires comment2
+        IncentiveParameters 
+    ";
+    let original_result = fun_header_specifier_fmt_original(input, "    ");
+    let optimized_result = fun_header_specifier_fmt(input, "    ");
+    assert_eq!(
+        original_result, optimized_result,
+        "Mismatch for complex input"
+    );
+}
+
+#[test]
+fn test_performance_comparison() {
+    use std::time::Instant;
+
+    let test_cases = vec![
+        "acquires *(make_up_address(x))",
+        "!reads *(0x42), *(0x43)",
+        ": u32 !reads *(0x42), *(0x43)",
+        ": /*(bool, bool)*/ (bool, bool) ",
+        ": u64 /* acquires comment1 */ acquires SomeStruct ",
+        ": u64 acquires SomeStruct/* acquires comment2 */ ",
+        ": u64 /* acquires comment3 */ acquires /* acquires comment4 */ SomeStruct /* acquires comment5 */",
+        "acquires R reads R writes T, S reads G<u64> ",
+        "fun f11() !reads *(0x42) ",
         "
         // comment1
         econia: &signer)
         acquires // acquires comment2
         IncentiveParameters 
-    ",
-        "    ",
-    );
+        ",
+    ];
+
+    let iterations = 1000;
+
+    // Test original version
+    let start = Instant::now();
+    for _ in 0..iterations {
+        for case in &test_cases {
+            fun_header_specifier_fmt_original(case, "    ");
+        }
+    }
+    let original_duration = start.elapsed();
+
+    // Test optimized version
+    let start = Instant::now();
+    for _ in 0..iterations {
+        for case in &test_cases {
+            fun_header_specifier_fmt(case, "    ");
+        }
+    }
+    let optimized_duration = start.elapsed();
+
+    println!("Original version: {:?}", original_duration);
+    println!("Optimized version: {:?}", optimized_duration);
+
+    if optimized_duration < original_duration {
+        let improvement =
+            (original_duration.as_nanos() as f64 / optimized_duration.as_nanos() as f64 - 1.0)
+                * 100.0;
+        println!("Performance improvement: {:.2}%", improvement);
+    }
+
+    // Ensure both versions produce identical results
+    for case in &test_cases {
+        let original_result = fun_header_specifier_fmt_original(case, "    ");
+        let optimized_result = fun_header_specifier_fmt(case, "    ");
+        assert_eq!(
+            original_result, optimized_result,
+            "Results differ for: {}",
+            case
+        );
+    }
 }
 
 #[test]
