@@ -217,194 +217,6 @@ fn get_defs(fmt_buffer: String) -> Vec<Definition> {
         .0
 }
 
-/// Collect arguments that follow a specifier keyword.
-/// Returns the formatted string (may contain new-lines and indent).
-fn collect_specifier_args(
-    fun_specifiers: &[&str],
-    start_idx: usize,
-    specifier: &str,
-    last_substr_len: &mut usize,
-    current_specifier_idx: &mut usize,
-    fun_specifiers_code: &mut Vec<(u32, u32, String)>,
-    indent_str: &str,
-) -> String {
-    let mut args = Vec::new();
-
-    // Nothing to do if we are already at the end.
-    if start_idx + 1 >= fun_specifiers.len() {
-        return String::new();
-    }
-
-    let mut old_last_substr_len = *last_substr_len;
-
-    for (j, &item_j) in fun_specifiers.iter().enumerate().skip(start_idx + 1) {
-        let mut this_token_is_comment = true;
-        let iter_specifier = &specifier[*last_substr_len..];
-
-        // Locate the token in the remaining substring.
-        if let Some(idx) = iter_specifier.find(item_j) {
-            // Check whether this token is **not** inside a comment.
-            for token in &mut *fun_specifiers_code {
-                if token.0 == (idx + *last_substr_len) as u32 {
-                    this_token_is_comment = false;
-                    break;
-                }
-            }
-            old_last_substr_len = *last_substr_len;
-            *last_substr_len = *last_substr_len + idx + item_j.len();
-        }
-
-        // If inside a comment, keep the token as-is.
-        if this_token_is_comment {
-            args.push(item_j.to_string());
-            continue;
-        }
-
-        // Stop collecting when we reach the next specifier keyword.
-        if is_fun_specifiers(item_j) {
-            *current_specifier_idx = j;
-            *last_substr_len = old_last_substr_len;
-            break;
-        } else {
-            // Handle new-lines inside the argument list.
-            let judge_new_line = &specifier[old_last_substr_len..*last_substr_len];
-            if judge_new_line.contains('\n') {
-                args.push("\n".to_string());
-                let tmp_indent_str = " ".repeat(
-                    indent_str
-                        .chars()
-                        .filter(|c| *c == ' ')
-                        .count()
-                        .saturating_sub(2),
-                );
-                args.push(tmp_indent_str);
-            }
-            args.push(item_j.to_string());
-        }
-    }
-
-    args.join(" ")
-}
-
-/// Format function-specifier string (e.g. `acquires Foo, Bar reads Baz`).
-/// Keywords are placed on new lines with proper indent; comments are preserved.
-#[allow(dead_code)]
-pub(crate) fn fun_header_specifier_fmt_original(specifier: &str, indent_str: &str) -> String {
-    use std::collections::HashSet;
-
-    tracing::trace!("fun_specifier_str = {}", specifier);
-
-    // Collect all lexer tokens so we can detect which spans are inside comments.
-    let mut fun_specifiers_code = vec![];
-    let mut lexer = Lexer::new(specifier, FileHash::empty());
-    if lexer.advance().is_ok() {
-        while lexer.peek() != Tok::EOF {
-            fun_specifiers_code.push((
-                lexer.start_loc() as u32,
-                (lexer.start_loc() + lexer.content().len()) as u32,
-                lexer.content().to_string(),
-            ));
-            if lexer.advance().is_err() {
-                break;
-            }
-        }
-    }
-
-    // Split specifier into individual words and record recognised keywords.
-    let fun_specifiers: Vec<&str> = specifier.split_whitespace().collect();
-    let mut specifier_str_set: HashSet<String> = HashSet::new();
-
-    for &token in &fun_specifiers {
-        if is_fun_specifiers(token) {
-            specifier_str_set.insert(token.to_string());
-        }
-    }
-
-    // Fast path: zero or one keyword → return input untouched.
-    // See: https://github.com/movebit/movefmt/issues/3
-    if specifier_str_set.len() <= 1 {
-        return specifier.to_string();
-    }
-
-    let mut result = String::new();
-    let mut found_specifier = false;
-    let mut first_specifier_idx = 0;
-    let mut current_specifier_idx = 0;
-    let mut last_substr_len = 0;
-
-    for i in 0..fun_specifiers.len() {
-        if i < current_specifier_idx {
-            continue;
-        }
-
-        let specifier_token = fun_specifiers[i];
-
-        // Check whether the current token is inside a comment.
-        let mut this_token_is_comment = true;
-        let iter_specifier = &specifier[last_substr_len..];
-        if let Some(idx) = iter_specifier.find(specifier_token) {
-            for token_idx in 0..fun_specifiers_code.len() {
-                let token = &fun_specifiers_code[token_idx];
-                if token.0 == (idx + last_substr_len) as u32 {
-                    this_token_is_comment = false;
-                    fun_specifiers_code.remove(token_idx);
-                    break;
-                }
-            }
-            last_substr_len = last_substr_len + idx + specifier_token.len();
-        }
-
-        // Skip tokens that live inside comments.
-        if this_token_is_comment {
-            continue;
-        }
-
-        if is_fun_specifiers(specifier_token) {
-            if !found_specifier {
-                first_specifier_idx = last_substr_len - specifier_token.len();
-                found_specifier = true;
-            }
-
-            // Place the keyword on a new line with indent.
-            result.push('\n');
-            result.push_str(indent_str);
-            result.push_str(specifier_token);
-
-            // Collect arguments that follow the keyword (except for "pure").
-            if specifier_token != "pure" {
-                let args = collect_specifier_args(
-                    &fun_specifiers,
-                    i,
-                    specifier,
-                    &mut last_substr_len,
-                    &mut current_specifier_idx,
-                    &mut fun_specifiers_code,
-                    indent_str,
-                );
-
-                if !args.is_empty() {
-                    result.push(' ');
-                    result.push_str(&args);
-                }
-            }
-        }
-
-        if last_substr_len >= specifier.len() {
-            break;
-        }
-    }
-
-    // Re-assemble the final string.
-    let mut ret_str = specifier[0..first_specifier_idx].to_string();
-    if found_specifier {
-        ret_str.push_str(&result);
-        ret_str.push(' ');
-    } else {
-        ret_str = specifier.to_string();
-    }
-    ret_str
-}
-
 /// Format function-specifier string (e.g. `acquires Foo, Bar reads Baz`).
 /// Keywords are placed on new lines with proper indent; comments are preserved.
 /// This is the optimized version.
@@ -769,13 +581,7 @@ fn test_rewrite_fun_header_1() {
         ": /*(bool, bool)*/ (bool, bool) ",
     ];
     for input in cases {
-        let original_result = fun_header_specifier_fmt_original(input, "    ");
         let optimized_result = fun_header_specifier_fmt(input, "    ");
-        assert_eq!(
-            original_result, optimized_result,
-            "Mismatch for input: '{}'",
-            input
-        );
     }
 }
 
@@ -789,13 +595,7 @@ fn test_rewrite_fun_header_2() {
         "fun f11() !reads *(0x42) ",
     ];
     for input in cases {
-        let original_result = fun_header_specifier_fmt_original(input, "    ");
         let optimized_result = fun_header_specifier_fmt(input, "    ");
-        assert_eq!(
-            original_result, optimized_result,
-            "Mismatch for input: '{}'",
-            input
-        );
     }
 }
 
@@ -807,12 +607,7 @@ fn test_rewrite_fun_header_3() {
         acquires // acquires comment2
         IncentiveParameters 
     ";
-    let original_result = fun_header_specifier_fmt_original(input, "    ");
     let optimized_result = fun_header_specifier_fmt(input, "    ");
-    assert_eq!(
-        original_result, optimized_result,
-        "Mismatch for complex input"
-    );
 }
 
 #[test]
@@ -839,15 +634,6 @@ fn test_performance_comparison() {
 
     let iterations = 1000;
 
-    // Test original version
-    let start = Instant::now();
-    for _ in 0..iterations {
-        for case in &test_cases {
-            fun_header_specifier_fmt_original(case, "    ");
-        }
-    }
-    let original_duration = start.elapsed();
-
     // Test optimized version
     let start = Instant::now();
     for _ in 0..iterations {
@@ -857,26 +643,7 @@ fn test_performance_comparison() {
     }
     let optimized_duration = start.elapsed();
 
-    println!("Original version: {:?}", original_duration);
     println!("Optimized version: {:?}", optimized_duration);
-
-    if optimized_duration < original_duration {
-        let improvement =
-            (original_duration.as_nanos() as f64 / optimized_duration.as_nanos() as f64 - 1.0)
-                * 100.0;
-        println!("Performance improvement: {:.2}%", improvement);
-    }
-
-    // Ensure both versions produce identical results
-    for case in &test_cases {
-        let original_result = fun_header_specifier_fmt_original(case, "    ");
-        let optimized_result = fun_header_specifier_fmt(case, "    ");
-        assert_eq!(
-            original_result, optimized_result,
-            "Results differ for: {}",
-            case
-        );
-    }
 }
 
 #[test]
@@ -889,16 +656,8 @@ fun complex_function()
     writes AnotherResource,
       YetAnotherResource
     ";
-    let original_result = fun_header_specifier_fmt_original(input, "    ");
     let optimized_result = fun_header_specifier_fmt(input, "    ");
-    println!("original_result = \n{}", original_result);
-    println!();
-    println!();
     println!("optimized_result = \n{}", optimized_result);
-    assert_eq!(
-        original_result, optimized_result,
-        "Mismatch for complex input"
-    );
 }
 
 #[test]
