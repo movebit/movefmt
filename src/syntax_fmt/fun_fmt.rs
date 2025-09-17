@@ -464,7 +464,7 @@ fn collect_tokens_and_count_specifiers(specifier: &str) -> (Vec<(u32, u32, Strin
 /// Pre-calculate argument indentation to avoid repeated computation
 fn calculate_arg_indent(indent_str: &str) -> String {
     let space_count = indent_str.chars().filter(|&c| c == ' ').count();
-    " ".repeat(space_count.saturating_sub(2))
+    " ".repeat(space_count.saturating_add(2))
 }
 
 /// Optimized specifier formatting with better memory management
@@ -877,6 +877,28 @@ fn test_performance_comparison() {
             case
         );
     }
+}
+
+#[test]
+fn test_rewrite_fun_header_4() {
+    let input = "
+fun complex_function()
+    acquires SomeVeryLongStructName,
+      AnotherLongStructName
+    reads SomeResource
+    writes AnotherResource,
+      YetAnotherResource
+    ";
+    let original_result = fun_header_specifier_fmt_original(input, "    ");
+    let optimized_result = fun_header_specifier_fmt(input, "    ");
+    println!("original_result = \n{}", original_result);
+    println!();
+    println!();
+    println!("optimized_result = \n{}", optimized_result);
+    assert_eq!(
+        original_result, optimized_result,
+        "Mismatch for complex input"
+    );
 }
 
 #[test]
