@@ -456,8 +456,8 @@ pub fn process_pragma(fmt_buffer: String, config: Config) -> String {
             pragma_str += &insert_str;
             let tmp_str = &buf[last_idx..pragma_loc.end() as usize];
             pragma_str += tmp_str.trim_start();
-            tracing::debug!("pragma_str = \n{}", pragma_str);
-            tracing::debug!(
+            tracing::trace!("pragma_str = \n{}", pragma_str);
+            tracing::trace!(
                 "pragma_str.len = {}, pragma_loc.len = {}",
                 pragma_str.len(),
                 pragma_loc.end() - pragma_loc.start()
@@ -515,7 +515,7 @@ fn test_process_spec_fn_header_too_long_1() {
     Config::default()
 );
 
-    tracing::debug!("result = {}", result);
+    tracing::trace!("result = {}", result);
 }
 
 #[test]
@@ -576,7 +576,7 @@ fn test_process_pragma_1() {
     Config::default()
     );
 
-    tracing::debug!("result = {}", result);
+    tracing::trace!("result = {}", result);
 }
 
 #[test]
@@ -640,5 +640,5 @@ fn test_process_pragma_2() {
     Config::default()
     );
 
-    tracing::debug!("result = {}", result);
+    tracing::trace!("result = {}", result);
 }

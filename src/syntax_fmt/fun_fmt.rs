@@ -217,191 +217,194 @@ fn get_defs(fmt_buffer: String) -> Vec<Definition> {
         .0
 }
 
-/// Collect arguments that follow a specifier keyword.
-/// Returns the formatted string (may contain new-lines and indent).
-fn collect_specifier_args(
-    fun_specifiers: &[&str],
-    start_idx: usize,
-    specifier: &str,
-    last_substr_len: &mut usize,
-    current_specifier_idx: &mut usize,
-    fun_specifiers_code: &mut Vec<(u32, u32, String)>,
-    indent_str: &str,
-) -> String {
-    let mut args = Vec::new();
-
-    // Nothing to do if we are already at the end.
-    if start_idx + 1 >= fun_specifiers.len() {
-        return String::new();
-    }
-
-    let mut old_last_substr_len = *last_substr_len;
-
-    for (j, &item_j) in fun_specifiers.iter().enumerate().skip(start_idx + 1) {
-        let mut this_token_is_comment = true;
-        let iter_specifier = &specifier[*last_substr_len..];
-
-        // Locate the token in the remaining substring.
-        if let Some(idx) = iter_specifier.find(item_j) {
-            // Check whether this token is **not** inside a comment.
-            for token in &mut *fun_specifiers_code {
-                if token.0 == (idx + *last_substr_len) as u32 {
-                    this_token_is_comment = false;
-                    break;
-                }
-            }
-            old_last_substr_len = *last_substr_len;
-            *last_substr_len = *last_substr_len + idx + item_j.len();
-        }
-
-        // If inside a comment, keep the token as-is.
-        if this_token_is_comment {
-            args.push(item_j.to_string());
-            continue;
-        }
-
-        // Stop collecting when we reach the next specifier keyword.
-        if is_fun_specifiers(item_j) {
-            *current_specifier_idx = j;
-            *last_substr_len = old_last_substr_len;
-            break;
-        } else {
-            // Handle new-lines inside the argument list.
-            let judge_new_line = &specifier[old_last_substr_len..*last_substr_len];
-            if judge_new_line.contains('\n') {
-                args.push("\n".to_string());
-                let tmp_indent_str = " ".repeat(
-                    indent_str
-                        .chars()
-                        .filter(|c| *c == ' ')
-                        .count()
-                        .saturating_sub(2),
-                );
-                args.push(tmp_indent_str);
-            }
-            args.push(item_j.to_string());
-        }
-    }
-
-    args.join(" ")
-}
-
 /// Format function-specifier string (e.g. `acquires Foo, Bar reads Baz`).
 /// Keywords are placed on new lines with proper indent; comments are preserved.
+/// This is the optimized version.
 pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &str) -> String {
-    use std::collections::HashSet;
-
     tracing::trace!("fun_specifier_str = {}", specifier);
 
-    // Collect all lexer tokens so we can detect which spans are inside comments.
-    let mut fun_specifiers_code = vec![];
+    // Early return for empty or whitespace-only input
+    if specifier.trim().is_empty() {
+        return specifier.to_string();
+    }
+
+    // Collect lexer tokens and count specifiers in one pass
+    let (token_positions, specifier_count) = collect_tokens_and_count_specifiers(specifier);
+
+    // Fast path: zero or one keyword → return input untouched.
+    // See: https://github.com/movebit/movefmt/issues/3
+    if specifier_count <= 1 {
+        return specifier.to_string();
+    }
+
+    // Pre-calculate indent for arguments to avoid repeated computation
+    let arg_indent = calculate_arg_indent(indent_str);
+
+    // Process tokens and format specifiers
+    format_specifiers_optimized(specifier, &token_positions, indent_str, &arg_indent)
+}
+
+/// Collect token positions and count specifiers in a single pass
+fn collect_tokens_and_count_specifiers(specifier: &str) -> (Vec<(u32, u32, String)>, usize) {
+    let mut token_positions = Vec::new();
+    let mut specifier_count = 0;
+
     let mut lexer = Lexer::new(specifier, FileHash::empty());
     if lexer.advance().is_ok() {
         while lexer.peek() != Tok::EOF {
-            fun_specifiers_code.push((
+            let content = lexer.content().to_string();
+            token_positions.push((
                 lexer.start_loc() as u32,
-                (lexer.start_loc() + lexer.content().len()) as u32,
-                lexer.content().to_string(),
+                (lexer.start_loc() + content.len()) as u32,
+                content.clone(),
             ));
+
+            // Count specifiers while we're at it
+            if is_fun_specifiers(&content) {
+                specifier_count += 1;
+            }
+
             if lexer.advance().is_err() {
                 break;
             }
         }
     }
 
-    // Split specifier into individual words and record recognised keywords.
-    let fun_specifiers: Vec<&str> = specifier.split_whitespace().collect();
-    let mut specifier_str_set: HashSet<String> = HashSet::new();
+    (token_positions, specifier_count)
+}
 
-    for &token in &fun_specifiers {
-        if is_fun_specifiers(token) {
-            specifier_str_set.insert(token.to_string());
-        }
-    }
+/// Pre-calculate argument indentation to avoid repeated computation
+fn calculate_arg_indent(indent_str: &str) -> String {
+    let space_count = indent_str.chars().filter(|&c| c == ' ').count();
+    " ".repeat(space_count.saturating_add(2))
+}
 
-    // Fast path: zero or one keyword → return input untouched.
-    // See: https://github.com/movebit/movefmt/issues/3
-    if specifier_str_set.len() <= 1 {
-        return specifier.to_string();
-    }
+/// Optimized specifier formatting with better memory management
+fn format_specifiers_optimized(
+    specifier: &str,
+    token_positions: &[(u32, u32, String)],
+    indent_str: &str,
+    arg_indent: &str,
+) -> String {
+    let tokens: Vec<&str> = specifier.split_whitespace().collect();
+    let mut token_positions = token_positions.to_vec(); // Make mutable copy
 
-    let mut result = String::new();
+    // Pre-allocate result string with estimated capacity
+    let estimated_size = specifier.len() + (tokens.len() * (indent_str.len() + 10));
+    let mut result = String::with_capacity(estimated_size);
+
     let mut found_specifier = false;
     let mut first_specifier_idx = 0;
-    let mut current_specifier_idx = 0;
-    let mut last_substr_len = 0;
+    let mut current_pos = 0;
+    let mut i = 0;
 
-    for i in 0..fun_specifiers.len() {
-        if i < current_specifier_idx {
-            continue;
-        }
+    while i < tokens.len() {
+        let token = tokens[i];
 
-        let specifier_token = fun_specifiers[i];
+        // Find token position in original string
+        if let Some(token_idx) = specifier[current_pos..].find(token) {
+            let absolute_pos = current_pos + token_idx;
 
-        // Check whether the current token is inside a comment.
-        let mut this_token_is_comment = true;
-        let iter_specifier = &specifier[last_substr_len..];
-        if let Some(idx) = iter_specifier.find(specifier_token) {
-            for token_idx in 0..fun_specifiers_code.len() {
-                let token = &fun_specifiers_code[token_idx];
-                if token.0 == (idx + last_substr_len) as u32 {
-                    this_token_is_comment = false;
-                    fun_specifiers_code.remove(token_idx);
-                    break;
+            // Check if token is in comment (optimized lookup)
+            let is_comment = !is_token_at_position(&mut token_positions, absolute_pos as u32);
+            current_pos = absolute_pos + token.len();
+
+            if !is_comment && is_fun_specifiers(token) {
+                if !found_specifier {
+                    first_specifier_idx = absolute_pos;
+                    found_specifier = true;
                 }
-            }
-            last_substr_len = last_substr_len + idx + specifier_token.len();
-        }
 
-        // Skip tokens that live inside comments.
-        if this_token_is_comment {
-            continue;
-        }
+                // Format specifier
+                result.push('\n');
+                result.push_str(indent_str);
+                result.push_str(token);
 
-        if is_fun_specifiers(specifier_token) {
-            if !found_specifier {
-                first_specifier_idx = last_substr_len - specifier_token.len();
-                found_specifier = true;
-            }
+                // Collect arguments for non-pure specifiers
+                if token != "pure" {
+                    let args = collect_args_optimized(
+                        &tokens,
+                        i,
+                        specifier,
+                        &mut current_pos,
+                        &mut i, // This will be updated to skip processed tokens
+                        arg_indent,
+                    );
 
-            // Place the keyword on a new line with indent.
-            result.push('\n');
-            result.push_str(indent_str);
-            result.push_str(specifier_token);
-
-            // Collect arguments that follow the keyword (except for "pure").
-            if specifier_token != "pure" {
-                let args = collect_specifier_args(
-                    &fun_specifiers,
-                    i,
-                    specifier,
-                    &mut last_substr_len,
-                    &mut current_specifier_idx,
-                    &mut fun_specifiers_code,
-                    indent_str,
-                );
-
-                if !args.is_empty() {
-                    result.push(' ');
-                    result.push_str(&args);
+                    if !args.is_empty() {
+                        result.push(' ');
+                        result.push_str(&args);
+                    }
                 }
             }
         }
 
-        if last_substr_len >= specifier.len() {
+        i += 1;
+        if current_pos >= specifier.len() {
             break;
         }
     }
 
-    // Re-assemble the final string.
-    let mut ret_str = specifier[0..first_specifier_idx].to_string();
+    // Assemble final result
     if found_specifier {
-        ret_str.push_str(&result);
-        ret_str.push(' ');
+        let mut final_result = String::with_capacity(first_specifier_idx + result.len() + 1);
+        final_result.push_str(&specifier[..first_specifier_idx]);
+        final_result.push_str(&result);
+        final_result.push(' ');
+        final_result
     } else {
-        ret_str = specifier.to_string();
+        specifier.to_string()
     }
-    ret_str
+}
+
+/// Optimized token position lookup with removal
+fn is_token_at_position(token_positions: &mut Vec<(u32, u32, String)>, pos: u32) -> bool {
+    if let Some(index) = token_positions
+        .iter()
+        .position(|(start, _, _)| *start == pos)
+    {
+        token_positions.remove(index);
+        true
+    } else {
+        false
+    }
+}
+
+/// Optimized argument collection with better string handling
+fn collect_args_optimized(
+    tokens: &[&str],
+    start_idx: usize,
+    specifier: &str,
+    current_pos: &mut usize,
+    next_i: &mut usize,
+    arg_indent: &str,
+) -> String {
+    let mut args = Vec::new();
+
+    for (j, token) in tokens.iter().enumerate().skip(start_idx + 1) {
+        // Stop at next specifier
+        if is_fun_specifiers(token) {
+            *next_i = j - 1; // Set to process this specifier next
+            break;
+        }
+
+        // Find token in remaining string
+        if let Some(token_idx) = specifier[*current_pos..].find(token) {
+            let absolute_pos = *current_pos + token_idx;
+            let between_text = &specifier[*current_pos..absolute_pos];
+
+            // Handle newlines more efficiently
+            if between_text.contains('\n') {
+                args.push("\n"); // added one space with '\n' and arg_indent
+                args.push(arg_indent); // added one space with arg_indent and token
+            }
+
+            args.push(token);
+            *current_pos = absolute_pos + token.len();
+        }
+    }
+
+    args.join(" ")
 }
 
 pub(crate) fn process_block_comment_before_fun_header(
@@ -598,15 +601,63 @@ fn test_rewrite_fun_header_2() {
 
 #[test]
 fn test_rewrite_fun_header_3() {
-    fun_header_specifier_fmt(
+    let input = "
+        // comment1
+        econia: &signer)
+        acquires // acquires comment2
+        IncentiveParameters 
+    ";
+    fun_header_specifier_fmt(input, "    ");
+}
+
+#[test]
+fn test_performance_comparison() {
+    use std::time::Instant;
+
+    let test_cases = vec![
+        "acquires *(make_up_address(x))",
+        "!reads *(0x42), *(0x43)",
+        ": u32 !reads *(0x42), *(0x43)",
+        ": /*(bool, bool)*/ (bool, bool) ",
+        ": u64 /* acquires comment1 */ acquires SomeStruct ",
+        ": u64 acquires SomeStruct/* acquires comment2 */ ",
+        ": u64 /* acquires comment3 */ acquires /* acquires comment4 */ SomeStruct /* acquires comment5 */",
+        "acquires R reads R writes T, S reads G<u64> ",
+        "fun f11() !reads *(0x42) ",
         "
         // comment1
         econia: &signer)
         acquires // acquires comment2
         IncentiveParameters 
-    ",
-        "    ",
-    );
+        ",
+    ];
+
+    let iterations = 1000;
+
+    // Test optimized version
+    let start = Instant::now();
+    for _ in 0..iterations {
+        for case in &test_cases {
+            fun_header_specifier_fmt(case, "    ");
+        }
+    }
+    let optimized_duration = start.elapsed();
+
+    println!("Optimized version: {:?}", optimized_duration);
+}
+
+#[test]
+fn test_rewrite_fun_header_4() {
+    let input = "
+fun complex_function()
+    acquires SomeVeryLongStructName,
+      AnotherLongStructName
+    reads SomeResource
+    writes AnotherResource,
+      YetAnotherResource
+    ";
+    let optimized_result = fun_header_specifier_fmt(input, "    ");
+    println!("optimized_result = \n{}", optimized_result);
 }
 
 #[test]
