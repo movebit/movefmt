@@ -581,7 +581,7 @@ fn test_rewrite_fun_header_1() {
         ": /*(bool, bool)*/ (bool, bool) ",
     ];
     for input in cases {
-        let optimized_result = fun_header_specifier_fmt(input, "    ");
+        fun_header_specifier_fmt(input, "    ");
     }
 }
 
@@ -595,7 +595,7 @@ fn test_rewrite_fun_header_2() {
         "fun f11() !reads *(0x42) ",
     ];
     for input in cases {
-        let optimized_result = fun_header_specifier_fmt(input, "    ");
+        fun_header_specifier_fmt(input, "    ");
     }
 }
 
@@ -607,7 +607,7 @@ fn test_rewrite_fun_header_3() {
         acquires // acquires comment2
         IncentiveParameters 
     ";
-    let optimized_result = fun_header_specifier_fmt(input, "    ");
+    fun_header_specifier_fmt(input, "    ");
 }
 
 #[test]
