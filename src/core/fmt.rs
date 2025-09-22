@@ -1084,13 +1084,10 @@ impl Format {
         idx: &mut usize,
         nested_token: &TokenTree,
     ) -> bool {
-        let parse_dot_chain_v2_result = expr_fmt::parse_dot_chain_v2(&elements.split_at(*idx).1);
-        debug!(
-            "parse_dot_chain_v2_result = {:?}",
-            parse_dot_chain_v2_result
-        );
+        let chain_result = expr_fmt::parse_dot_chain(&elements.split_at(*idx).1);
+        debug!("chain_result = {:?}", chain_result);
 
-        let (members, last_dot_idx) = parse_dot_chain_v2_result.unwrap_or_default();
+        let (members, last_dot_idx) = chain_result.unwrap_or_default();
         let new_idx = *idx + last_dot_idx;
         debug!("new_idx = {}, last_dot_idx = {}", new_idx, last_dot_idx);
 
