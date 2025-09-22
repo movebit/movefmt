@@ -8,6 +8,7 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.3.4">v1.3.4</a><br/>
 <a href="#v1.3.3">v1.3.3</a><br/>
 <a href="#v1.3.2">v1.3.2</a><br/>
 <a href="#v1.3.1">v1.3.1</a><br/>
@@ -36,6 +37,14 @@
 </td>
 </tr>
 </table>
+
+
+<a id="v1.3.4"></a>
+## 2025-09-19, Version v1.3.4
+* [[`fa09168`](https://github.com/movebit/movefmt/commit/fa091684f5724a7203fa9bbbff3c8fb7c202afd4)] - remove format_dot_exp_chain_v1()
+* [[`0f53dce`](https://github.com/movebit/movefmt/commit/0f53dce74b5fd05290113fe686146d890df2a25a)] - remove fun_header_specifier_fmt_original()
+* [[`ab62c7b`](https://github.com/movebit/movefmt/commit/ab62c7b93cc6a7bad2a506aa963dc9be2644cb08)] - fix bug: issue #82 {multi-line fun specifier}
+* [[`0fe3dbd`](https://github.com/movebit/movefmt/commit/0fe3dbdf074204fcbb8fde464664a8a04afa8b8c)] - optimize fun_header_specifier_fmt(), speed improved 60%
 
 
 <a id="v1.3.3"></a>
