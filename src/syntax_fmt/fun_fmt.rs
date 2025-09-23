@@ -407,32 +407,46 @@ fn collect_args_optimized(
     args.join(" ")
 }
 
-pub(crate) fn process_block_comment_before_fun_header(
-    fmt_buffer: String,
-    config: Config,
-) -> String {
-    let buf = fmt_buffer.clone();
-    let mut result = fmt_buffer.clone();
+pub(crate) fn process_block_comment_before_fun(fmt_buffer: String, config: Config) -> String {
     let mut fun_extractor = FunHandler::new(fmt_buffer.clone());
     fun_extractor.preprocess(&Arc::new(get_defs(fmt_buffer.clone())));
-    let mut insert_char_nums = 0;
+    let mut inserts: Vec<(usize, String)> = Vec::new(); // (byte_offset, text_to_insert)
+
+    // precompute start offset per line
+    let line_starts: Vec<usize> = std::iter::once(0)
+        .chain(fmt_buffer.match_indices('\n').map(|(i, _)| i + 1))
+        .collect();
     for (fun_idx, (fun_start_line, _)) in fun_extractor.loc_line_vec.iter().enumerate() {
-        let fun_header_str =
-            get_nth_line(buf.as_str(), *fun_start_line as usize).unwrap_or_default();
-        let mut lexer = Lexer::new(fun_header_str, FileHash::empty());
-        lexer.advance().unwrap();
-        if lexer.peek() != Tok::EOF && !fun_header_str[0..lexer.start_loc()].trim_start().is_empty()
-        {
-            let mut insert_str = "\n".to_string();
-            insert_str.push_str(" ".to_string().repeat(config.indent_size()).as_str());
-            result.insert_str(
-                fun_extractor.loc_vec[fun_idx].start() as usize + insert_char_nums,
-                &insert_str,
-            );
-            insert_char_nums += insert_str.len();
+        let line_idx = *fun_start_line as usize;
+        let line_start = line_starts
+            .get(line_idx)
+            .copied()
+            .unwrap_or(fmt_buffer.len());
+        let line_end = line_starts
+            .get(line_idx + 1)
+            .copied()
+            .unwrap_or(fmt_buffer.len());
+        let fun_header_str = &fmt_buffer[line_start..line_end];
+
+        let fun_col = fun_header_str
+            .bytes()
+            .position(|b| !b.is_ascii_whitespace())
+            .unwrap_or(fun_header_str.len());
+
+        let fun_start_pos = fun_extractor.loc_vec[fun_idx]
+            .start()
+            .try_into()
+            .unwrap_or_default();
+        if fun_start_pos != line_start + fun_col {
+            let insert_txt = format!("\n{}", " ".repeat(config.indent_size()));
+            inserts.push((fun_start_pos, insert_txt));
         }
     }
 
+    let mut result = fmt_buffer.to_string();
+    for (off, txt) in inserts.iter().rev() {
+        result.insert_str(*off, &txt);
+    }
     result
 }
 
@@ -566,7 +580,7 @@ pub(crate) fn process_fun_ret_ty(fmt_buffer: String, config: Config) -> String {
 }
 
 pub fn fmt_fun(fmt_buffer: String, config: Config) -> String {
-    let mut result = process_block_comment_before_fun_header(fmt_buffer, config.clone());
+    let mut result = process_block_comment_before_fun(fmt_buffer, config.clone());
     result = process_fun_header_too_long(result, config.clone());
     result = process_fun_ret_ty(result, config.clone());
     result
@@ -662,7 +676,7 @@ fun complex_function()
 
 #[test]
 fn test_process_block_comment_before_fun_header_1() {
-    process_block_comment_before_fun_header(
+    process_block_comment_before_fun(
         "
         module TestFunFormat {
         
