@@ -139,7 +139,7 @@ fn token_to_ability(token: Tok, content: &str) -> Option<Ability_> {
 }
 
 fn tune_module_buf(module_body: String, config: &Config) -> String {
-    let mut ret_module_body = fun_fmt::fmt_fun(module_body.clone(), config.clone());
+    let mut ret_module_body = fun_fmt::fmt_fun(&mut module_body.clone(), config.clone());
     if module_body.contains("spec ") {
         ret_module_body = spec_fmt::fmt_spec(ret_module_body.clone(), config.clone());
     }
@@ -727,6 +727,7 @@ impl Format {
         } else if self.get_cur_line_len() > self.global_cfg.max_width() {
             new_line_mode = true;
         } else {
+            // TODO: need optimize
             let elements_str = serde_json::to_string(&elements).unwrap_or_default();
             let has_multi_para = elements_str.matches("\"content\":\",\"").count() > 2;
             let is_in_fun_call = self

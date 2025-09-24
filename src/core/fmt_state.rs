@@ -676,7 +676,7 @@ impl FunctionalFormat {
 
 /// Helper function - extracted from the original code
 fn tune_module_buf(module_body: String, config: &Config) -> String {
-    let mut ret_module_body = fun_fmt::fmt_fun(module_body.clone(), config.clone());
+    let mut ret_module_body = fun_fmt::fmt_fun(&mut module_body.clone(), config.clone());
     if module_body.contains("spec ") {
         ret_module_body = spec_fmt::fmt_spec(ret_module_body.clone(), config.clone());
     }

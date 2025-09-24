@@ -135,6 +135,7 @@ fn get_nth_line(s: &str, n: usize) -> Option<&str> {
     s.lines().nth(n)
 }
 
+#[allow(dead_code)]
 fn get_space_cnt_before_line_str(s: &str) -> usize {
     let mut result = 0;
     let trimed_header_prefix = s.trim_start();
@@ -407,7 +408,45 @@ fn collect_args_optimized(
     args.join(" ")
 }
 
-pub(crate) fn process_block_comment_before_fun(fmt_buffer: String, config: Config) -> String {
+// Return the byte start offset of each row, with an additional EOF position at the end
+pub fn build_line_starts(text: &str) -> Vec<usize> {
+    std::iter::once(0)
+        .chain(text.match_indices('\n').map(|(i, _)| i + 1))
+        .collect()
+}
+
+// Return the vec with 'how many spaces before each row'
+pub fn build_line_indent(text: &str, line_starts: &[usize]) -> Vec<usize> {
+    let mut indent = Vec::with_capacity(line_starts.len().saturating_sub(1));
+    for &start in &line_starts[..line_starts.len() - 1] {
+        let line = &text[start..];
+        let spaces = line.bytes().take_while(|&b| b == b' ').count();
+        indent.push(spaces);
+    }
+    indent
+}
+
+// Given byte offset, return which line it falls on (0-based)
+pub fn byte_offset_to_line(offset: usize, line_starts: &[usize]) -> usize {
+    match line_starts.binary_search(&offset) {
+        Ok(l) => l,
+        Err(l) => l.saturating_sub(1),
+    }
+}
+
+// Return the [start, end) byte interval of line line_idx
+// The last element is the virtual EOF position, so it will not exceed the boundary
+pub fn line_range(
+    line_idx: usize,
+    line_starts: &[usize],
+    text_len: usize,
+) -> std::ops::Range<usize> {
+    let start = line_starts[line_idx];
+    let end = line_starts.get(line_idx + 1).copied().unwrap_or(text_len);
+    start..end
+}
+
+fn process_block_comment_before_fun(fmt_buffer: &mut String, config: Config) {
     let mut fun_extractor = FunHandler::new(fmt_buffer.clone());
     fun_extractor.preprocess(&Arc::new(get_defs(fmt_buffer.clone())));
     let mut inserts: Vec<(usize, String)> = Vec::new(); // (byte_offset, text_to_insert)
@@ -443,14 +482,12 @@ pub(crate) fn process_block_comment_before_fun(fmt_buffer: String, config: Confi
         }
     }
 
-    let mut result = fmt_buffer.to_string();
     for (off, txt) in inserts.iter().rev() {
-        result.insert_str(*off, &txt);
+        fmt_buffer.insert_str(*off, &txt);
     }
-    result
 }
 
-pub(crate) fn process_fun_header_too_long(fmt_buffer: String, config: Config) -> String {
+fn process_fun_header_too_long(fmt_buffer: &mut String, config: Config) -> String {
     let buf = fmt_buffer.clone();
     let mut result = fmt_buffer.clone();
     let mut fun_extractor = FunHandler::new(fmt_buffer.clone());
@@ -534,55 +571,60 @@ pub(crate) fn process_fun_header_too_long(fmt_buffer: String, config: Config) ->
     result
 }
 
-pub(crate) fn process_fun_ret_ty(fmt_buffer: String, config: Config) -> String {
-    // process this case:
-    // fun fun_name()
-    // : u64 {}
-    let buf = fmt_buffer.clone();
-    let mut result = fmt_buffer.clone();
-    let mut fun_extractor = FunHandler::new(fmt_buffer.clone());
-    fun_extractor.preprocess(&Arc::new(get_defs(fmt_buffer.clone())));
-    let mut insert_char_nums = 0;
-    let mut fun_idx = 0;
-    for fun_loc in fun_extractor.loc_vec.iter() {
-        let ret_ty_loc = fun_extractor.ret_ty_loc_vec[fun_idx];
-        if ret_ty_loc.start() < fun_loc.start() {
-            // this fun return void
-            fun_idx += 1;
+// process_fun_ret_ty is used to process this case:
+// fun fun_name()
+// : u64 {}
+fn process_fun_ret_ty(fmt_buffer: &mut String, config: Config) {
+    let mut fh = FunHandler::new(fmt_buffer.to_string());
+    fh.preprocess(&Arc::new(get_defs(fmt_buffer.clone())));
+    let line_starts = build_line_starts(&fmt_buffer);
+    let line_indent = build_line_indent(&fmt_buffer, &line_starts);
+
+    let mut inserts = Vec::new(); // (byte_offset, text_to_insert)
+
+    for (idx, fun_loc) in fh.loc_vec.iter().enumerate() {
+        let ret_loc = &fh.ret_ty_loc_vec[idx];
+        if ret_loc.start() < fun_loc.start() {
+            continue; // this fun return void
+        }
+
+        let name_end = fun_loc.start() as usize;
+        let ret_start = ret_loc.start() as usize;
+        // Slice positioning: the last line of the function name and the line where the colon is located
+        let name_line_idx = byte_offset_to_line(name_end, &line_starts);
+        let ret_line_idx = byte_offset_to_line(ret_start, &line_starts);
+        if name_line_idx == ret_line_idx {
             continue;
         }
 
-        let fun_name_str = &buf[fun_loc.start() as usize..ret_ty_loc.start() as usize];
-        if fun_name_str.lines().count() > 1 {
-            let fun_header_str = buf
-                .lines()
-                .nth(fun_extractor.loc_line_vec[fun_idx].0 as usize)
-                .unwrap_or_default();
-            let ret_ty_str = fun_name_str.lines().last().unwrap_or_default();
-            let mut lexer = Lexer::new(ret_ty_str, FileHash::empty());
-            lexer.advance().unwrap();
-            if lexer.peek() != Tok::Colon {
-                continue;
-            }
+        let ret_line_range = line_range(ret_line_idx, &line_starts, fmt_buffer.len());
+        let ret_ty_str = &fmt_buffer[ret_line_range.clone()];
+        let mut lexer = Lexer::new(ret_ty_str, FileHash::empty());
+        lexer.advance().unwrap();
+        if lexer.peek() != Tok::Colon {
+            continue;
+        }
 
-            let indent1 = get_space_cnt_before_line_str(fun_header_str);
-            let indent2 = get_space_cnt_before_line_str(ret_ty_str);
-            if indent1 == indent2 {
-                result.insert_str(
-                    ret_ty_loc.start() as usize - ret_ty_str.len() + insert_char_nums,
-                    " ".to_string().repeat(config.indent_size()).as_str(),
-                );
-                insert_char_nums += config.indent_size();
-            }
+        let fun_head_tail_line_range = line_range(ret_line_idx - 1, &line_starts, fmt_buffer.len());
+        let fun_head_str = &fmt_buffer[fun_head_tail_line_range.clone()];
+        let name_end_line_idx = name_line_idx + fun_head_str.lines().count() - 1;
+
+        let wanted_indent = line_indent[name_end_line_idx] + config.indent_size();
+        let actual_indent = line_indent[ret_line_idx];
+        if actual_indent != wanted_indent {
+            inserts.push((ret_line_range.start, " ".repeat(config.indent_size())));
         }
     }
-    result
+
+    for (off, txt) in inserts.into_iter().rev() {
+        fmt_buffer.insert_str(off, &txt);
+    }
 }
 
-pub fn fmt_fun(fmt_buffer: String, config: Config) -> String {
-    let mut result = process_block_comment_before_fun(fmt_buffer, config.clone());
-    result = process_fun_header_too_long(result, config.clone());
-    result = process_fun_ret_ty(result, config.clone());
+pub fn fmt_fun(fmt_buffer: &mut String, config: Config) -> String {
+    process_block_comment_before_fun(fmt_buffer, config.clone());
+    let mut result = process_fun_header_too_long(fmt_buffer, config.clone());
+    process_fun_ret_ty(&mut result, config.clone());
     result
 }
 
@@ -677,7 +719,7 @@ fun complex_function()
 #[test]
 fn test_process_block_comment_before_fun_header_1() {
     process_block_comment_before_fun(
-        "
+        &mut "
         module TestFunFormat {
         
             struct SomeOtherStruct has drop {
@@ -703,7 +745,7 @@ fn test_process_block_comment_before_fun_header_1() {
 #[test]
 fn test_process_fun_header_too_long1() {
     let ret_str = process_fun_header_too_long(
-"
+&mut "
 module TestFunFormat {
     fun test_long_fun_name_lllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll(v: u64): SomeOtherStruct {}
 
@@ -718,7 +760,7 @@ module TestFunFormat {
 #[test]
 fn test_process_fun_header_too_long2() {
     let ret_str = process_fun_header_too_long(
-        "
+        &mut "
 module 0x42::LambdaTest1 {
     // Public inline function
     public inline fun inline_mul(a: u64, // Input parameter a
@@ -739,7 +781,7 @@ module 0x42::LambdaTest1 {
 #[test]
 fn test_process_fun_ret_ty() {
     process_fun_ret_ty(
-        "
+        &mut "
 module 0x42::LambdaTest1 {  
     /** Public inline function */  
     public inline fun inline_mul(/** Input parameter a */ a: u64,   
