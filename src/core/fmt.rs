@@ -139,7 +139,7 @@ fn token_to_ability(token: Tok, content: &str) -> Option<Ability_> {
 }
 
 fn tune_module_buf(module_body: String, config: &Config) -> String {
-    let mut ret_module_body = fun_fmt::fmt_fun(module_body.clone(), config.clone());
+    let mut ret_module_body = fun_fmt::fmt_fun(&mut module_body.clone(), config.clone());
     if module_body.contains("spec ") {
         ret_module_body = spec_fmt::fmt_spec(ret_module_body.clone(), config.clone());
     }
@@ -727,6 +727,7 @@ impl Format {
         } else if self.get_cur_line_len() > self.global_cfg.max_width() {
             new_line_mode = true;
         } else {
+            // TODO: need optimize
             let elements_str = serde_json::to_string(&elements).unwrap_or_default();
             let has_multi_para = elements_str.matches("\"content\":\",\"").count() > 2;
             let is_in_fun_call = self
@@ -1084,13 +1085,10 @@ impl Format {
         idx: &mut usize,
         nested_token: &TokenTree,
     ) -> bool {
-        let parse_dot_chain_v2_result = expr_fmt::parse_dot_chain_v2(&elements.split_at(*idx).1);
-        debug!(
-            "parse_dot_chain_v2_result = {:?}",
-            parse_dot_chain_v2_result
-        );
+        let chain_result = expr_fmt::parse_dot_chain(&elements.split_at(*idx).1);
+        debug!("chain_result = {:?}", chain_result);
 
-        let (members, last_dot_idx) = parse_dot_chain_v2_result.unwrap_or_default();
+        let (members, last_dot_idx) = chain_result.unwrap_or_default();
         let new_idx = *idx + last_dot_idx;
         debug!("new_idx = {}, last_dot_idx = {}", new_idx, last_dot_idx);
 
