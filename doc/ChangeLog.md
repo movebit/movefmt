@@ -8,6 +8,7 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.3.5">v1.3.5</a><br/>
 <a href="#v1.3.4">v1.3.4</a><br/>
 <a href="#v1.3.3">v1.3.3</a><br/>
 <a href="#v1.3.2">v1.3.2</a><br/>
@@ -37,6 +38,14 @@
 </td>
 </tr>
 </table>
+
+
+<a id="v1.3.5"></a>
+## 2025-09-25, Version v1.3.5
+* [[`e75ba33`](https://github.com/movebit/movefmt/commit/e75ba3362a140361eb1ad5d6d1c1095ffd7a36f0)] - optimize process_fun_header_too_long()
+* [[`5db94a8`](https://github.com/movebit/movefmt/commit/5db94a804d0fccfea7840aeead8c28e59be119c8)] - optimize process_fun_ret_ty()
+* [[`5289b8c`](https://github.com/movebit/movefmt/commit/5289b8c4cbde3d1e0a7b39d935d5380d5d9826da)] - optimize process_block_comment_before_fun()
+* [[`790e86a`](https://github.com/movebit/movefmt/commit/790e86a7c816b6259b94c51698e78f84c7291851)] - remove DotChainParserV1
 
 
 <a id="v1.3.4"></a>
