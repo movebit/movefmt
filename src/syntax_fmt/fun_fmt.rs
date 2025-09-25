@@ -487,8 +487,7 @@ fn process_block_comment_before_fun(fmt_buffer: &mut String, config: Config) {
     }
 }
 
-fn process_fun_header_too_long(fmt_buffer: &mut String, config: Config) -> String {
-    let buf = fmt_buffer.clone();
+fn process_fun_header_too_long(fmt_buffer: &mut String, config: Config) {
     let mut result = fmt_buffer.clone();
     let mut fun_extractor = FunHandler::new(fmt_buffer.clone());
     fun_extractor.preprocess(&Arc::new(get_defs(fmt_buffer.clone())));
@@ -502,7 +501,7 @@ fn process_fun_header_too_long(fmt_buffer: &mut String, config: Config) -> Strin
             continue;
         }
 
-        let mut fun_name_str = &buf[fun_loc.start() as usize..ret_ty_loc.start() as usize];
+        let mut fun_name_str = &fmt_buffer[fun_loc.start() as usize..ret_ty_loc.start() as usize];
         if !fun_name_str
             .chars()
             .filter(|&ch| ch == '\n')
@@ -528,7 +527,8 @@ fn process_fun_header_too_long(fmt_buffer: &mut String, config: Config) -> Strin
             }
             lexer.advance().unwrap();
         }
-        fun_name_str = &buf[fun_loc.start() as usize..(fun_loc.start() as usize) + insert_loc];
+        fun_name_str =
+            &fmt_buffer[fun_loc.start() as usize..(fun_loc.start() as usize) + insert_loc];
         tracing::debug!("fun_name_str = {}", fun_name_str);
         // there maybe comment bewteen fun_name and ret_ty
         if fun_name_str.len() + ret_ty_len < config.max_width() {
@@ -543,7 +543,8 @@ fn process_fun_header_too_long(fmt_buffer: &mut String, config: Config) -> Strin
             .unwrap()
             .start
             .line;
-        let fun_header_str = get_nth_line(buf.as_str(), start_line as usize).unwrap_or_default();
+        let fun_header_str =
+            get_nth_line(fmt_buffer.as_str(), start_line as usize).unwrap_or_default();
         let trimed_header_prefix = fun_header_str.trim_start();
         if !trimed_header_prefix.is_empty() {
             let s = result[fun_loc.start() as usize + insert_char_nums + insert_loc..].to_string();
@@ -568,7 +569,7 @@ fn process_fun_header_too_long(fmt_buffer: &mut String, config: Config) -> Strin
         }
         fun_idx += 1;
     }
-    result
+    *fmt_buffer = result
 }
 
 // process_fun_ret_ty is used to process this case:
@@ -623,9 +624,9 @@ fn process_fun_ret_ty(fmt_buffer: &mut String, config: Config) {
 
 pub fn fmt_fun(fmt_buffer: &mut String, config: Config) -> String {
     process_block_comment_before_fun(fmt_buffer, config.clone());
-    let mut result = process_fun_header_too_long(fmt_buffer, config.clone());
-    process_fun_ret_ty(&mut result, config.clone());
-    result
+    process_fun_header_too_long(fmt_buffer, config.clone());
+    process_fun_ret_ty(fmt_buffer, config.clone());
+    fmt_buffer.to_string()
 }
 
 #[test]
@@ -744,23 +745,24 @@ fn test_process_block_comment_before_fun_header_1() {
 
 #[test]
 fn test_process_fun_header_too_long1() {
-    let ret_str = process_fun_header_too_long(
-&mut "
-module TestFunFormat {
-    fun test_long_fun_name_lllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll(v: u64): SomeOtherStruct {}
+    let mut fmt_buf =
+        "
+        module TestFunFormat {
+            fun test_long_fun_name_lllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll(v: u64): SomeOtherStruct {}
 
-    // xxxx
-    fun test_long_fun_name_lllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll(v: u64): SomeOtherStruct {}
-}
-".to_string(), Config::default());
+            // xxxx
+            fun test_long_fun_name_lllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll(v: u64): SomeOtherStruct {}
+        }
+        ".to_string();
 
-    tracing::debug!("fun_specifier_fmted_str = --------------{}", ret_str);
+    process_fun_header_too_long(&mut fmt_buf, Config::default());
+
+    tracing::debug!("fun_specifier_fmted_str = --------------{}", fmt_buf);
 }
 
 #[test]
 fn test_process_fun_header_too_long2() {
-    let ret_str = process_fun_header_too_long(
-        &mut "
+    let mut fmt_buf = "
 module 0x42::LambdaTest1 {
     // Public inline function
     public inline fun inline_mul(a: u64, // Input parameter a
@@ -771,11 +773,10 @@ module 0x42::LambdaTest1 {
     }
 }
 "
-        .to_string(),
-        Config::default(),
-    );
+    .to_string();
+    process_fun_header_too_long(&mut fmt_buf, Config::default());
 
-    tracing::debug!("fun_specifier_fmted_str = --------------{}", ret_str);
+    println!("fun_specifier_fmted_str = --------------{}", fmt_buf);
 }
 
 #[test]
