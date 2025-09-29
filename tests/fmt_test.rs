@@ -238,11 +238,6 @@ fn extract_tokens(content: &str) -> Result<Vec<ExtractToken>, Vec<String>> {
 #[test]
 fn test_dir() {
     let start = Instant::now();
-    unsafe { std::env::set_var("MOVEFMT_LOG", "movefmt=WARN") };
-    tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_env("MOVEFMT_LOG"))
-        .init();
-
     let mut num: usize = 0;
     num += scan_dir("./tests/complex");
     num += scan_dir("./tests/complex2");

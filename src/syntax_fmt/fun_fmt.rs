@@ -4,7 +4,7 @@
 
 use std::sync::Arc;
 
-use crate::core::token_tree::{NestKind, NestKind_};
+use crate::core::token_tree::{NestKind, NestKind_, TokenTree};
 use crate::tools::utils::*;
 use commentfmt::Config;
 use move_command_line_common::files::FileHash;
@@ -131,22 +131,6 @@ impl Preprocessor for FunHandler {
     }
 }
 
-fn get_nth_line(s: &str, n: usize) -> Option<&str> {
-    s.lines().nth(n)
-}
-
-#[allow(dead_code)]
-fn get_space_cnt_before_line_str(s: &str) -> usize {
-    let mut result = 0;
-    let trimed_header_prefix = s.trim_start();
-    if !trimed_header_prefix.is_empty() {
-        if let Some(indent) = s.find(trimed_header_prefix) {
-            result = indent;
-        }
-    }
-    result
-}
-
 fn is_fun_specifiers(specifier: &str) -> bool {
     matches!(
         specifier,
@@ -208,6 +192,17 @@ impl FunHandler {
             }
         }
         (false, 0)
+    }
+
+    pub(crate) fn is_fun_return_colon(&self, token_tree: &TokenTree) -> bool {
+        for (idx, fun_loc) in self.loc_vec.iter().enumerate() {
+            let ret_loc = &self.ret_ty_loc_vec[idx];
+            let diff = (ret_loc.start() as u32).abs_diff(token_tree.start_pos());
+            if diff <= 2 {
+                return true;
+            }
+        }
+        false
     }
 }
 
@@ -409,14 +404,14 @@ fn collect_args_optimized(
 }
 
 // Return the byte start offset of each row, with an additional EOF position at the end
-pub fn build_line_starts(text: &str) -> Vec<usize> {
+fn build_line_starts(text: &str) -> Vec<usize> {
     std::iter::once(0)
         .chain(text.match_indices('\n').map(|(i, _)| i + 1))
         .collect()
 }
 
 // Return the vec with 'how many spaces before each row'
-pub fn build_line_indent(text: &str, line_starts: &[usize]) -> Vec<usize> {
+fn build_line_indent(text: &str, line_starts: &[usize]) -> Vec<usize> {
     let mut indent = Vec::with_capacity(line_starts.len().saturating_sub(1));
     for &start in &line_starts[..line_starts.len() - 1] {
         let line = &text[start..];
@@ -487,91 +482,6 @@ fn process_block_comment_before_fun(fmt_buffer: &mut String, config: Config) {
     }
 }
 
-fn process_fun_header_too_long(fmt_buffer: &mut String, config: Config) {
-    let mut result = fmt_buffer.clone();
-    let mut fun_extractor = FunHandler::new(fmt_buffer.clone());
-    fun_extractor.preprocess(&Arc::new(get_defs(fmt_buffer.clone())));
-    let mut insert_char_nums = 0;
-    let mut fun_idx = 0;
-    for fun_loc in fun_extractor.loc_vec.iter() {
-        let ret_ty_loc = fun_extractor.ret_ty_loc_vec[fun_idx];
-        if ret_ty_loc.start() < fun_loc.start() {
-            // this fun return void
-            fun_idx += 1;
-            continue;
-        }
-
-        let mut fun_name_str = &fmt_buffer[fun_loc.start() as usize..ret_ty_loc.start() as usize];
-        if !fun_name_str
-            .chars()
-            .filter(|&ch| ch == '\n')
-            .collect::<String>()
-            .is_empty()
-        {
-            // if it is multi line
-            fun_idx += 1;
-            continue;
-        }
-        let ret_ty_len = (ret_ty_loc.end() - ret_ty_loc.start()) as usize;
-        if fun_name_str.len() + ret_ty_len < config.max_width() {
-            fun_idx += 1;
-            continue;
-        }
-
-        let mut insert_loc = ret_ty_loc.end() as usize - fun_loc.start() as usize;
-        let mut lexer = Lexer::new(fun_name_str, FileHash::empty());
-        lexer.advance().unwrap();
-        while lexer.peek() != Tok::EOF {
-            if lexer.peek() == Tok::Colon {
-                insert_loc = lexer.start_loc() + 1;
-            }
-            lexer.advance().unwrap();
-        }
-        fun_name_str =
-            &fmt_buffer[fun_loc.start() as usize..(fun_loc.start() as usize) + insert_loc];
-        tracing::debug!("fun_name_str = {}", fun_name_str);
-        // there maybe comment bewteen fun_name and ret_ty
-        if fun_name_str.len() + ret_ty_len < config.max_width() {
-            fun_idx += 1;
-            continue;
-        }
-
-        let mut line_mapping = FileLineMappingOneFile::default();
-        line_mapping.update(&fmt_buffer);
-        let start_line = line_mapping
-            .translate(fun_loc.start(), fun_loc.start())
-            .unwrap()
-            .start
-            .line;
-        let fun_header_str =
-            get_nth_line(fmt_buffer.as_str(), start_line as usize).unwrap_or_default();
-        let trimed_header_prefix = fun_header_str.trim_start();
-        if !trimed_header_prefix.is_empty() {
-            let s = result[fun_loc.start() as usize + insert_char_nums + insert_loc..].to_string();
-            if s.trim_start().starts_with("(\n") {
-                fun_idx += 1;
-                continue;
-            }
-
-            let mut insert_str = "\n".to_string();
-            if let Some(indent) = fun_header_str.find(trimed_header_prefix) {
-                insert_str.push_str(
-                    " ".to_string()
-                        .repeat(indent + config.indent_size() - 1)
-                        .as_str(),
-                );
-            }
-            result.insert_str(
-                fun_loc.start() as usize + insert_char_nums + insert_loc,
-                &insert_str,
-            );
-            insert_char_nums += insert_str.len();
-        }
-        fun_idx += 1;
-    }
-    *fmt_buffer = result
-}
-
 // process_fun_ret_ty is used to process this case:
 // fun fun_name()
 // : u64 {}
@@ -624,7 +534,6 @@ fn process_fun_ret_ty(fmt_buffer: &mut String, config: Config) {
 
 pub fn fmt_fun(fmt_buffer: &mut String, config: Config) -> String {
     process_block_comment_before_fun(fmt_buffer, config.clone());
-    process_fun_header_too_long(fmt_buffer, config.clone());
     process_fun_ret_ty(fmt_buffer, config.clone());
     fmt_buffer.to_string()
 }
@@ -741,42 +650,6 @@ fn test_process_block_comment_before_fun_header_1() {
         .to_string(),
         Config::default(),
     );
-}
-
-#[test]
-fn test_process_fun_header_too_long1() {
-    let mut fmt_buf =
-        "
-        module TestFunFormat {
-            fun test_long_fun_name_lllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll(v: u64): SomeOtherStruct {}
-
-            // xxxx
-            fun test_long_fun_name_lllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll(v: u64): SomeOtherStruct {}
-        }
-        ".to_string();
-
-    process_fun_header_too_long(&mut fmt_buf, Config::default());
-
-    tracing::debug!("fun_specifier_fmted_str = --------------{}", fmt_buf);
-}
-
-#[test]
-fn test_process_fun_header_too_long2() {
-    let mut fmt_buf = "
-module 0x42::LambdaTest1 {
-    // Public inline function
-    public inline fun inline_mul(a: u64, // Input parameter a
-        b: u64) // Input parameter b
-    : u64 { // Returns a u64 value
-        // Multiply a and b
-        a * b
-    }
-}
-"
-    .to_string();
-    process_fun_header_too_long(&mut fmt_buf, Config::default());
-
-    println!("fun_specifier_fmted_str = --------------{}", fmt_buf);
 }
 
 #[test]

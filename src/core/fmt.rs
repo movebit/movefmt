@@ -568,7 +568,8 @@ impl Format {
         // optimize in 20240510: maybe like variable name or struct field name are ability, like "key"
         // fixed bug in 20240718: you can see case [tests/bug/input4.move]
         let mut next_token = Tok::EOF;
-        if let Some((next_tok, next_content)) = next_t.map(|x| match x {
+        let mut next_content: String = Default::default();
+        if let Some((next_tok, ref mut next_content)) = next_t.map(|x| match x {
             TokenTree::SimpleToken {
                 content,
                 pos: _,
@@ -617,6 +618,7 @@ impl Format {
     fn process_fn_header(&self) {
         let mut ret = self.ret.borrow_mut();
         let cur = ret.as_str();
+        // TODO: maybe got comment named 'fun' by rfind(&Tok::Fun.to_string())
         let Some(last_fun_idx) = cur.rfind(&Tok::Fun.to_string()) else {
             return;
         };
