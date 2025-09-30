@@ -194,15 +194,13 @@ impl FunHandler {
         (false, 0)
     }
 
-    pub(crate) fn is_fun_return_colon(&self, token_tree: &TokenTree) -> bool {
-        for (idx, fun_loc) in self.loc_vec.iter().enumerate() {
-            let ret_loc = &self.ret_ty_loc_vec[idx];
-            let diff = (ret_loc.start() as u32).abs_diff(token_tree.start_pos());
-            if diff <= 2 {
-                return true;
+    pub(crate) fn is_fun_return_colon(&self, token_tree: &TokenTree) -> usize {
+        for ret_loc in &self.ret_ty_loc_vec {
+            if (ret_loc.start() as u32).abs_diff(token_tree.start_pos()) <= 2 {
+                return (ret_loc.end() - ret_loc.start()) as usize;
             }
         }
-        false
+        0
     }
 }
 
@@ -441,6 +439,7 @@ pub fn line_range(
     start..end
 }
 
+#[allow(dead_code)]
 fn process_block_comment_before_fun(fmt_buffer: &mut String, config: Config) {
     let mut fun_extractor = FunHandler::new(fmt_buffer.clone());
     fun_extractor.preprocess(&Arc::new(get_defs(fmt_buffer.clone())));
@@ -532,8 +531,9 @@ fn process_fun_ret_ty(fmt_buffer: &mut String, config: Config) {
     }
 }
 
+// TODO: remove fmt_fun
 pub fn fmt_fun(fmt_buffer: &mut String, config: Config) -> String {
-    process_block_comment_before_fun(fmt_buffer, config.clone());
+    // process_block_comment_before_fun(fmt_buffer, config.clone());
     process_fun_ret_ty(fmt_buffer, config.clone());
     fmt_buffer.to_string()
 }
