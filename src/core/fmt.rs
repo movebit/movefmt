@@ -32,7 +32,6 @@ const EXIST_MULTI_ADDRESS_TAG: &str = "address fmt";
 const MAX_ANALYZE_LENGTH: usize = 64;
 const MIN_BREAK_LENGTH: usize = 32;
 const MIN_NESTED_LENGTH: usize = 16;
-const MIN_FUN_RET_TYPE_LENGTH: usize = 10;
 
 pub struct FormatContext {
     pub content: String,
@@ -1565,7 +1564,16 @@ impl Format {
 
         let leading_space_cnt = self.get_last_line_leading_space_cnt();
 
-        if *tok == Tok::NumTypedValue && content.len() > MAX_ANALYZE_LENGTH {
+        // We need to consider tests for various complex scenarios where these very long `Tok`s appear after `bin_op`.
+        // NumValue => "[Num]",
+        // NumTypedValue => "[NumTyped]",
+        // ByteStringValue => "[ByteString]",
+        // Identifier => "[Identifier]",
+        if self.get_pre_simple_tok() != Tok::Equal
+            && (content.len() > self.global_cfg.max_width()
+                || (content.len() > MAX_ANALYZE_LENGTH
+                    && self.last_line().len() < MAX_ANALYZE_LENGTH))
+        {
             self.push_str(content.as_str());
             return self.update_pos_and_space(pos, token, next_token, new_line_after);
         }
@@ -1581,8 +1589,7 @@ impl Format {
                 .is_fun_return_colon(next_token.unwrap());
             if ret_type_len > 0
                 && self.last_line().len() > MIN_BREAK_LENGTH
-                && ret_type_len + self.last_line().len()
-                    >= self.global_cfg.max_width() + MIN_FUN_RET_TYPE_LENGTH
+                && ret_type_len + self.last_line().len() >= self.global_cfg.max_width()
             {
                 self.inc_depth();
                 self.new_line(None);
