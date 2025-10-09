@@ -16,8 +16,7 @@ module OneToOneMarket {
         coin: Token::Coin<AssetType>,
     }
 
-    fun borrowed_amount<In: copy + drop + store, Out: copy + drop + store>(account: &signer):
-        u64
+    fun borrowed_amount<In: copy + drop + store, Out: copy + drop + store>(account: &signer): u64
         acquires BorrowRecord
     {
         let sender = signer::address_of(account);
