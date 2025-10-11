@@ -8,6 +8,7 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.3.6">v1.3.6</a><br/>
 <a href="#v1.3.5">v1.3.5</a><br/>
 <a href="#v1.3.4">v1.3.4</a><br/>
 <a href="#v1.3.3">v1.3.3</a><br/>
@@ -38,6 +39,13 @@
 </td>
 </tr>
 </table>
+
+
+<a id="v1.3.6"></a>
+## 2025-10-09, Version v1.3.6
+* [[`f450dbb`](https://github.com/movebit/movefmt/commit/f450dbbe89fdb4eb1106d03b09146f0968155c53)] - improve fmt_simple_token_core()
+* [[`e7bfecb`](https://github.com/movebit/movefmt/commit/e7bfecb4abdc6887a6c4428a256abec37b5844e8)] - fix bug #83; improve fmt_simple_token_core()
+* [[`bc49e98`](https://github.com/movebit/movefmt/commit/bc49e98ce73e52f8a558370acbd7117217a18188)] - add is_fun_return_colon(); remove process_fun_header_too_long()
 
 
 <a id="v1.3.5"></a>
