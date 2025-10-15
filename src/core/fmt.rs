@@ -304,6 +304,7 @@ impl Format {
         }
     }
 
+    // TODO: need optimize !!!
     fn check_cur_token_is_long_bin_op(
         &self,
         current: &TokenTree,
@@ -1564,18 +1565,19 @@ impl Format {
 
         let leading_space_cnt = self.get_last_line_leading_space_cnt();
 
-        // We need to consider tests for various complex scenarios where these very long `Tok`s appear after `bin_op`.
-        // NumValue => "[Num]",
-        // NumTypedValue => "[NumTyped]",
-        // ByteStringValue => "[ByteString]",
-        // Identifier => "[Identifier]",
-        if self.get_pre_simple_tok() != Tok::Equal
-            && (content.len() > self.global_cfg.max_width()
-                || (content.len() > MAX_ANALYZE_LENGTH
-                    && self.last_line().len() < MAX_ANALYZE_LENGTH))
-        {
-            self.push_str(content.as_str());
-            return self.update_pos_and_space(pos, token, next_token, new_line_after);
+        // These very long `Tok`s appear after `bin_op`:
+        // "[Num]", "[NumTyped]", "[ByteString]", "[Identifier]",
+        if content.len() > MAX_ANALYZE_LENGTH && self.last_line().len() < MAX_ANALYZE_LENGTH {
+            let need_early_process = if self.get_pre_simple_tok() != Tok::Equal {
+                true
+            } else {
+                let let_handler = self.syntax_handler.handler_immut::<LetHandler>();
+                let_handler.is_long_let_assign_rhs_end(token.clone()) > 0
+            };
+            if need_early_process {
+                self.push_str(content.as_str());
+                return self.update_pos_and_space(pos, token, next_token, new_line_after);
+            }
         }
 
         let mut has_append_content = false;
