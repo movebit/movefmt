@@ -44,6 +44,7 @@ const NO_BREAK_TOKENS: &[Tok] = &[
     Tok::As,
     Tok::Invariant,
     Tok::EqualEqual,
+    Tok::EqualEqualGreater,
 ];
 
 const NO_BREAK_PAIRS: &[(Tok, Tok)] = &[

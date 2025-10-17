@@ -2,6 +2,7 @@
 // Copyright (c) The BitsLab.MoveBit Contributors
 // SPDX-License-Identifier: Apache-2.0
 use anyhow::{Result, format_err};
+use colored::*;
 use commentfmt::{CliOptions, Config, EmitMode, Verbosity, load_config};
 use getopts::{Matches, Options};
 use io::Error as IoError;
@@ -19,9 +20,6 @@ use std::path::{Path, PathBuf};
 use std::result::Result::Ok;
 use thiserror::Error;
 use tracing_subscriber::EnvFilter;
-
-extern crate colored;
-use colored::Colorize;
 
 const ERR_EMPTY_INPUT_FROM_STDIN: i32 = 1;
 const ERR_INVALID_MOVE_CODE_FROM_STDIN: i32 = 2;
@@ -254,8 +252,9 @@ fn format_string(content_origin: String, options: GetOptsOptions) -> Result<i32>
                 }
                 _ => {
                     if options.quiet.is_none() || !options.quiet.unwrap() {
-                        tracing::warn!(
-                            "\n{}\n--------------------------------------------------------------------",
+                        tracing::warn!("");
+                        println!(
+                            "{}\n--------------------------------------------------------------------",
                             "The formatted result of the Move code read from stdin is as follows:"
                                 .green()
                         );
@@ -313,13 +312,13 @@ fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> 
             }
 
             if use_config.verbose() == Verbosity::Verbose {
-                tracing::warn!(
-                    "\n{}\n{}{}\n{}",
+                tracing::warn!("");
+                println!(
+                    "{}\n{}{}\n{}",
                     "No file argument supplied.".red(),
-                    "If no movefmt.toml in any subdirectory sets ".yellow(),
+                    "If no movefmt.toml in any subdirectory sets ",
                     "`auto_apply_package = true`,".green(),
                     "movefmt will format all *.move files in the current directory by default."
-                        .yellow()
                 );
                 println!(
                     "----------------------------------------------------------------------------\n"
@@ -365,8 +364,9 @@ fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> 
             if use_config.verbose() == Verbosity::Verbose
                 && (options.quiet.is_none() || !options.quiet.unwrap())
             {
-                tracing::warn!(
-                    "\n{}: {} {}\n",
+                tracing::warn!("");
+                println!(
+                    "{}: {} {}\n",
                     "Escape file".yellow(),
                     file.display(),
                     "because it's not belong to any Move-Package".yellow()
@@ -382,8 +382,9 @@ fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> 
             if use_config.verbose() == Verbosity::Verbose
                 && (options.quiet.is_none() || !options.quiet.unwrap())
             {
-                tracing::warn!(
-                    "\n{}: {} {}: {}\n",
+                tracing::warn!("");
+                println!(
+                    "{}: {} {}: {}\n",
                     "Escape file".yellow(),
                     file.display(),
                     "by config".yellow(),
@@ -565,8 +566,9 @@ fn determine_operation(matches: &Matches) -> Result<Operation, OperationError> {
         io::stdin().read_to_string(&mut buffer)?;
         let options = GetOptsOptions::from_matches(&matches).unwrap_or_default();
         if buffer.is_empty() {
-            tracing::warn!(
-                "\n{}",
+            tracing::warn!("");
+            println!(
+                "{}",
                 "You haven't entered any Move code. Please run movefmt again.".yellow()
             );
             return Ok(Operation::Stdin {
@@ -575,7 +577,7 @@ fn determine_operation(matches: &Matches) -> Result<Operation, OperationError> {
         } else if let Ok(_) = format_string(buffer, options) {
             return Ok(Operation::Stdin { exit_code: 0 });
         } else {
-            tracing::error!(
+            eprintln!(
                 "{}, please re-enter a valid move code",
                 "Format Failed on stdin's buffer".red()
             );

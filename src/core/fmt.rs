@@ -304,6 +304,7 @@ impl Format {
         }
     }
 
+    // TODO: need optimize !!!
     fn check_cur_token_is_long_bin_op(
         &self,
         current: &TokenTree,
@@ -315,15 +316,12 @@ impl Format {
     ) -> bool {
         let let_handler = self.syntax_handler.handler_immut::<LetHandler>();
         let call_handler = self.syntax_handler.handler_immut::<CallHandler>();
-        let cur_token_str = current.simple_str().unwrap_or_default();
-        if matches!(cur_token_str, "==>" | "<==>") {
-            let next_token_start_pos = next.unwrap().start_pos();
-            if self.translate_line(next_token_start_pos)
-                <= self.translate_line(current.end_pos()) + 1
-                && let_handler.is_long_bin_op(current.clone())
-            {
-                return true;
-            }
+        if matches!(
+            current.get_start_tok(),
+            Tok::EqualEqualGreater | Tok::LessEqualEqualGreater
+        ) && let_handler.is_long_bin_op(current.clone())
+        {
+            return true;
         }
 
         let judge_equal_tok_is_long_op_fn = || {
@@ -336,7 +334,7 @@ impl Format {
         };
 
         // updated in 20240607: fix https://github.com/movebit/movefmt/issues/7
-        if cur_token_str == "="
+        if current.get_start_tok() == Tok::Equal
             && next.unwrap().simple_str().unwrap_or_default() != "vector"
             && next_tok != Tok::LBrace
             && call_handler.component_is_complex_blk(
@@ -1499,53 +1497,26 @@ impl Format {
         }
     }
 
-    // TODO: need optimize handle_split_line
-    fn handle_split_line(
-        &self,
-        tok: &Tok,
-        content: &str,
-        new_line_after: bool,
-        leading_space_cnt: usize,
-    ) -> bool {
-        let mut split_line_after_content = false;
-        tracing::trace!("last_line = {:?}", self.last_line());
-        tracing::trace!(
-            "SimpleToken {:?} too long, add a new line because of split line",
-            content
+    fn handle_split_line(&self, leading_space_cnt: usize) {
+        let need_inc_depth = !matches!(
+            self.format_context.borrow().cur_nested_kind.kind,
+            NestKind_::Bracket | NestKind_::ParentTheses
         );
-
-        let mut new_line_after_equal = false;
-        if matches!(
-            *tok,
-            Tok::Equal | Tok::EqualEqual | Tok::EqualEqualGreater | Tok::LessEqualEqualGreater
-        ) {
-            self.push_str(content);
-            split_line_after_content = true;
-            new_line_after_equal = new_line_after;
-        }
-        if !new_line_after_equal {
-            let need_inc_depth = !matches!(
-                self.format_context.borrow().cur_nested_kind.kind,
-                NestKind_::Bracket | NestKind_::ParentTheses
-            );
-            if need_inc_depth {
-                let cur_indent_cnt = self.depth.get() * self.local_cfg.indent_size;
-                if leading_space_cnt + self.local_cfg.indent_size == cur_indent_cnt {
-                    tracing::debug!("cur_indent_cnt: {}", cur_indent_cnt);
-                    self.new_line(None);
-                } else {
-                    self.inc_depth();
-                    self.new_line(None);
-                    self.dec_depth();
-                }
-            } else {
+        if need_inc_depth {
+            let cur_indent_cnt = self.depth.get() * self.local_cfg.indent_size;
+            if leading_space_cnt + self.local_cfg.indent_size == cur_indent_cnt {
+                tracing::debug!("cur_indent_cnt: {}", cur_indent_cnt);
                 self.new_line(None);
+            } else {
+                self.inc_depth();
+                self.new_line(None);
+                self.dec_depth();
             }
+        } else {
+            self.new_line(None);
         }
-        split_line_after_content
     }
 
-    // TODO: need optimize fmt_simple_token_core
     fn fmt_simple_token_core(
         &self,
         token: &TokenTree,
@@ -1564,25 +1535,25 @@ impl Format {
 
         let leading_space_cnt = self.get_last_line_leading_space_cnt();
 
-        // We need to consider tests for various complex scenarios where these very long `Tok`s appear after `bin_op`.
-        // NumValue => "[Num]",
-        // NumTypedValue => "[NumTyped]",
-        // ByteStringValue => "[ByteString]",
-        // Identifier => "[Identifier]",
-        if self.get_pre_simple_tok() != Tok::Equal
-            && (content.len() > self.global_cfg.max_width()
-                || (content.len() > MAX_ANALYZE_LENGTH
-                    && self.last_line().len() < MAX_ANALYZE_LENGTH))
-        {
-            self.push_str(content.as_str());
-            return self.update_pos_and_space(pos, token, next_token, new_line_after);
+        // These very long `Tok`s appear after `bin_op`:
+        // "[Num]", "[NumTyped]", "[ByteString]", "[Identifier]",
+        if content.len() > MAX_ANALYZE_LENGTH && self.last_line().len() < MAX_ANALYZE_LENGTH {
+            let need_early_process = if self.get_pre_simple_tok() != Tok::Equal {
+                true
+            } else {
+                let let_handler = self.syntax_handler.handler_immut::<LetHandler>();
+                // if true, means already change new line and increased depth.
+                let_handler.is_long_let_assign_rhs_end(token.clone()) > 0
+            };
+            if need_early_process {
+                self.push_str(content.as_str());
+                return self.update_pos_and_space(pos, token, next_token, new_line_after);
+            }
         }
 
-        let mut has_append_content = false;
         if self.judge_change_new_line_when_over_limits(content.clone(), *tok, *note, next_token) {
-            has_append_content =
-                self.handle_split_line(tok, content, new_line_after, leading_space_cnt);
-        } else if content == &Tok::Colon.to_string() {
+            self.handle_split_line(leading_space_cnt);
+        } else if *tok == Tok::Colon {
             let ret_type_len = self
                 .syntax_handler
                 .handler_immut::<FunHandler>()
@@ -1597,10 +1568,7 @@ impl Format {
             }
         }
 
-        if !has_append_content {
-            self.push_str(content.as_str());
-        }
-
+        self.push_str(content.as_str());
         self.update_pos_and_space(pos, token, next_token, new_line_after);
     }
 
@@ -2031,10 +1999,7 @@ impl Format {
             | Tok::Slash
             | Tok::LessEqual
             | Tok::LessLess
-            | Tok::Equal
             | Tok::EqualEqual
-            | Tok::EqualEqualGreater
-            | Tok::LessEqualEqualGreater
             | Tok::GreaterEqual
             | Tok::GreaterGreater
             | Tok::Pipe
@@ -2058,16 +2023,16 @@ impl Format {
         note: Option<Note>,
         next: Option<&TokenTree>,
     ) -> bool {
+        if self.get_pre_simple_tok() == Tok::AtSign {
+            return false;
+        }
+
         let len_plus_tok_len = self.get_cur_line_len() + tok_str.len();
         if tok == Tok::AtSign && next.is_some() {
             let next_tok_len = next.unwrap().simple_str().unwrap_or_default().len();
             if next_tok_len > 8 && len_plus_tok_len + next_tok_len > self.global_cfg.max_width() {
                 return true;
             }
-        }
-
-        if self.get_pre_simple_tok() == Tok::AtSign {
-            return false;
         }
 
         len_plus_tok_len > self.global_cfg.max_width()
