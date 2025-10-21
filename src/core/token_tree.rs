@@ -805,10 +805,9 @@ pub(crate) fn get_code_buf_len(code_buffer: String) -> usize {
 
     if special_key {
         if tokens_len == code_buffer.len() {
-            tokens_len - 1
-        } else {
-            tokens_len
+            tokens_len -= 1
         }
+        tokens_len
     } else {
         code_buffer.len()
     }

@@ -1497,6 +1497,21 @@ impl Format {
         }
     }
 
+    fn process_fun_ret_ty(&self, next_token: Option<&TokenTree>) {
+        let last_line_len = self.get_cur_line_len();
+        if last_line_len > MIN_BREAK_LENGTH {
+            let ret_type_len = self
+                .syntax_handler
+                .handler_immut::<FunHandler>()
+                .is_fun_return_colon(next_token.unwrap());
+            if ret_type_len > 0 && ret_type_len + last_line_len >= self.global_cfg.max_width() {
+                self.inc_depth();
+                self.new_line(None);
+                self.dec_depth();
+            }
+        }
+    }
+
     fn handle_split_line(&self, leading_space_cnt: usize) {
         let need_inc_depth = !matches!(
             self.format_context.borrow().cur_nested_kind.kind,
@@ -1554,18 +1569,7 @@ impl Format {
         if self.judge_change_new_line_when_over_limits(content.clone(), *tok, *note, next_token) {
             self.handle_split_line(leading_space_cnt);
         } else if *tok == Tok::Colon {
-            let ret_type_len = self
-                .syntax_handler
-                .handler_immut::<FunHandler>()
-                .is_fun_return_colon(next_token.unwrap());
-            if ret_type_len > 0
-                && self.last_line().len() > MIN_BREAK_LENGTH
-                && ret_type_len + self.last_line().len() >= self.global_cfg.max_width()
-            {
-                self.inc_depth();
-                self.new_line(None);
-                self.dec_depth();
-            }
+            self.process_fun_ret_ty(next_token);
         }
 
         self.push_str(content.as_str());

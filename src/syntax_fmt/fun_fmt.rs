@@ -533,7 +533,6 @@ fn process_fun_ret_ty(fmt_buffer: &mut String, config: Config) {
 
 // TODO: remove fmt_fun
 pub fn fmt_fun(fmt_buffer: &mut String, config: Config) -> String {
-    // process_block_comment_before_fun(fmt_buffer, config.clone());
     process_fun_ret_ty(fmt_buffer, config.clone());
     fmt_buffer.to_string()
 }
