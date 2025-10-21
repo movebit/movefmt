@@ -8,6 +8,7 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.3.7">v1.3.7</a><br/>
 <a href="#v1.3.6">v1.3.6</a><br/>
 <a href="#v1.3.5">v1.3.5</a><br/>
 <a href="#v1.3.4">v1.3.4</a><br/>
@@ -39,6 +40,14 @@
 </td>
 </tr>
 </table>
+
+
+<a id="v1.3.7"></a>
+## 2025-10-17, Version v1.3.7
+* [[`f1c7912`](https://github.com/movebit/movefmt/commit/f1c79123be047757632ac15ab4cd6d2cb9cc5a41)] - update aptos-core dependence
+* [[`6dbb30b`](https://github.com/movebit/movefmt/commit/6dbb30b600420396f1e5a7a9c85d396b3e86d785)] - optimize warn log with color
+* [[`9d124ce`](https://github.com/movebit/movefmt/commit/9d124ce2558a71cd006f79ffd9673709fc60a9c7)] - fix bug #85: format error on spec syntax
+* [[`927c7b2`](https://github.com/movebit/movefmt/commit/927c7b262faaed4d43eb18b5663637c67ce32fad)] - fix bug #84: format error on long Bind exp
 
 
 <a id="v1.3.6"></a>
