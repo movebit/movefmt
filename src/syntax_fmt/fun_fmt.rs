@@ -435,11 +435,7 @@ fn byte_offset_to_line(offset: usize, line_starts: &[usize]) -> usize {
 // Return the [start, end) byte interval of line line_idx
 // The last element is the virtual EOF position, so it will not exceed the boundary
 #[allow(dead_code)]
-fn line_range(
-    line_idx: usize,
-    line_starts: &[usize],
-    text_len: usize,
-) -> std::ops::Range<usize> {
+fn line_range(line_idx: usize, line_starts: &[usize], text_len: usize) -> std::ops::Range<usize> {
     let start = line_starts[line_idx];
     let end = line_starts.get(line_idx + 1).copied().unwrap_or(text_len);
     start..end

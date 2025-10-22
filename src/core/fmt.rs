@@ -535,33 +535,20 @@ impl Format {
             self.get_new_line_mode_for_cur_tok(kind, t, next_t)
         };
 
-        // TODO: need optimize `resource access specifier`
         // comma in fun resource access specifier not change new line
-        if d == t_str && d.is_some() {
-            if let Some(deli_str) = d {
-                if deli_str.contains(',') {
-                    let mut idx = index;
-                    while idx != 0 {
-                        let ele = elements.get(idx).unwrap();
-                        idx -= 1;
-                        if let Some(key) = ele.simple_str() {
-                            if key.contains(&Tok::Fun.to_string()) {
-                                break;
-                            }
-                        }
-                        if ele.simple_str().is_none() {
-                            continue;
-                        }
-                        if matches!(
-                            ele.simple_str().unwrap(),
-                            "acquires" | "reads" | "writes" | "pure"
-                        ) {
-                            new_line = false;
-                            break;
-                        }
-                    }
-                }
-            }
+        if d == Some(",")
+            && elements[..index]
+                .iter()
+                .rev()
+                .take_while(|ele| ele.simple_str() != Some(&Tok::Fun.to_string()))
+                .any(|ele| {
+                    matches!(
+                        ele.simple_str(),
+                        Some("acquires" | "reads" | "writes" | "pure")
+                    )
+                })
+        {
+            new_line = false;
         }
 
         // ablility not change new line
@@ -1607,7 +1594,6 @@ impl Format {
             // step1
             self.maybe_begin_of_if_else(token, next_token);
 
-            // TODO: need optimize add_comment, maybe need increase indent depth
             // step2: add comment(xxx) before current simple_token
             self.add_comments(*pos, content.clone());
 
