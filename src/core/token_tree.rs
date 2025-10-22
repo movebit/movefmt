@@ -777,7 +777,7 @@ pub(crate) fn analyze_token_tree_length(token_tree: &[TokenTree], max: usize) ->
     ret
 }
 
-pub(crate) fn get_code_buf_len(code_buffer: String) -> usize {
+pub(crate) fn get_code_buf_len(code_buffer: String) -> (usize, bool) {
     let mut tokens_len = 0;
     let mut special_key = false;
     let mut lexer = Lexer::new(&code_buffer, FileHash::empty());
@@ -802,18 +802,10 @@ pub(crate) fn get_code_buf_len(code_buffer: String) -> usize {
             break;
         }
     }
-
-    if special_key {
-        if tokens_len == code_buffer.len() {
-            tokens_len -= 1
-        }
-        tokens_len
-    } else {
-        code_buffer.len()
-    }
+    (tokens_len, special_key)
 }
 
-pub(crate) fn has_special_key_for_break_line_in_code_buf(code_buffer: String) -> bool {
+pub(crate) fn has_special_key(code_buffer: String) -> bool {
     let mut lexer = Lexer::new(&code_buffer, FileHash::empty());
     lexer.advance().unwrap();
     const FOR_IDENT: &str = "for";

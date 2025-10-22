@@ -139,11 +139,10 @@ fn token_to_ability(token: Tok, content: &str) -> Option<Ability_> {
 }
 
 fn tune_module_buf(module_body: String, config: &Config) -> String {
-    let mut ret_module_body = fun_fmt::fmt_fun(&mut module_body.clone(), config.clone());
-    if module_body.contains("spec ") {
+    let mut ret_module_body = big_block_fmt::fmt_big_block(module_body.clone());
+    if module_body.contains(&Tok::Spec.to_string()) {
         ret_module_body = spec_fmt::fmt_spec(ret_module_body.clone(), config.clone());
     }
-    ret_module_body = big_block_fmt::fmt_big_block(ret_module_body);
     return remove_trailing_whitespaces_util(ret_module_body.clone());
 }
 
@@ -342,7 +341,7 @@ impl Format {
                 kind,
                 elements,
                 index as i64,
-                self.get_cur_line_len(),
+                self.last_line().len(),
             ) != 2
         {
             return judge_equal_tok_is_long_op_fn();
@@ -699,7 +698,12 @@ impl Format {
         }
         let mut new_line_mode = false;
         let nested_token_len = self.get_kind_len_after_trim_space(*kind, true);
-        let cur_line_len = get_code_buf_len(self.last_line());
+        let cur_line_status = get_code_buf_len(self.last_line());
+        let cur_line_len = if cur_line_status.1 {
+            cur_line_status.0
+        } else {
+            self.last_line().len()
+        };
 
         let mut opt_component_break_mode = nested_token_len
             + self.depth.get() * self.local_cfg.indent_size
@@ -730,7 +734,7 @@ impl Format {
             }
 
             new_line_mode |= opt_component_break_mode;
-        } else if self.get_cur_line_len() > self.global_cfg.max_width() {
+        } else if self.last_line().len() > self.global_cfg.max_width() {
             new_line_mode = true;
         } else {
             if elements[0].simple_str().is_some() {
@@ -874,7 +878,7 @@ impl Format {
                 let first_ele_len =
                     analyze_token_tree_length(&[elements[0].clone()], max_line_width);
                 new_line_mode =
-                    self.get_cur_line_len() + first_ele_len > max_line_width && first_ele_len > 8;
+                    self.last_line().len() + first_ele_len > max_line_width && first_ele_len > 8;
             }
             NestKind_::ParentTheses => return self.get_break_mode_begin_paren(token),
             NestKind_::Bracket => {
@@ -900,8 +904,7 @@ impl Format {
                 if nested_len as f32 <= max_line_width as f32 - max_len_no_add_line {
                     return (false, None);
                 }
-                new_line_mode |=
-                    (self.get_cur_line_len() + nested_len) as f32 > max_len_no_add_line;
+                new_line_mode |= (self.last_line().len() + nested_len) as f32 > max_len_no_add_line;
 
                 let nested_and_comma_pair = expr_fmt::get_nested_and_comma_num(elements);
                 let opt_component_break_mode =
@@ -917,11 +920,11 @@ impl Format {
             NestKind_::Brace => {
                 if nested_len > 4 {
                     // case1: over max width
-                    new_line_mode |= self.get_cur_line_len() + nested_len > max_line_width;
+                    new_line_mode |= self.last_line().len() + nested_len > max_line_width;
                     new_line_mode |= self.last_line().len() + nested_len > max_line_width;
 
                     // case2: has special keyword
-                    new_line_mode |= has_special_key_for_break_line_in_code_buf(self.last_line());
+                    new_line_mode |= has_special_key(self.last_line());
                 }
 
                 // case3: nested_len too long
@@ -1167,7 +1170,7 @@ impl Format {
                         kind,
                         elements,
                         token_idx,
-                        self.get_cur_line_len(),
+                        self.last_line().len(),
                     );
             }
 
@@ -1368,21 +1371,19 @@ impl Format {
         // updated in 20240516: optimize break line before else
         let mut new_line_before_else = false;
         if *tok == Tok::Else {
-            // let get_cur_line_len = self.get_cur_line_len();
-            // let last_line_len = self.last_line().len();
-            let last_line_len = self.get_cur_line_len();
-            let get_cur_line_len = get_code_buf_len(self.last_line());
-            let has_special_key = get_cur_line_len != last_line_len;
             if self.get_pre_simple_tok() == Tok::RBrace {
                 // case1
-                if has_special_key {
+                if get_code_buf_len(self.last_line()).1 {
                     // process case:
                     // else if() {} `insert '\n' here` else
                     new_line_before_else = true;
                 }
             } else if next_token.is_some() {
                 // case2
-                if last_line_len + content.len() + 2 + next_token.unwrap().token_len() as usize
+                if self.last_line().len()
+                    + content.len()
+                    + 2
+                    + next_token.unwrap().token_len() as usize
                     > self.global_cfg.max_width() - MIN_NESTED_LENGTH
                 {
                     new_line_before_else = true;
@@ -1506,18 +1507,29 @@ impl Format {
         }
     }
 
-    fn process_fun_ret_ty(&self, next_token: Option<&TokenTree>) {
-        let last_line_len = self.get_cur_line_len();
-        if last_line_len > MIN_BREAK_LENGTH {
-            let ret_type_len = self
-                .syntax_handler
-                .handler_immut::<FunHandler>()
-                .is_fun_return_colon(next_token.unwrap());
-            if ret_type_len > 0 && ret_type_len + last_line_len >= self.global_cfg.max_width() {
-                self.inc_depth();
-                self.new_line(None);
-                self.dec_depth();
-            }
+    fn may_inc_depth_before_fun_ret_ty(&self, next_token: Option<&TokenTree>) {
+        let last_line_len = self.last_line().len();
+        let ret_type_len = self
+            .syntax_handler
+            .handler_immut::<FunHandler>()
+            .is_fun_return_colon(next_token.unwrap());
+        if ret_type_len == 0 {
+            return;
+        }
+        if last_line_len > MIN_BREAK_LENGTH
+            && ret_type_len + last_line_len >= self.global_cfg.max_width()
+        {
+            self.inc_depth();
+            self.new_line(None);
+            self.dec_depth();
+        } else if self
+            .last_line()
+            .clone()
+            .trim_start_matches(char::is_whitespace)
+            .len()
+            == 0
+        {
+            self.indent();
         }
     }
 
@@ -1578,7 +1590,7 @@ impl Format {
         if self.judge_change_new_line_when_over_limits(content.clone(), *tok, *note, next_token) {
             self.handle_split_line(leading_space_cnt);
         } else if *tok == Tok::Colon {
-            self.process_fun_ret_ty(next_token);
+            self.may_inc_depth_before_fun_ret_ty(next_token);
         }
 
         self.push_str(content.as_str());
@@ -2025,10 +2037,6 @@ impl Format {
         ret
     }
 
-    fn get_cur_line_len(&self) -> usize {
-        self.last_line().len()
-    }
-
     fn judge_change_new_line_when_over_limits(
         &self,
         tok_str: String,
@@ -2040,7 +2048,7 @@ impl Format {
             return false;
         }
 
-        let len_plus_tok_len = self.get_cur_line_len() + tok_str.len();
+        let len_plus_tok_len = self.last_line().len() + tok_str.len();
         if tok == Tok::AtSign && next.is_some() {
             let next_tok_len = next.unwrap().simple_str().unwrap_or_default().len();
             if next_tok_len > 8 && len_plus_tok_len + next_tok_len > self.global_cfg.max_width() {

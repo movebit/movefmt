@@ -305,7 +305,7 @@ impl CallHandler {
                     .line;
                 let call_component_str = &self.source
                     [call_in_call_loc.start() as usize..call_in_call_loc.end() as usize];
-                let component_lenth = get_code_buf_len(call_component_str.to_string());
+                let component_lenth = get_code_buf_len(call_component_str.to_string()).0;
                 if (cur_ret_last_len + component_lenth > config.max_width() && component_lenth > 8)
                     || end_line - start_line > 2
                 {
@@ -347,7 +347,7 @@ impl CallHandler {
                     .line;
                 let call_component_str = &self.source
                     [pack_in_call_loc.start() as usize..pack_in_call_loc.end() as usize];
-                let component_lenth = get_code_buf_len(call_component_str.to_string());
+                let component_lenth = get_code_buf_len(call_component_str.to_string()).0;
                 if cur_ret_last_len + component_lenth > config.max_width()
                     || end_line - start_line > 2
                 {

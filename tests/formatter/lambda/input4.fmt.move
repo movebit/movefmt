@@ -4,7 +4,7 @@ module 0x42::LambdaTest1 {
         /** Input parameter a */ a: u64,
         /** Input parameter b */ b: u64
     )
-        /** Returns a u64 value */ : u64 {
+    /** Returns a u64 value */ : u64 {
         /** Multiply a and b */
         a * b
     }

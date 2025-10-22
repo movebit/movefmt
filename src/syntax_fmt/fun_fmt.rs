@@ -352,6 +352,7 @@ fn format_specifiers_optimized(
 }
 
 /// Optimized token position lookup with removal
+#[allow(dead_code)]
 fn is_token_at_position(token_positions: &mut Vec<(u32, u32, String)>, pos: u32) -> bool {
     if let Some(index) = token_positions
         .iter()
@@ -365,6 +366,7 @@ fn is_token_at_position(token_positions: &mut Vec<(u32, u32, String)>, pos: u32)
 }
 
 /// Optimized argument collection with better string handling
+#[allow(dead_code)]
 fn collect_args_optimized(
     tokens: &[&str],
     start_idx: usize,
@@ -402,6 +404,7 @@ fn collect_args_optimized(
 }
 
 // Return the byte start offset of each row, with an additional EOF position at the end
+#[allow(dead_code)]
 fn build_line_starts(text: &str) -> Vec<usize> {
     std::iter::once(0)
         .chain(text.match_indices('\n').map(|(i, _)| i + 1))
@@ -409,6 +412,7 @@ fn build_line_starts(text: &str) -> Vec<usize> {
 }
 
 // Return the vec with 'how many spaces before each row'
+#[allow(dead_code)]
 fn build_line_indent(text: &str, line_starts: &[usize]) -> Vec<usize> {
     let mut indent = Vec::with_capacity(line_starts.len().saturating_sub(1));
     for &start in &line_starts[..line_starts.len() - 1] {
@@ -420,7 +424,8 @@ fn build_line_indent(text: &str, line_starts: &[usize]) -> Vec<usize> {
 }
 
 // Given byte offset, return which line it falls on (0-based)
-pub fn byte_offset_to_line(offset: usize, line_starts: &[usize]) -> usize {
+#[allow(dead_code)]
+fn byte_offset_to_line(offset: usize, line_starts: &[usize]) -> usize {
     match line_starts.binary_search(&offset) {
         Ok(l) => l,
         Err(l) => l.saturating_sub(1),
@@ -429,7 +434,8 @@ pub fn byte_offset_to_line(offset: usize, line_starts: &[usize]) -> usize {
 
 // Return the [start, end) byte interval of line line_idx
 // The last element is the virtual EOF position, so it will not exceed the boundary
-pub fn line_range(
+#[allow(dead_code)]
+fn line_range(
     line_idx: usize,
     line_starts: &[usize],
     text_len: usize,
@@ -484,6 +490,7 @@ fn process_block_comment_before_fun(fmt_buffer: &mut String, config: Config) {
 // process_fun_ret_ty is used to process this case:
 // fun fun_name()
 // : u64 {}
+#[allow(dead_code)]
 fn process_fun_ret_ty(fmt_buffer: &mut String, config: Config) {
     let mut fh = FunHandler::new(fmt_buffer.to_string());
     fh.preprocess(&Arc::new(get_defs(fmt_buffer.clone())));
@@ -529,12 +536,6 @@ fn process_fun_ret_ty(fmt_buffer: &mut String, config: Config) {
     for (off, txt) in inserts.into_iter().rev() {
         fmt_buffer.insert_str(off, &txt);
     }
-}
-
-// TODO: remove fmt_fun
-pub fn fmt_fun(fmt_buffer: &mut String, config: Config) -> String {
-    process_fun_ret_ty(fmt_buffer, config.clone());
-    fmt_buffer.to_string()
 }
 
 #[test]
