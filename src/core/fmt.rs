@@ -314,7 +314,6 @@ impl Format {
         elements: &[TokenTree],
     ) -> bool {
         let let_handler = self.syntax_handler.handler_immut::<LetHandler>();
-        let call_handler = self.syntax_handler.handler_immut::<CallHandler>();
         if matches!(
             current.get_start_tok(),
             Tok::EqualEqualGreater | Tok::LessEqualEqualGreater
@@ -336,15 +335,18 @@ impl Format {
         if current.get_start_tok() == Tok::Equal
             && next.unwrap().simple_str().unwrap_or_default() != "vector"
             && next_tok != Tok::LBrace
-            && call_handler.component_is_complex_blk(
+        {
+            let call_handler = self.syntax_handler.handler_immut::<CallHandler>();
+            if call_handler.component_is_complex_blk(
                 self.global_cfg.clone(),
                 kind,
                 elements,
                 index as i64,
                 self.last_line().len(),
             ) != 2
-        {
-            return judge_equal_tok_is_long_op_fn();
+            {
+                return judge_equal_tok_is_long_op_fn();
+            }
         }
 
         false
@@ -508,8 +510,6 @@ impl Format {
         false
     }
 
-    // TODO: need optimize need_new_line_for_cur_tok_finished,
-    // maybe we can break it down into smaller sub-functions.
     fn need_new_line_for_cur_tok_finished(
         &self,
         nested_token: &TokenTree,
@@ -523,20 +523,27 @@ impl Format {
             return false;
         };
 
+        fn token_tree_start(tt: &TokenTree) -> (Tok, String) {
+            match tt {
+                TokenTree::SimpleToken { tok, content, .. } => (*tok, content.clone()),
+                TokenTree::Nested { kind, .. } => {
+                    (kind.kind.start_tok(), kind.kind.start_tok().to_string())
+                }
+            }
+        }
+
         let t = elements.get(index).unwrap();
         let next_t = elements.get(index + 1);
-        let d = delimiter.map(|x| x.to_static_str());
+        let d = delimiter.map(Delimiter::to_static_str);
         let t_str = t.simple_str();
-
-        let mut new_line = if component_break_mode {
-            self.check_new_line_mode_for_cur_tok(kind, delimiter, has_colon, t, next_t)
-                || (d == t_str && d.is_some() && kind.kind != NestKind_::Type)
-        } else {
-            self.get_new_line_mode_for_cur_tok(kind, t, next_t)
-        };
+        let is_comma = d == Some(&Tok::Comma.to_string());
+        let cur_is_delimiter = d == t_str;
+        let (next_tok, next_content) = next_t
+            .map(token_tree_start)
+            .unwrap_or((Tok::EOF, String::new()));
 
         // comma in fun resource access specifier not change new line
-        if d == Some(",")
+        if is_comma
             && elements[..index]
                 .iter()
                 .rev()
@@ -548,49 +555,38 @@ impl Format {
                     )
                 })
         {
-            new_line = false;
+            return false;
         }
 
         // ablility not change new line
         // optimize in 20240510: maybe like variable name or struct field name are ability, like "key"
         // fixed bug in 20240718: you can see case [tests/bug/input4.move]
-        let mut next_token = Tok::EOF;
-        if let Some((next_tok, next_content)) = next_t.map(|x| match x {
-            TokenTree::SimpleToken {
-                content,
-                pos: _,
-                tok,
-                ..
-            } => (*tok, content.clone()),
-            TokenTree::Nested { kind, .. } => {
-                (kind.kind.start_tok(), kind.kind.start_tok().to_string())
-            }
-        }) {
-            if new_line
-                && d == t_str
-                && t_str.unwrap_or_default() == &Tok::Comma.to_string()
-                && token_to_ability(
-                    self.get_pre_simple_tok(),
-                    &self
-                        .format_context
-                        .borrow()
-                        .pre_simple_token
-                        .simple_str()
-                        .unwrap_or_default(),
-                )
+        if cur_is_delimiter
+            && is_comma
+            && self
+                .format_context
+                .borrow()
+                .pre_simple_token
+                .simple_str()
+                .and_then(|s| token_to_ability(self.get_pre_simple_tok(), &s))
                 .is_some()
-                && token_to_ability(next_tok, &next_content).is_some()
-            {
-                new_line = false;
-            }
-            next_token = next_tok;
+            && token_to_ability(next_tok, &next_content).is_some()
+        {
+            return false;
         }
+
+        let mut new_line = if component_break_mode {
+            self.check_new_line_mode_for_cur_tok(kind, delimiter, has_colon, t, next_t)
+                || (cur_is_delimiter && d.is_some() && kind.kind != NestKind_::Type)
+        } else {
+            self.get_new_line_mode_for_cur_tok(kind, t, next_t)
+        };
 
         if nested_kind_len > MIN_NESTED_LENGTH && kind.kind != NestKind_::Type {
             new_line |=
-                self.check_cur_token_is_long_bin_op(t, next_t, next_token, index, kind, &elements);
+                self.check_cur_token_is_long_bin_op(t, next_t, next_tok, index, kind, &elements);
             if !new_line && next_t.is_some() {
-                if self.check_next_token_is_long_bin_op(t, next_t, next_token) {
+                if self.check_next_token_is_long_bin_op(t, next_t, next_tok) {
                     return true;
                 }
                 if self.check_next_token_is_quant_body(t, next_t) {
