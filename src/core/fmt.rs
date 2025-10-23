@@ -5,7 +5,7 @@
 use crate::core::token_tree::*;
 use crate::syntax_fmt::bin_op_fmt::BinOpHandler;
 use crate::syntax_fmt::branch_fmt::BranchHandler;
-use crate::syntax_fmt::call_fmt::CallHandler;
+use crate::syntax_fmt::call_fmt::*;
 use crate::syntax_fmt::fun_fmt::FunHandler;
 use crate::syntax_fmt::let_fmt::LetHandler;
 use crate::syntax_fmt::quant_fmt::QuantHandler;
@@ -303,7 +303,6 @@ impl Format {
         }
     }
 
-    // TODO: need optimize !!!
     fn check_cur_token_is_long_bin_op(
         &self,
         current: &TokenTree,
@@ -343,7 +342,7 @@ impl Format {
                 elements,
                 index as i64,
                 self.last_line().len(),
-            ) != 2
+            ) != ComplexCallKind::Pack
             {
                 return judge_equal_tok_is_long_op_fn();
             }
@@ -510,7 +509,7 @@ impl Format {
         false
     }
 
-    fn need_new_line_for_cur_tok_finished(
+    fn need_new_line_after_cur_tok_finished(
         &self,
         nested_token: &TokenTree,
         delimiter: Option<Delimiter>,
@@ -1138,7 +1137,7 @@ impl Format {
             .last()
             .map_or(false, |t| t.get_start_tok() == Tok::Comma);
         while token_idx < nested_ele_len {
-            let mut new_line = self.need_new_line_for_cur_tok_finished(
+            let mut new_line = self.need_new_line_after_cur_tok_finished(
                 nested_token,
                 delimiter,
                 has_colon,
