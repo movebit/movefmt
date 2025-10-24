@@ -10,7 +10,7 @@
 use crate::core::token_tree::*;
 use crate::syntax_fmt::skip_fmt::SkipHandler;
 use crate::syntax_fmt::syntax_handler::SyntaxHandler;
-use crate::syntax_fmt::{big_block_fmt, expr_fmt, fun_fmt, spec_fmt};
+use crate::syntax_fmt::{big_block_fmt, expr_fmt, spec_fmt};
 use crate::tools::utils::*;
 use commentfmt::Config;
 use move_command_line_common::files::FileHash;
@@ -118,11 +118,6 @@ impl FormatState {
     /// Get last line content
     pub fn last_line(&self) -> &str {
         self.output.lines().last().unwrap_or("")
-    }
-
-    /// Get current line length
-    pub fn cur_line_len(&self) -> usize {
-        get_code_buf_len(self.last_line().to_string())
     }
 
     /// Get type of previous simple token
@@ -676,12 +671,11 @@ impl FunctionalFormat {
 
 /// Helper function - extracted from the original code
 fn tune_module_buf(module_body: String, config: &Config) -> String {
-    let mut ret_module_body = fun_fmt::fmt_fun(&mut module_body.clone(), config.clone());
-    if module_body.contains("spec ") {
+    let mut ret_module_body = big_block_fmt::fmt_big_block(module_body.clone());
+    if module_body.contains(&Tok::Spec.to_string()) {
         ret_module_body = spec_fmt::fmt_spec(ret_module_body.clone(), config.clone());
     }
-    ret_module_body = big_block_fmt::fmt_big_block(ret_module_body);
-    remove_trailing_whitespaces_util(ret_module_body)
+    return remove_trailing_whitespaces_util(ret_module_body.clone());
 }
 
 /// Provide a simple wrapper for backward compatibility

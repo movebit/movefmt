@@ -14,6 +14,14 @@ use move_ir_types::location::*;
 
 use super::syntax_trait::{Preprocessor, SingleSyntaxExtractor};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ComplexCallKind {
+    None,
+    Call,
+    Pack,
+    LambdaBrace,
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct CallHandler {
     pub call_loc_vec: Vec<Loc>,
@@ -305,7 +313,7 @@ impl CallHandler {
                     .line;
                 let call_component_str = &self.source
                     [call_in_call_loc.start() as usize..call_in_call_loc.end() as usize];
-                let component_lenth = get_code_buf_len(call_component_str.to_string());
+                let component_lenth = get_code_buf_len(call_component_str.to_string()).0;
                 if (cur_ret_last_len + component_lenth > config.max_width() && component_lenth > 8)
                     || end_line - start_line > 2
                 {
@@ -347,7 +355,7 @@ impl CallHandler {
                     .line;
                 let call_component_str = &self.source
                     [pack_in_call_loc.start() as usize..pack_in_call_loc.end() as usize];
-                let component_lenth = get_code_buf_len(call_component_str.to_string());
+                let component_lenth = get_code_buf_len(call_component_str.to_string()).0;
                 if cur_ret_last_len + component_lenth > config.max_width()
                     || end_line - start_line > 2
                 {
@@ -380,7 +388,8 @@ impl CallHandler {
         if cur_ret_last_len + component_lenth > config.max_width() && component_lenth > 4 {
             return true;
         }
-        self.component_is_complex_blk(config, kind, elements, index as i64, cur_ret_last_len) > 0
+        self.component_is_complex_blk(config, kind, elements, index as i64, cur_ret_last_len)
+            != ComplexCallKind::None
     }
 
     pub(crate) fn paren_in_call(&self, kind: &NestKind) -> bool {
@@ -399,11 +408,11 @@ impl CallHandler {
         elements: &[TokenTree],
         index: i64,
         cur_ret_last_len: usize,
-    ) -> i16 {
+    ) -> ComplexCallKind {
         let next_t = elements.get((index + 1) as usize);
         let next_next_t = elements.get((index + 2) as usize);
         if next_t.is_none() {
-            return 0;
+            return ComplexCallKind::None;
         }
         let next_t_start_pos = next_t.unwrap().start_pos();
         for call_loc in self.call_paren_loc_vec.iter() {
@@ -417,7 +426,7 @@ impl CallHandler {
                     "should split call: next_t = {:?}",
                     next_t.unwrap().simple_str()
                 );
-                return 1;
+                return ComplexCallKind::Call;
             }
 
             if self.should_split_pack_component(next_t_start_pos, config.clone(), cur_ret_last_len)
@@ -426,7 +435,7 @@ impl CallHandler {
                     "should split pack: next_t = {:?}",
                     next_t.unwrap().simple_str()
                 );
-                return 2;
+                return ComplexCallKind::Pack;
             }
         }
 
@@ -458,14 +467,14 @@ impl CallHandler {
                             .map(|x| x == Delimiter::Semicolon)
                             .unwrap_or_default();
                         if new_line_mode {
-                            return 3;
+                            return ComplexCallKind::LambdaBrace;
                         }
                     }
                 }
             }
         }
 
-        0
+        ComplexCallKind::None
     }
 }
 
