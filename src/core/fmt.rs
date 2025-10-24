@@ -138,7 +138,9 @@ fn token_to_ability(token: Tok, content: &str) -> Option<Ability_> {
     }
 }
 
+// TODO: need optimize
 fn tune_module_buf(module_body: String, config: &Config) -> String {
+    // TODO: need optimize big_block_fmt
     let mut ret_module_body = big_block_fmt::fmt_big_block(module_body.clone());
     if module_body.contains(&Tok::Spec.to_string()) {
         ret_module_body = spec_fmt::fmt_spec(ret_module_body.clone(), config.clone());
@@ -1490,6 +1492,9 @@ impl Format {
     }
 
     fn may_inc_depth_before_fun_ret_ty(&self, next_token: Option<&TokenTree>) {
+        if next_token.is_none() {
+            return;
+        }
         let last_line_len = self.last_line().len();
         let ret_type_len = self
             .syntax_handler
