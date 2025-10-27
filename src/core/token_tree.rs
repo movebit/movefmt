@@ -129,6 +129,8 @@ pub enum TokenTree {
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Note {
+    /// unary op like `-`, `!`
+    UnaryOp,
     /// binary op like `+` , `*`
     BinaryOP,
     /// This is a struct definition.
@@ -229,6 +231,7 @@ pub struct Parser<'a> {
     type_lambda_pair: Vec<(u32, u32)>,
     type_lambda_pair_index: usize,
     struct_definitions: Vec<(u32, u32)>,
+    unary_op: HashSet<u32>,
     bin_op: HashSet<u32>,
     fun_body: HashSet<u32>, // start pos.
     apple_name: HashSet<u32>,
@@ -245,6 +248,7 @@ impl<'a> Parser<'a> {
             type_lambda_pair: Default::default(),
             type_lambda_pair_index: 0,
             struct_definitions: vec![],
+            unary_op: Default::default(),
             bin_op: Default::default(),
             fun_body: Default::default(),
             apple_name: Default::default(),
@@ -259,6 +263,9 @@ impl<'a> Parser<'a> {
 
 impl<'a> Parser<'a> {
     fn add_simple_note(&self, pos: u32) -> Option<Note> {
+        if self.unary_op.contains(&pos) {
+            return Some(Note::UnaryOp);
+        }
         if self.bin_op.contains(&pos) {
             return Some(Note::BinaryOP);
         }
@@ -558,11 +565,17 @@ impl<'a> Parser<'a> {
                 }
                 Exp_::Block(b) => collect_seq(p, b),
                 // Zax 20241217 issue45
-                Exp_::Lambda(tb, e, _, _ability) => {
+                Exp_::Lambda(tb, e, _, opt_e) => {
                     p.type_lambda_pair.push((tb.loc.start(), tb.loc.end()));
                     collect_expr(p, e.as_ref());
+                    if let Some(oe) = opt_e {
+                        collect_expr(p, oe.as_ref());
+                    }
                 }
-                Exp_::Quant(_, _, es, e1, e2) => {
+                Exp_::Quant(_, bind_range, es, e1, e2) => {
+                    bind_range.value.iter().for_each(|e| {
+                        collect_expr(p, &e.value.1);
+                    });
                     es.iter().for_each(|e| {
                         for e in e.iter() {
                             collect_expr(p, e)
@@ -593,7 +606,8 @@ impl<'a> Parser<'a> {
                 Exp_::Dereference(e) => {
                     collect_expr(p, e.as_ref());
                 }
-                Exp_::UnaryExp(_, e) => {
+                Exp_::UnaryExp(op, e) => {
+                    p.unary_op.insert(op.loc.start());
                     collect_expr(p, e.as_ref());
                 }
                 Exp_::BinopExp(l, op, r) => {
@@ -634,7 +648,11 @@ impl<'a> Parser<'a> {
                         collect_expr(p, &exp);
                     }
                 }
-                // Exp_::Value  Exp_::Move Exp_::Copy Exp_::Unit Exp_::Break Exp_::Continue
+                Exp_::ExpCall(e1, e_vec) => {
+                    collect_expr(p, e1.as_ref());
+                    e_vec.value.iter().for_each(|e| collect_expr(p, e));
+                }
+                // Exp_::Value  Exp_::Move Exp_::Copy Exp_::Unit
                 _ => {}
             }
         }
@@ -688,7 +706,8 @@ impl<'a> Parser<'a> {
                     } => {
                         if let Some(init) = init {
                             p.type_lambda_pair
-                                .push((name.loc.start(), init.loc.start() - 1))
+                                .push((name.loc.start(), init.loc.start() - 1));
+                            collect_expr(p, init);
                         } else {
                             p.type_lambda_pair.push((name.loc.start(), m.loc.end()));
                         }
