@@ -572,7 +572,10 @@ impl<'a> Parser<'a> {
                         collect_expr(p, oe.as_ref());
                     }
                 }
-                Exp_::Quant(_, _, es, e1, e2) => {
+                Exp_::Quant(_, bind_range, es, e1, e2) => {
+                    bind_range.value.iter().for_each(|e| {
+                        collect_expr(p, &e.value.1);
+                    });
                     es.iter().for_each(|e| {
                         for e in e.iter() {
                             collect_expr(p, e)
