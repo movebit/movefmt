@@ -8,6 +8,7 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.3.8">v1.3.8</a><br/>
 <a href="#v1.3.7">v1.3.7</a><br/>
 <a href="#v1.3.6">v1.3.6</a><br/>
 <a href="#v1.3.5">v1.3.5</a><br/>
@@ -40,6 +41,17 @@
 </td>
 </tr>
 </table>
+
+
+<a id="v1.3.8"></a>
+## 2025-10-24, Version v1.3.8
+* [[`48c6a4d`](https://github.com/movebit/movefmt/commit/48c6a4d032ff217ffcc3e581940df82a6ad6e92e)] - fix potential bugs, update aptos-core dependence
+* [[`51a3789`](https://github.com/movebit/movefmt/commit/51a3789a871a64381a02ba53e6ed085065ef42ed)] - optimize check_cur_token_is_long_bin_op()
+* [[`d2de508`](https://github.com/movebit/movefmt/commit/d2de5084d087055b77f13d849c3481af704f3a3a)] - optimize need_new_line_after_cur_tok_finished()
+* [[`3bd1c9b`](https://github.com/movebit/movefmt/commit/3bd1c9b68aae909d6edd20c09bb25cfd719409f3)] - optimize the processing about access specifier
+* [[`be023c5`](https://github.com/movebit/movefmt/commit/be023c5acf43575dda9e5e993d9af2408fb5bd26)] - remove fmt_fun(), optimize code
+* [[`d86c1bf`](https://github.com/movebit/movefmt/commit/d86c1bf600c461060d432cfcadb7581c23b142f9)] - optimize get_break_mode_begin_paren()
+* [[`e53a362`](https://github.com/movebit/movefmt/commit/e53a3620b0f2a9f1549a495117ee706265840618)] - optimize get_code_buf_len(); add process_fun_ret_ty()
 
 
 <a id="v1.3.7"></a>
