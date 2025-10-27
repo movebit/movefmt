@@ -335,6 +335,14 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
     if next.is_none() {
         return false;
     }
+    if current
+        .get_note()
+        .map(|x| x == Note::UnaryOp)
+        .unwrap_or_default()
+    {
+        return false;
+    }
+
     let next_token_tree = next.unwrap();
 
     let is_bin_current = current
@@ -389,7 +397,13 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
             TokType::Alphabet | TokType::String | TokType::Number | TokType::AtSign,
         ) => true,
         (_, TokType::Amp) => Tok::Star != curr_start_tok,
-        (TokType::MathSign, _) => true,
+        (TokType::MathSign, _) => {
+            if curr_end_tok == Tok::Minus && !is_bin_current {
+                false
+            } else {
+                true
+            }
+        }
         (TokType::Sign, TokType::Alphabet) => Tok::Exclaim != curr_end_tok,
         (TokType::Sign, TokType::Number) => true,
         (TokType::Sign, TokType::String | TokType::AtSign) => {
