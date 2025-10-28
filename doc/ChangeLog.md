@@ -8,6 +8,7 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.3.9">v1.3.9</a><br/>
 <a href="#v1.3.8">v1.3.8</a><br/>
 <a href="#v1.3.7">v1.3.7</a><br/>
 <a href="#v1.3.6">v1.3.6</a><br/>
@@ -41,6 +42,12 @@
 </td>
 </tr>
 </table>
+
+
+<a id="v1.3.9"></a>
+## 2025-10-27, Version v1.3.9
+* [[`b3fa23c`](https://github.com/movebit/movefmt/commit/b3fa23c8890731997c243f9ca347ebd075a5d54c)] - fix bug on Exp_::Quant
+* [[`8a9276b`](https://github.com/movebit/movefmt/commit/8a9276be038171e179bdba19b8051ad83e345f6a)] - add test case about signed_int; supporting new syntax(signed int)
 
 
 <a id="v1.3.8"></a>

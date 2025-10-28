@@ -498,7 +498,7 @@ fn print_usage_to_stdout(opts: &Options, reason: &str) {
 }
 
 fn print_version() {
-    println!("movefmt v1.3.8");
+    println!("movefmt v1.3.9");
 }
 
 fn determine_operation(matches: &Matches) -> Result<Operation, OperationError> {
