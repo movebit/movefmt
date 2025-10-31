@@ -634,9 +634,6 @@ impl<'a> Parser<'a> {
                     collect_ty(p, ty);
                 }
                 Exp_::Spec(s) => collect_spec(p, s),
-                Exp_::UnresolvedError => {
-                    unreachable!()
-                }
                 Exp_::Match(target, body) => {
                     collect_expr(p, target.as_ref());
                     for body_item in body {
@@ -652,7 +649,14 @@ impl<'a> Parser<'a> {
                     collect_expr(p, e1.as_ref());
                     e_vec.value.iter().for_each(|e| collect_expr(p, e));
                 }
-                // Exp_::Value  Exp_::Move Exp_::Copy Exp_::Unit
+                Exp_::Value(v) => {
+                    if let Value_::Num(num) = v.value
+                        && num.as_str().starts_with('-')
+                    {
+                        p.unary_op.insert(v.loc.start());
+                    }
+                }
+                // Exp_::Move Exp_::Copy Exp_::Unit
                 _ => {}
             }
         }

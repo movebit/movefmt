@@ -332,13 +332,11 @@ pub(crate) fn get_nested_and_comma_num(elements: &[TokenTree]) -> (usize, usize)
 
 // Determines if a space is needed between the current and next token for formatting.
 pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool {
-    if next.is_none() {
-        return false;
-    }
-    if current
-        .get_note()
-        .map(|x| x == Note::UnaryOp)
-        .unwrap_or_default()
+    if next.is_none()
+        || current
+            .get_note()
+            .map(|x| x == Note::UnaryOp)
+            .unwrap_or_default()
     {
         return false;
     }
@@ -397,7 +395,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
             TokType::Alphabet | TokType::String | TokType::Number | TokType::AtSign,
         ) => true,
         (_, TokType::Amp) => Tok::Star != curr_start_tok,
-        (TokType::MathSign, _) => is_bin_current || curr_end_tok != Tok::Minus,
+        (TokType::MathSign, _) => true,
         (TokType::Sign, TokType::Alphabet) => Tok::Exclaim != curr_end_tok,
         (TokType::Sign, TokType::Number) => true,
         (TokType::Sign, TokType::String | TokType::AtSign) => {
