@@ -938,7 +938,7 @@ impl Format {
         elements: &[TokenTree],
         b_new_line_mode: bool,
         b_add_indent: bool,
-        b_add_space_around_brace: bool,
+        b_add_space_at_bound: bool,
     ) {
         // step1 -- format start_token
         self.format_token_trees_internal(&kind.start_token_tree(), None, b_new_line_mode);
@@ -958,7 +958,7 @@ impl Format {
         // step3
         if b_new_line_mode {
             self.add_new_line_after_nested_begin(kind, elements, b_new_line_mode);
-        } else if b_add_space_around_brace {
+        } else if b_add_space_at_bound {
             self.push_str(" ");
         }
     }
@@ -968,9 +968,8 @@ impl Format {
         kind: &NestKind,
         b_new_line_mode: bool,
         b_add_indent: bool,
-        b_add_space_around_brace: bool,
+        b_add_space_at_bound: bool,
         nested_token_head: Tok,
-        _opt_component_break_mode: bool,
     ) {
         // step5 -- add_comments which before kind.end_pos
         self.add_comments(
@@ -1014,7 +1013,7 @@ impl Format {
                 );
                 self.new_line(Some(kind.end_pos));
             }
-        } else if b_add_space_around_brace {
+        } else if b_add_space_at_bound {
             self.push_str(" ");
         }
     }
@@ -1175,36 +1174,43 @@ impl Format {
         self.format_context.borrow_mut().cur_nested_kind = old_kind;
     }
 
-    fn judge_add_space_around_brace(
-        &self,
-        nested_token: &TokenTree,
-        b_new_line_mode: bool,
-    ) -> bool {
+    fn need_space_at_bound(&self, nested_token: &TokenTree, b_new_line_mode: bool) -> bool {
         let TokenTree::Nested { elements, kind, .. } = nested_token else {
             return true;
         };
-        let nested_token_head = self.get_pre_simple_tok();
-        // optimize in 20240425
-        // there are 2 cases which not add space
-        // eg1: When braces are used for arithmetic operations
-        // let intermediate3: u64 = (a * {c + d}) - (b / {e - 2});
-        // shouldn't formated like `let intermediate3: u64 = (a * { c + d }) - (b / { e - 2 });`
-        // eg2: When the braces are used for use
-        // use A::B::{C, D}
-        // shouldn't formated like `use A::B::{ C, D }`
-        let is_arithmetic_op = matches!(
-            nested_token_head,
-            Tok::Plus | Tok::Minus | Tok::Star | Tok::Slash | Tok::Percent
-        );
-        let b_not_arithmetic_op_brace = !is_arithmetic_op && kind.kind == NestKind_::Brace;
-        let b_not_use_brace = Tok::ColonColon != nested_token_head && kind.kind == NestKind_::Brace;
-        let nested_blk_str = &self.format_context.borrow().content
-            [kind.start_pos as usize + 1..kind.end_pos as usize];
-        (elements.is_empty() && contains_comment(nested_blk_str))
-            || (b_not_arithmetic_op_brace
-                && b_not_use_brace
-                && !b_new_line_mode
-                && !elements.is_empty())
+        if b_new_line_mode {
+            return false;
+        }
+        // let mut add_space;
+        if elements.is_empty() {
+            let nested_blk_str = &self.format_context.borrow().content
+                [kind.start_pos as usize + 1..kind.end_pos as usize];
+            contains_comment(nested_blk_str)
+        } else {
+            match kind.kind {
+                NestKind_::Brace => {
+                    // optimize in 20240425
+                    // there are 2 cases which not add space
+                    // eg1: When braces are used for arithmetic operations
+                    // let intermediate3: u64 = (a * {c + d}) - (b / {e - 2});
+                    // shouldn't formated like `let intermediate3: u64 = (a * { c + d }) - (b / { e - 2 });`
+                    // eg2: When the braces are used for use
+                    // use A::B::{C, D}
+                    // shouldn't formated like `use A::B::{ C, D }`
+                    let nested_token_head = self.get_pre_simple_tok();
+                    let is_arithmetic_op = matches!(
+                        nested_token_head,
+                        Tok::Plus | Tok::Minus | Tok::Star | Tok::Slash | Tok::Percent
+                    );
+                    let b_not_use_brace = Tok::ColonColon != nested_token_head;
+                    !is_arithmetic_op && b_not_use_brace && !elements.is_empty()
+                }
+                NestKind_::Lambda => {
+                    matches!(elements[0].get_start_tok(), Tok::Pipe | Tok::PipePipe)
+                }
+                _ => false,
+            }
+        }
     }
 
     fn need_skip_nested_token(&self, kind: &NestKind, note: &Option<Note>) -> bool {
@@ -1270,8 +1276,7 @@ impl Format {
         }
 
         let nested_token_head = self.get_pre_simple_tok();
-        let b_add_space_around_brace =
-            self.judge_add_space_around_brace(nested_token, b_new_line_mode);
+        let b_add_space_at_bound = self.need_space_at_bound(nested_token, b_new_line_mode);
 
         // step1-step3
         self.top_half_after_kind_start(
@@ -1279,7 +1284,7 @@ impl Format {
             elements,
             b_new_line_mode,
             b_add_indent,
-            b_add_space_around_brace,
+            b_add_space_at_bound,
         );
 
         // step4 -- format element
@@ -1295,9 +1300,8 @@ impl Format {
             kind,
             b_new_line_mode,
             b_add_indent,
-            b_add_space_around_brace,
+            b_add_space_at_bound,
             nested_token_head,
-            opt_component_break_mode.unwrap_or(b_new_line_mode),
         );
 
         // step8 -- format end_token

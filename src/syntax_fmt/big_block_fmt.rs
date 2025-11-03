@@ -24,8 +24,11 @@ impl SingleSyntaxExtractor for BigBlockExtractor {
         };
 
         big_block_extractor.line_mapping.update(&fmt_buffer);
-        let (defs, _) =
-            parse_file_string(&mut get_compile_env(), FileHash::empty(), &fmt_buffer).unwrap();
+        let parse_result =
+            parse_file_string(&mut get_compile_env(), FileHash::empty(), &fmt_buffer);
+        let Ok((defs, _)) = parse_result else {
+            return big_block_extractor;
+        };
 
         for d in defs.iter() {
             big_block_extractor.collect_definition(d);
