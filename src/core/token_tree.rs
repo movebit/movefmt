@@ -315,12 +315,10 @@ impl<'a> Parser<'a> {
                 if let Some((start, end)) = self.type_lambda_pair[self.type_lambda_pair_index..]
                     .iter()
                     .next()
+                    && &pos >= start
+                    && &pos <= end
                 {
-                    if &pos >= start && &pos <= end {
-                        return Some(t);
-                    } else {
-                        return None;
-                    }
+                    return Some(t);
                 }
                 None
             }

@@ -320,10 +320,9 @@ pub(crate) fn get_nested_and_comma_num(elements: &[TokenTree]) -> (usize, usize)
             tok,
             note: _,
         } = ele
+            && Tok::Comma == *tok
         {
-            if Tok::Comma == *tok {
-                result.1 += 1;
-            }
+            result.1 += 1;
         }
     }
 

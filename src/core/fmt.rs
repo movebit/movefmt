@@ -272,13 +272,14 @@ impl Format {
     }
 
     fn is_long_nested_token(current: &TokenTree) -> (bool, usize) {
-        let (mut result, mut elements_len) = (false, 0);
         if let TokenTree::Nested { elements, kind, .. } = current {
-            result = matches!(kind.kind, NestKind_::Brace | NestKind_::ParentTheses)
-                && analyze_token_tree_length(elements, MAX_ANALYZE_LENGTH) > MIN_BREAK_LENGTH;
-            elements_len = elements.len();
+            return (
+                matches!(kind.kind, NestKind_::Brace | NestKind_::ParentTheses)
+                    && analyze_token_tree_length(elements, MAX_ANALYZE_LENGTH) > MIN_BREAK_LENGTH,
+                elements.len(),
+            );
         }
-        (result, elements_len)
+        (false, 0)
     }
 
     fn check_next_tok_canbe_break(next: Option<&TokenTree>) -> bool {
@@ -391,12 +392,10 @@ impl Format {
                     kind: tmp_kind,
                     ..
                 } = nested_nested_in_current_tree
+                    && nested_nested_in_current_tree.token_len() as usize > MIN_BREAK_LENGTH
+                    && tmp_kind.kind == NestKind_::Brace
                 {
-                    if nested_nested_in_current_tree.token_len() as usize > MIN_BREAK_LENGTH
-                        && tmp_kind.kind == NestKind_::Brace
-                    {
-                        return false;
-                    }
+                    return false;
                 }
             }
         };
@@ -463,13 +462,12 @@ impl Format {
         let b_judge_next_token = Self::check_next_tok_canbe_break(next);
 
         // special case for `}}`
-        if let TokenTree::Nested { kind, .. } = current {
-            if kind.kind == NestKind_::Brace
-                && kind_outer.kind == NestKind_::Brace
-                && b_judge_next_token
-            {
-                return true;
-            }
+        if let TokenTree::Nested { kind, .. } = current
+            && kind.kind == NestKind_::Brace
+            && kind_outer.kind == NestKind_::Brace
+            && b_judge_next_token
+        {
+            return true;
         }
 
         // added in 20240426: special case for current is long nested type
@@ -1401,38 +1399,38 @@ impl Format {
     }
 
     fn maybe_end_of_if_else(&self, token: &TokenTree, next_token: Option<&TokenTree>) {
-        if let TokenTree::SimpleToken { content, pos, .. } = token {
-            // added in 20240115
-            // updated in 20240124
-            // updated in 20240222: remove condition `if Tok::RBrace != *tok `
-            // updated in 20240517: add condition `NestKind_::Bracket`
-            if self.format_context.borrow().cur_nested_kind.kind != NestKind_::Bracket {
-                let tok_end_pos = *pos + content.len() as u32;
-                let mut nested_branch_depth = self
-                    .syntax_handler
-                    .handler_immut::<BranchHandler>()
-                    .added_new_line_after_branch(tok_end_pos);
+        // added in 20240115
+        // updated in 20240124
+        // updated in 20240222: remove condition `if Tok::RBrace != *tok `
+        // updated in 20240517: add condition `NestKind_::Bracket`
+        if let TokenTree::SimpleToken { content, pos, .. } = token
+            && self.format_context.borrow().cur_nested_kind.kind != NestKind_::Bracket
+        {
+            let tok_end_pos = *pos + content.len() as u32;
+            let mut nested_branch_depth = self
+                .syntax_handler
+                .handler_immut::<BranchHandler>()
+                .added_new_line_after_branch(tok_end_pos);
 
-                let mut need_add_new_line = false;
-                if nested_branch_depth > 0 {
-                    tracing::debug!(
-                        "nested_branch_depth[{:?}] = [{:?}]",
-                        content,
-                        nested_branch_depth
-                    );
-                    need_add_new_line = true;
-                }
-                while nested_branch_depth > 0 {
-                    self.dec_depth();
-                    nested_branch_depth -= 1;
-                }
+            let mut need_add_new_line = false;
+            if nested_branch_depth > 0 {
+                tracing::debug!(
+                    "nested_branch_depth[{:?}] = [{:?}]",
+                    content,
+                    nested_branch_depth
+                );
+                need_add_new_line = true;
+            }
+            while nested_branch_depth > 0 {
+                self.dec_depth();
+                nested_branch_depth -= 1;
+            }
 
-                if need_add_new_line
-                    && next_token.is_some()
-                    && next_token.unwrap().simple_str().unwrap_or_default() != ";"
-                {
-                    self.new_line(None);
-                }
+            if need_add_new_line
+                && next_token.is_some()
+                && next_token.unwrap().simple_str().unwrap_or_default() != ";"
+            {
+                self.new_line(None);
             }
         }
     }
@@ -1822,10 +1820,10 @@ impl Format {
                 // line[i]: /*comment1*/ /*comment2*/
                 // line[i+1]: code // located in `pos`
                 let mut ret_copy = self.ret.clone().into_inner();
-                if let Some(last_char) = ret_copy.chars().last() {
-                    if last_char == ' ' {
-                        ret_copy.pop();
-                    }
+                if let Some(last_char) = ret_copy.chars().last()
+                    && last_char == ' '
+                {
+                    ret_copy.pop();
                 }
                 *self.ret.borrow_mut() = ret_copy.trim_end().to_string();
                 self.new_line(None);
