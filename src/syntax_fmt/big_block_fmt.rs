@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::tools::utils::*;
+use memchr::memchr;
 use move_command_line_common::files::FileHash;
 use move_compiler::parser::ast::*;
 use move_compiler::parser::syntax::parse_file_string;
@@ -92,76 +93,75 @@ impl SingleSyntaxExtractor for BigBlockExtractor {
     }
 }
 
-fn get_nth_line(s: &str, n: usize) -> Option<&str> {
-    s.lines().nth(n)
+#[inline]
+fn nth_line_range(s: &[u8], n: usize, lines: &[usize]) -> Option<(usize, usize)> {
+    let &start = lines.get(n)?;
+    let end = lines.get(n + 1).map(|&p| p - 1).unwrap_or(s.len());
+    Some((start, end))
 }
 
-pub fn add_blank_row_in_two_blocks(fmt_buffer: String) -> String {
-    let buf = fmt_buffer.clone();
-    let mut result = fmt_buffer.clone();
-    let big_block_extractor = BigBlockExtractor::new(fmt_buffer.clone());
-    let mut insert_char_nums = 0;
-    for pre_blk_idx in 0..big_block_extractor.blk_loc_vec.len() {
-        if pre_blk_idx == big_block_extractor.blk_loc_vec.len() - 1 {
-            break;
-        }
-        let next_blk_idx = pre_blk_idx + 1;
-        let blk1_end_line = big_block_extractor
-            .line_mapping
-            .translate(
-                big_block_extractor.blk_loc_vec[pre_blk_idx].end(),
-                big_block_extractor.blk_loc_vec[pre_blk_idx].end(),
-            )
-            .unwrap()
-            .start
-            .line;
+fn add_blank_row_in_two_blocks(s: &mut String) {
+    let extractor = BigBlockExtractor::new(s.clone());
+    if extractor.blk_loc_vec.len() < 2 {
+        return;
+    }
 
-        let blk2_start_line = big_block_extractor
-            .line_mapping
-            .translate(
-                big_block_extractor.blk_loc_vec[next_blk_idx].start(),
-                big_block_extractor.blk_loc_vec[next_blk_idx].start(),
-            )
-            .unwrap()
-            .start
-            .line;
+    let mut nls = vec![0];
+    let mut start = 0;
+    while let Some(p) = memchr(b'\n', &s.as_bytes()[start..]) {
+        start += p + 1;
+        nls.push(start);
+    }
 
-        let is_need_blank_row = {
-            if blk1_end_line + 1 == blk2_start_line {
-                true
-            } else {
-                let the_row_after_blk1_end =
-                    get_nth_line(buf.as_str(), (blk1_end_line + 1) as usize).unwrap_or_default();
-                let trimed_prefix = the_row_after_blk1_end.trim_start().split(' ');
-                if trimed_prefix.count() > 1 || the_row_after_blk1_end.trim_start().len() >= 2 {
-                    // there are code or comment located in line(blk1_end_line + 1)
-                    true
+    let mut inserts = Vec::new();
+    for idx in 0..extractor.blk_loc_vec.len() - 1 {
+        let blk1_end_byte = extractor.blk_loc_vec[idx].end() as usize;
+        let blk2_start_byte = extractor.blk_loc_vec[idx + 1].start() as usize;
+
+        let line1 = match nls.binary_search(&blk1_end_byte) {
+            Ok(l) => l,
+            Err(l) => l.saturating_sub(1),
+        };
+        let line2 = match nls.binary_search(&blk2_start_byte) {
+            Ok(l) => l,
+            Err(l) => l.saturating_sub(1),
+        };
+
+        let need = match line2.checked_sub(line1 + 1) {
+            None | Some(0) => true,
+            Some(_) => {
+                let mid_line = line1 + 1;
+                if let Some((st, en)) = nth_line_range(s.as_bytes(), mid_line, &nls) {
+                    let line_bytes = &s.as_bytes()[st..en];
+                    en - st > 1
+                        && line_bytes
+                            .iter()
+                            .any(|&b| b != b' ' && b != b'\t' && b != b'\n')
                 } else {
                     false
                 }
             }
         };
-        if is_need_blank_row {
-            let mut insert_pos =
-                big_block_extractor.blk_loc_vec[pre_blk_idx].end() as usize + insert_char_nums;
-            while result.chars().nth(insert_pos).unwrap_or_default() != '\n' {
-                insert_pos += 1;
-            }
-            result.insert(insert_pos, '\n');
-            insert_char_nums += 1;
+
+        if need {
+            let ins_pos = nls.get(line1 + 1).copied().unwrap_or(s.len());
+            inserts.push(ins_pos);
         }
     }
-    result
+
+    inserts.reverse();
+    for pos in inserts {
+        s.insert(pos, '\n');
+    }
 }
 
-pub fn fmt_big_block(fmt_buffer: String) -> String {
+pub fn fmt_big_block(fmt_buffer: &mut String) {
     add_blank_row_in_two_blocks(fmt_buffer)
 }
 
 #[test]
 fn test_add_blank_row_in_two_blocks_1() {
-    let result = add_blank_row_in_two_blocks(
-        "
+    let mut input = "
     module std::ascii {
         struct Char {
             byte: u8,
@@ -172,16 +172,15 @@ fn test_add_blank_row_in_two_blocks_1() {
         }
     }    
     "
-        .to_string(),
-    );
+    .to_string();
+    add_blank_row_in_two_blocks(&mut input);
 
-    tracing::debug!("result = {}", result);
+    tracing::debug!("result = {}", input);
 }
 
 #[test]
 fn test_add_blank_row_in_two_blocks_2() {
-    let result = add_blank_row_in_two_blocks(
-        "
+    let mut input = "
 module Test {
     struct SomeOtherStruct1 has drop {
         some_other_field1: u64,
@@ -218,16 +217,15 @@ module Test {
     }
 }
 "
-        .to_string(),
-    );
+    .to_string();
+    add_blank_row_in_two_blocks(&mut input);
 
-    tracing::debug!("result = {}", result);
+    tracing::debug!("result = {}", input);
 }
 
 #[test]
 fn test_add_blank_row_in_two_blocks_3() {
-    let result = add_blank_row_in_two_blocks(
-        "
+    let mut input = "
 module test_module1 {
 
     struct TestStruct1 {
@@ -253,16 +251,15 @@ module test_module4 {
     }
 }
 "
-        .to_string(),
-    );
+    .to_string();
+    add_blank_row_in_two_blocks(&mut input);
 
-    tracing::debug!("result = {}", result);
+    tracing::debug!("result = {}", input);
 }
 
 #[test]
 fn test_add_blank_row_in_two_blocks_4() {
-    let result = add_blank_row_in_two_blocks(
-        "
+    let mut input = "
 spec std::string {
     spec internal_check_utf8(v: &vector<u8>): bool {
         pragma opaque;
@@ -277,16 +274,15 @@ spec std::string {
 }
     
 "
-        .to_string(),
-    );
+    .to_string();
+    add_blank_row_in_two_blocks(&mut input);
 
-    tracing::debug!("result = {}", result);
+    tracing::debug!("result = {}", input);
 }
 
 #[test]
 fn test_add_blank_row_in_two_blocks_5() {
-    let result = add_blank_row_in_two_blocks(
-        "
+    let mut input = "
 address 0x1 {
     module M {
         #[test]
@@ -298,8 +294,8 @@ address 0x1 {
     }
 }
     "
-        .to_string(),
-    );
+    .to_string();
+    add_blank_row_in_two_blocks(&mut input);
 
-    tracing::debug!("result = {}", result);
+    tracing::debug!("result = {}", input);
 }

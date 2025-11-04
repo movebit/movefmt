@@ -860,9 +860,9 @@ dependencies = [
 
 [[package]]
 name = "memchr"
-version = "2.7.2"
+version = "2.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6c8640c5d730cb13ebd907d8d04b52f55ac9a2eec55b440c8892f40d56c76c1d"
+checksum = "f52b00d39961fc5b2736ea853c9cc86238e165017a493d1d5c8eac6bdc4cc273"
 
 [[package]]
 name = "memmap2"
@@ -1018,6 +1018,7 @@ dependencies = [
  "legacy-move-compiler",
  "log",
  "lsp-types",
+ "memchr",
  "move-command-line-common",
  "move-ir-types",
  "once_cell",
