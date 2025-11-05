@@ -37,6 +37,7 @@ pub struct FormatContext {
     pub content: String,
     pub pre_simple_token: TokenTree,
     pub cur_nested_kind: NestKind,
+    pub cur_fun_key_word_pos: usize,
 }
 
 impl FormatContext {
@@ -49,6 +50,7 @@ impl FormatContext {
                 start_pos: 0,
                 end_pos: 0,
             },
+            cur_fun_key_word_pos: 0,
         }
     }
 }
@@ -599,25 +601,15 @@ impl Format {
     fn process_fn_header(&self) {
         let mut ret = self.ret.borrow_mut();
         let cur = ret.as_str();
-        // TODO: maybe got comment named 'fun' by rfind(&Tok::Fun.to_string())
-        let Some(last_fun_idx) = cur.rfind(&Tok::Fun.to_string()) else {
+        let last_fun_idx = self.format_context.borrow().cur_fun_key_word_pos;
+        if last_fun_idx >= cur.len() {
             return;
-        };
-
-        let fun_header = &cur[last_fun_idx..];
-        let Some(specifier_idx) = fun_header.find(&Tok::Fun.to_string()) else {
-            return;
-        };
-
+        }
         let indent = " ".repeat((self.depth.get() + 1) * self.local_cfg.indent_size);
         let fun_specifier_fmted_str =
-            fun_fmt::fun_header_specifier_fmt(&fun_header[specifier_idx + 1..], &indent);
+            fun_fmt::fun_header_specifier_fmt(&cur[last_fun_idx..], &indent);
 
-        *ret = format!(
-            "{}{}",
-            &cur[..=last_fun_idx + specifier_idx],
-            fun_specifier_fmted_str
-        );
+        *ret = format!("{}{}", &cur[..last_fun_idx], fun_specifier_fmted_str);
     }
 
     fn get_break_mode_of_fun_call(
@@ -1592,7 +1584,10 @@ impl Format {
         next_token: Option<&TokenTree>,
         new_line_after: bool,
     ) {
-        if let TokenTree::SimpleToken { content, pos, .. } = token {
+        if let TokenTree::SimpleToken {
+            content, pos, tok, ..
+        } = token
+        {
             // step1
             self.maybe_begin_of_if_else(token, next_token);
 
@@ -1610,6 +1605,9 @@ impl Format {
 
             // step6
             self.format_context.borrow_mut().pre_simple_token = token.clone();
+            if tok == &Tok::Fun {
+                self.format_context.borrow_mut().cur_fun_key_word_pos = self.ret.borrow().len();
+            }
         }
     }
 
