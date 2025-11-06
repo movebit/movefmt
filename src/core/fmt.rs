@@ -712,12 +712,8 @@ impl Format {
             new_line_mode = true;
         } else {
             if elements[0].simple_str().is_some() {
-                let is_plus_nested_over_width = cur_line_len + nested_token_len
-                    > self.global_cfg.max_width()
+                new_line_mode |= cur_line_len + nested_token_len > self.global_cfg.max_width()
                     && nested_token_len > 8;
-                let is_nested_len_too_large =
-                    nested_token_len as f32 > 2.0 * self.local_cfg.max_len_no_add_line;
-                new_line_mode |= is_plus_nested_over_width || is_nested_len_too_large;
             } else {
                 let first_ele_len =
                     analyze_token_tree_length(&[elements[0].clone()], self.global_cfg.max_width());
