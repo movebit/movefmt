@@ -1081,7 +1081,10 @@ impl Format {
         let b_process_link =
             members.len() > 3 && new_idx > *idx && dist as usize > MIN_BREAK_LENGTH;
         if !b_process_link {
-            // TODO: This can be optimized to avoid recalculating the dot chain on the next entry.
+            while *idx < new_idx {
+                self.format_single_token(nested_token, *idx, false);
+                *idx += 1;
+            }
             return false;
         }
         debug!("before process_link, last_line = {}", self.last_line());
