@@ -825,19 +825,19 @@ impl Format {
         // 20240425 updated
         // The value of new_line_mode here is not associated with Paren, only with Brace.
         // Because Paren may come from fn_para or call or expression statements...
-        let is_stct_def = note.map_or(false, |x| x == Note::StructDefinition);
-        let mut new_line_mode = {
-            delimiter.map_or(false, |d| d == Delimiter::Semicolon)
-                || is_stct_def
-                || note.map_or(false, |x| x == Note::FunBody)
-        };
-        if new_line_mode && kind.kind != NestKind_::Type {
-            if is_stct_def {
-                return (true, Some(true));
-            }
-            return (true, None);
+        let is_stct_def = *note == Some(Note::StructDefinition);
+        let is_fun_body = *note == Some(Note::FunBody);
+        if (delimiter == Some(Delimiter::Semicolon) || is_stct_def || is_fun_body)
+            && kind.kind != NestKind_::Type
+        {
+            return if is_stct_def {
+                (true, Some(true))
+            } else {
+                (true, None)
+            };
         }
 
+        let mut new_line_mode = false;
         match kind.kind {
             NestKind_::Type => {
                 // added in 20240112: if type in fun header, not change new line

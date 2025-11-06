@@ -384,11 +384,10 @@ impl LetHandler {
                     .collect::<Vec<&str>>()
                     .join("");
                 let mut is_long_rhs = rhs_exp_str.len() + cur_ret_last_len >= config.max_width();
-                // TODO: need optimize !!!
                 // updated in 20241209: fix https://github.com/movebit/movefmt/issues/42
                 if !is_long_rhs
                     && token.get_end_tok() == Tok::Equal
-                    && rhs_exp_str.starts_with("if")
+                    && rhs_exp_str.starts_with(&Tok::If.to_string())
                     && rhs_exp_str.len() > config.max_width() / 2
                 {
                     is_long_rhs = true;
