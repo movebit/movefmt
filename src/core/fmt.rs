@@ -37,6 +37,7 @@ pub struct FormatContext {
     pub content: String,
     pub pre_simple_token: TokenTree,
     pub cur_nested_kind: NestKind,
+    pub cur_fun_key_word_pos: usize,
 }
 
 impl FormatContext {
@@ -49,6 +50,7 @@ impl FormatContext {
                 start_pos: 0,
                 end_pos: 0,
             },
+            cur_fun_key_word_pos: 0,
         }
     }
 }
@@ -140,8 +142,8 @@ fn token_to_ability(token: Tok, content: &str) -> Option<Ability_> {
 
 // TODO: need optimize
 fn tune_module_buf(module_body: String, config: &Config) -> String {
-    // TODO: need optimize big_block_fmt
-    let mut ret_module_body = big_block_fmt::fmt_big_block(module_body.clone());
+    let mut ret_module_body = module_body.clone();
+    big_block_fmt::fmt_big_block(&mut ret_module_body);
     if module_body.contains(&Tok::Spec.to_string()) {
         ret_module_body = spec_fmt::fmt_spec(ret_module_body.clone(), config.clone());
     }
@@ -272,13 +274,14 @@ impl Format {
     }
 
     fn is_long_nested_token(current: &TokenTree) -> (bool, usize) {
-        let (mut result, mut elements_len) = (false, 0);
         if let TokenTree::Nested { elements, kind, .. } = current {
-            result = matches!(kind.kind, NestKind_::Brace | NestKind_::ParentTheses)
-                && analyze_token_tree_length(elements, MAX_ANALYZE_LENGTH) > MIN_BREAK_LENGTH;
-            elements_len = elements.len();
+            return (
+                matches!(kind.kind, NestKind_::Brace | NestKind_::ParentTheses)
+                    && analyze_token_tree_length(elements, MAX_ANALYZE_LENGTH) > MIN_BREAK_LENGTH,
+                elements.len(),
+            );
         }
-        (result, elements_len)
+        (false, 0)
     }
 
     fn check_next_tok_canbe_break(next: Option<&TokenTree>) -> bool {
@@ -391,12 +394,10 @@ impl Format {
                     kind: tmp_kind,
                     ..
                 } = nested_nested_in_current_tree
+                    && nested_nested_in_current_tree.token_len() as usize > MIN_BREAK_LENGTH
+                    && tmp_kind.kind == NestKind_::Brace
                 {
-                    if nested_nested_in_current_tree.token_len() as usize > MIN_BREAK_LENGTH
-                        && tmp_kind.kind == NestKind_::Brace
-                    {
-                        return false;
-                    }
+                    return false;
                 }
             }
         };
@@ -463,13 +464,12 @@ impl Format {
         let b_judge_next_token = Self::check_next_tok_canbe_break(next);
 
         // special case for `}}`
-        if let TokenTree::Nested { kind, .. } = current {
-            if kind.kind == NestKind_::Brace
-                && kind_outer.kind == NestKind_::Brace
-                && b_judge_next_token
-            {
-                return true;
-            }
+        if let TokenTree::Nested { kind, .. } = current
+            && kind.kind == NestKind_::Brace
+            && kind_outer.kind == NestKind_::Brace
+            && b_judge_next_token
+        {
+            return true;
         }
 
         // added in 20240426: special case for current is long nested type
@@ -601,25 +601,15 @@ impl Format {
     fn process_fn_header(&self) {
         let mut ret = self.ret.borrow_mut();
         let cur = ret.as_str();
-        // TODO: maybe got comment named 'fun' by rfind(&Tok::Fun.to_string())
-        let Some(last_fun_idx) = cur.rfind(&Tok::Fun.to_string()) else {
+        let last_fun_idx = self.format_context.borrow().cur_fun_key_word_pos;
+        if last_fun_idx >= cur.len() {
             return;
-        };
-
-        let fun_header = &cur[last_fun_idx..];
-        let Some(specifier_idx) = fun_header.find(&Tok::Fun.to_string()) else {
-            return;
-        };
-
+        }
         let indent = " ".repeat((self.depth.get() + 1) * self.local_cfg.indent_size);
         let fun_specifier_fmted_str =
-            fun_fmt::fun_header_specifier_fmt(&fun_header[specifier_idx + 1..], &indent);
+            fun_fmt::fun_header_specifier_fmt(&cur[last_fun_idx..], &indent);
 
-        *ret = format!(
-            "{}{}",
-            &cur[..=last_fun_idx + specifier_idx],
-            fun_specifier_fmted_str
-        );
+        *ret = format!("{}{}", &cur[..last_fun_idx], fun_specifier_fmted_str);
     }
 
     fn get_break_mode_of_fun_call(
@@ -722,12 +712,8 @@ impl Format {
             new_line_mode = true;
         } else {
             if elements[0].simple_str().is_some() {
-                let is_plus_nested_over_width = cur_line_len + nested_token_len
-                    > self.global_cfg.max_width()
+                new_line_mode |= cur_line_len + nested_token_len > self.global_cfg.max_width()
                     && nested_token_len > 8;
-                let is_nested_len_too_large =
-                    nested_token_len as f32 > 2.0 * self.local_cfg.max_len_no_add_line;
-                new_line_mode |= is_plus_nested_over_width || is_nested_len_too_large;
             } else {
                 let first_ele_len =
                     analyze_token_tree_length(&[elements[0].clone()], self.global_cfg.max_width());
@@ -835,19 +821,19 @@ impl Format {
         // 20240425 updated
         // The value of new_line_mode here is not associated with Paren, only with Brace.
         // Because Paren may come from fn_para or call or expression statements...
-        let is_stct_def = note.map_or(false, |x| x == Note::StructDefinition);
-        let mut new_line_mode = {
-            delimiter.map_or(false, |d| d == Delimiter::Semicolon)
-                || is_stct_def
-                || note.map_or(false, |x| x == Note::FunBody)
-        };
-        if new_line_mode && kind.kind != NestKind_::Type {
-            if is_stct_def {
-                return (true, Some(true));
-            }
-            return (true, None);
+        let is_stct_def = *note == Some(Note::StructDefinition);
+        let is_fun_body = *note == Some(Note::FunBody);
+        if (delimiter == Some(Delimiter::Semicolon) || is_stct_def || is_fun_body)
+            && kind.kind != NestKind_::Type
+        {
+            return if is_stct_def {
+                (true, Some(true))
+            } else {
+                (true, None)
+            };
         }
 
+        let mut new_line_mode = false;
         match kind.kind {
             NestKind_::Type => {
                 // added in 20240112: if type in fun header, not change new line
@@ -938,7 +924,7 @@ impl Format {
         elements: &[TokenTree],
         b_new_line_mode: bool,
         b_add_indent: bool,
-        b_add_space_around_brace: bool,
+        b_add_space_at_bound: bool,
     ) {
         // step1 -- format start_token
         self.format_token_trees_internal(&kind.start_token_tree(), None, b_new_line_mode);
@@ -958,7 +944,7 @@ impl Format {
         // step3
         if b_new_line_mode {
             self.add_new_line_after_nested_begin(kind, elements, b_new_line_mode);
-        } else if b_add_space_around_brace {
+        } else if b_add_space_at_bound {
             self.push_str(" ");
         }
     }
@@ -968,9 +954,8 @@ impl Format {
         kind: &NestKind,
         b_new_line_mode: bool,
         b_add_indent: bool,
-        b_add_space_around_brace: bool,
+        b_add_space_at_bound: bool,
         nested_token_head: Tok,
-        _opt_component_break_mode: bool,
     ) {
         // step5 -- add_comments which before kind.end_pos
         self.add_comments(
@@ -1014,7 +999,7 @@ impl Format {
                 );
                 self.new_line(Some(kind.end_pos));
             }
-        } else if b_add_space_around_brace {
+        } else if b_add_space_at_bound {
             self.push_str(" ");
         }
     }
@@ -1092,7 +1077,10 @@ impl Format {
         let b_process_link =
             members.len() > 3 && new_idx > *idx && dist as usize > MIN_BREAK_LENGTH;
         if !b_process_link {
-            // TODO: This can be optimized to avoid recalculating the dot chain on the next entry.
+            while *idx < new_idx {
+                self.format_single_token(nested_token, *idx, false);
+                *idx += 1;
+            }
             return false;
         }
         debug!("before process_link, last_line = {}", self.last_line());
@@ -1175,36 +1163,43 @@ impl Format {
         self.format_context.borrow_mut().cur_nested_kind = old_kind;
     }
 
-    fn judge_add_space_around_brace(
-        &self,
-        nested_token: &TokenTree,
-        b_new_line_mode: bool,
-    ) -> bool {
+    fn need_space_at_bound(&self, nested_token: &TokenTree, b_new_line_mode: bool) -> bool {
         let TokenTree::Nested { elements, kind, .. } = nested_token else {
             return true;
         };
-        let nested_token_head = self.get_pre_simple_tok();
-        // optimize in 20240425
-        // there are 2 cases which not add space
-        // eg1: When braces are used for arithmetic operations
-        // let intermediate3: u64 = (a * {c + d}) - (b / {e - 2});
-        // shouldn't formated like `let intermediate3: u64 = (a * { c + d }) - (b / { e - 2 });`
-        // eg2: When the braces are used for use
-        // use A::B::{C, D}
-        // shouldn't formated like `use A::B::{ C, D }`
-        let is_arithmetic_op = matches!(
-            nested_token_head,
-            Tok::Plus | Tok::Minus | Tok::Star | Tok::Slash | Tok::Percent
-        );
-        let b_not_arithmetic_op_brace = !is_arithmetic_op && kind.kind == NestKind_::Brace;
-        let b_not_use_brace = Tok::ColonColon != nested_token_head && kind.kind == NestKind_::Brace;
-        let nested_blk_str = &self.format_context.borrow().content
-            [kind.start_pos as usize + 1..kind.end_pos as usize];
-        (elements.is_empty() && contains_comment(nested_blk_str))
-            || (b_not_arithmetic_op_brace
-                && b_not_use_brace
-                && !b_new_line_mode
-                && !elements.is_empty())
+        if b_new_line_mode {
+            return false;
+        }
+        // let mut add_space;
+        if elements.is_empty() {
+            let nested_blk_str = &self.format_context.borrow().content
+                [kind.start_pos as usize + 1..kind.end_pos as usize];
+            contains_comment(nested_blk_str)
+        } else {
+            match kind.kind {
+                NestKind_::Brace => {
+                    // optimize in 20240425
+                    // there are 2 cases which not add space
+                    // eg1: When braces are used for arithmetic operations
+                    // let intermediate3: u64 = (a * {c + d}) - (b / {e - 2});
+                    // shouldn't formated like `let intermediate3: u64 = (a * { c + d }) - (b / { e - 2 });`
+                    // eg2: When the braces are used for use
+                    // use A::B::{C, D}
+                    // shouldn't formated like `use A::B::{ C, D }`
+                    let nested_token_head = self.get_pre_simple_tok();
+                    let is_arithmetic_op = matches!(
+                        nested_token_head,
+                        Tok::Plus | Tok::Minus | Tok::Star | Tok::Slash | Tok::Percent
+                    );
+                    let b_not_use_brace = Tok::ColonColon != nested_token_head;
+                    !is_arithmetic_op && b_not_use_brace && !elements.is_empty()
+                }
+                NestKind_::Lambda => {
+                    matches!(elements[0].get_start_tok(), Tok::Pipe | Tok::PipePipe)
+                }
+                _ => false,
+            }
+        }
     }
 
     fn need_skip_nested_token(&self, kind: &NestKind, note: &Option<Note>) -> bool {
@@ -1270,8 +1265,7 @@ impl Format {
         }
 
         let nested_token_head = self.get_pre_simple_tok();
-        let b_add_space_around_brace =
-            self.judge_add_space_around_brace(nested_token, b_new_line_mode);
+        let b_add_space_at_bound = self.need_space_at_bound(nested_token, b_new_line_mode);
 
         // step1-step3
         self.top_half_after_kind_start(
@@ -1279,7 +1273,7 @@ impl Format {
             elements,
             b_new_line_mode,
             b_add_indent,
-            b_add_space_around_brace,
+            b_add_space_at_bound,
         );
 
         // step4 -- format element
@@ -1295,9 +1289,8 @@ impl Format {
             kind,
             b_new_line_mode,
             b_add_indent,
-            b_add_space_around_brace,
+            b_add_space_at_bound,
             nested_token_head,
-            opt_component_break_mode.unwrap_or(b_new_line_mode),
         );
 
         // step8 -- format end_token
@@ -1397,38 +1390,38 @@ impl Format {
     }
 
     fn maybe_end_of_if_else(&self, token: &TokenTree, next_token: Option<&TokenTree>) {
-        if let TokenTree::SimpleToken { content, pos, .. } = token {
-            // added in 20240115
-            // updated in 20240124
-            // updated in 20240222: remove condition `if Tok::RBrace != *tok `
-            // updated in 20240517: add condition `NestKind_::Bracket`
-            if self.format_context.borrow().cur_nested_kind.kind != NestKind_::Bracket {
-                let tok_end_pos = *pos + content.len() as u32;
-                let mut nested_branch_depth = self
-                    .syntax_handler
-                    .handler_immut::<BranchHandler>()
-                    .added_new_line_after_branch(tok_end_pos);
+        // added in 20240115
+        // updated in 20240124
+        // updated in 20240222: remove condition `if Tok::RBrace != *tok `
+        // updated in 20240517: add condition `NestKind_::Bracket`
+        if let TokenTree::SimpleToken { content, pos, .. } = token
+            && self.format_context.borrow().cur_nested_kind.kind != NestKind_::Bracket
+        {
+            let tok_end_pos = *pos + content.len() as u32;
+            let mut nested_branch_depth = self
+                .syntax_handler
+                .handler_immut::<BranchHandler>()
+                .added_new_line_after_branch(tok_end_pos);
 
-                let mut need_add_new_line = false;
-                if nested_branch_depth > 0 {
-                    tracing::debug!(
-                        "nested_branch_depth[{:?}] = [{:?}]",
-                        content,
-                        nested_branch_depth
-                    );
-                    need_add_new_line = true;
-                }
-                while nested_branch_depth > 0 {
-                    self.dec_depth();
-                    nested_branch_depth -= 1;
-                }
+            let mut need_add_new_line = false;
+            if nested_branch_depth > 0 {
+                tracing::debug!(
+                    "nested_branch_depth[{:?}] = [{:?}]",
+                    content,
+                    nested_branch_depth
+                );
+                need_add_new_line = true;
+            }
+            while nested_branch_depth > 0 {
+                self.dec_depth();
+                nested_branch_depth -= 1;
+            }
 
-                if need_add_new_line
-                    && next_token.is_some()
-                    && next_token.unwrap().simple_str().unwrap_or_default() != ";"
-                {
-                    self.new_line(None);
-                }
+            if need_add_new_line
+                && next_token.is_some()
+                && next_token.unwrap().simple_str().unwrap_or_default() != ";"
+            {
+                self.new_line(None);
             }
         }
     }
@@ -1590,7 +1583,10 @@ impl Format {
         next_token: Option<&TokenTree>,
         new_line_after: bool,
     ) {
-        if let TokenTree::SimpleToken { content, pos, .. } = token {
+        if let TokenTree::SimpleToken {
+            content, pos, tok, ..
+        } = token
+        {
             // step1
             self.maybe_begin_of_if_else(token, next_token);
 
@@ -1608,6 +1604,9 @@ impl Format {
 
             // step6
             self.format_context.borrow_mut().pre_simple_token = token.clone();
+            if tok == &Tok::Fun {
+                self.format_context.borrow_mut().cur_fun_key_word_pos = self.ret.borrow().len();
+            }
         }
     }
 
@@ -1818,10 +1817,10 @@ impl Format {
                 // line[i]: /*comment1*/ /*comment2*/
                 // line[i+1]: code // located in `pos`
                 let mut ret_copy = self.ret.clone().into_inner();
-                if let Some(last_char) = ret_copy.chars().last() {
-                    if last_char == ' ' {
-                        ret_copy.pop();
-                    }
+                if let Some(last_char) = ret_copy.chars().last()
+                    && last_char == ' '
+                {
+                    ret_copy.pop();
                 }
                 *self.ret.borrow_mut() = ret_copy.trim_end().to_string();
                 self.new_line(None);

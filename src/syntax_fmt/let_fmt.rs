@@ -358,10 +358,10 @@ impl Preprocessor for LetHandler {
 impl LetHandler {
     pub(crate) fn is_long_bin_op(&self, token: TokenTree) -> bool {
         for bin_op_exp in self.long_bin_op_exp_vec.iter() {
-            if let Exp_::BinopExp(_, m, _) = &bin_op_exp.value {
-                if token.end_pos() == m.loc.end() {
-                    return true;
-                }
+            if let Exp_::BinopExp(_, m, _) = &bin_op_exp.value
+                && token.end_pos() == m.loc.end()
+            {
+                return true;
             }
         }
         false
@@ -384,11 +384,10 @@ impl LetHandler {
                     .collect::<Vec<&str>>()
                     .join("");
                 let mut is_long_rhs = rhs_exp_str.len() + cur_ret_last_len >= config.max_width();
-                // TODO: need optimize !!!
                 // updated in 20241209: fix https://github.com/movebit/movefmt/issues/42
                 if !is_long_rhs
                     && token.get_end_tok() == Tok::Equal
-                    && rhs_exp_str.starts_with("if")
+                    && rhs_exp_str.starts_with(&Tok::If.to_string())
                     && rhs_exp_str.len() > config.max_width() / 2
                 {
                     is_long_rhs = true;
@@ -431,11 +430,12 @@ impl LetHandler {
 
     pub(crate) fn need_split_long_bin_op_exp(&self, token: TokenTree) -> bool {
         for (idx, bin_op_exp) in self.long_bin_op_exp_vec.iter().enumerate() {
-            if let Exp_::BinopExp(_, m, _) = &bin_op_exp.value {
-                if token.end_pos() == m.loc.end() && !self.split_bin_op_vec.borrow_mut()[idx] {
-                    self.split_bin_op_vec.borrow_mut()[idx] = true;
-                    return true;
-                }
+            if let Exp_::BinopExp(_, m, _) = &bin_op_exp.value
+                && token.end_pos() == m.loc.end()
+                && !self.split_bin_op_vec.borrow_mut()[idx]
+            {
+                self.split_bin_op_vec.borrow_mut()[idx] = true;
+                return true;
             }
         }
         false
@@ -444,10 +444,11 @@ impl LetHandler {
     pub(crate) fn is_long_bin_op_exp_end(&self, token: TokenTree) -> usize {
         let mut inc_depth_cnt = 0;
         for (idx, bin_op_exp) in self.long_bin_op_exp_vec.iter().enumerate() {
-            if let Exp_::BinopExp(_, _, r) = &bin_op_exp.value {
-                if token.end_pos() == r.loc.end() && self.split_bin_op_vec.borrow()[idx] {
-                    inc_depth_cnt += 1;
-                }
+            if let Exp_::BinopExp(_, _, r) = &bin_op_exp.value
+                && token.end_pos() == r.loc.end()
+                && self.split_bin_op_vec.borrow()[idx]
+            {
+                inc_depth_cnt += 1;
             }
         }
         inc_depth_cnt

@@ -671,7 +671,8 @@ impl FunctionalFormat {
 
 /// Helper function - extracted from the original code
 fn tune_module_buf(module_body: String, config: &Config) -> String {
-    let mut ret_module_body = big_block_fmt::fmt_big_block(module_body.clone());
+    let mut ret_module_body = module_body.clone();
+    big_block_fmt::fmt_big_block(&mut ret_module_body);
     if module_body.contains(&Tok::Spec.to_string()) {
         ret_module_body = spec_fmt::fmt_spec(ret_module_body.clone(), config.clone());
     }
