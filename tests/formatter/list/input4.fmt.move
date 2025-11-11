@@ -8,24 +8,15 @@ module econia::incentives {
         let integrator_fee_store_tiers = vector[
             // Tier 0 parameters
             vector[ //comment
-                FEE_SHARE_DIVISOR_0,
-                TIER_ACTIVATION_FEE_0,
-                WITHDRAWAL_FEE_0
-            ],
+            FEE_SHARE_DIVISOR_0, TIER_ACTIVATION_FEE_0, WITHDRAWAL_FEE_0],
             // Tier 1 parameters
-            vector[
-                FEE_SHARE_DIVISOR_1,
-                //comment
-                TIER_ACTIVATION_FEE_1,
-                WITHDRAWAL_FEE_1
-            ],
+            vector[FEE_SHARE_DIVISOR_1,
+            //comment
+            TIER_ACTIVATION_FEE_1, WITHDRAWAL_FEE_1],
             // Tier 2 parameters
-            vector[
-                FEE_SHARE_DIVISOR_2,
-                //comment
-                TIER_ACTIVATION_FEE_2,
-                WITHDRAWAL_FEE_2
-            ],
+            vector[FEE_SHARE_DIVISOR_2,
+            //comment
+            TIER_ACTIVATION_FEE_2, WITHDRAWAL_FEE_2],
             // Tier 3 parameters
             vector[
                 /*comment*/ FEE_SHARE_DIVISOR_3,

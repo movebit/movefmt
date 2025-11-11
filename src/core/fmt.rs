@@ -693,7 +693,7 @@ impl Format {
             new_line_mode |= maybe_in_fun_header.1 > self.global_cfg.max_width();
             // Reserve 25% space for return ty and specifier
             new_line_mode |=
-                (cur_line_len + nested_token_len) as f32 > self.local_cfg.max_len_no_add_line;
+                (cur_line_len + nested_token_len) as f32 > 64.0;
 
             let nested_and_comma_pair = expr_fmt::get_nested_and_comma_num(elements);
             if self
@@ -711,6 +711,7 @@ impl Format {
         } else if self.last_line().len() > self.global_cfg.max_width() {
             new_line_mode = true;
         } else {
+            new_line_mode |= nested_token_len > self.global_cfg.max_width();
             if elements[0].simple_str().is_some() {
                 new_line_mode |= cur_line_len + nested_token_len > self.global_cfg.max_width()
                     && nested_token_len > 8;
@@ -723,12 +724,7 @@ impl Format {
                 new_line_mode |= is_plus_first_ele_over_width;
             }
 
-            let has_multi_para = elements
-                .iter()
-                .filter(|tok| tok.get_start_tok() == Tok::Comma)
-                .count()
-                > 2;
-
+            let (nested_dep, comma_cnt) = expr_fmt::get_nested_and_comma_num(elements);
             let is_in_fun_call = self
                 .syntax_handler
                 .handler_immut::<CallHandler>()
@@ -740,9 +736,17 @@ impl Format {
                     &mut opt_component_break_mode,
                 );
             } else {
-                new_line_mode |= has_multi_para && self.get_pre_simple_tok() == Tok::Identifier;
+                
+                new_line_mode |= comma_cnt > 2 && self.get_pre_simple_tok() == Tok::Identifier;
+                if comma_cnt == 2 {
+                    new_line_mode |= nested_token_len as f32 > self.local_cfg.max_len_no_add_line;
+                }
+                if comma_cnt > 2 {
+                    new_line_mode |= nested_token_len > 32;
+                }
+                new_line_mode |= nested_dep > 2 && nested_token_len > 64;
             }
-            new_line_mode |= opt_component_break_mode && has_multi_para;
+            new_line_mode |= opt_component_break_mode && comma_cnt > 2;
         }
 
         let nested_blk_str =
@@ -891,14 +895,13 @@ impl Format {
                 if nested_len > 4 {
                     // case1: over max width
                     new_line_mode |= self.last_line().len() + nested_len > max_line_width;
-                    new_line_mode |= self.last_line().len() + nested_len > max_line_width;
 
                     // case2: has special keyword
                     new_line_mode |= has_special_key(self.last_line());
                 }
 
                 // case3: nested_len too long
-                new_line_mode |= nested_len as f32 > max_len_no_add_line;
+                new_line_mode |= nested_len as f32 > 46.0;
 
                 // case4: contains comment
                 new_line_mode |=
@@ -1955,26 +1958,12 @@ impl Format {
 
 impl Format {
     fn get_kind_len_after_trim_space(&self, kind: NestKind, join_by_space: bool) -> usize {
-        // let nested_blk_str = &self.format_context.borrow().content
-        //     [kind.start_pos as usize..kind.end_pos as usize]
-        //     .replace('\n', "");
-        // let tok_vec = nested_blk_str.split_whitespace().collect::<Vec<&str>>();
-        // if join_by_space {
-        //     tok_vec.join(" ").len()
-        // } else {
-        //     tok_vec.join("").len()
-        // }
-
         let nested_blk_str = &self.format_context.borrow().content
             [kind.start_pos as usize..kind.end_pos as usize]
             .replace('\n', "");
         let new_nested_blk_str = nested_blk_str[1..].to_string();
         let tok_vec = new_nested_blk_str.split_whitespace().collect::<Vec<&str>>();
-        if join_by_space {
-            tok_vec.join(" ").len() + 2
-        } else {
-            tok_vec.join("").len() + 2
-        }
+        tok_vec.join("").len()
     }
 
     fn last_line(&self) -> String {

@@ -507,7 +507,9 @@ module aptos_framework::coin {
         symbol: string::String,
         decimals: u8,
         monitor_supply: bool
-    ): (BurnCapability<CoinType>, FreezeCapability<CoinType>, MintCapability<CoinType>) {
+    ): (
+        BurnCapability<CoinType>, FreezeCapability<CoinType>, MintCapability<CoinType>
+    ) {
         initialize_internal(
             account,
             name,
@@ -525,7 +527,9 @@ module aptos_framework::coin {
         symbol: string::String,
         decimals: u8,
         monitor_supply: bool
-    ): (BurnCapability<CoinType>, FreezeCapability<CoinType>, MintCapability<CoinType>) {
+    ): (
+        BurnCapability<CoinType>, FreezeCapability<CoinType>, MintCapability<CoinType>
+    ) {
         system_addresses::assert_aptos_framework(account);
         initialize_internal(
             account,
@@ -544,7 +548,9 @@ module aptos_framework::coin {
         decimals: u8,
         monitor_supply: bool,
         parallelizable: bool
-    ): (BurnCapability<CoinType>, FreezeCapability<CoinType>, MintCapability<CoinType>) {
+    ): (
+        BurnCapability<CoinType>, FreezeCapability<CoinType>, MintCapability<CoinType>
+    ) {
         let account_addr = signer::address_of(account);
 
         assert!(
@@ -625,9 +631,7 @@ module aptos_framework::coin {
                         aggregator::spec_aggregator_get_val(
                             option::borrow(supply.aggregator)
                         ) + amount
-                            <= aggregator::spec_get_limit(
-                                option::borrow(supply.aggregator)
-                            )
+                            <= aggregator::spec_get_limit(option::borrow(supply.aggregator))
                     );
                 assume !optional_aggregator::is_parallelizable(supply) ==>
                     (
@@ -740,7 +744,9 @@ module aptos_framework::coin {
         account: &signer,
         decimals: u8,
         monitor_supply: bool
-    ): (BurnCapability<FakeMoney>, FreezeCapability<FakeMoney>, MintCapability<FakeMoney>) {
+    ): (
+        BurnCapability<FakeMoney>, FreezeCapability<FakeMoney>, MintCapability<FakeMoney>
+    ) {
         aggregator_factory::initialize_aggregator_factory_for_test(account);
         initialize<FakeMoney>(
             account,
@@ -756,7 +762,9 @@ module aptos_framework::coin {
         account: &signer,
         decimals: u8,
         monitor_supply: bool
-    ): (BurnCapability<FakeMoney>, FreezeCapability<FakeMoney>, MintCapability<FakeMoney>) {
+    ): (
+        BurnCapability<FakeMoney>, FreezeCapability<FakeMoney>, MintCapability<FakeMoney>
+    ) {
         let (burn_cap, freeze_cap, mint_cap) =
             initialize_fake_money(account, decimals, monitor_supply);
         register<FakeMoney>(account);

@@ -1226,9 +1226,7 @@ module DiemFramework::DiemAccount {
                 key_rotation_capability: option::some(
                     KeyRotationCapability { account_address: new_account_addr }
                 ),
-                received_events: event::new_event_handle<ReceivedPaymentEvent>(
-                    new_account
-                ),
+                received_events: event::new_event_handle<ReceivedPaymentEvent>(new_account),
                 sent_events: event::new_event_handle<SentPaymentEvent>(new_account),
                 sequence_number: 0
             }
@@ -1260,7 +1258,9 @@ module DiemFramework::DiemAccount {
             );
         ensures spec_holds_own_key_rotation_cap(new_account_addr);
         ensures spec_holds_own_withdraw_cap(new_account_addr);
-        include MakeAccountEmits { new_account_address: signer::address_of(new_account) };
+        include MakeAccountEmits {
+            new_account_address: signer::address_of(new_account)
+        };
         include MakeAccountEnsures { addr: new_account_addr };
 
     }
@@ -1393,7 +1393,10 @@ module DiemFramework::DiemAccount {
     spec schema CreateDiemRootAccountAbortsIf {
         auth_key_prefix: vector<u8>;
         include DiemTimestamp::AbortsIfNotGenesis;
-        include Roles::GrantRole { addr: @DiemRoot, role_id: Roles::DIEM_ROOT_ROLE_ID };
+        include Roles::GrantRole {
+            addr: @DiemRoot,
+            role_id: Roles::DIEM_ROOT_ROLE_ID
+        };
         aborts_if exists<SlidingNonce::SlidingNonce>(@DiemRoot) with errors::ALREADY_PUBLISHED;
         aborts_if exists<AccountOperationsCapability>(@DiemRoot) with errors::ALREADY_PUBLISHED;
         aborts_if exists<DiemWriteSetManager>(@DiemRoot) with errors::ALREADY_PUBLISHED;
@@ -2423,7 +2426,9 @@ module DiemFramework::DiemAccount {
         let writeset_events_ref = borrow_global_mut<DiemWriteSetManager>(@DiemRoot);
         event::emit_event<AdminTransactionEvent>(
             &mut writeset_events_ref.upgrade_events,
-            AdminTransactionEvent { committed_timestamp_secs: DiemTimestamp::now_seconds() }
+            AdminTransactionEvent {
+                committed_timestamp_secs: DiemTimestamp::now_seconds()
+            }
         );
 
         // Double check that the sender is the DiemRoot account at the `@DiemRoot`
@@ -2568,9 +2573,7 @@ module DiemFramework::DiemAccount {
             role_id: Roles::VALIDATOR_OPERATOR_ROLE_ID
         };
         ensures exists_at(new_account_address);
-        ensures ValidatorOperatorConfig::has_validator_operator_config(
-            new_account_address
-        );
+        ensures ValidatorOperatorConfig::has_validator_operator_config(new_account_address);
     }
 
     // ****************** Module Specifications *******************

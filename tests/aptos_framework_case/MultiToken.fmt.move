@@ -60,9 +60,7 @@ module ExperimentalFramework::MultiToken {
         exists token in tokens: token.token_id.id == token_id
     }
 
-    spec fun find_token_index_by_id<TokenType>(
-        tokens: vector<TokenData<TokenType>>, id: guid::ID
-    ): u64 {
+    spec fun find_token_index_by_id<TokenType>(tokens: vector<TokenData<TokenType>>, id: guid::ID): u64 {
         choose min i in range(tokens) where tokens[i].token_id.id == id
     }
 
@@ -126,7 +124,11 @@ module ExperimentalFramework::MultiToken {
         let index = option::extract(&mut index_opt);
         let item_opt = &mut vector::borrow_mut(tokens, index).metadata;
         assert!(option::is_some(item_opt), errors::invalid_state(ETOKEN_EXTRACTED));
-        TokenDataWrapper { origin: owner_addr, index, metadata: option::extract(item_opt) }
+        TokenDataWrapper {
+            origin: owner_addr,
+            index,
+            metadata: option::extract(item_opt)
+        }
     }
 
     spec extract_token {

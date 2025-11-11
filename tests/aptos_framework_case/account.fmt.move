@@ -360,9 +360,7 @@ module aptos_framework::account {
             );
         } else if (from_scheme == MULTI_ED25519_SCHEME) {
             let from_pk =
-                multi_ed25519::new_unvalidated_public_key_from_bytes(
-                    from_public_key_bytes
-                );
+                multi_ed25519::new_unvalidated_public_key_from_bytes(from_public_key_bytes);
             let from_auth_key =
                 multi_ed25519::unvalidated_public_key_to_authentication_key(&from_pk);
             assert!(
@@ -782,9 +780,7 @@ module aptos_framework::account {
 
     /// This is a helper function to compute resource addresses. Computation of the address
     /// involves the use of a cryptographic hash operation and should be use thoughtfully.
-    public fun create_resource_address(
-        source: &address, seed: vector<u8>
-    ): address {
+    public fun create_resource_address(source: &address, seed: vector<u8>): address {
         let bytes = bcs::to_bytes(source);
         vector::append(&mut bytes, seed);
         vector::push_back(&mut bytes, DERIVE_RESOURCE_ACCOUNT_SCHEME);
