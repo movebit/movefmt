@@ -8,6 +8,7 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.4.0">v1.4.0</a><br/>
 <a href="#v1.3.9">v1.3.9</a><br/>
 <a href="#v1.3.8">v1.3.8</a><br/>
 <a href="#v1.3.7">v1.3.7</a><br/>
@@ -42,6 +43,18 @@
 </td>
 </tr>
 </table>
+
+
+<a id="v1.4.0"></a>
+## 2025-11-07, Version v1.4.0
+* [[`349d06f`](https://github.com/movebit/movefmt/commit/349d06f7cec81134e8d7b7494df13eb8ad5c59d9)] - optimize get_break_mode_begin_paren()
+* [[`12dd0ce`](https://github.com/movebit/movefmt/commit/12dd0cec0e500daed8d784728704f2d1d592a5af)] - optimize get_break_mode_begin_nested()
+* [[`7184fb9`](https://github.com/movebit/movefmt/commit/7184fb9919b4e7ac396153015ec88673eebb1e76)] - optimize format_dot_exp_chain()
+* [[`ee9d74a`](https://github.com/movebit/movefmt/commit/ee9d74acd5fc9a084464698db6caaa849656f2f6)] - optimize process_fn_header()
+* [[`b2fc6a1`](https://github.com/movebit/movefmt/commit/b2fc6a1d6e0354b19cfb2cbdb32dedd67237c71d)] - optimize fmt_big_block()
+* [[`aaa4fb3`](https://github.com/movebit/movefmt/commit/aaa4fb3ec054ecd741a9b5adc7b4ebd991c17c4a)] - optimize code
+* [[`3abcd9b`](https://github.com/movebit/movefmt/commit/3abcd9b3312058eb489888fad6347edddd5beb44)] - fix bug #86: crash on formatting nested closure
+* [[`77518a5`](https://github.com/movebit/movefmt/commit/77518a50e0c9b2d15f5e371edf202f3e131bec69)] - optimize token_tree
 
 
 <a id="v1.3.9"></a>
