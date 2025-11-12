@@ -51,11 +51,7 @@ module 0xABCD::simple {
     public entry fun nop_2_signers(_s1: &signer, _s2: &signer) {}
 
     public entry fun nop_5_signers(
-        _s1: &signer,
-        _s2: &signer,
-        _s3: &signer,
-        _s4: &signer,
-        _s5: &signer
+        _s1: &signer, _s2: &signer, _s3: &signer, _s4: &signer, _s5: &signer
     ) {}
 
     // Test simple CPU usage. Loop as defined by the input `count`.
@@ -389,10 +385,7 @@ module 0xABCD::simple {
     // The purpose is to make the module bigger and to give something more
     // meaningful to the verifier (so make publish more expensive in computation).
     fun copy_pasta_ref(
-        r1: &Resource,
-        r2: &Resource,
-        c1: &Counter,
-        c2: &Counter
+        r1: &Resource, r2: &Resource, c1: &Counter, c2: &Counter
     ): &u64 {
         let ret1 = &r1.id;
         let ret2 = &r2.id;

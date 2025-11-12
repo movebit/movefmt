@@ -37,7 +37,10 @@ module test {
         };
 
         (
-            quote_volume, integrator_fee, emojicoin_0_proceeds, emojicoin_1_proceeds
+            quote_volume,
+            integrator_fee,
+            emojicoin_0_proceeds,
+            emojicoin_1_proceeds
         )
     }
 }

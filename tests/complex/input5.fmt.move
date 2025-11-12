@@ -759,9 +759,7 @@ module econia::incentives {
     /// * `test_get_cost_to_upgrade_integrator_fee_store_not_increase()`
     /// * `test_get_cost_to_upgrade_integrator_fee_store_not_upgrade()`
     public fun get_cost_to_upgrade_integrator_fee_store<QuoteCoinType, UtilityCoinType>(
-        integrator: &signer,
-        market_id: u64,
-        new_tier: u8
+        integrator: &signer, market_id: u64, new_tier: u8
     ): u64 acquires IncentiveParameters, IntegratorFeeStores {
         get_cost_to_upgrade_integrator_fee_store_view<QuoteCoinType, UtilityCoinType>(
             address_of(integrator), market_id, new_tier
@@ -979,9 +977,7 @@ module econia::incentives {
     ///
     /// * `upgrade_integrator_fee_store_via_coinstore()`
     public entry fun upgrade_integrator_fee_store_via_coinstore<QuoteCoinType, UtilityCoinType>(
-        integrator: &signer,
-        market_id: u64,
-        new_tier: u8
+        integrator: &signer, market_id: u64, new_tier: u8
     ) acquires IncentiveParameters, IntegratorFeeStores, UtilityCoinStore {
         // Get cost to upgrade to new tier.
         let cost =
@@ -1943,10 +1939,7 @@ module econia::incentives {
     ///
     /// * `E_NOT_ECONIA`: `account` is not Econia account.
     fun withdraw_econia_fees_internal<QuoteCoinType>(
-        account: &signer,
-        market_id: u64,
-        all: bool,
-        amount: u64
+        account: &signer, market_id: u64, all: bool, amount: u64
     ): coin::Coin<QuoteCoinType> acquires EconiaFeeStore {
         // Assert account is Econia.
         assert!(address_of(account) == @econia, E_NOT_ECONIA);
@@ -1974,10 +1967,7 @@ module econia::incentives {
     ///
     /// * `test_withdraw_to_coin_store_econia()`
     fun withdraw_econia_fees_to_coin_store_internal<QuoteCoinType>(
-        econia: &signer,
-        market_id: u64,
-        all: bool,
-        amount: u64
+        econia: &signer, market_id: u64, all: bool, amount: u64
     ) acquires EconiaFeeStore {
         // Withdraw coins from fee store, verifying Econia signer.
         let coins =

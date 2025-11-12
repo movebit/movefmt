@@ -357,9 +357,7 @@ module aptos_framework::coin {
     ///
     /// Note: This bypasses CoinStore::frozen -- coins within a frozen CoinStore can be burned.
     public fun burn_from<CoinType>(
-        account_addr: address,
-        amount: u64,
-        burn_cap: &BurnCapability<CoinType>
+        account_addr: address, amount: u64, burn_cap: &BurnCapability<CoinType>
     ) acquires CoinInfo, CoinStore {
         // Skip burning if amount is zero. This shouldn't error out as it's called as part of transaction fee burning.
         if (amount == 0) { return };
@@ -664,9 +662,7 @@ module aptos_framework::coin {
 
     /// Transfers `amount` of coins `CoinType` from `from` to `to`.
     public entry fun transfer<CoinType>(
-        from: &signer,
-        to: address,
-        amount: u64
+        from: &signer, to: address, amount: u64
     ) acquires CoinStore {
         let coin = withdraw<CoinType>(from, amount);
         deposit(to, coin);
@@ -741,9 +737,7 @@ module aptos_framework::coin {
 
     #[test_only]
     fun initialize_fake_money(
-        account: &signer,
-        decimals: u8,
-        monitor_supply: bool
+        account: &signer, decimals: u8, monitor_supply: bool
     ): (
         BurnCapability<FakeMoney>, FreezeCapability<FakeMoney>, MintCapability<FakeMoney>
     ) {
@@ -759,9 +753,7 @@ module aptos_framework::coin {
 
     #[test_only]
     fun initialize_and_register_fake_money(
-        account: &signer,
-        decimals: u8,
-        monitor_supply: bool
+        account: &signer, decimals: u8, monitor_supply: bool
     ): (
         BurnCapability<FakeMoney>, FreezeCapability<FakeMoney>, MintCapability<FakeMoney>
     ) {

@@ -70,11 +70,24 @@ module aptos_experimental::market_types {
                 M
             | bool has drop + copy,
             /// place_maker_order_f arguments: account, order_id, is_bid, price, size, order_metadata
-            place_maker_order_f: |address, OrderIdType, bool, u64, u64, M| has drop + copy,
+            place_maker_order_f: |
+                address,
+                OrderIdType,
+                bool,
+                u64,
+                u64,
+                M
+            | has drop + copy,
             /// cleanup_order_f arguments: account, order_id, is_bid, remaining_size
             cleanup_order_f: |address, OrderIdType, bool, u64| has drop + copy,
             /// decrease_order_size_f arguments: account, order_id, is_bid, price, size
-            decrease_order_size_f: |address, OrderIdType, bool, u64, u64| has drop + copy,
+            decrease_order_size_f: |
+                address,
+                OrderIdType,
+                bool,
+                u64,
+                u64
+            | has drop + copy,
             normal_f: |bool, u64| has drop + copy
         }
     }

@@ -718,17 +718,15 @@ impl Format {
         };
 
         let (nested_dep, comma_cnt) = expr_fmt::get_nested_and_comma_num(elements);
-        if is_in_fun_header {
-            if self
+        if is_in_fun_header
+            && !self
                 .global_cfg
                 .prefer_one_line_for_short_fn_header_para_list()
-            {
-                opt_component_break_mode |= (nested_dep >= 4 || comma_cnt > 2)
-                    && token.token_len() as f32 > self.local_cfg.max_len_no_add_line;
-            } else {
-                opt_component_break_mode |= comma_cnt > 1;
-            }
+        {
+            opt_component_break_mode |= comma_cnt > 1;
         }
+        opt_component_break_mode |= (nested_dep >= 4 || comma_cnt > 2)
+            && nested_token_len as f32 > self.local_cfg.max_len_no_add_line;
 
         let mut new_line_mode = fun_len > self.global_cfg.max_width();
         // Reserve 25% space for return ty and specifier
@@ -741,7 +739,8 @@ impl Format {
             } else {
                 let first_ele_len =
                     analyze_token_tree_length(&[elements[0].clone()], self.global_cfg.max_width());
-                new_line_mode |= cur_line_len + first_ele_len > self.global_cfg.max_width() && first_ele_len > 8;
+                new_line_mode |=
+                    cur_line_len + first_ele_len > self.global_cfg.max_width() && first_ele_len > 8;
             }
             new_line_mode |= comma_cnt > 2 && nested_token_len > MIN_BREAK_LENGTH;
             new_line_mode |= nested_dep > 2 && nested_token_len > MAX_ANALYZE_LENGTH;
@@ -847,7 +846,7 @@ impl Format {
             NestKind_::Bracket => {
                 let is_annotation = self.get_pre_simple_tok() == Tok::NumSign;
                 new_line_mode = (is_annotation && nested_len > max_line_width)
-                    || (!is_annotation && nested_len as f32 > max_len_no_add_line);
+                    || (!is_annotation && nested_len > MAX_ANALYZE_LENGTH);
                 if elements.len() > MIN_BREAK_LENGTH {
                     let mut bin_op_cnt = 0;
                     let mut complex_ele_cnt = 0;
@@ -864,10 +863,10 @@ impl Format {
                 }
             }
             NestKind_::Lambda => {
-                if nested_len as f32 <= max_line_width as f32 - max_len_no_add_line {
+                if nested_len < MIN_BREAK_LENGTH {
                     return (false, None);
                 }
-                new_line_mode |= (self.last_line().len() + nested_len) as f32 > max_len_no_add_line;
+                new_line_mode |= self.last_line().len() + nested_len > MAX_ANALYZE_LENGTH;
 
                 let nested_and_comma_pair = expr_fmt::get_nested_and_comma_num(elements);
                 let opt_component_break_mode =

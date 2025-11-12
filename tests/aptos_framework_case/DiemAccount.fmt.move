@@ -534,9 +534,7 @@ module DiemFramework::DiemAccount {
     // Cancel the burn request from `preburn_address` and return the funds.
     // Fails if the sender does not have a published MintCapability.
     public fun cancel_burn<Token>(
-        account: &signer,
-        preburn_address: address,
-        amount: u64
+        account: &signer, preburn_address: address, amount: u64
     ) acquires DiemAccount, Balance, AccountOperationsCapability {
         let coin = Diem::cancel_burn<Token>(account, preburn_address, amount);
         // record both sender and recipient as `preburn_address`: the coins are moving from
@@ -580,10 +578,7 @@ module DiemFramework::DiemAccount {
 
     /// Helper to withdraw `amount` from the given account balance and return the withdrawn Diem<Token>
     fun withdraw_from_balance<Token>(
-        payer: address,
-        payee: address,
-        balance: &mut Balance<Token>,
-        amount: u64
+        payer: address, payee: address, balance: &mut Balance<Token>, amount: u64
     ): Diem<Token> acquires AccountOperationsCapability {
         DiemTimestamp::assert_operating();
         AccountFreezing::assert_not_frozen(payer);
