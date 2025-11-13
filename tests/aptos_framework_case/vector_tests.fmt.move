@@ -626,8 +626,7 @@ module std::vector_tests {
 
         test_natives_with_type<Droppable>(Droppable {}, Droppable {});
         (NotDroppable {}, NotDroppable {}) = test_natives_with_type<NotDroppable>(
-            NotDroppable {},
-            NotDroppable {}
+            NotDroppable {}, NotDroppable {}
         );
     }
 
@@ -879,8 +878,7 @@ module std::vector_tests {
         let v: vector<u64> = vector[1, 2, 3, 4, 5];
 
         assert!(
-            vector::stable_partition(&mut v, |n| *n % 2 == 0) == 2,
-            0
+            vector::stable_partition(&mut v, |n| *n % 2 == 0) == 2, 0
         );
         assert!(&v == &vector[2, 4, 1, 3, 5], 1);
 
@@ -975,8 +973,7 @@ module std::vector_tests {
     fun test_destroy() {
         let v = vector[MoveOnly {}];
         vector::destroy(
-            v,
-            |m| {
+            v, |m| {
                 let MoveOnly {} = m;
             }
         )

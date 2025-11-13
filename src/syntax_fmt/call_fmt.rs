@@ -516,31 +516,18 @@ pub(crate) fn parse_nested_token_nums(
 }
 
 impl CallHandler {
-    pub(crate) fn get_call_component_split_mode(
+    pub(crate) fn need_split_call_component(
         &self,
         config: Config,
         kind: &NestKind,
         elements: &[TokenTree],
+        call_len: usize,
         cur_ret_last_len: usize,
     ) -> bool {
-        if kind.kind != NestKind_::ParentTheses || elements.is_empty() {
-            return false;
-        }
+        let call_origin = &self.source[kind.start_pos as usize..kind.end_pos as usize];
+        let mut len = cur_ret_last_len + call_len;
+        len += if call_origin.len() == call_len { 0 } else { 4 };
 
-        let call_str_in_source = &self.source[kind.start_pos as usize..kind.end_pos as usize];
-        let call_str_trimed_multi_space = call_str_in_source
-            .replace('\n', "")
-            .split_whitespace()
-            .collect::<Vec<&str>>()
-            .join("");
-        let len = if call_str_in_source.len() == call_str_trimed_multi_space.len() {
-            cur_ret_last_len + call_str_trimed_multi_space.len()
-        } else {
-            cur_ret_last_len + call_str_trimed_multi_space.len() + 4
-        };
-        tracing::debug!("len = {}", len);
-
-        let line_cnt = call_str_in_source.matches("\n").count();
         let mut simple_token_cnt = 0;
         let mut nested_token_cnt = 0;
         let mut comma_cnt = 0;
@@ -553,35 +540,31 @@ impl CallHandler {
             &mut nested_token_cnt,
         );
         tracing::debug!(
-            "nested_token_cnt = {}, comma_cnt = {}, bin_op_cnt = {}, line_cnt = {}, simple_token_cnt = {}",
+            "nested_token_cnt = {}, comma_cnt = {}, bin_op_cnt = {}, simple_token_cnt = {}, len = {}", 
             nested_token_cnt,
             comma_cnt,
             bin_op_cnt,
-            line_cnt,
-            simple_token_cnt
+            simple_token_cnt,
+            len
         );
         if len < config.max_width()
             && nested_token_cnt <= 2
             && comma_cnt < 3
             && bin_op_cnt < 2
-            && line_cnt <= 2
             && simple_token_cnt < 32
-            && !call_str_in_source.contains("//")
+            && !call_origin.contains("//")
         {
             return false;
         }
 
         if len <= config.max_width()
-            && call_str_trimed_multi_space.len() < config.max_width() / 2
-            && !contains_comment(call_str_in_source)
-            && call_str_trimed_multi_space.matches("}").count() < 2
+            && call_len < config.max_width() / 2
+            && !contains_comment(call_origin)
+            && call_origin.matches("}").count() < 2
         {
             return false;
         }
-        tracing::debug!(
-            "call_str_trimed_multi_space = {:?}",
-            call_str_trimed_multi_space
-        );
+        tracing::debug!("call_len = {:?}", call_len);
         true
     }
 }

@@ -298,7 +298,10 @@ module 0xABCD::simple {
         let (len1, len2) = {
             let resource1 = borrow_global<Resource>(signer::address_of(owner));
             let resource2 = borrow_global<Resource>(other);
-            (vector::length(&resource1.data.data), vector::length(&resource2.data.data))
+            (
+                vector::length(&resource1.data.data),
+                vector::length(&resource2.data.data)
+            )
         };
         let (new_len, resource) =
             if (len1 > len2) {
@@ -456,8 +459,7 @@ module 0xABCD::simple {
         while (count > 0) {
             count = count - 1;
             event::emit_event<SimpleEvent>(
-                &mut event_store.simple_events,
-                SimpleEvent { event_id: count }
+                &mut event_store.simple_events, SimpleEvent { event_id: count }
             );
         }
     }

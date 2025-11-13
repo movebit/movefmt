@@ -596,7 +596,8 @@ module DiemFramework::DiemAccount {
         let coin = &mut balance.coin;
         // Abort if this withdrawal would make the `payer`'s balance go negative
         assert!(
-            Diem::value(coin) >= amount, errors::limit_exceeded(EINSUFFICIENT_BALANCE)
+            Diem::value(coin) >= amount,
+            errors::limit_exceeded(EINSUFFICIENT_BALANCE)
         );
         Diem::withdraw(coin, amount)
     }
@@ -1296,7 +1297,8 @@ module DiemFramework::DiemAccount {
     ): vector<u8> {
         let authentication_key = auth_key_prefix;
         vector::append(
-            &mut authentication_key, bcs::to_bytes(signer::borrow_address(account))
+            &mut authentication_key,
+            bcs::to_bytes(signer::borrow_address(account))
         );
         /*
         assert!(
@@ -2056,8 +2058,7 @@ module DiemFramework::DiemAccount {
         chain_id: u8
     ) acquires DiemAccount, Balance {
         check_secondary_signers(
-            secondary_signer_addresses,
-            secondary_signer_public_key_hashes
+            secondary_signer_addresses, secondary_signer_public_key_hashes
         );
         prologue_common<Token>(
             &sender,

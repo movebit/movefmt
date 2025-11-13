@@ -210,8 +210,7 @@ module ExperimentalFramework::MultiToken {
         let Token { id, balance } = other;
         assert!(*&token.id == id, EWRONG_TOKEN_ID);
         assert!(
-            MAX_U64 - token.balance >= balance,
-            ETOKEN_BALANCE_OVERFLOWS
+            MAX_U64 - token.balance >= balance, ETOKEN_BALANCE_OVERFLOWS
         );
         token.balance = token.balance + balance
     }

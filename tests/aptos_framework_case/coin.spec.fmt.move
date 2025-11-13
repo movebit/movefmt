@@ -243,7 +243,9 @@ spec aptos_framework::coin {
     }
 
     spec burn_from<CoinType>(
-        account_addr: address, amount: u64, burn_cap: &BurnCapability<CoinType>
+        account_addr: address,
+        amount: u64,
+        burn_cap: &BurnCapability<CoinType>
     ) {
         let addr = type_info::type_of<CoinType>().account_address;
         let coin_store = global<CoinStore<CoinType>>(account_addr);

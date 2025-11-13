@@ -155,12 +155,11 @@ module aptos_framework::coin {
     //
 
     /// Publishes supply configuration. Initially, upgrading is not allowed.
-    public(friend) fun initialize_supply_config(aptos_framework: &signer) {
+    public(friend) fun initialize_supply_config(
+        aptos_framework: &signer
+    ) {
         system_addresses::assert_aptos_framework(aptos_framework);
-        move_to(
-            aptos_framework,
-            SupplyConfig { allow_upgrades: false }
-        );
+        move_to(aptos_framework, SupplyConfig { allow_upgrades: false });
     }
 
     /// This should be called by on-chain governance to update the config and allow
@@ -338,10 +337,7 @@ module aptos_framework::coin {
             update supply<CoinType> = supply<CoinType> - coin.value;
         };
         let Coin { value: amount } = coin;
-        assert!(
-            amount > 0,
-            error::invalid_argument(EZERO_COIN_AMOUNT)
-        );
+        assert!(amount > 0, error::invalid_argument(EZERO_COIN_AMOUNT));
 
         let maybe_supply =
             &mut borrow_global_mut<CoinInfo<CoinType>>(coin_address<CoinType>()).supply;
@@ -357,7 +353,9 @@ module aptos_framework::coin {
     ///
     /// Note: This bypasses CoinStore::frozen -- coins within a frozen CoinStore can be burned.
     public fun burn_from<CoinType>(
-        account_addr: address, amount: u64, burn_cap: &BurnCapability<CoinType>
+        account_addr: address,
+        amount: u64,
+        burn_cap: &BurnCapability<CoinType>
     ) acquires CoinInfo, CoinStore {
         // Skip burning if amount is zero. This shouldn't error out as it's called as part of transaction fee burning.
         if (amount == 0) { return };
@@ -377,17 +375,11 @@ module aptos_framework::coin {
         );
 
         let coin_store = borrow_global_mut<CoinStore<CoinType>>(account_addr);
-        assert!(
-            !coin_store.frozen,
-            error::permission_denied(EFROZEN)
-        );
+        assert!(!coin_store.frozen, error::permission_denied(EFROZEN));
         event::emit_event<DepositEvent>(
-            &mut coin_store.deposit_events,
-            DepositEvent { amount: coin.value }
+            &mut coin_store.deposit_events, DepositEvent { amount: coin.value }
         );
-        event::emit(
-            Deposit<CoinType> { account: account_addr, amount: coin.value }
-        );
+        event::emit(Deposit<CoinType> { account: account_addr, amount: coin.value });
 
         merge(&mut coin_store.coin, coin);
     }
@@ -415,18 +407,12 @@ module aptos_framework::coin {
             update supply<CoinType> = supply<CoinType> - zero_coin.value;
         };
         let Coin { value } = zero_coin;
-        assert!(
-            value == 0,
-            error::invalid_argument(EDESTRUCTION_OF_NONZERO_TOKEN)
-        )
+        assert!(value == 0, error::invalid_argument(EDESTRUCTION_OF_NONZERO_TOKEN))
     }
 
     /// Extracts `amount` from the passed-in `coin`, where the original token is modified in place.
     public fun extract<CoinType>(coin: &mut Coin<CoinType>, amount: u64): Coin<CoinType> {
-        assert!(
-            coin.value >= amount,
-            error::invalid_argument(EINSUFFICIENT_BALANCE)
-        );
+        assert!(coin.value >= amount, error::invalid_argument(EINSUFFICIENT_BALANCE));
         spec {
             update supply<CoinType> = supply<CoinType> - amount;
         };
@@ -629,7 +615,9 @@ module aptos_framework::coin {
                         aggregator::spec_aggregator_get_val(
                             option::borrow(supply.aggregator)
                         ) + amount
-                            <= aggregator::spec_get_limit(option::borrow(supply.aggregator))
+                            <= aggregator::spec_get_limit(
+                                option::borrow(supply.aggregator)
+                            )
                     );
                 assume !optional_aggregator::is_parallelizable(supply) ==>
                     (
@@ -682,14 +670,10 @@ module aptos_framework::coin {
         );
 
         let coin_store = borrow_global_mut<CoinStore<CoinType>>(account_addr);
-        assert!(
-            !coin_store.frozen,
-            error::permission_denied(EFROZEN)
-        );
+        assert!(!coin_store.frozen, error::permission_denied(EFROZEN));
 
         event::emit_event<WithdrawEvent>(
-            &mut coin_store.withdraw_events,
-            WithdrawEvent { amount }
+            &mut coin_store.withdraw_events, WithdrawEvent { amount }
         );
         event::emit(Withdraw<CoinType> { account: account_addr, amount });
 
@@ -977,33 +961,21 @@ module aptos_framework::coin {
     public fun test_is_coin_store_frozen(account: signer) acquires CoinStore {
         let account_addr = signer::address_of(&account);
         // An non registered account is has a frozen coin store by default
-        assert!(
-            is_coin_store_frozen<FakeMoney>(account_addr),
-            1
-        );
+        assert!(is_coin_store_frozen<FakeMoney>(account_addr), 1);
 
         account::create_account_for_test(account_addr);
         let (burn_cap, freeze_cap, mint_cap) =
             initialize_and_register_fake_money(&account, 18, true);
 
-        assert!(
-            !is_coin_store_frozen<FakeMoney>(account_addr),
-            1
-        );
+        assert!(!is_coin_store_frozen<FakeMoney>(account_addr), 1);
 
         // freeze account
         freeze_coin_store(account_addr, &freeze_cap);
-        assert!(
-            is_coin_store_frozen<FakeMoney>(account_addr),
-            1
-        );
+        assert!(is_coin_store_frozen<FakeMoney>(account_addr), 1);
 
         // unfreeze account
         unfreeze_coin_store(account_addr, &freeze_cap);
-        assert!(
-            !is_coin_store_frozen<FakeMoney>(account_addr),
-            1
-        );
+        assert!(!is_coin_store_frozen<FakeMoney>(account_addr), 1);
 
         move_to(
             &account,
@@ -1145,10 +1117,7 @@ module aptos_framework::coin {
         let supply = option::borrow_mut(maybe_supply);
 
         // Supply should be parallelizable.
-        assert!(
-            optional_aggregator::is_parallelizable(supply),
-            0
-        );
+        assert!(optional_aggregator::is_parallelizable(supply), 0);
 
         optional_aggregator::add(supply, 100);
         optional_aggregator::sub(supply, 50);
@@ -1183,10 +1152,7 @@ module aptos_framework::coin {
         let supply = option::borrow_mut(maybe_supply);
 
         // Supply should be non-parallelizable.
-        assert!(
-            !optional_aggregator::is_parallelizable(supply),
-            0
-        );
+        assert!(!optional_aggregator::is_parallelizable(supply), 0);
 
         optional_aggregator::add(supply, 100);
         optional_aggregator::sub(supply, 50);
@@ -1206,10 +1172,7 @@ module aptos_framework::coin {
         let maybe_supply =
             &mut borrow_global_mut<CoinInfo<FakeMoney>>(coin_address<FakeMoney>()).supply;
         let supply = option::borrow_mut(maybe_supply);
-        assert!(
-            !optional_aggregator::is_parallelizable(supply),
-            0
-        );
+        assert!(!optional_aggregator::is_parallelizable(supply), 0);
         optional_aggregator::add(supply, 100);
 
         // Upgrade.
@@ -1220,10 +1183,7 @@ module aptos_framework::coin {
         let maybe_supply =
             &mut borrow_global_mut<CoinInfo<FakeMoney>>(coin_address<FakeMoney>()).supply;
         let supply = option::borrow_mut(maybe_supply);
-        assert!(
-            optional_aggregator::is_parallelizable(supply),
-            0
-        );
+        assert!(optional_aggregator::is_parallelizable(supply), 0);
         assert!(optional_aggregator::read(supply) == 100, 0);
     }
 
@@ -1277,10 +1237,7 @@ module aptos_framework::coin {
 
         // Check that aggregatable coin has the right amount.
         let collected_coin = drain_aggregatable_coin(&mut aggregatable_coin);
-        assert!(
-            is_aggregatable_coin_zero(&aggregatable_coin),
-            0
-        );
+        assert!(is_aggregatable_coin_zero(&aggregatable_coin), 0);
         assert!(value(&collected_coin) == 10, 0);
 
         // Supply of coins should be unchanged, but the balance on the account should decrease.
