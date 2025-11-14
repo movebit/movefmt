@@ -121,7 +121,8 @@ module test {
         };
         /// [high-level-req-6.2]
         aborts_if !option::spec_contains(
-            offerer_account_resource.rotation_capability_offer.for, delegate_address
+            offerer_account_resource.rotation_capability_offer.for,
+            delegate_address
         );
         /// [high-level-req-9.1]
         include AssertValidRotationProofSignatureAndGetAuthKeyAbortsIf {

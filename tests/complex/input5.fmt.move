@@ -759,9 +759,7 @@ module econia::incentives {
     /// * `test_get_cost_to_upgrade_integrator_fee_store_not_increase()`
     /// * `test_get_cost_to_upgrade_integrator_fee_store_not_upgrade()`
     public fun get_cost_to_upgrade_integrator_fee_store<QuoteCoinType, UtilityCoinType>(
-        integrator: &signer,
-        market_id: u64,
-        new_tier: u8
+        integrator: &signer, market_id: u64, new_tier: u8
     ): u64 acquires IncentiveParameters, IntegratorFeeStores {
         get_cost_to_upgrade_integrator_fee_store_view<QuoteCoinType, UtilityCoinType>(
             address_of(integrator), market_id, new_tier
@@ -979,9 +977,7 @@ module econia::incentives {
     ///
     /// * `upgrade_integrator_fee_store_via_coinstore()`
     public entry fun upgrade_integrator_fee_store_via_coinstore<QuoteCoinType, UtilityCoinType>(
-        integrator: &signer,
-        market_id: u64,
-        new_tier: u8
+        integrator: &signer, market_id: u64, new_tier: u8
     ) acquires IncentiveParameters, IntegratorFeeStores, UtilityCoinStore {
         // Get cost to upgrade to new tier.
         let cost =
@@ -1491,7 +1487,9 @@ module econia::incentives {
             ).coins;
         // Verify merge will not overflow utility coin store.
         range_check_coin_merge(
-            coin::value(&coins), utility_coins_ref_mut, E_UTILITY_COIN_STORE_OVERFLOW
+            coin::value(&coins),
+            utility_coins_ref_mut,
+            E_UTILITY_COIN_STORE_OVERFLOW
         );
         // Merge in deposited coins.
         coin::merge(utility_coins_ref_mut, coins);
@@ -1907,7 +1905,8 @@ module econia::incentives {
         assert!(address_of(econia) == @econia, E_NOT_ECONIA);
         // Assert market registration fee meets minimum threshold.
         assert!(
-            market_registration_fee >= MIN_FEE, E_MARKET_REGISTRATION_FEE_LESS_THAN_MIN
+            market_registration_fee >= MIN_FEE,
+            E_MARKET_REGISTRATION_FEE_LESS_THAN_MIN
         );
         // Assert underwriter registration fee meets minimum threshold.
         assert!(
@@ -1943,10 +1942,7 @@ module econia::incentives {
     ///
     /// * `E_NOT_ECONIA`: `account` is not Econia account.
     fun withdraw_econia_fees_internal<QuoteCoinType>(
-        account: &signer,
-        market_id: u64,
-        all: bool,
-        amount: u64
+        account: &signer, market_id: u64, all: bool, amount: u64
     ): coin::Coin<QuoteCoinType> acquires EconiaFeeStore {
         // Assert account is Econia.
         assert!(address_of(account) == @econia, E_NOT_ECONIA);
@@ -1974,10 +1970,7 @@ module econia::incentives {
     ///
     /// * `test_withdraw_to_coin_store_econia()`
     fun withdraw_econia_fees_to_coin_store_internal<QuoteCoinType>(
-        econia: &signer,
-        market_id: u64,
-        all: bool,
-        amount: u64
+        econia: &signer, market_id: u64, all: bool, amount: u64
     ) acquires EconiaFeeStore {
         // Withdraw coins from fee store, verifying Econia signer.
         let coins =
@@ -2669,8 +2662,7 @@ module econia::incentives {
         quote_coins = withdraw_econia_fees_all<QC>(econia, market_id_0);
         // Assert remaining coins withdrawn.
         assert!(
-            coin::value(&quote_coins) == econia_fees_0 - 1,
-            0
+            coin::value(&quote_coins) == econia_fees_0 - 1, 0
         );
         assets::burn(quote_coins); // Burn coins.
         // Have Econia withdraw 1 utility coin.
@@ -2682,8 +2674,7 @@ module econia::incentives {
         utility_coins = withdraw_utility_coins_all<UC>(econia);
         // Assert remaining coins withdrawn.
         assert!(
-            coin::value(&utility_coins) == utility_coin_balance_1 - 1,
-            0
+            coin::value(&utility_coins) == utility_coin_balance_1 - 1, 0
         );
         assets::burn(utility_coins); // Burn coins.
         // Deposit sufficient utility coins to integrator to pay
@@ -2963,7 +2954,12 @@ module econia::incentives {
         };
         // Attempt invalid invocation.
         set_incentive_parameters_range_check_inputs(
-            econia, 1, 1, 1, 2, &integrator_fee_store_tiers
+            econia,
+            1,
+            1,
+            1,
+            2,
+            &integrator_fee_store_tiers
         );
     }
 
@@ -3001,7 +2997,10 @@ module econia::incentives {
         let (market_id, tier_start, tier_upgrade) = (0, 0, 1);
         // Declare activation fee for start and upgrade tiers.
         let (fee_start, fee_upgrade) =
-            (get_tier_activation_fee(tier_start), get_tier_activation_fee(tier_upgrade));
+            (
+                get_tier_activation_fee(tier_start),
+                get_tier_activation_fee(tier_upgrade)
+            );
         // Register to start tier.
         register_integrator_fee_store<QC, UC>(
             integrator,
@@ -3026,7 +3025,8 @@ module econia::incentives {
         assert!(get_utility_coin_store_balance_test() == fee_upgrade, 0);
         // Assert upgrade tier.
         assert!(
-            get_integrator_fee_store_tier_test<QC>(@user, market_id) == tier_upgrade, 0
+            get_integrator_fee_store_tier_test<QC>(@user, market_id) == tier_upgrade,
+            0
         );
     }
 
@@ -3087,7 +3087,8 @@ module econia::incentives {
             tablist::borrow_mut(econia_fee_store_map_ref_mut, market_id);
         // Merge simulated fees into the fee store.
         coin::merge(
-            econia_fee_store_coins_ref_mut, assets::mint_test<QC>(fee_coin_amount)
+            econia_fee_store_coins_ref_mut,
+            assets::mint_test<QC>(fee_coin_amount)
         );
         // Withdraw 1 coin, registering coin store.
         withdraw_econia_fees_to_coin_store<QC>(&econia, market_id, 1);

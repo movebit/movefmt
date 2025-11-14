@@ -168,6 +168,7 @@ impl FunHandler {
         false
     }
 
+    // TODO: spec not covered
     pub(crate) fn is_parameter_paren_in_fun_header(&self, kind: &NestKind) -> (bool, usize) {
         if kind.kind != NestKind_::ParentTheses {
             return (false, 0);

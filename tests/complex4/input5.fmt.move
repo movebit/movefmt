@@ -4,10 +4,8 @@ module std::bit_vector {
         ensures amount >= bitvector.length ==>
             (forall k in 0..bitvector.length: !bitvector.bit_field[k]);
         ensures amount < bitvector.length ==>
-            (
-                forall i in bitvector.length - amount..bitvector.length:
-                    !bitvector.bit_field[i]
-            );
+            (forall i in bitvector.length - amount..bitvector.length:
+                !bitvector.bit_field[i]);
         ensures amount < bitvector.length ==>
             (
                 forall i in 0..bitvector.length - amount:

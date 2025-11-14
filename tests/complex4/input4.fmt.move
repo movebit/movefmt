@@ -11,7 +11,10 @@ module test_big_pragmas {
         )
     ]
     #[test(
-        creator = @0xcafe, minter = @0xface, master_minter = @0xbab, denylister = @0xcade
+        creator = @0xcafe,
+        minter = @0xface,
+        master_minter = @0xbab,
+        denylister = @0xcade
     )]
     fun test() {}
 }

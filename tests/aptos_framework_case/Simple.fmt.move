@@ -51,11 +51,7 @@ module 0xABCD::simple {
     public entry fun nop_2_signers(_s1: &signer, _s2: &signer) {}
 
     public entry fun nop_5_signers(
-        _s1: &signer,
-        _s2: &signer,
-        _s3: &signer,
-        _s4: &signer,
-        _s5: &signer
+        _s1: &signer, _s2: &signer, _s3: &signer, _s4: &signer, _s5: &signer
     ) {}
 
     // Test simple CPU usage. Loop as defined by the input `count`.
@@ -166,9 +162,7 @@ module 0xABCD::simple {
         data: vector<u8>
     }
 
-    public entry fun bytes_make_or_change(
-        owner: &signer, data: vector<u8>
-    ) acquires ByteResource {
+    public entry fun bytes_make_or_change(owner: &signer, data: vector<u8>) acquires ByteResource {
         if (exists<ByteResource>(signer::address_of(owner))) {
             let resource = borrow_global_mut<ByteResource>(signer::address_of(owner));
             *(&mut resource.data) = data;
@@ -304,7 +298,10 @@ module 0xABCD::simple {
         let (len1, len2) = {
             let resource1 = borrow_global<Resource>(signer::address_of(owner));
             let resource2 = borrow_global<Resource>(other);
-            (vector::length(&resource1.data.data), vector::length(&resource2.data.data))
+            (
+                vector::length(&resource1.data.data),
+                vector::length(&resource2.data.data)
+            )
         };
         let (new_len, resource) =
             if (len1 > len2) {
@@ -391,10 +388,7 @@ module 0xABCD::simple {
     // The purpose is to make the module bigger and to give something more
     // meaningful to the verifier (so make publish more expensive in computation).
     fun copy_pasta_ref(
-        r1: &Resource,
-        r2: &Resource,
-        c1: &Counter,
-        c2: &Counter
+        r1: &Resource, r2: &Resource, c1: &Counter, c2: &Counter
     ): &u64 {
         let ret1 = &r1.id;
         let ret2 = &r2.id;
@@ -465,8 +459,7 @@ module 0xABCD::simple {
         while (count > 0) {
             count = count - 1;
             event::emit_event<SimpleEvent>(
-                &mut event_store.simple_events,
-                SimpleEvent { event_id: count }
+                &mut event_store.simple_events, SimpleEvent { event_id: count }
             );
         }
     }

@@ -360,9 +360,7 @@ module aptos_framework::account {
             );
         } else if (from_scheme == MULTI_ED25519_SCHEME) {
             let from_pk =
-                multi_ed25519::new_unvalidated_public_key_from_bytes(
-                    from_public_key_bytes
-                );
+                multi_ed25519::new_unvalidated_public_key_from_bytes(from_public_key_bytes);
             let from_auth_key =
                 multi_ed25519::unvalidated_public_key_to_authentication_key(&from_pk);
             assert!(
@@ -450,7 +448,9 @@ module aptos_framework::account {
         let offerer_account_resource =
             borrow_global_mut<Account>(rotation_cap_offerer_address);
         update_auth_key_and_originating_address_table(
-            rotation_cap_offerer_address, offerer_account_resource, new_auth_key
+            rotation_cap_offerer_address,
+            offerer_account_resource,
+            new_auth_key
         );
     }
 
@@ -480,7 +480,8 @@ module aptos_framework::account {
     ) acquires Account {
         let addr = signer::address_of(account);
         assert!(
-            exists_at(recipient_address), error::not_found(EACCOUNT_DOES_NOT_EXIST)
+            exists_at(recipient_address),
+            error::not_found(EACCOUNT_DOES_NOT_EXIST)
         );
 
         // proof that this account intends to delegate its rotation capability to another account
@@ -537,7 +538,8 @@ module aptos_framework::account {
 
         // update the existing rotation capability offer or put in a new rotation capability offer for the current account
         option::swap_or_fill(
-            &mut account_resource.rotation_capability_offer.for, recipient_address
+            &mut account_resource.rotation_capability_offer.for,
+            recipient_address
         );
     }
 
@@ -603,7 +605,8 @@ module aptos_framework::account {
     ) acquires Account {
         let source_address = signer::address_of(account);
         assert!(
-            exists_at(recipient_address), error::not_found(EACCOUNT_DOES_NOT_EXIST)
+            exists_at(recipient_address),
+            error::not_found(EACCOUNT_DOES_NOT_EXIST)
         );
 
         // Proof that this account intends to delegate its signer capability to another account.
@@ -623,7 +626,8 @@ module aptos_framework::account {
         // Update the existing signer capability offer or put in a new signer capability offer for the recipient.
         let account_resource = borrow_global_mut<Account>(source_address);
         option::swap_or_fill(
-            &mut account_resource.signer_capability_offer.for, recipient_address
+            &mut account_resource.signer_capability_offer.for,
+            recipient_address
         );
     }
 
@@ -658,7 +662,8 @@ module aptos_framework::account {
         let account_resource = borrow_global_mut<Account>(addr);
         assert!(
             option::contains(
-                &account_resource.signer_capability_offer.for, &to_be_revoked_address
+                &account_resource.signer_capability_offer.for,
+                &to_be_revoked_address
             ),
             error::not_found(ENO_SUCH_SIGNER_CAPABILITY)
         );
@@ -782,9 +787,7 @@ module aptos_framework::account {
 
     /// This is a helper function to compute resource addresses. Computation of the address
     /// involves the use of a cryptographic hash operation and should be use thoughtfully.
-    public fun create_resource_address(
-        source: &address, seed: vector<u8>
-    ): address {
+    public fun create_resource_address(source: &address, seed: vector<u8>): address {
         let bytes = bcs::to_bytes(source);
         vector::append(&mut bytes, seed);
         vector::push_back(&mut bytes, DERIVE_RESOURCE_ACCOUNT_SCHEME);
@@ -1035,7 +1038,8 @@ module aptos_framework::account {
         // Eve being the only participant.
         let signer_capability_sig_bytes = x"";
         vector::append(
-            &mut signer_capability_sig_bytes, ed25519::signature_to_bytes(&eve_sig)
+            &mut signer_capability_sig_bytes,
+            ed25519::signature_to_bytes(&eve_sig)
         );
         vector::append(&mut signer_capability_sig_bytes, x"40000000"); // Signers bitmap.
         let fake_sig =

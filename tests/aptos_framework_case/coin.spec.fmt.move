@@ -243,7 +243,9 @@ spec aptos_framework::coin {
     }
 
     spec burn_from<CoinType>(
-        account_addr: address, amount: u64, burn_cap: &BurnCapability<CoinType>
+        account_addr: address,
+        amount: u64,
+        burn_cap: &BurnCapability<CoinType>
     ) {
         let addr = type_info::type_of<CoinType>().account_address;
         let coin_store = global<CoinStore<CoinType>>(account_addr);
@@ -386,16 +388,15 @@ spec aptos_framework::coin {
         symbol: string::String,
         decimals: u8,
         monitor_supply: bool
-    ): (BurnCapability<CoinType>, FreezeCapability<CoinType>, MintCapability<CoinType>) {
+    ): (
+        BurnCapability<CoinType>, FreezeCapability<CoinType>, MintCapability<CoinType>
+    ) {
         use aptos_framework::aggregator_factory;
         let addr = signer::address_of(account);
         aborts_if addr != @aptos_framework;
         aborts_if monitor_supply
             && !exists<aggregator_factory::AggregatorFactory>(@aptos_framework);
-        include InitializeInternalSchema<CoinType> {
-            name: name.bytes,
-            symbol: symbol.bytes
-        };
+        include InitializeInternalSchema<CoinType> { name: name.bytes, symbol: symbol.bytes };
         ensures exists<CoinInfo<CoinType>>(addr);
     }
 
@@ -420,11 +421,10 @@ spec aptos_framework::coin {
         decimals: u8,
         monitor_supply: bool,
         parallelizable: bool
-    ): (BurnCapability<CoinType>, FreezeCapability<CoinType>, MintCapability<CoinType>) {
-        include InitializeInternalSchema<CoinType> {
-            name: name.bytes,
-            symbol: symbol.bytes
-        };
+    ): (
+        BurnCapability<CoinType>, FreezeCapability<CoinType>, MintCapability<CoinType>
+    ) {
+        include InitializeInternalSchema<CoinType> { name: name.bytes, symbol: symbol.bytes };
         let account_addr = signer::address_of(account);
         let post coin_info = global<CoinInfo<CoinType>>(account_addr);
         let post supply = option::spec_borrow(coin_info.supply);
@@ -475,7 +475,9 @@ spec aptos_framework::coin {
     /// `from` and `to` account not frozen.
     /// `from` and `to` not the same address.
     /// `from` account sufficient balance.
-    spec transfer<CoinType>(from: &signer, to: address, amount: u64) {
+    spec transfer<CoinType>(
+        from: &signer, to: address, amount: u64
+    ) {
         let account_addr_from = signer::address_of(from);
         let coin_store_from = global<CoinStore<CoinType>>(account_addr_from);
         let post coin_store_post_from = global<CoinStore<CoinType>>(account_addr_from);

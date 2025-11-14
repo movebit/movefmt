@@ -534,9 +534,7 @@ module DiemFramework::DiemAccount {
     // Cancel the burn request from `preburn_address` and return the funds.
     // Fails if the sender does not have a published MintCapability.
     public fun cancel_burn<Token>(
-        account: &signer,
-        preburn_address: address,
-        amount: u64
+        account: &signer, preburn_address: address, amount: u64
     ) acquires DiemAccount, Balance, AccountOperationsCapability {
         let coin = Diem::cancel_burn<Token>(account, preburn_address, amount);
         // record both sender and recipient as `preburn_address`: the coins are moving from
@@ -580,10 +578,7 @@ module DiemFramework::DiemAccount {
 
     /// Helper to withdraw `amount` from the given account balance and return the withdrawn Diem<Token>
     fun withdraw_from_balance<Token>(
-        payer: address,
-        payee: address,
-        balance: &mut Balance<Token>,
-        amount: u64
+        payer: address, payee: address, balance: &mut Balance<Token>, amount: u64
     ): Diem<Token> acquires AccountOperationsCapability {
         DiemTimestamp::assert_operating();
         AccountFreezing::assert_not_frozen(payer);
@@ -601,7 +596,8 @@ module DiemFramework::DiemAccount {
         let coin = &mut balance.coin;
         // Abort if this withdrawal would make the `payer`'s balance go negative
         assert!(
-            Diem::value(coin) >= amount, errors::limit_exceeded(EINSUFFICIENT_BALANCE)
+            Diem::value(coin) >= amount,
+            errors::limit_exceeded(EINSUFFICIENT_BALANCE)
         );
         Diem::withdraw(coin, amount)
     }
@@ -1226,9 +1222,7 @@ module DiemFramework::DiemAccount {
                 key_rotation_capability: option::some(
                     KeyRotationCapability { account_address: new_account_addr }
                 ),
-                received_events: event::new_event_handle<ReceivedPaymentEvent>(
-                    new_account
-                ),
+                received_events: event::new_event_handle<ReceivedPaymentEvent>(new_account),
                 sent_events: event::new_event_handle<SentPaymentEvent>(new_account),
                 sequence_number: 0
             }
@@ -1260,7 +1254,9 @@ module DiemFramework::DiemAccount {
             );
         ensures spec_holds_own_key_rotation_cap(new_account_addr);
         ensures spec_holds_own_withdraw_cap(new_account_addr);
-        include MakeAccountEmits { new_account_address: signer::address_of(new_account) };
+        include MakeAccountEmits {
+            new_account_address: signer::address_of(new_account)
+        };
         include MakeAccountEnsures { addr: new_account_addr };
 
     }
@@ -1301,7 +1297,8 @@ module DiemFramework::DiemAccount {
     ): vector<u8> {
         let authentication_key = auth_key_prefix;
         vector::append(
-            &mut authentication_key, bcs::to_bytes(signer::borrow_address(account))
+            &mut authentication_key,
+            bcs::to_bytes(signer::borrow_address(account))
         );
         /*
         assert!(
@@ -1393,7 +1390,10 @@ module DiemFramework::DiemAccount {
     spec schema CreateDiemRootAccountAbortsIf {
         auth_key_prefix: vector<u8>;
         include DiemTimestamp::AbortsIfNotGenesis;
-        include Roles::GrantRole { addr: @DiemRoot, role_id: Roles::DIEM_ROOT_ROLE_ID };
+        include Roles::GrantRole {
+            addr: @DiemRoot,
+            role_id: Roles::DIEM_ROOT_ROLE_ID
+        };
         aborts_if exists<SlidingNonce::SlidingNonce>(@DiemRoot) with errors::ALREADY_PUBLISHED;
         aborts_if exists<AccountOperationsCapability>(@DiemRoot) with errors::ALREADY_PUBLISHED;
         aborts_if exists<DiemWriteSetManager>(@DiemRoot) with errors::ALREADY_PUBLISHED;
@@ -2058,8 +2058,7 @@ module DiemFramework::DiemAccount {
         chain_id: u8
     ) acquires DiemAccount, Balance {
         check_secondary_signers(
-            secondary_signer_addresses,
-            secondary_signer_public_key_hashes
+            secondary_signer_addresses, secondary_signer_public_key_hashes
         );
         prologue_common<Token>(
             &sender,
@@ -2423,7 +2422,9 @@ module DiemFramework::DiemAccount {
         let writeset_events_ref = borrow_global_mut<DiemWriteSetManager>(@DiemRoot);
         event::emit_event<AdminTransactionEvent>(
             &mut writeset_events_ref.upgrade_events,
-            AdminTransactionEvent { committed_timestamp_secs: DiemTimestamp::now_seconds() }
+            AdminTransactionEvent {
+                committed_timestamp_secs: DiemTimestamp::now_seconds()
+            }
         );
 
         // Double check that the sender is the DiemRoot account at the `@DiemRoot`
@@ -2568,9 +2569,7 @@ module DiemFramework::DiemAccount {
             role_id: Roles::VALIDATOR_OPERATOR_ROLE_ID
         };
         ensures exists_at(new_account_address);
-        ensures ValidatorOperatorConfig::has_validator_operator_config(
-            new_account_address
-        );
+        ensures ValidatorOperatorConfig::has_validator_operator_config(new_account_address);
     }
 
     // ****************** Module Specifications *******************
