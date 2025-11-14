@@ -973,7 +973,8 @@ module std::vector_tests {
     fun test_destroy() {
         let v = vector[MoveOnly {}];
         vector::destroy(
-            v, |m| {
+            v,
+            |m| {
                 let MoveOnly {} = m;
             }
         )

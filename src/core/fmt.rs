@@ -637,7 +637,7 @@ impl Format {
             let (nested_dep, comma_cnt) = expr_fmt::get_nested_and_comma_num(elements);
             if comma_cnt > 2 || nested_dep > 2 {
                 if self.global_cfg.prefer_one_line_for_short_call_para_list() {
-                    *opt_component_break_mode = nested_token_len > MIN_BREAK_LENGTH;
+                    *opt_component_break_mode = nested_dep > 2 || nested_token_len > MIN_BREAK_LENGTH;
                 } else {
                     *opt_component_break_mode = true;
                 }

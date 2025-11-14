@@ -564,7 +564,6 @@ impl CallHandler {
         {
             return false;
         }
-        tracing::debug!("call_len = {:?}", call_len);
         true
     }
 }
