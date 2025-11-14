@@ -8,6 +8,7 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.4.1">v1.4.1</a><br/>
 <a href="#v1.4.0">v1.4.0</a><br/>
 <a href="#v1.3.9">v1.3.9</a><br/>
 <a href="#v1.3.8">v1.3.8</a><br/>
@@ -43,6 +44,15 @@
 </td>
 </tr>
 </table>
+
+
+<a id="v1.4.1"></a>
+## 2025-11-14, Version v1.4.1
+* [[`f8a5a38`](https://github.com/movebit/movefmt/commit/f8a5a38b7636f2b59d55b14956cfe737fcd72849)] - update aptos-core dependence 
+* [[`1064211`](https://github.com/movebit/movefmt/commit/106421112539e4f925e23a49ee6c197b374cef40)] - optimize get_break_mode_of_fun_call() 
+* [[`98173b7`](https://github.com/movebit/movefmt/commit/98173b7a8d0f48c43c099f31903adf04b5c3fd0d)] - improve formatting on Bracket and Lambda Nested 
+* [[`ede8e2a`](https://github.com/movebit/movefmt/commit/ede8e2a6567598d00804d3eba88abef2b18e17d5)] - optimize get_break_mode_begin_paren() 
+* [[`160d1d5`](https://github.com/movebit/movefmt/commit/160d1d5c9145e5ff7a7ceb39970da61280e1446e)] - optimize get_kind_len_after_trim_space() 
 
 
 <a id="v1.4.0"></a>
