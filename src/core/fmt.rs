@@ -23,7 +23,7 @@ use move_ir_types::location::ByteIndex;
 use std::cell::Cell;
 use std::cell::RefCell;
 use std::result::Result::*;
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 use tracing::debug;
 
 const EXIST_MULTI_MODULE_TAG: &str = "module fmt";
@@ -126,6 +126,13 @@ const STMT_START_TOKS: [Tok; 23] = [
     Tok::Abort,
 ];
 
+static SPEC_STR: LazyLock<String> = LazyLock::new(|| Tok::Spec.to_string());
+static COMMA_STR: LazyLock<String> = LazyLock::new(|| Tok::Comma.to_string());
+static FUN_STR: LazyLock<String> = LazyLock::new(|| Tok::Fun.to_string());
+static PUBLIC_STR: LazyLock<String> = LazyLock::new(|| Tok::Public.to_string());
+static RPAREN_STR: LazyLock<String> = LazyLock::new(|| Tok::RParen.to_string());
+static SEMICOLON_STR: LazyLock<String> = LazyLock::new(|| Tok::Semicolon.to_string());
+
 fn is_bin_op(tok: Tok) -> bool {
     BIN_OPS.contains(&tok)
 }
@@ -140,14 +147,14 @@ fn token_to_ability(token: Tok, content: &str) -> Option<Ability_> {
     }
 }
 
-// TODO: need optimize
-fn tune_module_buf(module_body: String, config: &Config) -> String {
-    let mut ret_module_body = module_body.clone();
-    big_block_fmt::fmt_big_block(&mut ret_module_body);
-    if module_body.contains(&Tok::Spec.to_string()) {
-        ret_module_body = spec_fmt::fmt_spec(ret_module_body.clone(), config.clone());
+fn tune_module_buf(mut module_body: String, config: &Config) -> String {
+    big_block_fmt::fmt_big_block(&mut module_body);
+    
+    if module_body.contains(&*SPEC_STR) {
+        module_body = spec_fmt::fmt_spec(module_body, config.clone());
     }
-    return remove_trailing_whitespaces_util(ret_module_body.clone());
+
+    remove_trailing_whitespaces_util(module_body)
 }
 
 impl Format {
@@ -225,10 +232,11 @@ impl Format {
             if is_mod_blk {
                 self.new_line(Some(t.end_pos()));
                 if !skip_handler.has_skipped_module_body(&nkind) {
-                    *self.ret.borrow_mut() = tune_module_buf(self.ret.clone().into_inner(), &cfg);
-                    *self.ret.borrow_mut() = update_last_line(self.ret.clone().into_inner());
+                    let mut ret_borrowed = self.ret.borrow_mut();
+                    let current_content = std::mem::take(&mut *ret_borrowed);
+                    *ret_borrowed = update_last_line(tune_module_buf(current_content, &cfg));
                 }
-                let module_body_buf = self.ret.clone().into_inner();
+                let module_body_buf = self.ret.borrow().clone();
                 return_buf_cp.push_str(&module_body_buf[EXIST_MULTI_MODULE_TAG.len()..]);
                 *self.ret.borrow_mut() = return_buf_cp;
             } else if is_addr_blk {
@@ -239,7 +247,7 @@ impl Format {
                 let def_vec = def_vec_result.unwrap_or_default().0;
 
                 let mut last_mod_end_loc = 0;
-                let mut fmt_slice = "".to_string();
+                let mut fmt_slice = String::new();
                 let Some(Definition::Address(address_def)) = def_vec.first() else {
                     return_buf_cp.push_str(&fmt_buf[EXIST_MULTI_ADDRESS_TAG.len()..]);
                     *fmt_buf = return_buf_cp.clone();
@@ -263,8 +271,9 @@ impl Format {
                 self.new_line(Some(t.end_pos()));
                 tracing::debug!("<script> return_buf_cp = {:?}", return_buf_cp);
                 tracing::debug!("<script> self.ret = {:?}", &self.ret);
-                *self.ret.borrow_mut() = tune_module_buf(self.ret.clone().into_inner(), &cfg);
-                *self.ret.borrow_mut() = update_last_line(self.ret.clone().into_inner());
+                let mut ret_borrowed = self.ret.borrow_mut();
+                let current_content = std::mem::take(&mut *ret_borrowed);
+                *ret_borrowed = update_last_line(tune_module_buf(current_content, &cfg));
             }
         }
         self.add_comments(u32::MAX, "end_of_move_file".to_string());
@@ -537,7 +546,7 @@ impl Format {
         let next_t = elements.get(index + 1);
         let d = delimiter.map(Delimiter::to_static_str);
         let t_str = t.simple_str();
-        let is_comma = d == Some(&Tok::Comma.to_string());
+        let is_comma = d == Some(&COMMA_STR);
         let cur_is_delimiter = d == t_str;
         let (next_tok, next_content) = next_t
             .map(token_tree_start)
@@ -548,7 +557,7 @@ impl Format {
             && elements[..index]
                 .iter()
                 .rev()
-                .take_while(|ele| ele.simple_str() != Some(&Tok::Fun.to_string()))
+                .take_while(|ele| ele.simple_str() != Some(&FUN_STR))
                 .any(|ele| {
                     matches!(
                         ele.simple_str(),
@@ -1439,7 +1448,7 @@ impl Format {
             tracing::debug!("SimpleToken[{:?}], add a new line", content);
             self.new_line(None);
         }
-        if token.simple_str() == Some(&Tok::Fun.to_string())
+        if token.simple_str() == Some(&FUN_STR)
             && !matches!(
                 self.get_pre_simple_tok(),
                 Tok::Public | Tok::Identifier | Tok::RParen | Tok::Inline | Tok::Spec | Tok::Native
@@ -1453,7 +1462,7 @@ impl Format {
             self.new_line(None);
         }
 
-        if token.simple_str() == Some(&Tok::Public.to_string())
+        if token.simple_str() == Some(&PUBLIC_STR)
             && !matches!(
                 self.get_pre_simple_tok(),
                 Tok::Identifier | Tok::RParen | Tok::Native
@@ -1774,14 +1783,14 @@ impl Format {
                     let line_start = this_cmt_start_line;
                     let line_end = self.translate_line(end);
 
-                    let no_space = &[
-                        Tok::RParen.to_string(),
-                        Tok::Comma.to_string(),
-                        Tok::Semicolon.to_string(),
+                    let no_space = [
+                        &*RPAREN_STR,
+                        &*COMMA_STR,
+                        &*SEMICOLON_STR,
                     ];
                     if line_start != line_end {
                         self.new_line(None);
-                    } else if !no_space.contains(&content) {
+                    } else if !no_space.contains(&&content) {
                         self.push_str(" ");
                     }
                     last_cmt_is_block_cmt = true;
