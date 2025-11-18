@@ -513,7 +513,7 @@ impl FunctionalFormat {
     /// Finalize output cleanup
     fn finalize_output(&self, mut state: FormatState) -> FormatState {
         // Remove trailing whitespace
-        state.output = remove_trailing_whitespaces_util(state.output);
+        state.output = remove_trailing_whitespaces(state.output);
         // Handle final blank lines
         state.output = update_last_line(state.output);
         state
@@ -676,7 +676,7 @@ fn tune_module_buf(module_body: String, config: &Config) -> String {
     if module_body.contains(&Tok::Spec.to_string()) {
         ret_module_body = spec_fmt::fmt_spec(ret_module_body.clone(), config.clone());
     }
-    return remove_trailing_whitespaces_util(ret_module_body.clone());
+    return remove_trailing_whitespaces(ret_module_body.clone());
 }
 
 /// Provide a simple wrapper for backward compatibility

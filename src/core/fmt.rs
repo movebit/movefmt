@@ -126,7 +126,9 @@ const STMT_START_TOKS: [Tok; 23] = [
     Tok::Abort,
 ];
 
+static MODULE_STR: LazyLock<String> = LazyLock::new(|| Tok::Module.to_string());
 static SPEC_STR: LazyLock<String> = LazyLock::new(|| Tok::Spec.to_string());
+static NUMSIGN_STR: LazyLock<String> = LazyLock::new(|| Tok::NumSign.to_string());
 static COMMA_STR: LazyLock<String> = LazyLock::new(|| Tok::Comma.to_string());
 static FUN_STR: LazyLock<String> = LazyLock::new(|| Tok::Fun.to_string());
 static PUBLIC_STR: LazyLock<String> = LazyLock::new(|| Tok::Public.to_string());
@@ -147,14 +149,16 @@ fn token_to_ability(token: Tok, content: &str) -> Option<Ability_> {
     }
 }
 
-fn tune_module_buf(mut module_body: String, config: &Config) -> String {
-    big_block_fmt::fmt_big_block(&mut module_body);
+fn tune_module_buf(module_body: &mut String, config: &Config) {
+    big_block_fmt::fmt_big_block(module_body);
     
     if module_body.contains(&*SPEC_STR) {
-        module_body = spec_fmt::fmt_spec(module_body, config.clone());
+        let body = module_body.clone();
+        *module_body = spec_fmt::fmt_spec(body, config.clone());
     }
 
-    remove_trailing_whitespaces(module_body)
+    let body = module_body.clone();
+    *module_body = remove_trailing_whitespaces(body);
 }
 
 impl Format {
@@ -233,8 +237,10 @@ impl Format {
                 self.new_line(Some(t.end_pos()));
                 if !skip_handler.has_skipped_module_body(&nkind) {
                     let mut ret_borrowed = self.ret.borrow_mut();
-                    let current_content = std::mem::take(&mut *ret_borrowed);
-                    *ret_borrowed = update_last_line(tune_module_buf(current_content, &cfg));
+                    let mut current_content = std::mem::take(&mut *ret_borrowed);
+                    tune_module_buf(&mut current_content, &cfg);
+                    update_last_line(&mut current_content);
+                    *ret_borrowed = current_content;
                 }
                 let module_body_buf = self.ret.borrow().clone();
                 return_buf_cp.push_str(&module_body_buf[EXIST_MULTI_MODULE_TAG.len()..]);
@@ -255,7 +261,8 @@ impl Format {
                 };
                 for mod_def in &address_def.modules {
                     let m = &fmt_buf[mod_def.loc.start() as usize..mod_def.loc.end() as usize];
-                    let tuning_mod_body = tune_module_buf(m.to_string(), &cfg);
+                    let mut tuning_mod_body = m.to_string();
+                    tune_module_buf(&mut tuning_mod_body, &cfg);
                     fmt_slice.push_str(&fmt_buf[last_mod_end_loc..mod_def.loc.start() as usize]);
                     fmt_slice.push_str(&tuning_mod_body);
                     last_mod_end_loc = mod_def.loc.end() as usize;
@@ -272,8 +279,10 @@ impl Format {
                 tracing::debug!("<script> return_buf_cp = {:?}", return_buf_cp);
                 tracing::debug!("<script> self.ret = {:?}", &self.ret);
                 let mut ret_borrowed = self.ret.borrow_mut();
-                let current_content = std::mem::take(&mut *ret_borrowed);
-                *ret_borrowed = update_last_line(tune_module_buf(current_content, &cfg));
+                let mut current_content = std::mem::take(&mut *ret_borrowed);
+                tune_module_buf(&mut current_content, &cfg);
+                update_last_line(&mut current_content);
+                *ret_borrowed = current_content;
             }
         }
         self.add_comments(u32::MAX, "end_of_move_file".to_string());
@@ -1247,12 +1256,11 @@ impl Format {
         let mut b_add_indent = true;
         for i in 0..elements.len() {
             let ele_str = elements[i].simple_str().unwrap_or_default();
-            if !matches!(ele_str, "#" | "" | "module") || i > MIN_NESTED_LENGTH {
-                break;
-            }
-            if elements[i].simple_str().unwrap_or_default() == "module" {
+            if ele_str == &*MODULE_STR {
                 b_add_indent = false;
                 b_new_line_mode |= true;
+                break;
+            } else if !(ele_str == &*NUMSIGN_STR || ele_str.is_empty()) || i > MIN_NESTED_LENGTH {
                 break;
             }
         }
@@ -2029,7 +2037,10 @@ impl Format {
     }
 
     fn process_last_empty_line(&mut self) {
-        *self.ret.borrow_mut() = update_last_line(self.ret.clone().into_inner());
+        let mut ret_borrowed = self.ret.borrow_mut();
+        let mut current_content = std::mem::take(&mut *ret_borrowed);
+        update_last_line(&mut current_content);
+        *ret_borrowed = current_content;
     }
 
     fn get_pre_simple_tok(&self) -> Tok {
