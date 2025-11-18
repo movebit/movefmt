@@ -154,7 +154,7 @@ fn tune_module_buf(mut module_body: String, config: &Config) -> String {
         module_body = spec_fmt::fmt_spec(module_body, config.clone());
     }
 
-    remove_trailing_whitespaces_util(module_body)
+    remove_trailing_whitespaces(module_body)
 }
 
 impl Format {
@@ -2025,7 +2025,7 @@ impl Format {
     }
 
     fn remove_trailing_whitespaces(&mut self) {
-        *self.ret.borrow_mut() = remove_trailing_whitespaces_util(self.ret.clone().into_inner());
+        *self.ret.borrow_mut() = remove_trailing_whitespaces(self.ret.clone().into_inner());
     }
 
     fn process_last_empty_line(&mut self) {
