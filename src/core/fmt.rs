@@ -637,12 +637,14 @@ impl Format {
             let (nested_dep, comma_cnt) = expr_fmt::get_nested_and_comma_num(elements);
             if comma_cnt > 2 || nested_dep > 2 {
                 if self.global_cfg.prefer_one_line_for_short_call_para_list() {
-                    *opt_component_break_mode = nested_dep > 2 || nested_token_len > MIN_BREAK_LENGTH;
+                    *opt_component_break_mode =
+                        nested_dep > 2 || nested_token_len > MIN_BREAK_LENGTH;
                 } else {
                     *opt_component_break_mode = true;
                 }
             } else if next_line_len + nested_token_len > self.global_cfg.max_width()
-                || nested_token_len > MAX_ANALYZE_LENGTH {
+                || nested_token_len > MAX_ANALYZE_LENGTH
+            {
                 *opt_component_break_mode = true;
             }
             return true;

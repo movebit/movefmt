@@ -540,7 +540,7 @@ impl CallHandler {
             &mut nested_token_cnt,
         );
         tracing::debug!(
-            "nested_token_cnt = {}, comma_cnt = {}, bin_op_cnt = {}, simple_token_cnt = {}, len = {}", 
+            "nested_token_cnt = {}, comma_cnt = {}, bin_op_cnt = {}, simple_token_cnt = {}, len = {}",
             nested_token_cnt,
             comma_cnt,
             bin_op_cnt,
