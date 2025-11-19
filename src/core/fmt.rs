@@ -131,7 +131,6 @@ static SPEC_STR: LazyLock<String> = LazyLock::new(|| Tok::Spec.to_string());
 static NUMSIGN_STR: LazyLock<String> = LazyLock::new(|| Tok::NumSign.to_string());
 static COMMA_STR: LazyLock<String> = LazyLock::new(|| Tok::Comma.to_string());
 static FUN_STR: LazyLock<String> = LazyLock::new(|| Tok::Fun.to_string());
-static PUBLIC_STR: LazyLock<String> = LazyLock::new(|| Tok::Public.to_string());
 static RPAREN_STR: LazyLock<String> = LazyLock::new(|| Tok::RParen.to_string());
 static SEMICOLON_STR: LazyLock<String> = LazyLock::new(|| Tok::Semicolon.to_string());
 
@@ -1438,6 +1437,10 @@ impl Format {
         else {
             return;
         };
+        let pre_simple_token = &self.format_context.borrow().pre_simple_token;
+        let pre_simple_token_end_pos = pre_simple_token.end_pos();
+        let pre_tok = pre_simple_token.get_end_tok();
+
         /*
         ** simple1:
         self.translate_line(*pos) = 6
@@ -1449,7 +1452,7 @@ impl Format {
         """
         */
         if (self.translate_line(*pos) - self.cur_line.get()) > 1
-            && expr_fmt::need_newline_when_trim_blank_line(&self.get_pre_simple_tok(), tok)
+            && expr_fmt::need_newline_when_trim_blank_line(&pre_tok, tok)
         {
             // There are multiple blank lines between the cur_line and the current code simple_token
             tracing::debug!(
@@ -1459,33 +1462,29 @@ impl Format {
             );
             tracing::debug!("SimpleToken[{:?}], add a new line", content);
             self.new_line(None);
-        }
-        if token.simple_str() == Some(&FUN_STR)
-            && !matches!(
-                self.get_pre_simple_tok(),
-                Tok::Public | Tok::Identifier | Tok::RParen | Tok::Inline | Tok::Spec | Tok::Native
-            )
-            && !self
-                .last_line()
-                .clone()
-                .trim_start_matches(char::is_whitespace)
-                .is_empty()
-        {
-            self.new_line(None);
+            return;
         }
 
-        if token.simple_str() == Some(&PUBLIC_STR)
-            && !matches!(
-                self.get_pre_simple_tok(),
-                Tok::Identifier | Tok::RParen | Tok::Native
-            )
-            && !self
-                .last_line()
-                .clone()
-                .trim_start_matches(char::is_whitespace)
-                .is_empty()
-        {
+        let last_line = self.last_line();
+        let last_line_is_inline_com = last_line.find("//").is_some();
+        if last_line.trim_start_matches(char::is_whitespace).is_empty() || last_line_is_inline_com {
+            return;
+        }
+
+        let maybe_comment =
+            &self.format_context.borrow().content[pre_simple_token_end_pos as usize..*pos as usize];
+        if maybe_comment.trim_end_matches(' ').ends_with('\n') {
+            return;
+        }
+
+        if matches!(tok, &Tok::Fun | &Tok::Module) && pre_tok == Tok::RBrace {
             self.new_line(None);
+            return;
+        }
+
+        if tok == &Tok::Public && !matches!(pre_tok, Tok::Identifier | Tok::RParen | Tok::Native) {
+            self.new_line(None);
+            return;
         }
     }
 
