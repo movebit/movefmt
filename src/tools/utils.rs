@@ -384,12 +384,6 @@ pub fn remove_trailing_whitespaces(input_str: String) -> String {
         .join("\n")
 }
 
-pub fn update_last_line(input_str: &mut String) {
-    let truncate_pos = input_str.trim_end_matches('\n').len();
-    input_str.truncate(truncate_pos);
-    input_str.push('\n')
-}
-
 pub fn get_compile_env() -> CompilationEnv {
     let mut flags = Flags::testing();
     flags = flags.set_language_version(LanguageVersion::V2);

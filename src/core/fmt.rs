@@ -151,7 +151,7 @@ fn token_to_ability(token: Tok, content: &str) -> Option<Ability_> {
 
 fn tune_module_buf(module_body: &mut String, config: &Config) {
     big_block_fmt::fmt_big_block(module_body);
-    
+
     if module_body.contains(&*SPEC_STR) {
         let body = module_body.clone();
         *module_body = spec_fmt::fmt_spec(body, config.clone());
@@ -230,23 +230,22 @@ impl Format {
             }
 
             fmt_operator();
-
+            if nkind.kind == NestKind_::Brace {
+                self.new_line(Some(t.end_pos()));
+            }
             let cfg = self.global_cfg.clone();
             // top level
             if is_mod_blk {
-                self.new_line(Some(t.end_pos()));
                 if !skip_handler.has_skipped_module_body(&nkind) {
                     let mut ret_borrowed = self.ret.borrow_mut();
                     let mut current_content = std::mem::take(&mut *ret_borrowed);
                     tune_module_buf(&mut current_content, &cfg);
-                    update_last_line(&mut current_content);
                     *ret_borrowed = current_content;
                 }
                 let module_body_buf = self.ret.borrow().clone();
                 return_buf_cp.push_str(&module_body_buf[EXIST_MULTI_MODULE_TAG.len()..]);
                 *self.ret.borrow_mut() = return_buf_cp;
             } else if is_addr_blk {
-                self.new_line(Some(t.end_pos()));
                 let mut fmt_buf = self.ret.borrow_mut();
                 let def_vec_result =
                     parse_file_string(&mut get_compile_env(), FileHash::empty(), &*fmt_buf);
@@ -259,11 +258,17 @@ impl Format {
                     *fmt_buf = return_buf_cp.clone();
                     continue;
                 };
-                for mod_def in &address_def.modules {
+                for (mod_idx, mod_def) in address_def.modules.iter().enumerate() {
+                    let this_module = &fmt_buf[last_mod_end_loc..mod_def.loc.start() as usize];
+                    if mod_idx == 0 {
+                        fmt_slice.push_str(this_module);
+                    } else {
+                        fmt_slice.push_str("\n\n");
+                        fmt_slice.push_str(this_module.trim_start());
+                    }
                     let m = &fmt_buf[mod_def.loc.start() as usize..mod_def.loc.end() as usize];
                     let mut tuning_mod_body = m.to_string();
                     tune_module_buf(&mut tuning_mod_body, &cfg);
-                    fmt_slice.push_str(&fmt_buf[last_mod_end_loc..mod_def.loc.start() as usize]);
                     fmt_slice.push_str(&tuning_mod_body);
                     last_mod_end_loc = mod_def.loc.end() as usize;
                 }
@@ -275,15 +280,14 @@ impl Format {
                 return_buf_cp.push_str(&fmt_slice[EXIST_MULTI_ADDRESS_TAG.len()..]);
                 *fmt_buf = return_buf_cp.clone();
             } else if nkind.kind == NestKind_::Brace {
-                self.new_line(Some(t.end_pos()));
                 tracing::debug!("<script> return_buf_cp = {:?}", return_buf_cp);
                 tracing::debug!("<script> self.ret = {:?}", &self.ret);
                 let mut ret_borrowed = self.ret.borrow_mut();
                 let mut current_content = std::mem::take(&mut *ret_borrowed);
                 tune_module_buf(&mut current_content, &cfg);
-                update_last_line(&mut current_content);
                 *ret_borrowed = current_content;
             }
+            self.process_last_empty_line();
         }
         self.add_comments(u32::MAX, "end_of_move_file".to_string());
         self.remove_trailing_whitespaces();
@@ -1791,11 +1795,7 @@ impl Format {
                     let line_start = this_cmt_start_line;
                     let line_end = self.translate_line(end);
 
-                    let no_space = [
-                        &*RPAREN_STR,
-                        &*COMMA_STR,
-                        &*SEMICOLON_STR,
-                    ];
+                    let no_space = [&*RPAREN_STR, &*COMMA_STR, &*SEMICOLON_STR];
                     if line_start != line_end {
                         self.new_line(None);
                     } else if !no_space.contains(&&content) {
@@ -2039,7 +2039,8 @@ impl Format {
     fn process_last_empty_line(&mut self) {
         let mut ret_borrowed = self.ret.borrow_mut();
         let mut current_content = std::mem::take(&mut *ret_borrowed);
-        update_last_line(&mut current_content);
+        current_content = current_content.trim_end().to_string();
+        current_content.push_str("\n");
         *ret_borrowed = current_content;
     }
 
