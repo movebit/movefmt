@@ -1498,9 +1498,8 @@ impl Format {
         else {
             return;
         };
-    
+
         let fc = self.format_context.borrow();
-        let pre_token_tree = &fc.pre_token_tree;
         let pre_simple_token = &fc.pre_simple_token;
         let pre_simple_token_end_pos = pre_simple_token.end_pos();
         if pre_simple_token_end_pos == 0 {
@@ -1508,6 +1507,10 @@ impl Format {
         }
         let pre_tok = pre_simple_token.get_end_tok();
         let line_diff = self.translate_line(*pos) - self.cur_line.get();
+        let is_normal_token = !matches!(
+            tok,
+            &Tok::NumSign | &Tok::Struct | &Tok::Fun | &Tok::Module | &Tok::Public
+        );
         /*
         ** simple1:
         self.translate_line(*pos) = 6
@@ -1520,10 +1523,7 @@ impl Format {
         */
         if line_diff > 1
             && expr_fmt::need_newline_when_trim_blank_line(&pre_tok, tok)
-            && !matches!(
-                tok,
-                &Tok::NumSign | &Tok::Struct | &Tok::Fun | &Tok::Module | &Tok::Public
-            )
+            && is_normal_token
         {
             // There are multiple blank lines between the cur_line and the current code simple_token
             tracing::debug!(
@@ -1535,60 +1535,53 @@ impl Format {
             self.new_line(None);
             return;
         }
-    
+
+        if is_normal_token {
+            return;
+        }
         let ret_copy = self.ret.clone().into_inner();
-    
+
         // 1. Collect the output into a Vec<char> (allocate once).
         let chars: Vec<char> = (ret_copy.chars().collect::<Vec<_>>()).to_vec();
         // 2. Take the last 36 characters, or as many as available.
         let start = chars.len().saturating_sub(36);
         let last_36: String = chars[start..].iter().collect();
+        let already_added_new_line = last_36.trim_end_matches(' ').ends_with('\n');
         // println!("output = {:?}", last_36);
-    
-        if let TokenTree::Nested {
-            elements,
-            kind,
-            note,
-        } = pre_token_tree
-        {
+
+        if let TokenTree::Nested { kind, note, .. } = &fc.pre_token_tree {
             if kind.kind == NestKind_::Brace
                 && matches!(
                     note.unwrap_or_default(),
                     Note::StructDefinition | Note::FunBody | Note::ModuleDef
                 )
-                && matches!(
-                    tok,
-                    &Tok::NumSign | &Tok::Struct | &Tok::Fun | &Tok::Module | &Tok::Public
-                )
             {
-                if last_36.trim_end_matches(' ').ends_with('\n') {
+                if already_added_new_line {
                     // The last line of output already ends with a newline.
-    
                     let maybe_comment =
-                    &fc.content[pre_simple_token_end_pos as usize + 1..*pos as usize];
-    
-                    if line_diff == 1 {
-                        // The keyword is on the line immediately after the last line.
-                        if !maybe_comment.trim().is_empty() {
-                            // There is a comment between the two blocks.
-                            // println!("There is a comment between the two blocks -- {:?}", maybe_comment);
-                            return;
-                        }
-                        println!("Two adjacent blocks, need one blank line");
-                        self.new_line(None);
-                    } else if line_diff == 0 {
+                        &fc.content[pre_simple_token_end_pos as usize + 1..*pos as usize];
+                    let has_comment = !maybe_comment.trim().is_empty();
+
+                    if line_diff == 0 {
                         // The keyword is on the same line as the last line.
                         // println!("Two blocks on the same line, need one blank line");
                         self.new_line(None);
-                    } else {
-                        // The keyword is several lines away from the last line.
-                        if !maybe_comment.trim().is_empty() {
-                            // There is a comment between the two blocks.
-                            // println!("There is a comment between the two blocks -- {:?}", maybe_comment);
-                            return;
-                        }
-                        self.new_line(None);
+                        return;
                     }
+
+                    if has_comment {
+                        // There is a comment between the two blocks.
+                        // println!("There is a comment between the two blocks -- {:?}", maybe_comment);
+                        return;
+                    }
+
+                    // if line_diff == 1 {
+                    //     println!("Two adjacent blocks, need one blank line");
+                    //     self.new_line(None);
+                    // } else {
+                    //     self.new_line(None);
+                    // }
+                    self.new_line(None);
                     return;
                 } else {
                     self.new_line(None);
@@ -1598,38 +1591,35 @@ impl Format {
             }
         } else {
             // The previous token is a simple token, or possibly the opening of a NestedTokenTree.
-            if matches!(
-                tok,
-                &Tok::NumSign | &Tok::Struct | &Tok::Fun | &Tok::Module | &Tok::Public
-            ) {
-                if pre_tok == Tok::LBrace {
-                    if last_36.trim_end_matches(' ').ends_with('\n') {
-                        // A newline has already been emitted.
-                        return;
-                    }
-                    self.new_line(None);
+            if pre_tok == Tok::LBrace {
+                if already_added_new_line {
+                    // A newline has already been emitted.
+                    return;
                 }
-    
-                if pre_tok == Tok::Semicolon {
-                    let maybe_comment =
-                       &fc.content[pre_simple_token_end_pos as usize + 1..*pos as usize];
-                    if last_36.trim_end_matches(' ').ends_with('\n') {
-                        // A newline has already been emitted.
-                        if maybe_comment.trim().is_empty() {
-                            self.new_line(None);
-                        }
-                        return;
-                    }
-    
-                    if line_diff == 0 {
-                        // println!("Previous token is a simple token or comment, on the same line, need one blank line");
-                        if !maybe_comment.trim().is_empty() {
-                            self.new_line(None);
-                        }
-                    } else {
-                        // The keyword is far away from the previous token or comment.
+                self.new_line(None);
+                return;
+            }
+
+            if pre_tok == Tok::Semicolon {
+                let maybe_comment =
+                    &fc.content[pre_simple_token_end_pos as usize + 1..*pos as usize];
+                let has_comment = !maybe_comment.trim().is_empty();
+                if already_added_new_line {
+                    // A newline has already been emitted.
+                    if !has_comment {
                         self.new_line(None);
                     }
+                    return;
+                }
+
+                if line_diff == 0 {
+                    // println!("Previous token is a simple token or comment, on the same line, need one blank line");
+                    if has_comment {
+                        self.new_line(None);
+                    }
+                } else {
+                    // The keyword is far away from the previous token or comment.
+                    self.new_line(None);
                 }
             }
         }
