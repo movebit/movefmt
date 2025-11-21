@@ -374,7 +374,7 @@ pub fn mk_result_filepath(x: &Path) -> PathBuf {
     ret
 }
 
-pub fn remove_trailing_whitespaces_util(input_str: String) -> String {
+pub fn remove_trailing_whitespaces(input_str: String) -> String {
     input_str
         .lines()
         .collect::<Vec<_>>()
@@ -382,21 +382,6 @@ pub fn remove_trailing_whitespaces_util(input_str: String) -> String {
         .map(|line| line.trim_end_matches(|c| c == ' '))
         .collect::<Vec<_>>()
         .join("\n")
-}
-
-pub fn update_last_line(input_str: String) -> String {
-    let mut lines = input_str.lines().collect::<Vec<&str>>();
-    let last_line = lines.last().unwrap_or(&"");
-
-    if last_line.is_empty() {
-        while lines.len() > 1 && lines[lines.len() - 2].is_empty() {
-            lines.pop();
-        }
-    } else {
-        lines.push("");
-    }
-
-    lines.join("\n")
 }
 
 pub fn get_compile_env() -> CompilationEnv {

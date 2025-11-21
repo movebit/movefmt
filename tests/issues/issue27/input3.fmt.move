@@ -24,7 +24,6 @@ module OneToOneMarket {
         borrow_global<BorrowRecord<In, Out>>(sender).record
     }
 }
-
 }
 
 address 0x70DD {

@@ -23,7 +23,7 @@ use move_ir_types::location::ByteIndex;
 use std::cell::Cell;
 use std::cell::RefCell;
 use std::result::Result::*;
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 use tracing::debug;
 
 const EXIST_MULTI_MODULE_TAG: &str = "module fmt";
@@ -36,6 +36,7 @@ const MIN_NESTED_LENGTH: usize = 16;
 pub struct FormatContext {
     pub content: String,
     pub pre_simple_token: TokenTree,
+    pub pre_token_tree: TokenTree,
     pub cur_nested_kind: NestKind,
     pub cur_fun_key_word_pos: usize,
 }
@@ -45,6 +46,7 @@ impl FormatContext {
         FormatContext {
             content,
             pre_simple_token: TokenTree::default(),
+            pre_token_tree: TokenTree::default(),
             cur_nested_kind: NestKind {
                 kind: NestKind_::Lambda,
                 start_pos: 0,
@@ -126,6 +128,14 @@ const STMT_START_TOKS: [Tok; 23] = [
     Tok::Abort,
 ];
 
+static MODULE_STR: LazyLock<String> = LazyLock::new(|| Tok::Module.to_string());
+static SPEC_STR: LazyLock<String> = LazyLock::new(|| Tok::Spec.to_string());
+static NUMSIGN_STR: LazyLock<String> = LazyLock::new(|| Tok::NumSign.to_string());
+static COMMA_STR: LazyLock<String> = LazyLock::new(|| Tok::Comma.to_string());
+static FUN_STR: LazyLock<String> = LazyLock::new(|| Tok::Fun.to_string());
+static RPAREN_STR: LazyLock<String> = LazyLock::new(|| Tok::RParen.to_string());
+static SEMICOLON_STR: LazyLock<String> = LazyLock::new(|| Tok::Semicolon.to_string());
+
 fn is_bin_op(tok: Tok) -> bool {
     BIN_OPS.contains(&tok)
 }
@@ -140,14 +150,16 @@ fn token_to_ability(token: Tok, content: &str) -> Option<Ability_> {
     }
 }
 
-// TODO: need optimize
-fn tune_module_buf(module_body: String, config: &Config) -> String {
-    let mut ret_module_body = module_body.clone();
-    big_block_fmt::fmt_big_block(&mut ret_module_body);
-    if module_body.contains(&Tok::Spec.to_string()) {
-        ret_module_body = spec_fmt::fmt_spec(ret_module_body.clone(), config.clone());
+fn tune_module_buf(module_body: &mut String, config: &Config) {
+    big_block_fmt::fmt_big_block(module_body);
+
+    if module_body.contains(&*SPEC_STR) {
+        let body = module_body.clone();
+        *module_body = spec_fmt::fmt_spec(body, config.clone());
     }
-    return remove_trailing_whitespaces_util(ret_module_body.clone());
+
+    let body = module_body.clone();
+    *module_body = remove_trailing_whitespaces(body);
 }
 
 impl Format {
@@ -219,36 +231,45 @@ impl Format {
             }
 
             fmt_operator();
-
+            if nkind.kind == NestKind_::Brace {
+                self.new_line(Some(t.end_pos()));
+            }
             let cfg = self.global_cfg.clone();
             // top level
             if is_mod_blk {
-                self.new_line(Some(t.end_pos()));
                 if !skip_handler.has_skipped_module_body(&nkind) {
-                    *self.ret.borrow_mut() = tune_module_buf(self.ret.clone().into_inner(), &cfg);
-                    *self.ret.borrow_mut() = update_last_line(self.ret.clone().into_inner());
+                    let mut ret_borrowed = self.ret.borrow_mut();
+                    let mut current_content = std::mem::take(&mut *ret_borrowed);
+                    tune_module_buf(&mut current_content, &cfg);
+                    *ret_borrowed = current_content;
                 }
-                let module_body_buf = self.ret.clone().into_inner();
+                let module_body_buf = self.ret.borrow().clone();
                 return_buf_cp.push_str(&module_body_buf[EXIST_MULTI_MODULE_TAG.len()..]);
                 *self.ret.borrow_mut() = return_buf_cp;
             } else if is_addr_blk {
-                self.new_line(Some(t.end_pos()));
                 let mut fmt_buf = self.ret.borrow_mut();
                 let def_vec_result =
                     parse_file_string(&mut get_compile_env(), FileHash::empty(), &*fmt_buf);
                 let def_vec = def_vec_result.unwrap_or_default().0;
 
                 let mut last_mod_end_loc = 0;
-                let mut fmt_slice = "".to_string();
+                let mut fmt_slice = String::new();
                 let Some(Definition::Address(address_def)) = def_vec.first() else {
                     return_buf_cp.push_str(&fmt_buf[EXIST_MULTI_ADDRESS_TAG.len()..]);
                     *fmt_buf = return_buf_cp.clone();
                     continue;
                 };
-                for mod_def in &address_def.modules {
+                for (mod_idx, mod_def) in address_def.modules.iter().enumerate() {
+                    let this_module = &fmt_buf[last_mod_end_loc..mod_def.loc.start() as usize];
+                    if mod_idx == 0 {
+                        fmt_slice.push_str(this_module);
+                    } else {
+                        fmt_slice.push_str("\n\n");
+                        fmt_slice.push_str(this_module.trim_start());
+                    }
                     let m = &fmt_buf[mod_def.loc.start() as usize..mod_def.loc.end() as usize];
-                    let tuning_mod_body = tune_module_buf(m.to_string(), &cfg);
-                    fmt_slice.push_str(&fmt_buf[last_mod_end_loc..mod_def.loc.start() as usize]);
+                    let mut tuning_mod_body = m.to_string();
+                    tune_module_buf(&mut tuning_mod_body, &cfg);
                     fmt_slice.push_str(&tuning_mod_body);
                     last_mod_end_loc = mod_def.loc.end() as usize;
                 }
@@ -260,12 +281,14 @@ impl Format {
                 return_buf_cp.push_str(&fmt_slice[EXIST_MULTI_ADDRESS_TAG.len()..]);
                 *fmt_buf = return_buf_cp.clone();
             } else if nkind.kind == NestKind_::Brace {
-                self.new_line(Some(t.end_pos()));
                 tracing::debug!("<script> return_buf_cp = {:?}", return_buf_cp);
                 tracing::debug!("<script> self.ret = {:?}", &self.ret);
-                *self.ret.borrow_mut() = tune_module_buf(self.ret.clone().into_inner(), &cfg);
-                *self.ret.borrow_mut() = update_last_line(self.ret.clone().into_inner());
+                let mut ret_borrowed = self.ret.borrow_mut();
+                let mut current_content = std::mem::take(&mut *ret_borrowed);
+                tune_module_buf(&mut current_content, &cfg);
+                *ret_borrowed = current_content;
             }
+            self.process_last_empty_line();
         }
         self.add_comments(u32::MAX, "end_of_move_file".to_string());
         self.remove_trailing_whitespaces();
@@ -537,7 +560,7 @@ impl Format {
         let next_t = elements.get(index + 1);
         let d = delimiter.map(Delimiter::to_static_str);
         let t_str = t.simple_str();
-        let is_comma = d == Some(&Tok::Comma.to_string());
+        let is_comma = d == Some(&COMMA_STR);
         let cur_is_delimiter = d == t_str;
         let (next_tok, next_content) = next_t
             .map(token_tree_start)
@@ -548,7 +571,7 @@ impl Format {
             && elements[..index]
                 .iter()
                 .rev()
-                .take_while(|ele| ele.simple_str() != Some(&Tok::Fun.to_string()))
+                .take_while(|ele| ele.simple_str() != Some(&FUN_STR))
                 .any(|ele| {
                     matches!(
                         ele.simple_str(),
@@ -1225,6 +1248,7 @@ impl Format {
             return;
         };
         if self.need_skip_nested_token(&kind, note) {
+            self.format_context.borrow_mut().pre_simple_token = nested_token.clone();
             return;
         }
 
@@ -1238,12 +1262,11 @@ impl Format {
         let mut b_add_indent = true;
         for i in 0..elements.len() {
             let ele_str = elements[i].simple_str().unwrap_or_default();
-            if !matches!(ele_str, "#" | "" | "module") || i > MIN_NESTED_LENGTH {
-                break;
-            }
-            if elements[i].simple_str().unwrap_or_default() == "module" {
+            if ele_str == &*MODULE_STR {
                 b_add_indent = false;
                 b_new_line_mode |= true;
+                break;
+            } else if !(ele_str == &*NUMSIGN_STR || ele_str.is_empty()) || i > MIN_NESTED_LENGTH {
                 break;
             }
         }
@@ -1417,6 +1440,10 @@ impl Format {
         else {
             return;
         };
+        let pre_simple_token = &self.format_context.borrow().pre_simple_token;
+        let pre_simple_token_end_pos = pre_simple_token.end_pos();
+        let pre_tok = pre_simple_token.get_end_tok();
+
         /*
         ** simple1:
         self.translate_line(*pos) = 6
@@ -1428,7 +1455,7 @@ impl Format {
         """
         */
         if (self.translate_line(*pos) - self.cur_line.get()) > 1
-            && expr_fmt::need_newline_when_trim_blank_line(&self.get_pre_simple_tok(), tok)
+            && expr_fmt::need_newline_when_trim_blank_line(&pre_tok, tok)
         {
             // There are multiple blank lines between the cur_line and the current code simple_token
             tracing::debug!(
@@ -1438,33 +1465,163 @@ impl Format {
             );
             tracing::debug!("SimpleToken[{:?}], add a new line", content);
             self.new_line(None);
-        }
-        if token.simple_str() == Some(&Tok::Fun.to_string())
-            && !matches!(
-                self.get_pre_simple_tok(),
-                Tok::Public | Tok::Identifier | Tok::RParen | Tok::Inline | Tok::Spec | Tok::Native
-            )
-            && !self
-                .last_line()
-                .clone()
-                .trim_start_matches(char::is_whitespace)
-                .is_empty()
-        {
-            self.new_line(None);
+            return;
         }
 
-        if token.simple_str() == Some(&Tok::Public.to_string())
-            && !matches!(
-                self.get_pre_simple_tok(),
-                Tok::Identifier | Tok::RParen | Tok::Native
-            )
-            && !self
-                .last_line()
-                .clone()
-                .trim_start_matches(char::is_whitespace)
-                .is_empty()
-        {
+        let last_line = self.last_line();
+        let last_line_is_inline_com = last_line.find("//").is_some();
+        if last_line.trim_start_matches(char::is_whitespace).is_empty() || last_line_is_inline_com {
+            return;
+        }
+
+        let maybe_comment =
+            &self.format_context.borrow().content[pre_simple_token_end_pos as usize..*pos as usize];
+        if maybe_comment.trim_end_matches(' ').ends_with('\n') {
+            return;
+        }
+
+        if matches!(tok, &Tok::Fun | &Tok::Module) && pre_tok == Tok::RBrace {
             self.new_line(None);
+            return;
+        }
+
+        if tok == &Tok::Public && !matches!(pre_tok, Tok::Identifier | Tok::RParen | Tok::Native) {
+            self.new_line(None);
+            return;
+        }
+    }
+
+    fn process_blank_lines_before_simple_token_v2(&self, token: &TokenTree) {
+        let TokenTree::SimpleToken {
+            content, pos, tok, ..
+        } = token
+        else {
+            return;
+        };
+
+        let fc = self.format_context.borrow();
+        let pre_simple_token = &fc.pre_simple_token;
+        let pre_simple_token_end_pos = pre_simple_token.end_pos();
+        if pre_simple_token_end_pos == 0 {
+            return;
+        }
+        let pre_tok = pre_simple_token.get_end_tok();
+        let line_diff = self.translate_line(*pos) - self.cur_line.get();
+        let is_normal_token = !matches!(
+            tok,
+            &Tok::NumSign | &Tok::Struct | &Tok::Fun | &Tok::Module | &Tok::Public
+        );
+        /*
+        ** simple1:
+        self.translate_line(*pos) = 6
+        after processed xxx, self.cur_line.get() = 5;
+        self.translate_line(*pos) - self.cur_line.get() == 1
+        """
+        line5: // comment xxx
+        line6: simple_token
+        """
+        */
+        if line_diff > 1
+            && expr_fmt::need_newline_when_trim_blank_line(&pre_tok, tok)
+            && is_normal_token
+        {
+            // There are multiple blank lines between the cur_line and the current code simple_token
+            tracing::debug!(
+                "self.translate_line(*pos) = {}, self.cur_line.get() = {}",
+                self.translate_line(*pos),
+                self.cur_line.get()
+            );
+            tracing::debug!("SimpleToken[{:?}], add a new line", content);
+            self.new_line(None);
+            return;
+        }
+
+        if is_normal_token {
+            return;
+        }
+        let ret_copy = self.ret.clone().into_inner();
+
+        // 1. Collect the output into a Vec<char> (allocate once).
+        let chars: Vec<char> = (ret_copy.chars().collect::<Vec<_>>()).to_vec();
+        // 2. Take the last 36 characters, or as many as available.
+        let start = chars.len().saturating_sub(36);
+        let last_36: String = chars[start..].iter().collect();
+        let already_added_new_line = last_36.trim_end_matches(' ').ends_with('\n');
+        // println!("output = {:?}", last_36);
+
+        if let TokenTree::Nested { kind, note, .. } = &fc.pre_token_tree {
+            if kind.kind == NestKind_::Brace
+                && matches!(
+                    note.unwrap_or_default(),
+                    Note::StructDefinition | Note::FunBody | Note::ModuleDef
+                )
+            {
+                if already_added_new_line {
+                    // The last line of output already ends with a newline.
+                    let maybe_comment =
+                        &fc.content[pre_simple_token_end_pos as usize + 1..*pos as usize];
+                    let has_comment = !maybe_comment.trim().is_empty();
+
+                    if line_diff == 0 {
+                        // The keyword is on the same line as the last line.
+                        // println!("Two blocks on the same line, need one blank line");
+                        self.new_line(None);
+                        return;
+                    }
+
+                    if has_comment {
+                        // There is a comment between the two blocks.
+                        // println!("There is a comment between the two blocks -- {:?}", maybe_comment);
+                        return;
+                    }
+
+                    // if line_diff == 1 {
+                    //     println!("Two adjacent blocks, need one blank line");
+                    //     self.new_line(None);
+                    // } else {
+                    //     self.new_line(None);
+                    // }
+                    self.new_line(None);
+                    return;
+                } else {
+                    self.new_line(None);
+                    self.new_line(None);
+                    return;
+                }
+            }
+        } else {
+            // The previous token is a simple token, or possibly the opening of a NestedTokenTree.
+            if pre_tok == Tok::LBrace {
+                if already_added_new_line {
+                    // A newline has already been emitted.
+                    return;
+                }
+                self.new_line(None);
+                return;
+            }
+
+            if pre_tok == Tok::Semicolon {
+                let maybe_comment =
+                    &fc.content[pre_simple_token_end_pos as usize + 1..*pos as usize];
+                let has_comment = !maybe_comment.trim().is_empty();
+                if already_added_new_line {
+                    // A newline has already been emitted.
+                    if !has_comment {
+                        self.new_line(None);
+                    }
+                    return;
+                }
+
+                if line_diff == 0 {
+                    // println!("Previous token is a simple token or comment, on the same line, need one blank line");
+                    if has_comment {
+                        self.new_line(None);
+                    }
+                } else {
+                    // The keyword is far away from the previous token or comment.
+                    self.new_line(None);
+                }
+            }
         }
     }
 
@@ -1714,6 +1871,7 @@ impl Format {
                 self.need_dec_depth_when_cur_is_simple(token);
             }
         }
+        self.format_context.borrow_mut().pre_token_tree = token.clone();
     }
 
     fn add_comments(&self, pos: u32, content: String) {
@@ -1774,14 +1932,10 @@ impl Format {
                     let line_start = this_cmt_start_line;
                     let line_end = self.translate_line(end);
 
-                    let no_space = &[
-                        Tok::RParen.to_string(),
-                        Tok::Comma.to_string(),
-                        Tok::Semicolon.to_string(),
-                    ];
+                    let no_space = [&*RPAREN_STR, &*COMMA_STR, &*SEMICOLON_STR];
                     if line_start != line_end {
                         self.new_line(None);
-                    } else if !no_space.contains(&content) {
+                    } else if !no_space.contains(&&content) {
                         self.push_str(" ");
                     }
                     last_cmt_is_block_cmt = true;
@@ -2016,11 +2170,15 @@ impl Format {
     }
 
     fn remove_trailing_whitespaces(&mut self) {
-        *self.ret.borrow_mut() = remove_trailing_whitespaces_util(self.ret.clone().into_inner());
+        *self.ret.borrow_mut() = remove_trailing_whitespaces(self.ret.clone().into_inner());
     }
 
     fn process_last_empty_line(&mut self) {
-        *self.ret.borrow_mut() = update_last_line(self.ret.clone().into_inner());
+        let mut ret_borrowed = self.ret.borrow_mut();
+        let mut current_content = std::mem::take(&mut *ret_borrowed);
+        current_content = current_content.trim_end().to_string();
+        current_content.push_str("\n");
+        *ret_borrowed = current_content;
     }
 
     fn get_pre_simple_tok(&self) -> Tok {
