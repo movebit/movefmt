@@ -8,6 +8,7 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.4.2">v1.4.2</a><br/>
 <a href="#v1.4.1">v1.4.1</a><br/>
 <a href="#v1.4.0">v1.4.0</a><br/>
 <a href="#v1.3.9">v1.3.9</a><br/>
@@ -44,6 +45,17 @@
 </td>
 </tr>
 </table>
+
+
+<a id="v1.4.2"></a>
+## 2025-11-21, Version v1.4.2
+* [[`56c87ff`](https://github.com/movebit/movefmt/commit/56c87ff560e87e0bd2a8985cedc753da1052c8a6)] - optimize process_blank_lines_before_simple_token_v2()
+* [[`84cb0ea`](https://github.com/movebit/movefmt/commit/84cb0ea0e33d54c9e1b090a85077d6b03dc13d18)] - fix bug on skip block, try replace big_block_fmt with process_blank_lines_before_simple_token_v2()
+* [[`0f2f294`](https://github.com/movebit/movefmt/commit/0f2f294d0265b1d0d5d47d36b7e0be6975525533)] - optimize process_blank_lines_before_simple_token(), especially regarding having multiple modules in one move file
+* [[`404c6ec`](https://github.com/movebit/movefmt/commit/404c6ece17bca2a90201d037a2bb0bce0ef3ca3f)] - optimize format_token_trees()
+* [[`816c48a`](https://github.com/movebit/movefmt/commit/816c48a9829104b465fb34932886a6896d08e00c)] - optimize core logic
+* [[`8d19c64`](https://github.com/movebit/movefmt/commit/8d19c647f7722acbf4148b341eada572d6b8aa49)] - optimize utils
+* [[`3379f7e`](https://github.com/movebit/movefmt/commit/3379f7eedf82daec1e670545bb3b56f41edb68f2)] - optimize tune_module_buf()
 
 
 <a id="v1.4.1"></a>
