@@ -11,7 +11,7 @@ use crate::syntax_fmt::let_fmt::LetHandler;
 use crate::syntax_fmt::quant_fmt::QuantHandler;
 use crate::syntax_fmt::skip_fmt::{SkipHandler, SkipType};
 use crate::syntax_fmt::syntax_handler::SyntaxHandler;
-use crate::syntax_fmt::{big_block_fmt, expr_fmt, fun_fmt, spec_fmt};
+use crate::syntax_fmt::{expr_fmt, fun_fmt, spec_fmt};
 use crate::tools::utils::*;
 use commentfmt::comment::contains_comment;
 use commentfmt::{Config, Verbosity};
@@ -151,8 +151,6 @@ fn token_to_ability(token: Tok, content: &str) -> Option<Ability_> {
 }
 
 fn tune_module_buf(module_body: &mut String, config: &Config) {
-    big_block_fmt::fmt_big_block(module_body);
-
     if module_body.contains(&*SPEC_STR) {
         let body = module_body.clone();
         *module_body = spec_fmt::fmt_spec(body, config.clone());
@@ -1433,64 +1431,6 @@ impl Format {
         }
     }
 
-    fn process_blank_lines_before_simple_token(&self, token: &TokenTree) {
-        let TokenTree::SimpleToken {
-            content, pos, tok, ..
-        } = token
-        else {
-            return;
-        };
-        let pre_simple_token = &self.format_context.borrow().pre_simple_token;
-        let pre_simple_token_end_pos = pre_simple_token.end_pos();
-        let pre_tok = pre_simple_token.get_end_tok();
-
-        /*
-        ** simple1:
-        self.translate_line(*pos) = 6
-        after processed xxx, self.cur_line.get() = 5;
-        self.translate_line(*pos) - self.cur_line.get() == 1
-        """
-        line5: // comment xxx
-        line6: simple_token
-        """
-        */
-        if (self.translate_line(*pos) - self.cur_line.get()) > 1
-            && expr_fmt::need_newline_when_trim_blank_line(&pre_tok, tok)
-        {
-            // There are multiple blank lines between the cur_line and the current code simple_token
-            tracing::debug!(
-                "self.translate_line(*pos) = {}, self.cur_line.get() = {}",
-                self.translate_line(*pos),
-                self.cur_line.get()
-            );
-            tracing::debug!("SimpleToken[{:?}], add a new line", content);
-            self.new_line(None);
-            return;
-        }
-
-        let last_line = self.last_line();
-        let last_line_is_inline_com = last_line.find("//").is_some();
-        if last_line.trim_start_matches(char::is_whitespace).is_empty() || last_line_is_inline_com {
-            return;
-        }
-
-        let maybe_comment =
-            &self.format_context.borrow().content[pre_simple_token_end_pos as usize..*pos as usize];
-        if maybe_comment.trim_end_matches(' ').ends_with('\n') {
-            return;
-        }
-
-        if matches!(tok, &Tok::Fun | &Tok::Module) && pre_tok == Tok::RBrace {
-            self.new_line(None);
-            return;
-        }
-
-        if tok == &Tok::Public && !matches!(pre_tok, Tok::Identifier | Tok::RParen | Tok::Native) {
-            self.new_line(None);
-            return;
-        }
-    }
-
     fn process_blank_lines_before_simple_token_v2(&self, token: &TokenTree) {
         let TokenTree::SimpleToken {
             content, pos, tok, ..
@@ -1735,7 +1675,7 @@ impl Format {
             self.add_comments(*pos, content.clone());
 
             // step3
-            self.process_blank_lines_before_simple_token(token);
+            self.process_blank_lines_before_simple_token_v2(token);
 
             // step4
             self.fmt_simple_token_core(token, next_token, new_line_after);
@@ -1971,6 +1911,7 @@ impl Format {
             );
         }
     }
+
 }
 
 impl Format {

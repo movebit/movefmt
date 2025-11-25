@@ -1,4 +1,3 @@
-pub mod big_block_fmt;
 pub mod bin_op_fmt;
 pub mod branch_fmt;
 pub mod call_fmt;
