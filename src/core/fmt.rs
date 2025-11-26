@@ -1431,7 +1431,7 @@ impl Format {
         }
     }
 
-    fn process_blank_lines_before_simple_token_v2(&self, token: &TokenTree) {
+    fn process_blank_lines_before_simple_token(&self, token: &TokenTree) {
         let TokenTree::SimpleToken {
             content, pos, tok, ..
         } = token
@@ -1496,31 +1496,28 @@ impl Format {
                     Note::StructDefinition | Note::FunBody | Note::ModuleDef
                 )
             {
+                if line_diff == 0 {
+                    // The keyword is on the same line as the last line.
+                    // println!("Two blocks on the same line, need one blank line");
+                    self.new_line(None);
+                    return;
+                }
+
                 if already_added_new_line {
                     // The last line of output already ends with a newline.
                     let maybe_comment =
                         &fc.content[pre_simple_token_end_pos as usize + 1..*pos as usize];
                     let has_comment = !maybe_comment.trim().is_empty();
 
-                    if line_diff == 0 {
-                        // The keyword is on the same line as the last line.
-                        // println!("Two blocks on the same line, need one blank line");
-                        self.new_line(None);
-                        return;
-                    }
-
                     if has_comment {
                         // There is a comment between the two blocks.
-                        // println!("There is a comment between the two blocks -- {:?}", maybe_comment);
+                        // println!(
+                        //     "There is a comment between the two blocks -- {:?}",
+                        //     maybe_comment
+                        // );
                         return;
                     }
 
-                    // if line_diff == 1 {
-                    //     println!("Two adjacent blocks, need one blank line");
-                    //     self.new_line(None);
-                    // } else {
-                    //     self.new_line(None);
-                    // }
                     self.new_line(None);
                     return;
                 } else {
@@ -1675,7 +1672,7 @@ impl Format {
             self.add_comments(*pos, content.clone());
 
             // step3
-            self.process_blank_lines_before_simple_token_v2(token);
+            self.process_blank_lines_before_simple_token(token);
 
             // step4
             self.fmt_simple_token_core(token, next_token, new_line_after);
@@ -1911,7 +1908,6 @@ impl Format {
             );
         }
     }
-
 }
 
 impl Format {
