@@ -14,5 +14,6 @@ module complex_module {
         // continued on line 2.
         /* Field 2 comment (multi-line) */
         field2: /* Inline comment (multi-line) */ bool // Trailing comment (single-line)
-    } // Struct footer comment (single-line)
+    }
+    // Struct footer comment (single-line)
 }

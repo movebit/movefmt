@@ -18,7 +18,6 @@ module std::ascii {
     struct String has copy, drop, store {
         bytes: vector<u8>
     }
-
     spec String {
         invariant forall i in 0..len(bytes): is_valid_char(bytes[i]);
     }

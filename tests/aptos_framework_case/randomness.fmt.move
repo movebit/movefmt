@@ -13,8 +13,10 @@ module aptos_framework::randomness {
     use aptos_framework::event;
     use aptos_framework::system_addresses;
     use aptos_framework::transaction_context;
+
     #[test_only]
     use aptos_std::debug;
+
     #[test_only]
     use aptos_std::table_with_length;
 

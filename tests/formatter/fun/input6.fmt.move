@@ -1,6 +1,7 @@
 //#publish --print-bytecode
 module 0xcafe::vectors {
     use std::vector;
+
     #[fmt::skip]
     public entry fun guess_flips(flips: vector<u8>) {
         loops_with_break(&flips);

@@ -1,5 +1,4 @@
 module TestFunFormat {
-
     struct SomeOtherStruct has drop {
         some_field: u64
     }

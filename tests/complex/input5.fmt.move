@@ -272,9 +272,9 @@ module econia::incentives {
     // Friends <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
     // Test-only uses >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
     #[test_only]
     use aptos_framework::account;
+
     #[test_only]
     use econia::assets::{Self, QC, UC};
 
@@ -514,7 +514,6 @@ module econia::incentives {
     // Constants <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
     // View functions >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
     #[view]
     /// Calculate cost to upgrade `IntegratorFeeStore` to higher tier.
     ///
@@ -2032,7 +2031,6 @@ module econia::incentives {
     // Private functions <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
     // Test-only functions >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
     #[test_only]
     /// Return `BUY`, for testing synchronization with `market.move`.
     public fun get_BUY_test(): bool {
@@ -2168,7 +2166,6 @@ module econia::incentives {
     // Test-only functions <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
     // Tests >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
     #[test]
     /// Verify max quote match amounts.
     fun test_calculate_max_quote_match() {

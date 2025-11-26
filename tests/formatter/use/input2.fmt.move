@@ -1,5 +1,4 @@
 /// test_point: A list consisting of multiple items, with comments before the items
-
 module test_use {
     use aptos_framework::aptos_coin::AptosCoin;
     use aptos_framework::coin::{Self, Coin};

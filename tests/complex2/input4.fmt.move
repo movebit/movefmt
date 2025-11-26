@@ -1,7 +1,6 @@
 /// The `DiemAccount` module manages accounts. It defines the `DiemAccount` resource and
 /// numerous auxiliary data structures. It also defines the prolog and epilog that run
 /// before and after every transaction.
-
 module DiemFramework::DiemAccount {
     /// ## Key Rotation Capability
     spec module {

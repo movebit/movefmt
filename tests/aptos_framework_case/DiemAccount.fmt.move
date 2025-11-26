@@ -1,7 +1,6 @@
 /// The `DiemAccount` module manages accounts. It defines the `DiemAccount` resource and
 /// numerous auxiliary data structures. It also defines the prolog and epilog that run
 /// before and after every transaction.
-
 module DiemFramework::DiemAccount {
     use DiemFramework::AccountFreezing;
     use DiemFramework::CoreAddresses;
@@ -236,7 +235,6 @@ module DiemFramework::DiemAccount {
             AccountLimits::has_window_published<Token>(addr)
         }
     }
-
     spec fun spec_has_published_account_limits<Token>(addr: address): bool {
         if (VASP::is_vasp(addr)) VASP::spec_has_account_limits<Token>(addr)
         else AccountLimits::has_window_published<Token>(addr)
@@ -258,14 +256,12 @@ module DiemFramework::DiemAccount {
                 && !VASP::is_same_vasp(payee, payer)
         }
     }
-
     spec should_track_limits_for_account {
         pragma opaque;
         aborts_if false;
         ensures result
             == spec_should_track_limits_for_account<Token>(payer, payee, is_withdrawal);
     }
-
     spec fun spec_should_track_limits_for_account<Token>(
         payer: address, payee: address, is_withdrawal: bool
     ): bool {
@@ -343,7 +339,6 @@ module DiemFramework::DiemAccount {
             }
         );
     }
-
     spec deposit {
         pragma opaque;
         modifies global<Balance<Token>>(payee);
@@ -357,7 +352,6 @@ module DiemFramework::DiemAccount {
         include dual_attestation ==>
             DualAttestation::AssertPaymentOkAbortsIf<Token> { value: amount };
     }
-
     spec schema DepositAbortsIf<Token> {
         payer: address;
         payee: address;
@@ -368,13 +362,11 @@ module DiemFramework::DiemAccount {
         aborts_if !exists<Balance<Token>>(payee) with errors::INVALID_ARGUMENT;
         aborts_if !exists_at(payee) with errors::NOT_PUBLISHED;
     }
-
     spec schema DepositOverflowAbortsIf<Token> {
         payee: address;
         amount: u64;
         aborts_if balance<Token>(payee) + amount > max_u64() with errors::LIMIT_EXCEEDED;
     }
-
     spec schema DepositAbortsIfRestricted<Token> {
         payer: address;
         payee: address;
@@ -392,7 +384,6 @@ module DiemFramework::DiemAccount {
             ) with errors::LIMIT_EXCEEDED;
         include Diem::AbortsIfNoCurrency<Token>;
     }
-
     spec schema DepositEnsures<Token> {
         payee: address;
         amount: u64;
@@ -416,7 +407,6 @@ module DiemFramework::DiemAccount {
             old(global<DiemAccount>(payee).received_events)
         );
     }
-
     spec schema DepositEmits<Token> {
         payer: address;
         payee: address;
@@ -475,7 +465,6 @@ module DiemFramework::DiemAccount {
         include TieredMintEnsures<Token>;
         include TieredMintEmits<Token>;
     }
-
     spec schema TieredMintAbortsIf<Token> {
         tc_account: signer;
         designated_dealer_address: address;
@@ -496,7 +485,6 @@ module DiemFramework::DiemAccount {
             amount: mint_amount
         };
     }
-
     spec schema TieredMintEnsures<Token> {
         designated_dealer_address: address;
         mint_amount: u64;
@@ -513,7 +501,6 @@ module DiemFramework::DiemAccount {
         /// The balance of designated dealer increases by `amount`.
         ensures post_dealer_balance == dealer_balance + mint_amount;
     }
-
     spec schema TieredMintEmits<Token> {
         tc_account: signer;
         designated_dealer_address: address;
@@ -548,7 +535,6 @@ module DiemFramework::DiemAccount {
             false
         )
     }
-
     spec cancel_burn {
         include CancelBurnAbortsIf<Token>;
         include Diem::CancelBurnWithCapEmits<Token>;
@@ -561,7 +547,6 @@ module DiemFramework::DiemAccount {
             metadata: x""
         };
     }
-
     spec schema CancelBurnAbortsIf<Token> {
         account: signer;
         preburn_address: address;
@@ -601,13 +586,11 @@ module DiemFramework::DiemAccount {
         );
         Diem::withdraw(coin, amount)
     }
-
     spec withdraw_from_balance {
         modifies global<AccountLimits::Window<Token>>(VASP::spec_parent_address(payer));
         include WithdrawFromBalanceAbortsIf<Token>;
         include WithdrawFromBalanceEnsures<Token>;
     }
-
     spec schema WithdrawFromBalanceAbortsIf<Token> {
         payer: address;
         payee: address;
@@ -626,7 +609,6 @@ module DiemFramework::DiemAccount {
                     )
             ) with errors::LIMIT_EXCEEDED;
     }
-
     spec schema WithdrawFromBalanceNoLimitsAbortsIf<Token> {
         payer: address;
         payee: address;
@@ -636,7 +618,6 @@ module DiemFramework::DiemAccount {
         include AccountFreezing::AbortsIfFrozen { account: payer };
         aborts_if balance.coin.value < amount with errors::LIMIT_EXCEEDED;
     }
-
     spec schema WithdrawFromBalanceEnsures<Token> {
         balance: Balance<Token>;
         amount: u64;
@@ -673,7 +654,6 @@ module DiemFramework::DiemAccount {
         );
         withdraw_from_balance<Token>(payer, payee, account_balance, amount)
     }
-
     spec withdraw_from {
         let payer = cap.account_address;
         modifies global<Balance<Token>>(payer);
@@ -697,7 +677,6 @@ module DiemFramework::DiemAccount {
         include WithdrawOnlyFromCapAddress<Token>;
         include WithdrawFromEmits<Token>;
     }
-
     spec schema WithdrawFromAbortsIf<Token> {
         cap: WithdrawCapability;
         payee: address;
@@ -712,7 +691,6 @@ module DiemFramework::DiemAccount {
         aborts_if !exists_at(payer) with errors::NOT_PUBLISHED;
         aborts_if !exists<Balance<Token>>(payer) with errors::NOT_PUBLISHED;
     }
-
     /// # Access Control
     spec schema WithdrawOnlyFromCapAddress<Token> {
         cap: WithdrawCapability;
@@ -721,7 +699,6 @@ module DiemFramework::DiemAccount {
             && addr != cap.account_address:
             balance<Token>(addr) == old(balance<Token>(addr));
     }
-
     spec schema WithdrawFromEmits<Token> {
         cap: WithdrawCapability;
         payee: address;
@@ -750,7 +727,6 @@ module DiemFramework::DiemAccount {
             withdraw_from(cap, signer::address_of(dd), amount, x"")
         )
     }
-
     spec preburn {
         pragma opaque;
         let dd_addr = signer::address_of(dd);
@@ -780,7 +756,6 @@ module DiemFramework::DiemAccount {
         include PreburnEnsures<Token> { dd, payer };
         include PreburnEmits<Token>;
     }
-
     spec schema PreburnAbortsIf<Token> {
         dd: signer;
         cap: WithdrawCapability;
@@ -789,7 +764,6 @@ module DiemFramework::DiemAccount {
         include WithdrawFromAbortsIf<Token> { payee: signer::address_of(dd) };
         include Diem::PreburnToAbortsIf<Token> { account: dd };
     }
-
     spec schema PreburnEnsures<Token> {
         dd: signer;
         payer: address;
@@ -802,7 +776,6 @@ module DiemFramework::DiemAccount {
         /// The value of preburn at `dd_addr` increases by `amount`;
         include Diem::PreburnToEnsures<Token> { amount, account: dd };
     }
-
     spec schema PreburnEmits<Token> {
         dd: signer;
         cap: WithdrawCapability;
@@ -986,7 +959,6 @@ module DiemFramework::DiemAccount {
             DepositOverflowAbortsIf<Token>;
         include WithdrawFromAbortsIf<Token>;
     }
-
     spec schema PayFromAbortsIfRestricted<Token> {
         cap: WithdrawCapability;
         payee: address;
@@ -1000,7 +972,6 @@ module DiemFramework::DiemAccount {
         };
         aborts_if !exists<Balance<Token>>(payer) with errors::NOT_PUBLISHED;
     }
-
     spec schema PayFromEnsures<Token> {
         payer: address;
         payee: address;
@@ -1012,7 +983,6 @@ module DiemFramework::DiemAccount {
         ensures payer != payee ==>
             balance<Token>(payee) == old(balance<Token>(payee)) + amount;
     }
-
     spec schema PayFromEmits<Token> {
         cap: WithdrawCapability;
         payee: address;
@@ -1036,20 +1006,17 @@ module DiemFramework::DiemAccount {
         );
         sender_account_resource.authentication_key = new_authentication_key;
     }
-
     spec rotate_authentication_key {
         include RotateAuthenticationKeyAbortsIf;
         include RotateAuthenticationKeyEnsures { addr: cap.account_address };
         include RotateOnlyKeyOfCapAddress;
     }
-
     spec schema RotateAuthenticationKeyAbortsIf {
         cap: &KeyRotationCapability;
         new_authentication_key: vector<u8>;
         aborts_if !exists_at(cap.account_address) with errors::NOT_PUBLISHED;
         aborts_if len(new_authentication_key) != 32 with errors::INVALID_ARGUMENT;
     }
-
     spec schema RotateAuthenticationKeyEnsures {
         addr: address;
         new_authentication_key: vector<u8>;
@@ -1080,24 +1047,20 @@ module DiemFramework::DiemAccount {
         let account = borrow_global_mut<DiemAccount>(account_address);
         option::extract(&mut account.key_rotation_capability)
     }
-
     spec extract_key_rotation_capability {
         include ExtractKeyRotationCapabilityAbortsIf;
         include ExtractKeyRotationCapabilityEnsures;
     }
-
     spec schema ExtractKeyRotationCapabilityAbortsIf {
         account: signer;
         let account_addr = signer::address_of(account);
         aborts_if !exists_at(account_addr) with errors::NOT_PUBLISHED;
         include AbortsIfDelegatedKeyRotationCapability;
     }
-
     spec schema AbortsIfDelegatedKeyRotationCapability {
         account: signer;
         aborts_if delegated_key_rotation_capability(signer::address_of(account)) with errors::INVALID_STATE;
     }
-
     spec schema ExtractKeyRotationCapabilityEnsures {
         account: signer;
         ensures delegated_key_rotation_capability(signer::address_of(account));
@@ -1111,18 +1074,15 @@ module DiemFramework::DiemAccount {
         let account = borrow_global_mut<DiemAccount>(cap.account_address);
         option::fill(&mut account.key_rotation_capability, cap)
     }
-
     spec restore_key_rotation_capability {
         include RestoreKeyRotationCapabilityAbortsIf;
         include RestoreKeyRotationCapabilityEnsures;
     }
-
     spec schema RestoreKeyRotationCapabilityAbortsIf {
         cap: KeyRotationCapability;
         aborts_if !exists_at(cap.account_address) with errors::NOT_PUBLISHED;
         aborts_if !delegated_key_rotation_capability(cap.account_address) with option::EOPTION_IS_SET;
     }
-
     spec schema RestoreKeyRotationCapabilityEnsures {
         cap: KeyRotationCapability;
         ensures spec_holds_own_key_rotation_cap(cap.account_address);
@@ -1228,7 +1188,6 @@ module DiemFramework::DiemAccount {
             }
         );
     }
-
     spec make_account {
         pragma opaque;
         // This is called from a context where invariants are disabled
@@ -1260,12 +1219,10 @@ module DiemFramework::DiemAccount {
         include MakeAccountEnsures { addr: new_account_addr };
 
     }
-
     spec schema MakeAccountEnsures {
         addr: address;
         ensures global<DiemAccount>(addr).sequence_number == 0;
     }
-
     spec schema MakeAccountAbortsIf {
         addr: address;
         auth_key_prefix: vector<u8>;
@@ -1280,7 +1237,6 @@ module DiemFramework::DiemAccount {
         // We do not need to specify aborts_if if account already exists, because make_account will
         // abort because of a published FreezingBit, first.
     }
-
     spec schema MakeAccountEmits {
         new_account_address: address;
         let post handle = global<AccountOperationsCapability>(@DiemRoot).creation_events;
@@ -1308,7 +1264,6 @@ module DiemFramework::DiemAccount {
         */
         authentication_key
     }
-
     spec create_authentication_key {
         /// The specification of this function is abstracted to avoid the complexity of
         /// vector concatenation of serialization results. The actual value of the key
@@ -1321,12 +1276,10 @@ module DiemFramework::DiemAccount {
         ensures [abstract] result
             == spec_abstract_create_authentication_key(auth_key_prefix); // && len(result) == 64;
     }
-
     spec schema CreateAuthenticationKeyAbortsIf {
         auth_key_prefix: vector<u8>;
         aborts_if 16 + len(auth_key_prefix) != 32 with errors::INVALID_ARGUMENT;
     }
-
     spec fun spec_abstract_create_authentication_key(auth_key_prefix: vector<u8>): vector<u8>;
 
     /// Creates the diem root account (during genesis). Publishes the Diem root role,
@@ -1386,7 +1339,6 @@ module DiemFramework::DiemAccount {
         modifies global<Roles::RoleId>(dr_addr);
         modifies global<AccountFreezing::FreezingBit>(dr_addr);
     }
-
     spec schema CreateDiemRootAccountAbortsIf {
         auth_key_prefix: vector<u8>;
         include DiemTimestamp::AbortsIfNotGenesis;
@@ -1400,7 +1352,6 @@ module DiemFramework::DiemAccount {
         aborts_if exists<AccountFreezing::FreezingBit>(@DiemRoot) with errors::ALREADY_PUBLISHED;
         include CreateAuthenticationKeyAbortsIf;
     }
-
     spec schema CreateDiemRootAccountEnsures {
         let dr_addr = @DiemRoot;
         ensures exists<AccountOperationsCapability>(dr_addr);
@@ -1429,7 +1380,6 @@ module DiemFramework::DiemAccount {
         VASPDomain::publish_vasp_domain_manager(&new_account);
         make_account(&new_account, auth_key_prefix)
     }
-
     spec create_treasury_compliance_account {
         pragma disable_invariants_in_body;
         pragma opaque;
@@ -1448,7 +1398,6 @@ module DiemFramework::DiemAccount {
         include MakeAccountEmits { new_account_address: @TreasuryCompliance };
         aborts_if VASPDomain::tc_domain_manager_exists() with errors::ALREADY_PUBLISHED;
     }
-
     spec schema CreateTreasuryComplianceAccountModifies {
         let tc_addr = @TreasuryCompliance;
         modifies global<DiemAccount>(tc_addr);
@@ -1460,7 +1409,6 @@ module DiemFramework::DiemAccount {
         modifies global<event::EventHandleGenerator>(@TreasuryCompliance);
         modifies global<VASPDomain::VASPDomainManager>(tc_addr);
     }
-
     spec schema CreateTreasuryComplianceAccountAbortsIf {
         dr_account: signer;
         auth_key_prefix: vector<u8>;
@@ -1472,7 +1420,6 @@ module DiemFramework::DiemAccount {
         aborts_if exists<SlidingNonce::SlidingNonce>(@TreasuryCompliance) with errors::ALREADY_PUBLISHED;
         aborts_if VASPDomain::tc_domain_manager_exists() with errors::ALREADY_PUBLISHED;
     }
-
     spec schema CreateTreasuryComplianceAccountEnsures {
         let tc_addr = @TreasuryCompliance;
         ensures Roles::spec_has_treasury_compliance_role_addr(tc_addr);
@@ -1620,7 +1567,6 @@ module DiemFramework::DiemAccount {
         make_account(&new_account, auth_key_prefix);
         add_currencies_for_account<Token>(&new_account, add_all_currencies);
     }
-
     spec create_child_vasp_account {
         pragma disable_invariants_in_body;
         include CreateChildVASPAccountAbortsIf<Token>;
@@ -1631,7 +1577,6 @@ module DiemFramework::DiemAccount {
         include AddCurrencyForAccountEnsures<Token> { addr: new_account_address };
         include MakeAccountEmits;
     }
-
     spec schema CreateChildVASPAccountAbortsIf<Token> {
         parent: signer;
         new_account_address: address;
@@ -1644,7 +1589,6 @@ module DiemFramework::DiemAccount {
         include AddCurrencyForAccountAbortsIf<Token> { addr: new_account_address };
         include MakeAccountAbortsIf { addr: new_account_address };
     }
-
     spec schema CreateChildVASPAccountEnsures<Token> {
         parent_addr: address;
         child_addr: address;
@@ -1684,7 +1628,6 @@ module DiemFramework::DiemAccount {
         );
         balance_for(borrow_global<Balance<Token>>(addr))
     }
-
     spec balance {
         aborts_if !exists<Balance<Token>>(addr) with errors::NOT_PUBLISHED;
     }
@@ -1711,7 +1654,6 @@ module DiemFramework::DiemAccount {
             Balance<Token> { coin: Diem::zero<Token>() }
         )
     }
-
     spec add_currency {
         /// An account must exist at the address
         let addr = signer::address_of(account);
@@ -1719,7 +1661,6 @@ module DiemFramework::DiemAccount {
         include AddCurrencyAbortsIf<Token>;
         include AddCurrencyEnsures<Token>;
     }
-
     spec schema AddCurrencyAbortsIf<Token> {
         account: signer;
         /// `Currency` must be valid
@@ -1742,7 +1683,6 @@ module DiemFramework::DiemAccount {
     public fun add_currency_for_test<Token>(account: &signer) {
         add_currency<Token>(account)
     }
-
     spec add_currency_for_test {
         pragma verify = false;
     }
@@ -1835,7 +1775,6 @@ module DiemFramework::DiemAccount {
             chain_id
         )
     }
-
     spec module_prologue {
         let transaction_sender = signer::address_of(sender);
         let max_transaction_fee = txn_gas_price * txn_max_gas_units;
@@ -1845,7 +1784,6 @@ module DiemFramework::DiemAccount {
         };
         ensures prologue_guarantees(sender);
     }
-
     spec schema ModulePrologueAbortsIf<Token> {
         sender: signer;
         txn_sequence_number: u64;
@@ -1894,7 +1832,6 @@ module DiemFramework::DiemAccount {
             chain_id
         )
     }
-
     spec script_prologue {
         let transaction_sender = signer::address_of(sender);
         let max_transaction_fee = txn_gas_price * txn_max_gas_units;
@@ -1904,7 +1841,6 @@ module DiemFramework::DiemAccount {
         };
         ensures prologue_guarantees(sender);
     }
-
     spec schema ScriptPrologueAbortsIf<Token> {
         sender: signer;
         txn_sequence_number: u64;
@@ -1974,7 +1910,6 @@ module DiemFramework::DiemAccount {
         aborts_if !Roles::spec_has_diem_root_role_addr(transaction_sender) with errors::INVALID_ARGUMENT;
         include PrologueCommonAbortsIf<XUS> { transaction_sender, max_transaction_fee: 0 };
     }
-
     fun check_secondary_signers(
         secondary_signer_addresses: vector<address>,
         secondary_signer_public_key_hashes: vector<vector<u8>>
@@ -2018,7 +1953,6 @@ module DiemFramework::DiemAccount {
             i = i + 1;
         };
     }
-
     spec check_secondary_signers {
         pragma opaque;
         // NOTE: this is to force the prover to honor the "opaque" pragma in the ignore opaque setting
@@ -2032,7 +1966,6 @@ module DiemFramework::DiemAccount {
             secondary_signer_public_key_hashes[j]
                 == global<DiemAccount>(secondary_signer_addresses[j]).authentication_key;
     }
-
     spec schema CheckSecondarySignersAbortsIf {
         secondary_signer_addresses: vector<address>;
         secondary_signer_public_key_hashes: vector<vector<u8>>;
@@ -2070,7 +2003,6 @@ module DiemFramework::DiemAccount {
             chain_id
         )
     }
-
     spec multi_agent_script_prologue {
         let transaction_sender = signer::address_of(sender);
         let max_transaction_fee = txn_gas_price * txn_max_gas_units;
@@ -2205,13 +2137,11 @@ module DiemFramework::DiemAccount {
             // by the prologue.
         }
     }
-
     spec prologue_common {
         let transaction_sender = signer::address_of(sender);
         let max_transaction_fee = txn_gas_price * txn_max_gas_units;
         include PrologueCommonAbortsIf<Token> { transaction_sender, max_transaction_fee };
     }
-
     spec schema PrologueCommonAbortsIf<Token> {
         transaction_sender: address;
         txn_sequence_number: u64;
@@ -2277,13 +2207,11 @@ module DiemFramework::DiemAccount {
             gas_units_remaining
         )
     }
-
     spec epilogue {
         pragma verify = false; // TODO: time out
         include EpilogueCommonAbortsIf<Token>;
         include EpilogueCommonEnsures<Token>;
     }
-
     fun epilogue_common<Token>(
         account: &signer,
         txn_sequence_number: u64,
@@ -2353,13 +2281,11 @@ module DiemFramework::DiemAccount {
             TransactionFee::pay_fee(Diem::withdraw(coin, transaction_fee_amount))
         }
     }
-
     spec epilogue_common {
         pragma verify = false; // TODO: time out
         include EpilogueCommonAbortsIf<Token>;
         include EpilogueCommonEnsures<Token>;
     }
-
     spec schema EpilogueCommonAbortsIf<Token> {
         account: signer;
         txn_sequence_number: u64;
@@ -2392,7 +2318,6 @@ module DiemFramework::DiemAccount {
                 coin: Diem<Token> { value: transaction_fee_amount }
             };
     }
-
     spec schema EpilogueCommonEnsures<Token> {
         account: signer;
         txn_sequence_number: u64;
@@ -2441,7 +2366,6 @@ module DiemFramework::DiemAccount {
         epilogue_common<XUS>(dr_account, txn_sequence_number, 0, 0, 0);
         if (should_trigger_reconfiguration) DiemConfig::reconfigure(dr_account)
     }
-
     spec writeset_epilogue {
         include WritesetEpilogueAbortsIf;
         include EpilogueCommonEnsures<XUS> {
@@ -2452,7 +2376,6 @@ module DiemFramework::DiemAccount {
         };
         include WritesetEpilogueEmits;
     }
-
     spec schema WritesetEpilogueAbortsIf {
         dr_account: signer;
         txn_sequence_number: u64;
@@ -2472,7 +2395,6 @@ module DiemFramework::DiemAccount {
         include should_trigger_reconfiguration ==>
             DiemConfig::ReconfigureAbortsIf;
     }
-
     spec schema WritesetEpilogueEmits {
         should_trigger_reconfiguration: bool;
         let handle = global<DiemWriteSetManager>(@DiemRoot).upgrade_events;
@@ -2498,14 +2420,12 @@ module DiemFramework::DiemAccount {
         ValidatorConfig::publish(&new_account, dr_account, human_name);
         make_account(&new_account, auth_key_prefix)
     }
-
     spec create_validator_account {
         pragma disable_invariants_in_body;
         include CreateValidatorAccountAbortsIf;
         include CreateValidatorAccountEnsures;
         include MakeAccountEmits;
     }
-
     spec schema CreateValidatorAccountAbortsIf {
         dr_account: signer;
         new_account_address: address;
@@ -2516,7 +2436,6 @@ module DiemFramework::DiemAccount {
         include DiemTimestamp::AbortsIfNotOperating;
         aborts_if ValidatorConfig::exists_config(new_account_address) with errors::ALREADY_PUBLISHED;
     }
-
     spec schema CreateValidatorAccountEnsures {
         new_account_address: address;
         // Note: `Roles::GrantRole` has both ensure's and aborts_if's.
@@ -2542,13 +2461,11 @@ module DiemFramework::DiemAccount {
         ValidatorOperatorConfig::publish(&new_account, dr_account, human_name);
         make_account(&new_account, auth_key_prefix)
     }
-
     spec create_validator_operator_account {
         pragma disable_invariants_in_body;
         include CreateValidatorOperatorAccountAbortsIf;
         include CreateValidatorOperatorAccountEnsures;
     }
-
     spec schema CreateValidatorOperatorAccountAbortsIf {
         dr_account: signer;
         new_account_address: address;
@@ -2561,7 +2478,6 @@ module DiemFramework::DiemAccount {
             new_account_address
         ) with errors::ALREADY_PUBLISHED;
     }
-
     spec schema CreateValidatorOperatorAccountEnsures {
         new_account_address: address;
         include Roles::GrantRole {
@@ -2600,7 +2516,6 @@ module DiemFramework::DiemAccount {
         let addr = signer::address_of(account);
         ensures spec_holds_own_key_rotation_cap(addr);
     }
-
     spec schema PreserveKeyRotationCapAbsence {
         /// The absence of KeyRotationCap is preserved.
         ensures forall addr: address:
@@ -2635,7 +2550,6 @@ module DiemFramework::DiemAccount {
         let addr = signer::address_of(account);
         ensures spec_holds_own_withdraw_cap(addr);
     }
-
     spec schema PreserveWithdrawCapAbsence {
         /// The absence of WithdrawCap is preserved.
         ensures forall addr: address:

@@ -1,6 +1,5 @@
 // test case: multiple blank lines after module begins and before it ends.
 module TestFunFormat {
-
     struct SomeOtherStruct has drop {
         some_field: u64
     }

@@ -15,7 +15,6 @@ module std::ascii {
     struct Char has copy, drop, store {
         byte: u8
     }
-
     spec Char {
         invariant is_valid_char(byte);
     }

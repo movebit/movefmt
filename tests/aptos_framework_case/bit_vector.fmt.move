@@ -13,7 +13,6 @@ module std::bit_vector {
     spec BitVector {
         invariant length == len(bit_field);
     }
-
     struct BitVector has copy, drop, store {
         length: u64,
         bit_field: vector<bool>
@@ -41,13 +40,11 @@ module std::bit_vector {
 
         BitVector { length, bit_field }
     }
-
     spec new {
         include NewAbortsIf;
         ensures result.length == length;
         ensures len(result.bit_field) == length;
     }
-
     spec schema NewAbortsIf {
         length: u64;
         aborts_if length <= 0 with ELENGTH;
@@ -60,12 +57,10 @@ module std::bit_vector {
         let x = vector::borrow_mut(&mut bitvector.bit_field, bit_index);
         *x = true;
     }
-
     spec set {
         include SetAbortsIf;
         ensures bitvector.bit_field[bit_index];
     }
-
     spec schema SetAbortsIf {
         bitvector: BitVector;
         bit_index: u64;
@@ -78,12 +73,10 @@ module std::bit_vector {
         let x = vector::borrow_mut(&mut bitvector.bit_field, bit_index);
         *x = false;
     }
-
     spec unset {
         include UnsetAbortsIf;
         ensures !bitvector.bit_field[bit_index];
     }
-
     spec schema UnsetAbortsIf {
         bitvector: BitVector;
         bit_index: u64;
@@ -114,7 +107,6 @@ module std::bit_vector {
             };
         }
     }
-
     spec shift_left {
         // TODO: set to false because data invariant cannot be proved with inline function. Will remove it once inline is supported
         pragma verify = false;
@@ -126,18 +118,15 @@ module std::bit_vector {
         assert!(bit_index < vector::length(&bitvector.bit_field), EINDEX);
         *vector::borrow(&bitvector.bit_field, bit_index)
     }
-
     spec is_index_set {
         include IsIndexSetAbortsIf;
         ensures result == bitvector.bit_field[bit_index];
     }
-
     spec schema IsIndexSetAbortsIf {
         bitvector: BitVector;
         bit_index: u64;
         aborts_if bit_index >= length(bitvector) with EINDEX;
     }
-
     spec fun spec_is_index_set(bitvector: BitVector, bit_index: u64): bool {
         if (bit_index >= length(bitvector)) { false }
         else {
@@ -183,7 +172,6 @@ module std::bit_vector {
         aborts_if start_index >= bitvector.length;
         ensures forall i in start_index..result: is_index_set(bitvector, i);
     }
-
     #[test_only]
     public fun word_size(): u64 {
         WORD_SIZE
@@ -247,7 +235,6 @@ module std::bit_vector {
             }
         }
     }
-
     spec shift_left_for_verification_only {
         aborts_if false;
         ensures amount >= bitvector.length ==>

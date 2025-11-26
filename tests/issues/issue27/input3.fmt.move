@@ -28,7 +28,6 @@ module OneToOneMarket {
 
 address 0x70DD {
 module ToddNickels {
-
     struct T has copy, drop, store {}
 }
 }

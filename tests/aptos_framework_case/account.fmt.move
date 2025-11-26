@@ -174,6 +174,7 @@ module aptos_framework::account {
 
     /// Explicitly separate the GUID space between Object and Account to prevent accidental overlap.
     const MAX_GUID_CREATION_NUM: u64 = 0x4000000000000;
+
     #[test_only]
     /// Create signer for testing, independently of an Aptos-style `Account`.
     public fun create_signer_for_test(addr: address): signer {
@@ -858,7 +859,6 @@ module aptos_framework::account {
     ///////////////////////////////////////////////////////////////////////////
     /// GUID management methods.
     ///////////////////////////////////////////////////////////////////////////
-
     public fun create_guid(account_signer: &signer): guid::GUID acquires Account {
         let addr = signer::address_of(account_signer);
         let account = borrow_global_mut<Account>(addr);
@@ -873,7 +873,6 @@ module aptos_framework::account {
     ///////////////////////////////////////////////////////////////////////////
     /// GUID management methods.
     ///////////////////////////////////////////////////////////////////////////
-
     public fun new_event_handle<T: drop + store>(account: &signer): EventHandle<T> acquires Account {
         event::new_event_handle(create_guid(account))
     }
@@ -881,7 +880,6 @@ module aptos_framework::account {
     ///////////////////////////////////////////////////////////////////////////
     /// Coin management methods.
     ///////////////////////////////////////////////////////////////////////////
-
     public(friend) fun register_coin<CoinType>(account_addr: address) acquires Account {
         let account = borrow_global_mut<Account>(account_addr);
         event::emit_event<CoinRegisterEvent>(
@@ -895,7 +893,6 @@ module aptos_framework::account {
     ///////////////////////////////////////////////////////////////////////////
     // Test-only create signerCapabilityOfferProofChallengeV2 and return it
     ///////////////////////////////////////////////////////////////////////////
-
     #[test_only]
     public fun get_signer_capability_offer_proof_challenge_v2(
         source_address: address, recipient_address: address
@@ -910,7 +907,6 @@ module aptos_framework::account {
     ///////////////////////////////////////////////////////////////////////////
     /// Capability based functions for efficient use.
     ///////////////////////////////////////////////////////////////////////////
-
     public fun create_signer_with_capability(
         capability: &SignerCapability
     ): signer {
@@ -1095,7 +1091,6 @@ module aptos_framework::account {
     ///////////////////////////////////////////////////////////////////////////
     // Test-only sequence number mocking for extant Account resource
     ///////////////////////////////////////////////////////////////////////////
-
     #[test_only]
     /// Increment sequence number of account at address `addr`
     public fun increment_sequence_number_for_test(addr: address) acquires Account {
@@ -1152,7 +1147,6 @@ module aptos_framework::account {
     ///////////////////////////////////////////////////////////////////////////
     // Test account helpers
     ///////////////////////////////////////////////////////////////////////////
-
     #[test(alice = @0xa11ce)]
     #[expected_failure(abort_code = 65537, location = aptos_framework::ed25519)]
     public entry fun test_empty_public_key(alice: signer) acquires Account, OriginatingAddress {
@@ -1202,7 +1196,6 @@ module aptos_framework::account {
     //
     // Tests for offering & revoking signer capabilities
     //
-
     #[test(bob = @0x345)]
     #[expected_failure(abort_code = 65544, location = Self)]
     public entry fun test_invalid_offer_signer_capability(bob: signer) acquires Account {
@@ -1563,7 +1556,6 @@ module aptos_framework::account {
     //
     // Tests for key rotation
     //
-
     #[test(account = @aptos_framework)]
     public entry fun test_valid_rotate_authentication_key_multi_ed25519_to_multi_ed25519(
         account: signer
