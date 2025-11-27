@@ -288,7 +288,7 @@ impl Format {
             }
             self.process_last_empty_line();
         }
-        self.add_comments(u32::MAX, "end_of_move_file".to_string());
+        self.add_comments(u32::MAX, "end_of_move_file".to_string(), &self.format_context.borrow());
         self.remove_trailing_whitespaces();
         self.process_last_empty_line();
         self.ret.into_inner()
@@ -969,6 +969,7 @@ impl Format {
                 .simple_str()
                 .unwrap_or_default()
                 .to_string(),
+            &self.format_context.borrow()
         );
         let ret_copy = self.ret.clone().into_inner();
         // may be already add_a_new_line in step5 (doc_comment in tail of line)
@@ -1505,7 +1506,9 @@ impl Format {
                 if line_diff == 0 {
                     // The keyword is on the same line as the last line.
                     // println!("Two blocks on the same line, need one blank line");
-                    self.new_line(None);
+                    if !&source[pre_simple_token_end_pos as usize + 1..*pos as usize].trim().is_empty() {
+                        self.new_line(None);
+                    }
                     return;
                 }
 
@@ -1697,14 +1700,15 @@ impl Format {
                     let ret_copy = self.ret.clone().into_inner();
                     *self.ret.borrow_mut() = ret_copy.trim_end().to_string();
                     self.new_line(None);
+                    if self.translate_line(*pos) - self.cur_line.get() == 0 {
+                        self.new_line(None);
+                    }
                 }
             }
 
             // step2: add comment(xxx) before current simple_token
             let (new_line_before_cmt, new_line_after_cmt) =
-                self.add_comments(*pos, content.clone());
-
-            // let line_diff = self.translate_line(*pos) - self.cur_line.get();
+                self.add_comments(*pos, content.clone(), &fc);
 
             // step3
             self.process_blank_lines_before_simple_token(
@@ -1852,13 +1856,14 @@ impl Format {
         }
         self.format_context.borrow_mut().pre_token_tree = token.clone();
     }
-
-    fn add_comments(&self, pos: u32, content: String) -> (bool, bool) {
+    
+    fn add_comments(&self, pos: u32, content: String, format_context: &FormatContext) -> (bool, bool) {
         let mut comment_nums_before_cur_simple_token = 0;
         let mut last_cmt_is_block_cmt = false;
         let mut last_cmt_start_pos = 0;
         let mut new_line_before_cmt = false;
         let mut new_line_after_cmt = false;
+        let pre_tok = format_context.pre_simple_token.get_end_tok();
         for c in &self.comments[self.comments_index.get()..] {
             if c.start_offset > pos {
                 break;
@@ -1868,7 +1873,6 @@ impl Format {
             let cmt_kind = c.comment_kind();
             if !new_line_before_cmt && line_diff == 1 {
                 let ret_copy = self.ret.clone().into_inner();
-                // if located after nestedToken start, maybe already chanedLine
                 if !ret_copy.trim_end_matches(' ').ends_with('\n') {
                     *self.ret.borrow_mut() = ret_copy.trim_end().to_string();
                     self.new_line(None);
@@ -1881,7 +1885,9 @@ impl Format {
                     c.start_offset,
                     self.cur_line.get()
                 );
-                self.new_line(None);
+                if pre_tok != Tok::NumSign {
+                    self.new_line(None);
+                }                
                 if !new_line_before_cmt {
                     new_line_before_cmt = true;
                 }

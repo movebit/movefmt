@@ -10,8 +10,7 @@ module test_module2 {
     struct TestStruct2 { // This is a comment before struct definition
         field1: u64, // This is a comment for field1
         field2: bool // This is a comment for field2
-    }
-    // This is a comment after struct definition
+    } // This is a comment after struct definition
 }
 
 module test_module4 {

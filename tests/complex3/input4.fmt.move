@@ -21,6 +21,7 @@ module test {
             resolve(proposal_id, signer_address)
         }
     }
+
     /// Return the current state of a voting delegation of a delegator in a delegation pool.
     public fun calculate_and_update_voting_delegation(
         pool_address: address, delegator_address: address
