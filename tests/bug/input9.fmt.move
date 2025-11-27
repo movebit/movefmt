@@ -50,12 +50,15 @@ module aptos_std::string_utils {
     inline fun list1<T0>(a: T0): Cons<T0, NIL> {
         cons(a, nil())
     }
+
     inline fun list2<T0, T1>(a: T0, b: T1): Cons<T0, Cons<T1, NIL>> {
         cons(a, list1(b))
     }
+
     inline fun list3<T0, T1, T2>(a: T0, b: T1, c: T2): Cons<T0, Cons<T1, Cons<T2, NIL>>> {
         cons(a, list2(b, c))
     }
+
     inline fun list4<T0, T1, T2, T3>(a: T0, b: T1, c: T2, d: T3)
         : Cons<T0, Cons<T1, Cons<T2, Cons<T3, NIL>>>> {
         cons(a, list3(b, c, d))

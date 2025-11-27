@@ -140,6 +140,23 @@ fn is_bin_op(tok: Tok) -> bool {
     BIN_OPS.contains(&tok)
 }
 
+fn is_big_block_token(token: &TokenTree) -> bool {
+    let tok = token.get_end_tok();
+    matches!(
+        tok,
+        Tok::NumSign
+            | Tok::Struct
+            | Tok::Fun
+            | Tok::Module
+            | Tok::Spec
+            | Tok::Script
+            | Tok::Public
+            | Tok::Native
+            | Tok::Friend
+            | Tok::Inline
+    ) || token.simple_str() == Some("package")
+}
+
 fn token_to_ability(token: Tok, content: &str) -> Option<Ability_> {
     match (token, content) {
         (Tok::Copy, _) => Some(Ability_::Copy),
@@ -288,7 +305,11 @@ impl Format {
             }
             self.process_last_empty_line();
         }
-        self.add_comments(u32::MAX, "end_of_move_file".to_string(), &self.format_context.borrow());
+        self.add_comments(
+            u32::MAX,
+            "end_of_move_file".to_string(),
+            &self.format_context.borrow(),
+        );
         self.remove_trailing_whitespaces();
         self.process_last_empty_line();
         self.ret.into_inner()
@@ -969,7 +990,7 @@ impl Format {
                 .simple_str()
                 .unwrap_or_default()
                 .to_string(),
-            &self.format_context.borrow()
+            &self.format_context.borrow(),
         );
         let ret_copy = self.ret.clone().into_inner();
         // may be already add_a_new_line in step5 (doc_comment in tail of line)
@@ -1309,7 +1330,13 @@ impl Format {
         }
     }
 
-    fn maybe_begin_of_if_else(&self, cur_nested_kind: NestKind, token: &TokenTree, pre_simple_token: &TokenTree, next_token: Option<&TokenTree>) {
+    fn maybe_begin_of_if_else(
+        &self,
+        cur_nested_kind: NestKind,
+        token: &TokenTree,
+        pre_simple_token: &TokenTree,
+        next_token: Option<&TokenTree>,
+    ) {
         // updated in 20240517: add condition `NestKind_::Bracket`
         if cur_nested_kind.kind == NestKind_::Bracket {
             return;
@@ -1395,7 +1422,31 @@ impl Format {
         }
     }
 
-    fn maybe_end_of_if_else(&self, cur_nested_kind: NestKind, token: &TokenTree, next_token: Option<&TokenTree>) {
+    fn maybe_begin_of_big_block(&self, token: &TokenTree, pos: u32, pre_token_tree: &TokenTree) {
+        if let TokenTree::Nested { kind, note, .. } = pre_token_tree {
+            if is_big_block_token(token)
+                && kind.kind == NestKind_::Brace
+                && matches!(
+                    note.unwrap_or_default(),
+                    Note::StructDefinition | Note::FunBody | Note::ModuleDef
+                )
+            {
+                let ret_copy = self.ret.clone().into_inner();
+                *self.ret.borrow_mut() = ret_copy.trim_end().to_string();
+                self.new_line(None);
+                if self.translate_line(pos) - self.cur_line.get() == 0 {
+                    self.new_line(None);
+                }
+            }
+        }
+    }
+
+    fn maybe_end_of_if_else(
+        &self,
+        cur_nested_kind: NestKind,
+        token: &TokenTree,
+        next_token: Option<&TokenTree>,
+    ) {
         // added in 20240115
         // updated in 20240124
         // updated in 20240222: remove condition `if Tok::RBrace != *tok `
@@ -1506,7 +1557,10 @@ impl Format {
                 if line_diff == 0 {
                     // The keyword is on the same line as the last line.
                     // println!("Two blocks on the same line, need one blank line");
-                    if !&source[pre_simple_token_end_pos as usize + 1..*pos as usize].trim().is_empty() {
+                    if !&source[pre_simple_token_end_pos as usize + 1..*pos as usize]
+                        .trim()
+                        .is_empty()
+                    {
                         self.new_line(None);
                     }
                     return;
@@ -1550,8 +1604,7 @@ impl Format {
             }
 
             if pre_tok == Tok::Semicolon {
-                let maybe_comment =
-                    &source[pre_simple_token_end_pos as usize + 1..*pos as usize];
+                let maybe_comment = &source[pre_simple_token_end_pos as usize + 1..*pos as usize];
                 let has_comment = !maybe_comment.trim().is_empty();
                 if already_added_new_line {
                     // A newline has already been emitted.
@@ -1625,7 +1678,7 @@ impl Format {
 
     fn fmt_simple_token_core(
         &self,
-        cur_nested_kind: NestKind, 
+        cur_nested_kind: NestKind,
         token: &TokenTree,
         next_token: Option<&TokenTree>,
         new_line_after: bool,
@@ -1659,7 +1712,13 @@ impl Format {
             }
         }
 
-        if self.judge_change_new_line_when_over_limits(content.clone(), *tok, pre_tok, *note, next_token) {
+        if self.judge_change_new_line_when_over_limits(
+            content.clone(),
+            *tok,
+            pre_tok,
+            *note,
+            next_token,
+        ) {
             self.handle_split_line(cur_nested_kind, leading_space_cnt);
         } else if *tok == Tok::Colon {
             self.may_inc_depth_before_fun_ret_ty(next_token);
@@ -1682,29 +1741,13 @@ impl Format {
             let mut fc = self.format_context.borrow_mut();
 
             // step1
-            self.maybe_begin_of_if_else(fc.cur_nested_kind, token, &fc.pre_simple_token, next_token);
-
-            let is_block_begin_token = matches!(
-                tok,
-                &Tok::NumSign | &Tok::Struct | &Tok::Fun | &Tok::Module | &Tok::Public
+            self.maybe_begin_of_if_else(
+                fc.cur_nested_kind,
+                token,
+                &fc.pre_simple_token,
+                next_token,
             );
-            
-            if let TokenTree::Nested { kind, note, .. } = &fc.pre_token_tree {
-                if is_block_begin_token
-                    && kind.kind == NestKind_::Brace
-                    && matches!(
-                        note.unwrap_or_default(),
-                        Note::StructDefinition | Note::FunBody | Note::ModuleDef
-                    )
-                {
-                    let ret_copy = self.ret.clone().into_inner();
-                    *self.ret.borrow_mut() = ret_copy.trim_end().to_string();
-                    self.new_line(None);
-                    if self.translate_line(*pos) - self.cur_line.get() == 0 {
-                        self.new_line(None);
-                    }
-                }
-            }
+            self.maybe_begin_of_big_block(token, *pos, &fc.pre_token_tree);
 
             // step2: add comment(xxx) before current simple_token
             let (new_line_before_cmt, new_line_after_cmt) =
@@ -1721,7 +1764,13 @@ impl Format {
             );
 
             // step4
-            self.fmt_simple_token_core(fc.cur_nested_kind, token, next_token, new_line_after, fc.pre_simple_token.get_end_tok());
+            self.fmt_simple_token_core(
+                fc.cur_nested_kind,
+                token,
+                next_token,
+                new_line_after,
+                fc.pre_simple_token.get_end_tok(),
+            );
 
             // step5
             self.maybe_end_of_if_else(fc.cur_nested_kind, token, next_token);
@@ -1856,8 +1905,13 @@ impl Format {
         }
         self.format_context.borrow_mut().pre_token_tree = token.clone();
     }
-    
-    fn add_comments(&self, pos: u32, content: String, format_context: &FormatContext) -> (bool, bool) {
+
+    fn add_comments(
+        &self,
+        pos: u32,
+        content: String,
+        format_context: &FormatContext,
+    ) -> (bool, bool) {
         let mut comment_nums_before_cur_simple_token = 0;
         let mut last_cmt_is_block_cmt = false;
         let mut last_cmt_start_pos = 0;
@@ -1887,7 +1941,7 @@ impl Format {
                 );
                 if pre_tok != Tok::NumSign {
                     self.new_line(None);
-                }                
+                }
                 if !new_line_before_cmt {
                     new_line_before_cmt = true;
                 }
