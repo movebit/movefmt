@@ -14,6 +14,7 @@ module std::ascii {
         // comment
         byte: u8
     }
+
     spec Char {
         // comment
         invariant is_valid_char(byte); //comment

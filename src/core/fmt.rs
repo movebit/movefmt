@@ -140,7 +140,7 @@ fn is_bin_op(tok: Tok) -> bool {
     BIN_OPS.contains(&tok)
 }
 
-fn is_big_block_token(token: &TokenTree) -> bool {
+fn is_big_block_token(token: &TokenTree, next_token: Option<&TokenTree>) -> bool {
     let tok = token.get_end_tok();
     matches!(
         tok,
@@ -149,12 +149,13 @@ fn is_big_block_token(token: &TokenTree) -> bool {
             | Tok::Fun
             | Tok::Module
             | Tok::Spec
-            | Tok::Script
             | Tok::Public
             | Tok::Native
-            | Tok::Friend
             | Tok::Inline
-    ) || token.simple_str() == Some("package")
+    ) || matches!(token.simple_str(), Some("package") | Some("entry"))
+     || (tok == Tok::Friend && next_token.is_some() && next_token.unwrap().get_start_tok() == Tok::Fun) // friend fun
+     || (tok == Tok::Friend && next_token.is_none())  // public(friend) fun
+     || (tok == Tok::Script && next_token.is_none()) // public(script) fun
 }
 
 fn token_to_ability(token: Tok, content: &str) -> Option<Ability_> {
@@ -1422,9 +1423,15 @@ impl Format {
         }
     }
 
-    fn maybe_begin_of_big_block(&self, token: &TokenTree, pos: u32, pre_token_tree: &TokenTree) {
+    fn maybe_begin_of_big_block(
+        &self,
+        token: &TokenTree,
+        next_token: Option<&TokenTree>,
+        pos: u32,
+        pre_token_tree: &TokenTree,
+    ) {
         if let TokenTree::Nested { kind, note, .. } = pre_token_tree {
-            if is_big_block_token(token)
+            if is_big_block_token(token, next_token)
                 && kind.kind == NestKind_::Brace
                 && matches!(
                     note.unwrap_or_default(),
@@ -1486,9 +1493,8 @@ impl Format {
     fn process_blank_lines_before_simple_token(
         &self,
         token: &TokenTree,
-        pre_simple_token: &TokenTree,
-        pre_token_tree: &TokenTree,
-        source: &String,
+        next_token: Option<&TokenTree>,
+        format_context: &FormatContext,
         new_line_before_cmt: bool,
         new_line_after_cmt: bool,
     ) {
@@ -1498,6 +1504,9 @@ impl Format {
         else {
             return;
         };
+        let pre_simple_token = &format_context.pre_simple_token;
+        let pre_token_tree = &format_context.pre_token_tree;
+        let source = &format_context.content;
 
         let pre_simple_token_end_pos = pre_simple_token.end_pos();
         if pre_simple_token_end_pos == 0 {
@@ -1505,10 +1514,7 @@ impl Format {
         }
         let pre_tok = pre_simple_token.get_end_tok();
         let line_diff = self.translate_line(*pos) - self.cur_line.get();
-        let is_normal_token = !matches!(
-            tok,
-            &Tok::NumSign | &Tok::Struct | &Tok::Fun | &Tok::Module | &Tok::Public
-        );
+        let is_normal_token = !is_big_block_token(token, next_token);
         /*
         ** simple1:
         self.translate_line(*pos) = 6
@@ -1521,7 +1527,7 @@ impl Format {
         */
         if line_diff > 1
             && expr_fmt::need_newline_when_trim_blank_line(&pre_tok, tok)
-            && is_normal_token
+            && (is_normal_token || tok == &Tok::Spec)
         {
             // There are multiple blank lines between the cur_line and the current code simple_token
             tracing::debug!(
@@ -1747,7 +1753,7 @@ impl Format {
                 &fc.pre_simple_token,
                 next_token,
             );
-            self.maybe_begin_of_big_block(token, *pos, &fc.pre_token_tree);
+            self.maybe_begin_of_big_block(token, next_token, *pos, &fc.pre_token_tree);
 
             // step2: add comment(xxx) before current simple_token
             let (new_line_before_cmt, new_line_after_cmt) =
@@ -1756,9 +1762,8 @@ impl Format {
             // step3
             self.process_blank_lines_before_simple_token(
                 token,
-                &fc.pre_simple_token,
-                &fc.pre_token_tree,
-                &fc.content,
+                next_token,
+                &fc,
                 new_line_before_cmt,
                 new_line_after_cmt,
             );

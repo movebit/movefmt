@@ -15,6 +15,7 @@ module std::ascii {
         // comment
         bytes: vector<u8> // comment
     }
+
     spec String {
         invariant forall i in 0..len(bytes): is_valid_char(bytes[i]);
     }

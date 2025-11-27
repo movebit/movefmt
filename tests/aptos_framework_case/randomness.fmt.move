@@ -293,6 +293,7 @@ module aptos_framework::randomness {
         };
 
         let sample = safe_add_mod(sample, r0 % range, range);
+
         spec {
             assert sample >= 0 && sample < max_excl - min_incl;
         };
@@ -323,6 +324,7 @@ module aptos_framework::randomness {
             std::vector::push_back(&mut values, i);
             i = i + 1;
         };
+
         spec {
             assert len(values) == n;
         };
@@ -336,6 +338,7 @@ module aptos_framework::randomness {
             tail > 0
         }) {
             let pop_position = u64_range_internal(0, tail + 1);
+
             spec {
                 assert pop_position < len(values);
             };

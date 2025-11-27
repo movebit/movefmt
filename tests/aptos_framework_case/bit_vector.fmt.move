@@ -33,6 +33,7 @@ module std::bit_vector {
             vector::push_back(&mut bit_field, false);
             counter = counter + 1;
         };
+
         spec {
             assert counter == length;
             assert len(bit_field) == length;
@@ -40,6 +41,7 @@ module std::bit_vector {
 
         BitVector { length, bit_field }
     }
+
     spec new {
         include NewAbortsIf;
         ensures result.length == length;
@@ -57,6 +59,7 @@ module std::bit_vector {
         let x = vector::borrow_mut(&mut bitvector.bit_field, bit_index);
         *x = true;
     }
+
     spec set {
         include SetAbortsIf;
         ensures bitvector.bit_field[bit_index];
@@ -73,6 +76,7 @@ module std::bit_vector {
         let x = vector::borrow_mut(&mut bitvector.bit_field, bit_index);
         *x = false;
     }
+
     spec unset {
         include UnsetAbortsIf;
         ensures !bitvector.bit_field[bit_index];
@@ -107,6 +111,7 @@ module std::bit_vector {
             };
         }
     }
+
     spec shift_left {
         // TODO: set to false because data invariant cannot be proved with inline function. Will remove it once inline is supported
         pragma verify = false;
@@ -118,6 +123,7 @@ module std::bit_vector {
         assert!(bit_index < vector::length(&bitvector.bit_field), EINDEX);
         *vector::borrow(&bitvector.bit_field, bit_index)
     }
+
     spec is_index_set {
         include IsIndexSetAbortsIf;
         ensures result == bitvector.bit_field[bit_index];
@@ -235,6 +241,7 @@ module std::bit_vector {
             }
         }
     }
+
     spec shift_left_for_verification_only {
         aborts_if false;
         ensures amount >= bitvector.length ==>
