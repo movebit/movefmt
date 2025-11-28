@@ -1003,7 +1003,7 @@ dependencies = [
 
 [[package]]
 name = "movefmt"
-version = "1.4.2"
+version = "1.4.3"
 dependencies = [
  "anyhow",
  "bisection",

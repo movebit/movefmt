@@ -8,6 +8,7 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.4.3">v1.4.3</a><br/>
 <a href="#v1.4.2">v1.4.2</a><br/>
 <a href="#v1.4.1">v1.4.1</a><br/>
 <a href="#v1.4.0">v1.4.0</a><br/>
@@ -45,6 +46,18 @@
 </td>
 </tr>
 </table>
+
+
+<a id="v1.4.3"></a>
+## 2025-11-28, Version v1.4.3
+* [[`6e597b6`](https://github.com/movebit/movefmt/commit/6e597b6a50aef06effbf87865841157a8e0bd4cc)] - fix bug on normal brace block
+* [[`703b839`](https://github.com/movebit/movefmt/commit/703b839b8e473f0c9a386f59cac271f404c3fa6a)] - optimize add_comments()
+* [[`b9c37b0`](https://github.com/movebit/movefmt/commit/b9c37b08fc6aad60461d4eab7494c3227d423d50)] - optimize formatting on spec
+* [[`a5f3f15`](https://github.com/movebit/movefmt/commit/a5f3f15bce726007fcaa7c85b37d6b6597964ddc)] - optimize formatting on inline fun
+* [[`1573230`](https://github.com/movebit/movefmt/commit/157323053f4b2c05234b2fc229def5dadb475cb5)] - optmize formatting on comments before block token
+* [[`cc4c2ab`](https://github.com/movebit/movefmt/commit/cc4c2abe16fc639e7f1ef26b176ffcc2e57b62b6)] - optimize format_simple_token()
+* [[`eab1d2e`](https://github.com/movebit/movefmt/commit/eab1d2eaeec9e0df891d7a32bd6a766208528bad)] - optimize big block token when it's on the same line as the previous ending token
+* [[`1ff6ee8`](https://github.com/movebit/movefmt/commit/1ff6ee888e5c247cd3837713fbb924e59de5322c)] - remove big_block_fmt
 
 
 <a id="v1.4.2"></a>
