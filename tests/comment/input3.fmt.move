@@ -8,7 +8,6 @@ a resource account controlled by the delegation pool.</li>
 the commission fee is 0%.</li>
 <li></li>
  */
-
 module aptos_framework::delegation_pool {
     use std::vector;
 }

@@ -157,7 +157,6 @@ module 0xABCD::simple {
     //
     // Resource
     //
-
     struct ByteResource has key {
         data: vector<u8>
     }

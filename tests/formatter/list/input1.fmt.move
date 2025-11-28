@@ -1,5 +1,4 @@
 module econia::incentives {
-
     fun init_module(
         // A reference to the signer
         econia: &signer

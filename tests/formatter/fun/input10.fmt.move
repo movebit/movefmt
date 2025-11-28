@@ -1,7 +1,6 @@
 
 // test case:  there are blank lines at the top of a file before any code begins.
 module TestFunFormat {
-
     struct SomeOtherStruct has drop {
         some_field: u64
     }

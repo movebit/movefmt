@@ -6,7 +6,6 @@ module Storage {
     struct SomeStruct has drop {
         some_field: u64
     }
-
     // type u64 is put into angle brackets meaning
     // that we're using Box with type u64
     public fun create_box(value: u64): Box<u64> {

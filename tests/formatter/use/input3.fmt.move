@@ -1,5 +1,4 @@
 /// test_point: Use items one by one, with block comments on each line
-
 module BlockComment {
     use aptos_std::type_info::{
         /* use_item before */ Self,

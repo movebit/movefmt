@@ -95,7 +95,6 @@ module aptos_std::aptos_hash {
     //
     // Testing
     //
-
     #[test]
     fun keccak256_test() {
         let inputs = vector[b"testing", b""];

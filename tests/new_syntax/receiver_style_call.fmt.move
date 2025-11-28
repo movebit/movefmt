@@ -1,7 +1,6 @@
 // from aptos-core/third_party/move/move-compiler-v2/transactional-tests/tests/no-v1-comparison/calls_with_freeze.move
 //# publish
 module 0x42::m {
-
     struct S has drop {
         x: u64
     }

@@ -23,6 +23,7 @@ module test_branch2 {
         }
     }
 }
+
 #[fmt::skip]
 module test_branch3 {
     fun bucket_index(level: u8, num_buckets: u64, hash: u64): u64 {

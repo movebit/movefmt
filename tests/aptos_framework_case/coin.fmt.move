@@ -207,10 +207,12 @@ module aptos_framework::coin {
             amount <= MAX_U64,
             error::out_of_range(EAGGREGATABLE_COIN_VALUE_TOO_LARGE)
         );
+
         spec {
             update aggregate_supply<CoinType> = aggregate_supply<CoinType> - amount;
         };
         aggregator::sub(&mut coin.value, amount);
+
         spec {
             update supply<CoinType> = supply<CoinType> + amount;
         };
@@ -226,6 +228,7 @@ module aptos_framework::coin {
         };
         let Coin { value } = coin;
         let amount = (value as u128);
+
         spec {
             update aggregate_supply<CoinType> = aggregate_supply<CoinType> + amount;
         };
@@ -413,10 +416,12 @@ module aptos_framework::coin {
     /// Extracts `amount` from the passed-in `coin`, where the original token is modified in place.
     public fun extract<CoinType>(coin: &mut Coin<CoinType>, amount: u64): Coin<CoinType> {
         assert!(coin.value >= amount, error::invalid_argument(EINSUFFICIENT_BALANCE));
+
         spec {
             update supply<CoinType> = supply<CoinType> - amount;
         };
         coin.value = coin.value - amount;
+
         spec {
             update supply<CoinType> = supply<CoinType> + amount;
         };
@@ -426,10 +431,12 @@ module aptos_framework::coin {
     /// Extracts the entire amount from the passed-in `coin`, where the original token is modified in place.
     public fun extract_all<CoinType>(coin: &mut Coin<CoinType>): Coin<CoinType> {
         let total_value = coin.value;
+
         spec {
             update supply<CoinType> = supply<CoinType> - coin.value;
         };
         coin.value = 0;
+
         spec {
             update supply<CoinType> = supply<CoinType> + total_value;
         };
@@ -583,10 +590,12 @@ module aptos_framework::coin {
         spec {
             assume dst_coin.value + source_coin.value <= MAX_U64;
         };
+
         spec {
             update supply<CoinType> = supply<CoinType> - source_coin.value;
         };
         let Coin { value } = source_coin;
+
         spec {
             update supply<CoinType> = supply<CoinType> + value;
         };
@@ -607,6 +616,7 @@ module aptos_framework::coin {
             &mut borrow_global_mut<CoinInfo<CoinType>>(coin_address<CoinType>()).supply;
         if (option::is_some(maybe_supply)) {
             let supply = option::borrow_mut(maybe_supply);
+
             spec {
                 use aptos_framework::optional_aggregator;
                 use aptos_framework::aggregator;
@@ -627,6 +637,7 @@ module aptos_framework::coin {
             };
             optional_aggregator::add(supply, (amount as u128));
         };
+
         spec {
             update supply<CoinType> = supply<CoinType> + amount;
         };

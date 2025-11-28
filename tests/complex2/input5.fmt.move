@@ -1,6 +1,5 @@
 address 0x2 {
 module Token {
-
     struct Coin<AssetType: copy + drop> has store {
         type: AssetType,
         value: u64

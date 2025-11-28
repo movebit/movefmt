@@ -1,5 +1,4 @@
 /// test_point: Multiple blank lines between use statements
-
 module BlockLine {
     // Multiple blank lines between statements
     use aptos_std::type_info::{

@@ -25,7 +25,6 @@ module oracle::oracle {
     const E_BAD_PRICE: u64 = 3;
 
     // Events
-
     struct UpdateOracleEvent has drop, store {
         feed: address,
         adapter: u8,
@@ -35,13 +34,11 @@ module oracle::oracle {
     // Adapters
     const ADAPTER_SWITCHBOARD: u8 = 1;
     // const ADAPTER_PYTH: u8 = 2;
-
     public fun switchboard_adapter(): u8 {
         ADAPTER_SWITCHBOARD
     }
 
     // Functions
-
     fun init_module(oracle: &signer) {
         move_to(
             oracle,
@@ -137,7 +134,6 @@ module oracle::oracle {
     }
 
     // Tests
-
     #[test_only]
     public fun init_test(oracle: &signer) {
         init_module(oracle);
