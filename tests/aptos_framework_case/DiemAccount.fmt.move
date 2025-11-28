@@ -1616,6 +1616,7 @@ module DiemFramework::DiemAccount {
     ///////////////////////////////////////////////////////////////////////////
     // General purpose methods
     ///////////////////////////////////////////////////////////////////////////
+
     native fun create_signer(addr: address): signer;
 
     public fun publish_crsn(account: &signer, size: u64) acquires DiemAccount {
@@ -1929,6 +1930,7 @@ module DiemFramework::DiemAccount {
         aborts_if !Roles::spec_has_diem_root_role_addr(transaction_sender) with errors::INVALID_ARGUMENT;
         include PrologueCommonAbortsIf<XUS> { transaction_sender, max_transaction_fee: 0 };
     }
+
     fun check_secondary_signers(
         secondary_signer_addresses: vector<address>,
         secondary_signer_public_key_hashes: vector<vector<u8>>
@@ -2235,6 +2237,7 @@ module DiemFramework::DiemAccount {
         include EpilogueCommonAbortsIf<Token>;
         include EpilogueCommonEnsures<Token>;
     }
+
     fun epilogue_common<Token>(
         account: &signer,
         txn_sequence_number: u64,

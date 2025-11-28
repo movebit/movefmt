@@ -13,6 +13,7 @@ module std::bit_vector {
     spec BitVector {
         invariant length == len(bit_field);
     }
+
     struct BitVector has copy, drop, store {
         length: u64,
         bit_field: vector<bool>
@@ -178,6 +179,7 @@ module std::bit_vector {
         aborts_if start_index >= bitvector.length;
         ensures forall i in start_index..result: is_index_set(bitvector, i);
     }
+
     #[test_only]
     public fun word_size(): u64 {
         WORD_SIZE

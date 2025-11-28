@@ -1515,6 +1515,23 @@ impl Format {
         let pre_tok = pre_simple_token.get_end_tok();
         let line_diff = self.translate_line(*pos) - self.cur_line.get();
         let is_normal_token = !is_big_block_token(token, next_token);
+
+        let mut pre_is_big_block = false;
+        let mut pre_is_simple_token = true;
+        let mut pre_is_normal_brace = false;
+        if let TokenTree::Nested { kind, note, .. } = pre_token_tree {
+            if kind.kind == NestKind_::Brace {
+                if matches!(
+                    note.unwrap_or_default(),
+                    Note::StructDefinition | Note::FunBody | Note::ModuleDef
+                ) {
+                    pre_is_big_block = true;
+                } else {
+                    pre_is_normal_brace = true;
+                }
+            }
+            pre_is_simple_token = false;
+        }
         /*
         ** simple1:
         self.translate_line(*pos) = 6
@@ -1527,7 +1544,7 @@ impl Format {
         */
         if line_diff > 1
             && expr_fmt::need_newline_when_trim_blank_line(&pre_tok, tok)
-            && (is_normal_token || tok == &Tok::Spec)
+            && (is_normal_token || tok == &Tok::Spec || pre_is_normal_brace)
         {
             // There are multiple blank lines between the cur_line and the current code simple_token
             tracing::debug!(
@@ -1553,52 +1570,47 @@ impl Format {
         let already_added_new_line = last_36.trim_end_matches(' ').ends_with('\n');
         // println!("output = {:?}", last_36);
 
-        if let TokenTree::Nested { kind, note, .. } = pre_token_tree {
-            if kind.kind == NestKind_::Brace
-                && matches!(
-                    note.unwrap_or_default(),
-                    Note::StructDefinition | Note::FunBody | Note::ModuleDef
-                )
-            {
-                if line_diff == 0 {
-                    // The keyword is on the same line as the last line.
-                    // println!("Two blocks on the same line, need one blank line");
-                    if !&source[pre_simple_token_end_pos as usize + 1..*pos as usize]
-                        .trim()
-                        .is_empty()
-                    {
-                        self.new_line(None);
-                    }
-                    return;
-                }
-
-                if new_line_after_cmt {
-                    // There is a comment between the two blocks.
-                    // println!(
-                    //     "There is a comment between the two blocks -- {:?}",
-                    //     maybe_comment
-                    // );
-                    if !new_line_before_cmt {
-                        self.new_line(None);
-                    }
-                    return;
-                }
-
-                if already_added_new_line {
-                    // The last line of output already ends with a newline.
-                    if !new_line_before_cmt {
-                        self.new_line(None);
-                    }
-                    return;
-                } else {
-                    if !new_line_before_cmt {
-                        self.new_line(None);
-                    }
+        if pre_is_big_block {
+            if line_diff == 0 {
+                // The keyword is on the same line as the last line.
+                // println!("Two blocks on the same line, need one blank line");
+                if !&source[pre_simple_token_end_pos as usize + 1..*pos as usize]
+                    .trim()
+                    .is_empty()
+                {
                     self.new_line(None);
-                    return;
                 }
+                return;
             }
-        } else {
+
+            if new_line_after_cmt {
+                // There is a comment between the two blocks.
+                // println!(
+                //     "There is a comment between the two blocks -- {:?}",
+                //     maybe_comment
+                // );
+                if !new_line_before_cmt {
+                    self.new_line(None);
+                }
+                return;
+            }
+
+            if already_added_new_line {
+                // The last line of output already ends with a newline.
+                if !new_line_before_cmt {
+                    self.new_line(None);
+                }
+                return;
+            } else {
+                if !new_line_before_cmt {
+                    self.new_line(None);
+                }
+                self.new_line(None);
+                return;
+            }
+        }
+
+        if pre_is_simple_token {
             // The previous token is a simple token, or possibly the opening of a NestedTokenTree.
             if pre_tok == Tok::LBrace {
                 if already_added_new_line {
@@ -1930,7 +1942,7 @@ impl Format {
             let this_cmt_start_line = self.translate_line(c.start_offset);
             let line_diff = this_cmt_start_line - self.cur_line.get();
             let cmt_kind = c.comment_kind();
-            if line_diff == 1 {                
+            if line_diff == 1 {
                 let ret_copy = self.ret.clone().into_inner();
                 if ret_copy.trim_end_matches(' ').ends_with('\n') {
                     if !new_line_before_cmt {
