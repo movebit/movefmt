@@ -1930,10 +1930,14 @@ impl Format {
             let this_cmt_start_line = self.translate_line(c.start_offset);
             let line_diff = this_cmt_start_line - self.cur_line.get();
             let cmt_kind = c.comment_kind();
-            if !new_line_before_cmt && line_diff == 1 {
+            if line_diff == 1 {                
                 let ret_copy = self.ret.clone().into_inner();
-                if !ret_copy.trim_end_matches(' ').ends_with('\n') {
-                    *self.ret.borrow_mut() = ret_copy.trim_end().to_string();
+                if ret_copy.trim_end_matches(' ').ends_with('\n') {
+                    if !new_line_before_cmt {
+                        *self.ret.borrow_mut() = ret_copy.trim_end().to_string();
+                        self.new_line(None);
+                    }
+                } else {
                     self.new_line(None);
                 }
                 new_line_before_cmt = true;
