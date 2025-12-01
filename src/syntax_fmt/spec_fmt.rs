@@ -16,14 +16,6 @@ use move_ir_types::location::*;
 use std::vec;
 #[derive(Debug, Default)]
 pub struct SpecExtractor {
-    pub fn_loc_vec: Vec<Loc>,
-    pub fn_ret_ty_loc_vec: Vec<Loc>,
-    pub fn_body_loc_vec: Vec<Loc>,
-    pub fn_loc_line_vec: Vec<(u32, u32)>,
-
-    pub stct_loc_vec: Vec<Loc>,
-    pub stct_loc_line_vec: Vec<(u32, u32)>,
-
     pub spec_pragma_properties_num_vec: Vec<usize>,
     pub spec_pragma_loc_vec: Vec<Loc>,
 
@@ -41,14 +33,6 @@ pub struct SpecExtractor {
 impl SingleSyntaxExtractor for SpecExtractor {
     fn new(fmt_buffer: String) -> Self {
         let mut spec_extractor = Self {
-            fn_loc_vec: vec![],
-            fn_ret_ty_loc_vec: vec![],
-            fn_body_loc_vec: vec![],
-            fn_loc_line_vec: vec![],
-
-            stct_loc_vec: vec![],
-            stct_loc_line_vec: vec![],
-
             spec_pragma_properties_num_vec: vec![],
             spec_pragma_loc_vec: vec![],
 
@@ -83,35 +67,9 @@ impl SingleSyntaxExtractor for SpecExtractor {
 
     fn collect_const(&mut self, _c: &Constant) {}
 
-    fn collect_struct(&mut self, s: &StructDefinition) {
-        self.stct_loc_vec.push(s.loc);
-        self.blk_loc_vec.push(s.loc);
-    }
+    fn collect_struct(&mut self, s: &StructDefinition) {}
 
-    fn collect_function(&mut self, d: &Function) {
-        match &d.body.value {
-            FunctionBody_::Defined(..) => {
-                let start_line = self
-                    .line_mapping
-                    .translate(d.loc.start(), d.loc.start())
-                    .unwrap()
-                    .start
-                    .line;
-                let end_line = self
-                    .line_mapping
-                    .translate(d.loc.end(), d.loc.end())
-                    .unwrap()
-                    .start
-                    .line;
-                self.fn_loc_vec.push(d.loc);
-                self.fn_ret_ty_loc_vec.push(d.signature.return_type.loc);
-                self.fn_body_loc_vec.push(d.body.loc);
-                self.fn_loc_line_vec.push((start_line, end_line));
-                self.blk_loc_vec.push(d.loc);
-            }
-            FunctionBody_::Native => {}
-        }
-    }
+    fn collect_function(&mut self, d: &Function) {}
 
     fn collect_spec(&mut self, spec_block: &SpecBlock) {
         self.blk_loc_vec.push(spec_block.loc);
@@ -194,11 +152,8 @@ impl SingleSyntaxExtractor for SpecExtractor {
 
     fn collect_module(&mut self, d: &ModuleDefinition) {
         for m in d.members.iter() {
-            match &m {
-                ModuleMember::Struct(x) => self.collect_struct(x),
-                ModuleMember::Function(x) => self.collect_function(x),
-                ModuleMember::Spec(s) => self.collect_spec(s),
-                _ => {}
+            if let ModuleMember::Spec(s) = &m {
+                self.collect_spec(s)
             }
         }
     }
