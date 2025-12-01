@@ -742,7 +742,7 @@ impl Format {
         let paren_str =
             &self.format_context.borrow().content[kind.start_pos as usize..kind.end_pos as usize];
         if contains_comment(&paren_str) && paren_str.find("//").is_some() {
-            return (true, Some(opt_component_break_mode));
+            return (true, Some(true));
         }
 
         let cur_line_status = get_code_buf_len(self.last_line());
