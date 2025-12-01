@@ -67,9 +67,9 @@ impl SingleSyntaxExtractor for SpecExtractor {
 
     fn collect_const(&mut self, _c: &Constant) {}
 
-    fn collect_struct(&mut self, s: &StructDefinition) {}
+    fn collect_struct(&mut self, _s: &StructDefinition) {}
 
-    fn collect_function(&mut self, d: &Function) {}
+    fn collect_function(&mut self, _d: &Function) {}
 
     fn collect_spec(&mut self, spec_block: &SpecBlock) {
         self.blk_loc_vec.push(spec_block.loc);
