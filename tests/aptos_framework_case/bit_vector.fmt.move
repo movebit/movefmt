@@ -48,6 +48,7 @@ module std::bit_vector {
         ensures result.length == length;
         ensures len(result.bit_field) == length;
     }
+
     spec schema NewAbortsIf {
         length: u64;
         aborts_if length <= 0 with ELENGTH;
@@ -65,6 +66,7 @@ module std::bit_vector {
         include SetAbortsIf;
         ensures bitvector.bit_field[bit_index];
     }
+
     spec schema SetAbortsIf {
         bitvector: BitVector;
         bit_index: u64;
@@ -82,6 +84,7 @@ module std::bit_vector {
         include UnsetAbortsIf;
         ensures !bitvector.bit_field[bit_index];
     }
+
     spec schema UnsetAbortsIf {
         bitvector: BitVector;
         bit_index: u64;
@@ -129,11 +132,13 @@ module std::bit_vector {
         include IsIndexSetAbortsIf;
         ensures result == bitvector.bit_field[bit_index];
     }
+
     spec schema IsIndexSetAbortsIf {
         bitvector: BitVector;
         bit_index: u64;
         aborts_if bit_index >= length(bitvector) with EINDEX;
     }
+
     spec fun spec_is_index_set(bitvector: BitVector, bit_index: u64): bool {
         if (bit_index >= length(bitvector)) { false }
         else {

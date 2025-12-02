@@ -1570,8 +1570,8 @@ impl Format {
         let already_added_new_line = last_36.trim_end_matches(' ').ends_with('\n');
         // println!("output = {:?}", last_36);
 
-        if pre_is_big_block {
-            if line_diff == 0 {
+        if pre_is_big_block || pre_is_normal_brace {
+            if line_diff == 0 && pre_is_big_block {
                 // The keyword is on the same line as the last line.
                 // println!("Two blocks on the same line, need one blank line");
                 if !&source[pre_simple_token_end_pos as usize + 1..*pos as usize]
@@ -1580,6 +1580,11 @@ impl Format {
                 {
                     self.new_line(None);
                 }
+                return;
+            }
+
+            if line_diff == 0 && pre_is_normal_brace {
+                self.new_line(None);
                 return;
             }
 
@@ -1594,20 +1599,13 @@ impl Format {
                 }
                 return;
             }
-
-            if already_added_new_line {
-                // The last line of output already ends with a newline.
-                if !new_line_before_cmt {
-                    self.new_line(None);
-                }
-                return;
-            } else {
-                if !new_line_before_cmt {
-                    self.new_line(None);
-                }
+            if !new_line_before_cmt {
                 self.new_line(None);
-                return;
             }
+            if !already_added_new_line {
+                self.new_line(None);
+            }
+            return;
         }
 
         if pre_is_simple_token {
