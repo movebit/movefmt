@@ -1425,25 +1425,15 @@ impl Format {
 
     fn maybe_begin_of_big_block(
         &self,
-        token: &TokenTree,
-        next_token: Option<&TokenTree>,
         pos: u32,
         pre_token_tree: &TokenTree,
     ) {
         if let TokenTree::Nested { kind, note, .. } = pre_token_tree {
-            if is_big_block_token(token, next_token)
-                && kind.kind == NestKind_::Brace
-                && matches!(
-                    note.unwrap_or_default(),
-                    Note::StructDefinition | Note::FunBody | Note::ModuleDef
-                )
-            {
-                let ret_copy = self.ret.clone().into_inner();
-                *self.ret.borrow_mut() = ret_copy.trim_end().to_string();
+            let ret_copy = self.ret.clone().into_inner();
+            *self.ret.borrow_mut() = ret_copy.trim_end().to_string();
+            self.new_line(None);
+            if self.translate_line(pos) - self.cur_line.get() == 0 {
                 self.new_line(None);
-                if self.translate_line(pos) - self.cur_line.get() == 0 {
-                    self.new_line(None);
-                }
             }
         }
     }
@@ -1493,8 +1483,9 @@ impl Format {
     fn process_blank_lines_before_simple_token(
         &self,
         token: &TokenTree,
-        next_token: Option<&TokenTree>,
         format_context: &FormatContext,
+        pre_token_tree_ty: &TokenTreeType,
+        is_normal_token: bool,
         new_line_before_cmt: bool,
         new_line_after_cmt: bool,
     ) {
@@ -1505,33 +1496,18 @@ impl Format {
             return;
         };
         let pre_simple_token = &format_context.pre_simple_token;
-        let pre_token_tree = &format_context.pre_token_tree;
         let source = &format_context.content;
 
         let pre_simple_token_end_pos = pre_simple_token.end_pos();
-        if pre_simple_token_end_pos == 0 {
+        if (pre_simple_token_end_pos as usize) < MIN_NESTED_LENGTH {
             return;
         }
         let pre_tok = pre_simple_token.get_end_tok();
         let line_diff = self.translate_line(*pos) - self.cur_line.get();
-        let is_normal_token = !is_big_block_token(token, next_token);
 
-        let mut pre_is_big_block = false;
-        let mut pre_is_simple_token = true;
-        let mut pre_is_normal_brace = false;
-        if let TokenTree::Nested { kind, note, .. } = pre_token_tree {
-            if kind.kind == NestKind_::Brace {
-                if matches!(
-                    note.unwrap_or_default(),
-                    Note::StructDefinition | Note::FunBody | Note::ModuleDef
-                ) {
-                    pre_is_big_block = true;
-                } else {
-                    pre_is_normal_brace = true;
-                }
-            }
-            pre_is_simple_token = false;
-        }
+        let pre_is_big_block = pre_token_tree_ty == &TokenTreeType::SpecialBlkBrace;
+        let pre_is_simple_token = pre_token_tree_ty == &TokenTreeType::Simple;
+        let pre_is_normal_brace = pre_token_tree_ty == &TokenTreeType::NormalBrace;
         /*
         ** simple1:
         self.translate_line(*pos) = 6
@@ -1755,6 +1731,8 @@ impl Format {
         } = token
         {
             let mut fc = self.format_context.borrow_mut();
+            let pre_token_tree_ty = fc.pre_token_tree.get_type();
+            let is_big_blk_token = is_big_block_token(token, next_token);
 
             // step1
             self.maybe_begin_of_if_else(
@@ -1763,7 +1741,9 @@ impl Format {
                 &fc.pre_simple_token,
                 next_token,
             );
-            self.maybe_begin_of_big_block(token, next_token, *pos, &fc.pre_token_tree);
+            if pre_token_tree_ty == TokenTreeType::SpecialBlkBrace && is_big_blk_token {
+                self.maybe_begin_of_big_block(*pos, &fc.pre_token_tree);
+            }
 
             // step2: add comment(xxx) before current simple_token
             let (new_line_before_cmt, new_line_after_cmt) =
@@ -1772,8 +1752,9 @@ impl Format {
             // step3
             self.process_blank_lines_before_simple_token(
                 token,
-                next_token,
                 &fc,
+                &pre_token_tree_ty,
+                !is_big_blk_token,
                 new_line_before_cmt,
                 new_line_after_cmt,
             );

@@ -24,6 +24,14 @@ pub enum NestKind_ {
     Lambda,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug, serde::Serialize)]
+pub enum TokenTreeType {
+    Simple,
+    NormalBrace,
+    SpecialBlkBrace,
+    OtherNested,
+}
+
 #[derive(Clone, Copy, serde::Serialize, Debug)]
 pub struct NestKind {
     pub kind: NestKind_,
@@ -222,6 +230,22 @@ impl TokenTree {
             TokenTree::SimpleToken { content, .. } => Some(content.as_str()),
             TokenTree::Nested { .. } => None,
         }
+    }
+
+    pub fn get_type(&self) -> TokenTreeType {
+        if let TokenTree::Nested { kind, note, .. } = self {
+            if kind.kind == NestKind_::Brace {
+                if matches!(
+                    note.unwrap_or_default(),
+                    Note::StructDefinition | Note::FunBody | Note::ModuleDef
+                ) {
+                    return TokenTreeType::SpecialBlkBrace;
+                }
+                return TokenTreeType::NormalBrace;
+            }
+            return TokenTreeType::OtherNested;
+        }
+        return TokenTreeType::Simple;
     }
 }
 
