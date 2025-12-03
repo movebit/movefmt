@@ -182,63 +182,6 @@ fn get_nth_line(s: &str, n: usize) -> Option<&str> {
     s.lines().nth(n)
 }
 
-pub fn add_blank_row_in_two_blocks(fmt_buffer: String) -> String {
-    let buf = fmt_buffer.clone();
-    let mut result = fmt_buffer.clone();
-    let spec_extractor = SpecExtractor::new(fmt_buffer.clone());
-    let mut insert_char_nums = 0;
-    for pre_blk_idx in 0..spec_extractor.blk_loc_vec.len() {
-        if pre_blk_idx == spec_extractor.blk_loc_vec.len() - 1 {
-            break;
-        }
-        let next_blk_idx = pre_blk_idx + 1;
-        let blk1_end_line = spec_extractor
-            .line_mapping
-            .translate(
-                spec_extractor.blk_loc_vec[pre_blk_idx].end(),
-                spec_extractor.blk_loc_vec[pre_blk_idx].end(),
-            )
-            .unwrap()
-            .start
-            .line;
-
-        let blk2_start_line = spec_extractor
-            .line_mapping
-            .translate(
-                spec_extractor.blk_loc_vec[next_blk_idx].start(),
-                spec_extractor.blk_loc_vec[next_blk_idx].start(),
-            )
-            .unwrap()
-            .start
-            .line;
-
-        let is_need_blank_row = {
-            if blk1_end_line + 1 == blk2_start_line {
-                true
-            } else {
-                let the_row_after_blk1_end =
-                    get_nth_line(buf.as_str(), (blk1_end_line + 1) as usize).unwrap_or_default();
-                let trimed_prefix = the_row_after_blk1_end.trim_start();
-                if !trimed_prefix.is_empty() {
-                    // there are code or comment located in line(blk1_end_line + 1)
-                    true
-                } else {
-                    false
-                }
-            }
-        };
-        if is_need_blank_row {
-            result.insert(
-                spec_extractor.blk_loc_vec[pre_blk_idx].end() as usize + insert_char_nums + 1,
-                '\n',
-            );
-            insert_char_nums += 1;
-        }
-    }
-
-    result
-}
-
 pub fn process_block_comment_before_spec_header(fmt_buffer: String, config: Config) -> String {
     let buf = fmt_buffer.clone();
     let mut result = fmt_buffer.clone();
@@ -434,24 +377,6 @@ pub fn fmt_spec(fmt_buffer: String, config: Config) -> String {
     result = process_spec_fn_header_too_long(result, config.clone());
     result = process_pragma(result, config.clone());
     result
-}
-
-#[test]
-fn test_add_blank_row_in_two_blocks_1() {
-    add_blank_row_in_two_blocks(
-        "
-    module std::ascii {
-        struct Char {
-            byte: u8,
-        }
-        spec Char {
-            // comment
-            invariant is_valid_char(byte); //comment
-        }
-    }    
-    "
-        .to_string(),
-    );
 }
 
 #[test]
