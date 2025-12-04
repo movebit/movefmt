@@ -170,8 +170,7 @@ fn token_to_ability(token: Tok, content: &str) -> Option<Ability_> {
 
 fn tune_module_buf(module_body: &mut String, config: &Config) {
     if module_body.contains(&*SPEC_STR) {
-        let body = module_body.clone();
-        *module_body = spec_fmt::fmt_spec(body, config.clone());
+        spec_fmt::fmt_spec(module_body, config.clone());
     }
 
     let body = module_body.clone();
@@ -1423,12 +1422,8 @@ impl Format {
         }
     }
 
-    fn maybe_begin_of_big_block(
-        &self,
-        pos: u32,
-        pre_token_tree: &TokenTree,
-    ) {
-        if let TokenTree::Nested { kind, note, .. } = pre_token_tree {
+    fn maybe_begin_of_big_block(&self, pos: u32, pre_token_tree: &TokenTree) {
+        if let TokenTree::Nested { .. } = pre_token_tree {
             let ret_copy = self.ret.clone().into_inner();
             *self.ret.borrow_mut() = ret_copy.trim_end().to_string();
             self.new_line(None);

@@ -182,10 +182,9 @@ fn get_nth_line(s: &str, n: usize) -> Option<&str> {
     s.lines().nth(n)
 }
 
-pub fn process_block_comment_before_spec_header(fmt_buffer: String, config: Config) -> String {
+pub fn process_block_comment_before_spec_header(fmt_buffer: &mut String, config: Config) {
     let buf = fmt_buffer.clone();
-    let mut result = fmt_buffer.clone();
-    let spec_extractor = SpecExtractor::new(fmt_buffer.clone());
+    let spec_extractor = SpecExtractor::new(buf.clone());
     let mut insert_char_nums = 0;
     for (fun_idx, (fun_start_line, _)) in spec_extractor.spec_fn_loc_line_vec.iter().enumerate() {
         let fun_header_str =
@@ -197,21 +196,19 @@ pub fn process_block_comment_before_spec_header(fmt_buffer: String, config: Conf
         {
             let mut insert_str = "\n".to_string();
             insert_str.push_str(" ".to_string().repeat(config.indent_size()).as_str());
-            result.insert_str(
+
+            fmt_buffer.insert_str(
                 spec_extractor.spec_fn_loc_vec[fun_idx].start() as usize + insert_char_nums,
                 &insert_str,
             );
             insert_char_nums += insert_str.len();
         }
     }
-
-    result
 }
 
-pub fn process_spec_fn_header_too_long(fmt_buffer: String, config: Config) -> String {
+pub fn process_spec_fn_header_too_long(fmt_buffer: &mut String, config: Config) {
     let buf = fmt_buffer.clone();
-    let mut result = fmt_buffer.clone();
-    let spec_extractor = SpecExtractor::new(fmt_buffer.clone());
+    let spec_extractor = SpecExtractor::new(buf.clone());
     let mut insert_char_nums = 0;
     let mut fun_idx = 0;
     for fun_loc in spec_extractor.spec_fn_loc_vec.iter() {
@@ -268,7 +265,7 @@ pub fn process_spec_fn_header_too_long(fmt_buffer: String, config: Config) -> St
         }
 
         let mut line_mapping = FileLineMappingOneFile::default();
-        line_mapping.update(&fmt_buffer);
+        line_mapping.update(&buf);
         let start_line = line_mapping
             .translate(fun_loc.start(), fun_loc.start())
             .unwrap()
@@ -285,7 +282,8 @@ pub fn process_spec_fn_header_too_long(fmt_buffer: String, config: Config) -> St
                         .as_str(),
                 );
             }
-            result.insert_str(
+
+            fmt_buffer.insert_str(
                 fun_loc.start() as usize + insert_char_nums + insert_loc,
                 &insert_str,
             );
@@ -293,14 +291,13 @@ pub fn process_spec_fn_header_too_long(fmt_buffer: String, config: Config) -> St
         }
         fun_idx += 1;
     }
-    result
 }
 
-pub fn process_pragma(fmt_buffer: String, config: Config) -> String {
+pub fn process_pragma(fmt_buffer: &mut String, config: Config) {
     let buf = fmt_buffer.clone();
-    let mut result = fmt_buffer.clone();
-    let spec_extractor = SpecExtractor::new(fmt_buffer.clone());
+    let spec_extractor = SpecExtractor::new(buf.clone());
     let mut insert_char_nums = 0;
+
     for (idx, pragma_loc) in spec_extractor.spec_pragma_loc_vec.iter().enumerate() {
         if spec_extractor.spec_pragma_properties_num_vec.len() > idx
             && spec_extractor.spec_pragma_properties_num_vec[idx] > 4
@@ -348,6 +345,7 @@ pub fn process_pragma(fmt_buffer: String, config: Config) -> String {
                 }
                 lexer.advance().unwrap();
             }
+
             let mut pragma_str = "".to_string();
             pragma_str += tmp_str_vec[0].as_str();
             for item in tmp_str_vec.iter().skip(1) {
@@ -363,25 +361,25 @@ pub fn process_pragma(fmt_buffer: String, config: Config) -> String {
                 pragma_str.len(),
                 pragma_loc.end() - pragma_loc.start()
             );
-            let tmp_result_part1 = &result[0..pragma_loc.start() as usize + insert_char_nums];
-            let tmp_result_part2 = &result[pragma_loc.end() as usize + insert_char_nums..];
-            result = tmp_result_part1.to_string() + &pragma_str + tmp_result_part2;
+
+            let start = pragma_loc.start() as usize + insert_char_nums;
+            let end = pragma_loc.end() as usize + insert_char_nums;
+            fmt_buffer.replace_range(start..end, &pragma_str);
+
             insert_char_nums += pragma_str.len() - (pragma_loc.end() - pragma_loc.start()) as usize;
         }
     }
-    result
 }
 
-pub fn fmt_spec(fmt_buffer: String, config: Config) -> String {
-    let mut result = process_block_comment_before_spec_header(fmt_buffer, config.clone());
-    result = process_spec_fn_header_too_long(result, config.clone());
-    result = process_pragma(result, config.clone());
-    result
+pub fn fmt_spec(fmt_buffer: &mut String, config: Config) {
+    process_block_comment_before_spec_header(fmt_buffer, config.clone());
+    process_spec_fn_header_too_long(fmt_buffer, config.clone());
+    process_pragma(fmt_buffer, config.clone());
 }
 
 #[test]
 fn test_process_spec_fn_header_too_long_1() {
-    let result = process_spec_fn_header_too_long("
+    let mut input = "
     /// test_point: fun name too long
     spec aptos_std::big_vector {
         // -----------------
@@ -394,16 +392,30 @@ fn test_process_spec_fn_header_too_long_1() {
         }
     }   
     "
-    .to_string(),
-    Config::default()
-);
+    .to_string();
 
-    tracing::trace!("result = {}", result);
+    process_spec_fn_header_too_long(&mut input, Config::default());
+
+    tracing::trace!("result = {}", input);
+    let expected = "
+    /// test_point: fun name too long
+    spec aptos_std::big_vector {
+        // -----------------
+        // Data invariants
+        // -----------------
+        
+        spec singletonlllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll<T: store>(element: T, bucket_size: u64)
+             : BigVector<T>{
+            ensures length(result) == 1;
+            ensures result.bucket_size == bucket_size;
+        }
+    }   
+    ";
 }
 
 #[test]
 fn test_process_pragma_1() {
-    let result = process_pragma("
+    let mut input = "
     /// Specifications of the `table_with_length` module.
     spec aptos_std::table_with_length {
     
@@ -448,16 +460,16 @@ fn test_process_pragma_1() {
         // cddfsdfasadfsdfs
     }
     "
-    .to_string(),
-    Config::default()
-    );
+    .to_string();
 
-    tracing::trace!("result = {}", result);
+    process_pragma(&mut input, Config::default());
+
+    tracing::trace!("result = {}", input);
 }
 
 #[test]
 fn test_process_pragma_2() {
-    let result = process_pragma("
+    let mut input = "
     /// Specifications of the `table_with_length` module.
     spec aptos_std::table_with_length {
     
@@ -505,9 +517,9 @@ fn test_process_pragma_2() {
         }
     }
     "
-    .to_string(),
-    Config::default()
-    );
+    .to_string();
 
-    tracing::trace!("result = {}", result);
+    process_pragma(&mut input, Config::default());
+
+    tracing::trace!("result = {}", input);
 }
