@@ -8,6 +8,7 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.4.4">v1.4.4</a><br/>
 <a href="#v1.4.3">v1.4.3</a><br/>
 <a href="#v1.4.2">v1.4.2</a><br/>
 <a href="#v1.4.1">v1.4.1</a><br/>
@@ -46,6 +47,19 @@
 </td>
 </tr>
 </table>
+
+
+<a id="v1.4.4"></a>
+## 2025-12-05, Version v1.4.4
+* [[`2e258c8`](https://github.com/movebit/movefmt/commit/2e258c81bcc7c595cd1f2cb1c97a1bd8f15c6cdf)] - delete some line_mapping
+* [[`ddfe946`](https://github.com/movebit/movefmt/commit/ddfe9469dbcdf2128325b04f03369a6b58583d8b)] - optimize tune_module_buf()
+* [[`91159b9`](https://github.com/movebit/movefmt/commit/91159b956143ad9c222352826eb9336a34a3ad88)] - optimize spec_fmt
+* [[`73bd31d`](https://github.com/movebit/movefmt/commit/73bd31dfacb7a8195278bfd08ba2c636e4504419)] - add TokenTreeType
+* [[`fc93802`](https://github.com/movebit/movefmt/commit/fc93802ec12153c66aeec2574fddd057932cdc97)] - remove add_blank_row_in_two_blocks() in spec_fmt
+* [[`b7ec7e8`](https://github.com/movebit/movefmt/commit/b7ec7e83019745853fecf14ed2f488e0b2a95037)] - optimize spec and other normal brace block
+* [[`abd0603`](https://github.com/movebit/movefmt/commit/abd060301138ef9b0b71b6fb749f4c59e7130359)] - delete use_fmt
+* [[`dc83b62`](https://github.com/movebit/movefmt/commit/dc83b620c9855f2c197f771600a77a9a3fdd4734)] - remove unused code
+* [[`6f3e40c`](https://github.com/movebit/movefmt/commit/6f3e40c42ed84c41940d73dabdaef53acd0028c2)] - fix issue #91: improved tuple formatting effect
 
 
 <a id="v1.4.3"></a>
