@@ -16,14 +16,6 @@ use move_ir_types::location::*;
 use std::vec;
 #[derive(Debug, Default)]
 pub struct SpecExtractor {
-    pub fn_loc_vec: Vec<Loc>,
-    pub fn_ret_ty_loc_vec: Vec<Loc>,
-    pub fn_body_loc_vec: Vec<Loc>,
-    pub fn_loc_line_vec: Vec<(u32, u32)>,
-
-    pub stct_loc_vec: Vec<Loc>,
-    pub stct_loc_line_vec: Vec<(u32, u32)>,
-
     pub spec_pragma_properties_num_vec: Vec<usize>,
     pub spec_pragma_loc_vec: Vec<Loc>,
 
@@ -41,14 +33,6 @@ pub struct SpecExtractor {
 impl SingleSyntaxExtractor for SpecExtractor {
     fn new(fmt_buffer: String) -> Self {
         let mut spec_extractor = Self {
-            fn_loc_vec: vec![],
-            fn_ret_ty_loc_vec: vec![],
-            fn_body_loc_vec: vec![],
-            fn_loc_line_vec: vec![],
-
-            stct_loc_vec: vec![],
-            stct_loc_line_vec: vec![],
-
             spec_pragma_properties_num_vec: vec![],
             spec_pragma_loc_vec: vec![],
 
@@ -83,35 +67,9 @@ impl SingleSyntaxExtractor for SpecExtractor {
 
     fn collect_const(&mut self, _c: &Constant) {}
 
-    fn collect_struct(&mut self, s: &StructDefinition) {
-        self.stct_loc_vec.push(s.loc);
-        self.blk_loc_vec.push(s.loc);
-    }
+    fn collect_struct(&mut self, _s: &StructDefinition) {}
 
-    fn collect_function(&mut self, d: &Function) {
-        match &d.body.value {
-            FunctionBody_::Defined(..) => {
-                let start_line = self
-                    .line_mapping
-                    .translate(d.loc.start(), d.loc.start())
-                    .unwrap()
-                    .start
-                    .line;
-                let end_line = self
-                    .line_mapping
-                    .translate(d.loc.end(), d.loc.end())
-                    .unwrap()
-                    .start
-                    .line;
-                self.fn_loc_vec.push(d.loc);
-                self.fn_ret_ty_loc_vec.push(d.signature.return_type.loc);
-                self.fn_body_loc_vec.push(d.body.loc);
-                self.fn_loc_line_vec.push((start_line, end_line));
-                self.blk_loc_vec.push(d.loc);
-            }
-            FunctionBody_::Native => {}
-        }
-    }
+    fn collect_function(&mut self, _d: &Function) {}
 
     fn collect_spec(&mut self, spec_block: &SpecBlock) {
         self.blk_loc_vec.push(spec_block.loc);
@@ -194,11 +152,8 @@ impl SingleSyntaxExtractor for SpecExtractor {
 
     fn collect_module(&mut self, d: &ModuleDefinition) {
         for m in d.members.iter() {
-            match &m {
-                ModuleMember::Struct(x) => self.collect_struct(x),
-                ModuleMember::Function(x) => self.collect_function(x),
-                ModuleMember::Spec(s) => self.collect_spec(s),
-                _ => {}
+            if let ModuleMember::Spec(s) = &m {
+                self.collect_spec(s)
             }
         }
     }
@@ -227,67 +182,9 @@ fn get_nth_line(s: &str, n: usize) -> Option<&str> {
     s.lines().nth(n)
 }
 
-pub fn add_blank_row_in_two_blocks(fmt_buffer: String) -> String {
+pub fn process_block_comment_before_spec_header(fmt_buffer: &mut String, config: Config) {
     let buf = fmt_buffer.clone();
-    let mut result = fmt_buffer.clone();
-    let spec_extractor = SpecExtractor::new(fmt_buffer.clone());
-    let mut insert_char_nums = 0;
-    for pre_blk_idx in 0..spec_extractor.blk_loc_vec.len() {
-        if pre_blk_idx == spec_extractor.blk_loc_vec.len() - 1 {
-            break;
-        }
-        let next_blk_idx = pre_blk_idx + 1;
-        let blk1_end_line = spec_extractor
-            .line_mapping
-            .translate(
-                spec_extractor.blk_loc_vec[pre_blk_idx].end(),
-                spec_extractor.blk_loc_vec[pre_blk_idx].end(),
-            )
-            .unwrap()
-            .start
-            .line;
-
-        let blk2_start_line = spec_extractor
-            .line_mapping
-            .translate(
-                spec_extractor.blk_loc_vec[next_blk_idx].start(),
-                spec_extractor.blk_loc_vec[next_blk_idx].start(),
-            )
-            .unwrap()
-            .start
-            .line;
-
-        let is_need_blank_row = {
-            if blk1_end_line + 1 == blk2_start_line {
-                true
-            } else {
-                let the_row_after_blk1_end =
-                    get_nth_line(buf.as_str(), (blk1_end_line + 1) as usize).unwrap_or_default();
-                let trimed_prefix = the_row_after_blk1_end.trim_start();
-                if !trimed_prefix.is_empty() {
-                    // there are code or comment located in line(blk1_end_line + 1)
-                    true
-                } else {
-                    false
-                }
-            }
-        };
-        if is_need_blank_row {
-            result.insert(
-                spec_extractor.blk_loc_vec[pre_blk_idx].end() as usize + insert_char_nums + 1,
-                '\n',
-            );
-            insert_char_nums += 1;
-        }
-    }
-
-    result
-}
-
-pub fn process_block_comment_before_spec_header(fmt_buffer: String, config: Config) -> String {
-    let buf = fmt_buffer.clone();
-    let mut result = fmt_buffer.clone();
-    let spec_extractor = SpecExtractor::new(fmt_buffer.clone());
+    let spec_extractor = SpecExtractor::new(buf.clone());
     let mut insert_char_nums = 0;
     for (fun_idx, (fun_start_line, _)) in spec_extractor.spec_fn_loc_line_vec.iter().enumerate() {
         let fun_header_str =
@@ -299,21 +196,19 @@ pub fn process_block_comment_before_spec_header(fmt_buffer: String, config: Conf
         {
             let mut insert_str = "\n".to_string();
             insert_str.push_str(" ".to_string().repeat(config.indent_size()).as_str());
-            result.insert_str(
+
+            fmt_buffer.insert_str(
                 spec_extractor.spec_fn_loc_vec[fun_idx].start() as usize + insert_char_nums,
                 &insert_str,
             );
             insert_char_nums += insert_str.len();
         }
     }
-
-    result
 }
 
-pub fn process_spec_fn_header_too_long(fmt_buffer: String, config: Config) -> String {
+pub fn process_spec_fn_header_too_long(fmt_buffer: &mut String, config: Config) {
     let buf = fmt_buffer.clone();
-    let mut result = fmt_buffer.clone();
-    let spec_extractor = SpecExtractor::new(fmt_buffer.clone());
+    let spec_extractor = SpecExtractor::new(buf.clone());
     let mut insert_char_nums = 0;
     let mut fun_idx = 0;
     for fun_loc in spec_extractor.spec_fn_loc_vec.iter() {
@@ -370,7 +265,7 @@ pub fn process_spec_fn_header_too_long(fmt_buffer: String, config: Config) -> St
         }
 
         let mut line_mapping = FileLineMappingOneFile::default();
-        line_mapping.update(&fmt_buffer);
+        line_mapping.update(&buf);
         let start_line = line_mapping
             .translate(fun_loc.start(), fun_loc.start())
             .unwrap()
@@ -387,7 +282,8 @@ pub fn process_spec_fn_header_too_long(fmt_buffer: String, config: Config) -> St
                         .as_str(),
                 );
             }
-            result.insert_str(
+
+            fmt_buffer.insert_str(
                 fun_loc.start() as usize + insert_char_nums + insert_loc,
                 &insert_str,
             );
@@ -395,14 +291,13 @@ pub fn process_spec_fn_header_too_long(fmt_buffer: String, config: Config) -> St
         }
         fun_idx += 1;
     }
-    result
 }
 
-pub fn process_pragma(fmt_buffer: String, config: Config) -> String {
+pub fn process_pragma(fmt_buffer: &mut String, config: Config) {
     let buf = fmt_buffer.clone();
-    let mut result = fmt_buffer.clone();
-    let spec_extractor = SpecExtractor::new(fmt_buffer.clone());
+    let spec_extractor = SpecExtractor::new(buf.clone());
     let mut insert_char_nums = 0;
+
     for (idx, pragma_loc) in spec_extractor.spec_pragma_loc_vec.iter().enumerate() {
         if spec_extractor.spec_pragma_properties_num_vec.len() > idx
             && spec_extractor.spec_pragma_properties_num_vec[idx] > 4
@@ -450,6 +345,7 @@ pub fn process_pragma(fmt_buffer: String, config: Config) -> String {
                 }
                 lexer.advance().unwrap();
             }
+
             let mut pragma_str = "".to_string();
             pragma_str += tmp_str_vec[0].as_str();
             for item in tmp_str_vec.iter().skip(1) {
@@ -465,43 +361,25 @@ pub fn process_pragma(fmt_buffer: String, config: Config) -> String {
                 pragma_str.len(),
                 pragma_loc.end() - pragma_loc.start()
             );
-            let tmp_result_part1 = &result[0..pragma_loc.start() as usize + insert_char_nums];
-            let tmp_result_part2 = &result[pragma_loc.end() as usize + insert_char_nums..];
-            result = tmp_result_part1.to_string() + &pragma_str + tmp_result_part2;
+
+            let start = pragma_loc.start() as usize + insert_char_nums;
+            let end = pragma_loc.end() as usize + insert_char_nums;
+            fmt_buffer.replace_range(start..end, &pragma_str);
+
             insert_char_nums += pragma_str.len() - (pragma_loc.end() - pragma_loc.start()) as usize;
         }
     }
-    result
 }
 
-pub fn fmt_spec(fmt_buffer: String, config: Config) -> String {
-    let mut result = process_block_comment_before_spec_header(fmt_buffer, config.clone());
-    result = process_spec_fn_header_too_long(result, config.clone());
-    result = process_pragma(result, config.clone());
-    result
-}
-
-#[test]
-fn test_add_blank_row_in_two_blocks_1() {
-    add_blank_row_in_two_blocks(
-        "
-    module std::ascii {
-        struct Char {
-            byte: u8,
-        }
-        spec Char {
-            // comment
-            invariant is_valid_char(byte); //comment
-        }
-    }    
-    "
-        .to_string(),
-    );
+pub fn fmt_spec(fmt_buffer: &mut String, config: Config) {
+    process_block_comment_before_spec_header(fmt_buffer, config.clone());
+    process_spec_fn_header_too_long(fmt_buffer, config.clone());
+    process_pragma(fmt_buffer, config.clone());
 }
 
 #[test]
 fn test_process_spec_fn_header_too_long_1() {
-    let result = process_spec_fn_header_too_long("
+    let mut input = "
     /// test_point: fun name too long
     spec aptos_std::big_vector {
         // -----------------
@@ -514,16 +392,16 @@ fn test_process_spec_fn_header_too_long_1() {
         }
     }   
     "
-    .to_string(),
-    Config::default()
-);
+    .to_string();
 
-    tracing::trace!("result = {}", result);
+    process_spec_fn_header_too_long(&mut input, Config::default());
+
+    tracing::trace!("result = {}", input);
 }
 
 #[test]
 fn test_process_pragma_1() {
-    let result = process_pragma("
+    let mut input = "
     /// Specifications of the `table_with_length` module.
     spec aptos_std::table_with_length {
     
@@ -568,16 +446,16 @@ fn test_process_pragma_1() {
         // cddfsdfasadfsdfs
     }
     "
-    .to_string(),
-    Config::default()
-    );
+    .to_string();
 
-    tracing::trace!("result = {}", result);
+    process_pragma(&mut input, Config::default());
+
+    tracing::trace!("result = {}", input);
 }
 
 #[test]
 fn test_process_pragma_2() {
-    let result = process_pragma("
+    let mut input = "
     /// Specifications of the `table_with_length` module.
     spec aptos_std::table_with_length {
     
@@ -625,9 +503,9 @@ fn test_process_pragma_2() {
         }
     }
     "
-    .to_string(),
-    Config::default()
-    );
+    .to_string();
 
-    tracing::trace!("result = {}", result);
+    process_pragma(&mut input, Config::default());
+
+    tracing::trace!("result = {}", input);
 }

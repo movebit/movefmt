@@ -16,19 +16,16 @@ pub struct QuantHandler {
     pub quant_exp_vec: Vec<Exp>,
     pub split_quant_vec: RefCell<Vec<usize>>,
     pub source: String,
-    pub line_mapping: FileLineMappingOneFile,
 }
 
 impl SingleSyntaxExtractor for QuantHandler {
     fn new(fmt_buffer: String) -> Self {
-        let mut this_let_extractor = Self {
+        let this_let_extractor = Self {
             quant_exp_vec: vec![],
             split_quant_vec: vec![].into(),
             source: fmt_buffer.clone(),
-            line_mapping: FileLineMappingOneFile::default(),
         };
 
-        this_let_extractor.line_mapping.update(&fmt_buffer);
         this_let_extractor
     }
 

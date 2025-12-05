@@ -484,57 +484,6 @@ fn process_block_comment_before_fun(fmt_buffer: &mut String, config: Config) {
     }
 }
 
-// process_fun_ret_ty is used to process this case:
-// fun fun_name()
-// : u64 {}
-#[allow(dead_code)]
-fn process_fun_ret_ty(fmt_buffer: &mut String, config: Config) {
-    let mut fh = FunHandler::new(fmt_buffer.to_string());
-    fh.preprocess(&Arc::new(get_defs(fmt_buffer.clone())));
-    let line_starts = build_line_starts(&fmt_buffer);
-    let line_indent = build_line_indent(&fmt_buffer, &line_starts);
-
-    let mut inserts = Vec::new(); // (byte_offset, text_to_insert)
-
-    for (idx, fun_loc) in fh.loc_vec.iter().enumerate() {
-        let ret_loc = &fh.ret_ty_loc_vec[idx];
-        if ret_loc.start() < fun_loc.start() {
-            continue; // this fun return void
-        }
-
-        let name_end = fun_loc.start() as usize;
-        let ret_start = ret_loc.start() as usize;
-        // Slice positioning: the last line of the function name and the line where the colon is located
-        let name_line_idx = byte_offset_to_line(name_end, &line_starts);
-        let ret_line_idx = byte_offset_to_line(ret_start, &line_starts);
-        if name_line_idx == ret_line_idx {
-            continue;
-        }
-
-        let ret_line_range = line_range(ret_line_idx, &line_starts, fmt_buffer.len());
-        let ret_ty_str = &fmt_buffer[ret_line_range.clone()];
-        let mut lexer = Lexer::new(ret_ty_str, FileHash::empty());
-        lexer.advance().unwrap();
-        if lexer.peek() != Tok::Colon {
-            continue;
-        }
-
-        let fun_head_tail_line_range = line_range(ret_line_idx - 1, &line_starts, fmt_buffer.len());
-        let fun_head_str = &fmt_buffer[fun_head_tail_line_range.clone()];
-        let name_end_line_idx = name_line_idx + fun_head_str.lines().count() - 1;
-
-        let wanted_indent = line_indent[name_end_line_idx] + config.indent_size();
-        let actual_indent = line_indent[ret_line_idx];
-        if actual_indent != wanted_indent {
-            inserts.push((ret_line_range.start, " ".repeat(config.indent_size())));
-        }
-    }
-
-    for (off, txt) in inserts.into_iter().rev() {
-        fmt_buffer.insert_str(off, &txt);
-    }
-}
-
 #[test]
 fn test_rewrite_fun_header_1() {
     let cases = [

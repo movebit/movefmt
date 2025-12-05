@@ -374,14 +374,19 @@ pub fn mk_result_filepath(x: &Path) -> PathBuf {
     ret
 }
 
-pub fn remove_trailing_whitespaces(input_str: String) -> String {
-    input_str
-        .lines()
-        .collect::<Vec<_>>()
-        .iter()
-        .map(|line| line.trim_end_matches(|c| c == ' '))
-        .collect::<Vec<_>>()
-        .join("\n")
+pub fn remove_trailing_whitespaces(s: &mut String) {
+    let original_content = std::mem::take(s);
+
+    let mut is_first_line = true;
+
+    for line in original_content.lines() {
+        if !is_first_line {
+            s.push('\n');
+        }
+        is_first_line = false;
+        let trimmed_line = line.trim_end_matches(|c| c == ' ' || c == '\t');
+        s.push_str(trimmed_line);
+    }
 }
 
 pub fn get_compile_env() -> CompilationEnv {

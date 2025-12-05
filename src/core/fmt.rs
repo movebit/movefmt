@@ -170,12 +170,10 @@ fn token_to_ability(token: Tok, content: &str) -> Option<Ability_> {
 
 fn tune_module_buf(module_body: &mut String, config: &Config) {
     if module_body.contains(&*SPEC_STR) {
-        let body = module_body.clone();
-        *module_body = spec_fmt::fmt_spec(body, config.clone());
+        spec_fmt::fmt_spec(module_body, config.clone());
     }
 
-    let body = module_body.clone();
-    *module_body = remove_trailing_whitespaces(body);
+    remove_trailing_whitespaces(module_body);
 }
 
 impl Format {
@@ -311,7 +309,7 @@ impl Format {
             "end_of_move_file".to_string(),
             &self.format_context.borrow(),
         );
-        self.remove_trailing_whitespaces();
+        remove_trailing_whitespaces(&mut self.ret.borrow_mut());
         self.process_last_empty_line();
         self.ret.into_inner()
     }
@@ -742,7 +740,7 @@ impl Format {
         let paren_str =
             &self.format_context.borrow().content[kind.start_pos as usize..kind.end_pos as usize];
         if contains_comment(&paren_str) && paren_str.find("//").is_some() {
-            return (true, Some(opt_component_break_mode));
+            return (true, Some(true));
         }
 
         let cur_line_status = get_code_buf_len(self.last_line());
@@ -1423,27 +1421,13 @@ impl Format {
         }
     }
 
-    fn maybe_begin_of_big_block(
-        &self,
-        token: &TokenTree,
-        next_token: Option<&TokenTree>,
-        pos: u32,
-        pre_token_tree: &TokenTree,
-    ) {
-        if let TokenTree::Nested { kind, note, .. } = pre_token_tree {
-            if is_big_block_token(token, next_token)
-                && kind.kind == NestKind_::Brace
-                && matches!(
-                    note.unwrap_or_default(),
-                    Note::StructDefinition | Note::FunBody | Note::ModuleDef
-                )
-            {
-                let ret_copy = self.ret.clone().into_inner();
-                *self.ret.borrow_mut() = ret_copy.trim_end().to_string();
+    fn maybe_begin_of_big_block(&self, pos: u32, pre_token_tree: &TokenTree) {
+        if let TokenTree::Nested { .. } = pre_token_tree {
+            let ret_copy = self.ret.clone().into_inner();
+            *self.ret.borrow_mut() = ret_copy.trim_end().to_string();
+            self.new_line(None);
+            if self.translate_line(pos) - self.cur_line.get() == 0 {
                 self.new_line(None);
-                if self.translate_line(pos) - self.cur_line.get() == 0 {
-                    self.new_line(None);
-                }
             }
         }
     }
@@ -1493,8 +1477,9 @@ impl Format {
     fn process_blank_lines_before_simple_token(
         &self,
         token: &TokenTree,
-        next_token: Option<&TokenTree>,
         format_context: &FormatContext,
+        pre_token_tree_ty: &TokenTreeType,
+        is_normal_token: bool,
         new_line_before_cmt: bool,
         new_line_after_cmt: bool,
     ) {
@@ -1505,33 +1490,18 @@ impl Format {
             return;
         };
         let pre_simple_token = &format_context.pre_simple_token;
-        let pre_token_tree = &format_context.pre_token_tree;
         let source = &format_context.content;
 
         let pre_simple_token_end_pos = pre_simple_token.end_pos();
-        if pre_simple_token_end_pos == 0 {
+        if (pre_simple_token_end_pos as usize) < MIN_NESTED_LENGTH {
             return;
         }
         let pre_tok = pre_simple_token.get_end_tok();
         let line_diff = self.translate_line(*pos) - self.cur_line.get();
-        let is_normal_token = !is_big_block_token(token, next_token);
 
-        let mut pre_is_big_block = false;
-        let mut pre_is_simple_token = true;
-        let mut pre_is_normal_brace = false;
-        if let TokenTree::Nested { kind, note, .. } = pre_token_tree {
-            if kind.kind == NestKind_::Brace {
-                if matches!(
-                    note.unwrap_or_default(),
-                    Note::StructDefinition | Note::FunBody | Note::ModuleDef
-                ) {
-                    pre_is_big_block = true;
-                } else {
-                    pre_is_normal_brace = true;
-                }
-            }
-            pre_is_simple_token = false;
-        }
+        let pre_is_big_block = pre_token_tree_ty == &TokenTreeType::SpecialBlkBrace;
+        let pre_is_simple_token = pre_token_tree_ty == &TokenTreeType::Simple;
+        let pre_is_normal_brace = pre_token_tree_ty == &TokenTreeType::NormalBrace;
         /*
         ** simple1:
         self.translate_line(*pos) = 6
@@ -1570,8 +1540,8 @@ impl Format {
         let already_added_new_line = last_36.trim_end_matches(' ').ends_with('\n');
         // println!("output = {:?}", last_36);
 
-        if pre_is_big_block {
-            if line_diff == 0 {
+        if pre_is_big_block || pre_is_normal_brace {
+            if line_diff == 0 && pre_is_big_block {
                 // The keyword is on the same line as the last line.
                 // println!("Two blocks on the same line, need one blank line");
                 if !&source[pre_simple_token_end_pos as usize + 1..*pos as usize]
@@ -1580,6 +1550,11 @@ impl Format {
                 {
                     self.new_line(None);
                 }
+                return;
+            }
+
+            if line_diff == 0 && pre_is_normal_brace {
+                self.new_line(None);
                 return;
             }
 
@@ -1594,20 +1569,13 @@ impl Format {
                 }
                 return;
             }
-
-            if already_added_new_line {
-                // The last line of output already ends with a newline.
-                if !new_line_before_cmt {
-                    self.new_line(None);
-                }
-                return;
-            } else {
-                if !new_line_before_cmt {
-                    self.new_line(None);
-                }
+            if !new_line_before_cmt {
                 self.new_line(None);
-                return;
             }
+            if !already_added_new_line {
+                self.new_line(None);
+            }
+            return;
         }
 
         if pre_is_simple_token {
@@ -1757,6 +1725,8 @@ impl Format {
         } = token
         {
             let mut fc = self.format_context.borrow_mut();
+            let pre_token_tree_ty = fc.pre_token_tree.get_type();
+            let is_big_blk_token = is_big_block_token(token, next_token);
 
             // step1
             self.maybe_begin_of_if_else(
@@ -1765,7 +1735,9 @@ impl Format {
                 &fc.pre_simple_token,
                 next_token,
             );
-            self.maybe_begin_of_big_block(token, next_token, *pos, &fc.pre_token_tree);
+            if pre_token_tree_ty == TokenTreeType::SpecialBlkBrace && is_big_blk_token {
+                self.maybe_begin_of_big_block(*pos, &fc.pre_token_tree);
+            }
 
             // step2: add comment(xxx) before current simple_token
             let (new_line_before_cmt, new_line_after_cmt) =
@@ -1774,8 +1746,9 @@ impl Format {
             // step3
             self.process_blank_lines_before_simple_token(
                 token,
-                next_token,
                 &fc,
+                &pre_token_tree_ty,
+                !is_big_blk_token,
                 new_line_before_cmt,
                 new_line_after_cmt,
             );
@@ -2224,10 +2197,6 @@ impl Format {
 
         len_plus_tok_len > self.global_cfg.max_width()
             && Self::tok_suitable_for_new_line(tok, note, next)
-    }
-
-    fn remove_trailing_whitespaces(&mut self) {
-        *self.ret.borrow_mut() = remove_trailing_whitespaces(self.ret.clone().into_inner());
     }
 
     fn process_last_empty_line(&mut self) {
