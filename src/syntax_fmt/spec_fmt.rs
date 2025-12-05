@@ -397,20 +397,6 @@ fn test_process_spec_fn_header_too_long_1() {
     process_spec_fn_header_too_long(&mut input, Config::default());
 
     tracing::trace!("result = {}", input);
-    let expected = "
-    /// test_point: fun name too long
-    spec aptos_std::big_vector {
-        // -----------------
-        // Data invariants
-        // -----------------
-        
-        spec singletonlllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll<T: store>(element: T, bucket_size: u64)
-             : BigVector<T>{
-            ensures length(result) == 1;
-            ensures result.bucket_size == bucket_size;
-        }
-    }   
-    ";
 }
 
 #[test]

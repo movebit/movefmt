@@ -23,12 +23,11 @@ pub struct LetHandler {
     pub split_bin_op_vec: RefCell<Vec<bool>>,
     pub break_line_by_let_rhs: RefCell<HashMap<ByteIndex, ByteIndex>>,
     pub source: String,
-    pub line_mapping: FileLineMappingOneFile,
 }
 
 impl SingleSyntaxExtractor for LetHandler {
     fn new(fmt_buffer: String) -> Self {
-        let mut this_let_extractor = Self {
+        let this_let_extractor = Self {
             bin_op_exp_vec: vec![],
             long_bin_op_exp_vec: vec![],
             let_assign_loc_vec: vec![],
@@ -36,10 +35,8 @@ impl SingleSyntaxExtractor for LetHandler {
             split_bin_op_vec: vec![].into(),
             break_line_by_let_rhs: HashMap::default().into(),
             source: fmt_buffer.clone(),
-            line_mapping: FileLineMappingOneFile::default(),
         };
 
-        this_let_extractor.line_mapping.update(&fmt_buffer);
         this_let_extractor
     }
 
