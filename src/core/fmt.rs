@@ -173,8 +173,7 @@ fn tune_module_buf(module_body: &mut String, config: &Config) {
         spec_fmt::fmt_spec(module_body, config.clone());
     }
 
-    let body = module_body.clone();
-    *module_body = remove_trailing_whitespaces(body);
+    remove_trailing_whitespaces(module_body);
 }
 
 impl Format {
@@ -310,7 +309,7 @@ impl Format {
             "end_of_move_file".to_string(),
             &self.format_context.borrow(),
         );
-        self.remove_trailing_whitespaces();
+        remove_trailing_whitespaces(&mut self.ret.borrow_mut());
         self.process_last_empty_line();
         self.ret.into_inner()
     }
@@ -2198,10 +2197,6 @@ impl Format {
 
         len_plus_tok_len > self.global_cfg.max_width()
             && Self::tok_suitable_for_new_line(tok, note, next)
-    }
-
-    fn remove_trailing_whitespaces(&mut self) {
-        *self.ret.borrow_mut() = remove_trailing_whitespaces(self.ret.clone().into_inner());
     }
 
     fn process_last_empty_line(&mut self) {
