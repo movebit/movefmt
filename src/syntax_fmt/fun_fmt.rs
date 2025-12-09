@@ -28,7 +28,7 @@ pub struct FunHandler {
 }
 
 impl SingleSyntaxExtractor for FunHandler {
-    fn new(fmt_buffer: String) -> Self {
+    fn new(fmt_buffer: &str) -> Self {
         let mut this_fun_extractor = Self {
             loc_vec: vec![],
             para_span_vec: vec![],
@@ -36,7 +36,7 @@ impl SingleSyntaxExtractor for FunHandler {
             body_loc_vec: vec![],
             loc_line_vec: vec![],
             line_mapping: FileLineMappingOneFile::default(),
-            source: fmt_buffer.clone(),
+            source: fmt_buffer.to_string(),
         };
 
         this_fun_extractor.line_mapping.update(&fmt_buffer);
@@ -444,7 +444,7 @@ fn line_range(line_idx: usize, line_starts: &[usize], text_len: usize) -> std::o
 
 #[allow(dead_code)]
 fn process_block_comment_before_fun(fmt_buffer: &mut String, config: Config) {
-    let mut fun_extractor = FunHandler::new(fmt_buffer.clone());
+    let mut fun_extractor = FunHandler::new(&fmt_buffer);
     fun_extractor.preprocess(&Arc::new(get_defs(fmt_buffer.clone())));
     let mut inserts: Vec<(usize, String)> = Vec::new(); // (byte_offset, text_to_insert)
 

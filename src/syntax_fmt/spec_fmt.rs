@@ -32,7 +32,7 @@ pub struct SpecExtractor {
 }
 
 impl SingleSyntaxExtractor for SpecExtractor {
-    fn new(fmt_buffer: String) -> Self {
+    fn new(fmt_buffer: &str) -> Self {
         let mut spec_extractor = Self {
             spec_pragma_properties_num_vec: vec![],
             spec_pragma_loc_vec: vec![],
@@ -49,8 +49,7 @@ impl SingleSyntaxExtractor for SpecExtractor {
         };
 
         spec_extractor.line_mapping.update(&fmt_buffer);
-        let parse_result =
-            parse_file_string(&mut get_compile_env(), FileHash::empty(), &fmt_buffer);
+        let parse_result = parse_file_string(&mut get_compile_env(), FileHash::empty(), fmt_buffer);
         let Ok((defs, _)) = parse_result else {
             return spec_extractor;
         };
@@ -192,7 +191,6 @@ pub struct TextEdit {
 }
 
 /// Collect edits that insert a newline+indent before spec function header when needed.
-/// This is the refactored variant of process_block_comment_before_spec_header that returns edits.
 fn collect_block_comment_edits(
     spec_extractor: &SpecExtractor,
     raw_buffer: &str,
@@ -223,7 +221,6 @@ fn collect_block_comment_edits(
 }
 
 /// Collect edits to break long spec function header lines.
-/// Refactor of process_spec_fn_header_too_long -> returns Vec<TextEdit>
 fn collect_long_header_edits(
     spec_extractor: &SpecExtractor,
     raw_buffer: &str,
@@ -459,7 +456,7 @@ fn apply_edits_in_place(fmt_buffer: &mut String, mut edits: Vec<TextEdit>) {
 pub fn fmt_spec(fmt_buffer: &mut String, config: Config) {
     // Parse once
     let buf_clone = fmt_buffer.clone();
-    let spec_extractor = SpecExtractor::new(buf_clone.clone());
+    let spec_extractor = SpecExtractor::new(&buf_clone);
 
     // Collect edits from all steps (do not mutate fmt_buffer yet)
     let mut edits: Vec<TextEdit> = Vec::new();

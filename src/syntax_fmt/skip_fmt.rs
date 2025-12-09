@@ -31,7 +31,7 @@ pub enum SkipType {
 }
 
 impl SingleSyntaxExtractor for SkipHandler {
-    fn new(fmt_buffer: String) -> Self {
+    fn new(fmt_buffer: &str) -> Self {
         let this_skip_extractor = Self {
             module_attributes: vec![],
             struct_attributes: vec![],
@@ -40,7 +40,7 @@ impl SingleSyntaxExtractor for SkipHandler {
             struct_body_loc_vec: vec![],
             fun_body_loc_vec: vec![],
             skipped_body_loc_vec: vec![].into(),
-            source: fmt_buffer.clone(),
+            source: fmt_buffer.to_string(),
         };
         this_skip_extractor
     }
@@ -186,7 +186,7 @@ impl SkipHandler {
 fn get_fun_attributes(fmt_buffer: String) {
     // let buf = fmt_buffer.clone();
     // let mut result = fmt_buffer.clone();
-    let skip_extractor = SkipHandler::new(fmt_buffer.clone());
+    let skip_extractor = SkipHandler::new(&fmt_buffer);
     for attributes in skip_extractor.fun_attributes {
         for attribute in attributes {
             // ast_debug::print(&attribute.value);

@@ -19,11 +19,11 @@ pub struct BinOpHandler {
 }
 
 impl SingleSyntaxExtractor for BinOpHandler {
-    fn new(fmt_buffer: String) -> Self {
+    fn new(fmt_buffer: &str) -> Self {
         let this_bin_op_extractor = Self {
             bin_op_exp_vec: vec![],
             split_bin_op_vec: vec![].into(),
-            source: fmt_buffer.clone(),
+            source: fmt_buffer.to_string(),
         };
         this_bin_op_extractor
     }
@@ -317,7 +317,7 @@ impl BinOpHandler {
 fn get_bin_op_exp(fmt_buffer: String) {
     use move_command_line_common::files::FileHash;
     use move_compiler::parser::syntax::parse_file_string;
-    let mut bin_op_extractor = BinOpHandler::new(fmt_buffer.clone());
+    let mut bin_op_extractor = BinOpHandler::new(&fmt_buffer);
     let (defs, _) =
         parse_file_string(&mut get_compile_env(), FileHash::empty(), &fmt_buffer).unwrap();
     bin_op_extractor.preprocess(&Arc::new(defs));
