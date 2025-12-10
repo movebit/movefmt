@@ -1523,7 +1523,15 @@ impl Format {
                 self.cur_line.get()
             );
             tracing::debug!("SimpleToken[{:?}], add a new line", content);
+            if !is_normal_token && pre_is_normal_brace {
+                let ret_copy = self.ret.clone().into_inner();
+                if !ret_copy.trim_end_matches(' ').ends_with('\n') {
+                    self.new_line(None);
+                }
+            }
+
             self.new_line(None);
+
             return;
         }
 
