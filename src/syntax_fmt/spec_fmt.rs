@@ -190,36 +190,6 @@ pub struct TextEdit {
     pub text: String,
 }
 
-/// Collect edits that insert a newline+indent before spec function header when needed.
-fn collect_block_comment_edits(
-    spec_extractor: &SpecExtractor,
-    raw_buffer: &str,
-    config: &Config,
-) -> Vec<TextEdit> {
-    let mut edits = Vec::new();
-
-    for (fun_idx, (fun_start_line, _)) in spec_extractor.spec_fn_loc_line_vec.iter().enumerate() {
-        let fun_header_str = get_nth_line(raw_buffer, *fun_start_line as usize).unwrap_or_default();
-        let filehash = FileHash::empty();
-        let mut lexer = Lexer::new(fun_header_str, filehash);
-        lexer.advance().unwrap();
-        if lexer.peek() != Tok::EOF && !fun_header_str[0..lexer.start_loc()].trim_start().is_empty()
-        {
-            let mut insert_str = "\n".to_string();
-            insert_str.push_str(" ".to_string().repeat(config.indent_size()).as_str());
-
-            let insert_pos = spec_extractor.spec_fn_loc_vec[fun_idx].start() as usize;
-            edits.push(TextEdit {
-                start: insert_pos,
-                end: insert_pos, // insertion
-                text: insert_str,
-            });
-        }
-    }
-
-    edits
-}
-
 /// Collect edits to break long spec function header lines.
 fn collect_long_header_edits(
     spec_extractor: &SpecExtractor,
@@ -454,17 +424,10 @@ fn apply_edits_in_place(fmt_buffer: &mut String, mut edits: Vec<TextEdit>) {
 }
 
 pub fn fmt_spec(fmt_buffer: &mut String, config: Config) {
-    // Parse once
     let buf_clone = fmt_buffer.clone();
     let spec_extractor = SpecExtractor::new(&buf_clone);
 
-    // Collect edits from all steps (do not mutate fmt_buffer yet)
     let mut edits: Vec<TextEdit> = Vec::new();
-    edits.extend(collect_block_comment_edits(
-        &spec_extractor,
-        &buf_clone,
-        &config,
-    ));
     edits.extend(collect_long_header_edits(
         &spec_extractor,
         &buf_clone,
@@ -472,7 +435,6 @@ pub fn fmt_spec(fmt_buffer: &mut String, config: Config) {
     ));
     edits.extend(collect_pragma_edits(&spec_extractor, &buf_clone, &config));
 
-    // Apply batch edits
     apply_edits_in_place(fmt_buffer, edits);
 }
 
