@@ -3,7 +3,7 @@ use std::sync::Arc;
 use move_compiler::parser::ast::*;
 
 pub trait SingleSyntaxExtractor {
-    fn new(fmt_buffer: String) -> Self;
+    fn new(fmt_buffer: &str) -> Self;
     fn collect_seq_item(&mut self, s: &SequenceItem);
     fn collect_seq(&mut self, s: &Sequence);
     fn collect_spec(&mut self, spec_block: &SpecBlock);

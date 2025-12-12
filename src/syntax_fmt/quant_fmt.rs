@@ -19,11 +19,11 @@ pub struct QuantHandler {
 }
 
 impl SingleSyntaxExtractor for QuantHandler {
-    fn new(fmt_buffer: String) -> Self {
+    fn new(fmt_buffer: &str) -> Self {
         let this_let_extractor = Self {
             quant_exp_vec: vec![],
             split_quant_vec: vec![].into(),
-            source: fmt_buffer.clone(),
+            source: fmt_buffer.to_string(),
         };
 
         this_let_extractor
@@ -300,7 +300,7 @@ impl QuantHandler {
 fn get_quant_exp(fmt_buffer: String) {
     use move_command_line_common::files::FileHash;
     use move_compiler::parser::syntax::parse_file_string;
-    let mut quant_extractor = QuantHandler::new(fmt_buffer.clone());
+    let mut quant_extractor = QuantHandler::new(&fmt_buffer);
     let (defs, _) =
         parse_file_string(&mut get_compile_env(), FileHash::empty(), &fmt_buffer).unwrap();
     quant_extractor.preprocess(&Arc::new(defs));

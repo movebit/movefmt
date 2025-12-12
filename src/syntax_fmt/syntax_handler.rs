@@ -18,7 +18,7 @@ macro_rules! create_handlers {
     ($content:expr, $($handler:ty),*) => {
         vec![
             $(
-                Box::new(<$handler>::new($content.to_string())) as Box<dyn Preprocessor>,
+                Box::new(<$handler>::new($content)) as Box<dyn Preprocessor>,
             )*
         ]
     };

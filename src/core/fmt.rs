@@ -39,6 +39,7 @@ pub struct FormatContext {
     pub pre_token_tree: TokenTree,
     pub cur_nested_kind: NestKind,
     pub cur_fun_key_word_pos: usize,
+    pub has_spec: bool,
 }
 
 impl FormatContext {
@@ -53,6 +54,7 @@ impl FormatContext {
                 end_pos: 0,
             },
             cur_fun_key_word_pos: 0,
+            has_spec: false,
         }
     }
 }
@@ -129,7 +131,6 @@ const STMT_START_TOKS: [Tok; 23] = [
 ];
 
 static MODULE_STR: LazyLock<String> = LazyLock::new(|| Tok::Module.to_string());
-static SPEC_STR: LazyLock<String> = LazyLock::new(|| Tok::Spec.to_string());
 static NUMSIGN_STR: LazyLock<String> = LazyLock::new(|| Tok::NumSign.to_string());
 static COMMA_STR: LazyLock<String> = LazyLock::new(|| Tok::Comma.to_string());
 static FUN_STR: LazyLock<String> = LazyLock::new(|| Tok::Fun.to_string());
@@ -168,11 +169,10 @@ fn token_to_ability(token: Tok, content: &str) -> Option<Ability_> {
     }
 }
 
-fn tune_module_buf(module_body: &mut String, config: &Config) {
-    if module_body.contains(&*SPEC_STR) {
+fn tune_module_buf(module_body: &mut String, config: &Config, has_spec: bool) {
+    if has_spec {
         spec_fmt::fmt_spec(module_body, config.clone());
     }
-
     remove_trailing_whitespaces(module_body);
 }
 
@@ -199,8 +199,11 @@ impl Format {
         }
     }
 
-    fn generate_token_tree(&mut self, content: &str) -> Result<String, Diagnostics> {
-        let (defs, _) = parse_file_string(&mut get_compile_env(), FileHash::empty(), content)?;
+    fn generate_token_tree(
+        &mut self,
+        defs: Vec<Definition>,
+        content: &str,
+    ) -> Result<String, Diagnostics> {
         let lexer = Lexer::new(content, FileHash::empty());
         let parse = crate::core::token_tree::Parser::new(lexer, &defs, content.to_string());
         self.token_tree = parse.parse_tokens();
@@ -217,6 +220,8 @@ impl Format {
                 pound_sign_idx = Some(index);
             }
             let new_line = pound_sign_idx.map_or(false, |x| (x + 1) == index);
+
+            Self::record_spec_token(&t, &self.format_context);
 
             let mut fmt_operator = || {
                 self.format_token_trees_internal(&t, self.token_tree.get(index + 1), new_line);
@@ -254,7 +259,8 @@ impl Format {
                 if !skip_handler.has_skipped_module_body(&nkind) {
                     let mut ret_borrowed = self.ret.borrow_mut();
                     let mut current_content = std::mem::take(&mut *ret_borrowed);
-                    tune_module_buf(&mut current_content, &cfg);
+                    let has_spec = self.format_context.borrow().has_spec;
+                    tune_module_buf(&mut current_content, &cfg, has_spec);
                     *ret_borrowed = current_content;
                 }
                 let module_body_buf = self.ret.borrow().clone();
@@ -283,7 +289,8 @@ impl Format {
                     }
                     let m = &fmt_buf[mod_def.loc.start() as usize..mod_def.loc.end() as usize];
                     let mut tuning_mod_body = m.to_string();
-                    tune_module_buf(&mut tuning_mod_body, &cfg);
+                    let has_spec = self.format_context.borrow().has_spec;
+                    tune_module_buf(&mut tuning_mod_body, &cfg, has_spec);
                     fmt_slice.push_str(&tuning_mod_body);
                     last_mod_end_loc = mod_def.loc.end() as usize;
                 }
@@ -299,9 +306,11 @@ impl Format {
                 tracing::debug!("<script> self.ret = {:?}", &self.ret);
                 let mut ret_borrowed = self.ret.borrow_mut();
                 let mut current_content = std::mem::take(&mut *ret_borrowed);
-                tune_module_buf(&mut current_content, &cfg);
+                let has_spec = self.format_context.borrow().has_spec;
+                tune_module_buf(&mut current_content, &cfg, has_spec);
                 *ret_borrowed = current_content;
             }
+            self.format_context.borrow_mut().has_spec = false;
             self.process_last_empty_line();
         }
         self.add_comments(
@@ -312,6 +321,21 @@ impl Format {
         remove_trailing_whitespaces(&mut self.ret.borrow_mut());
         self.process_last_empty_line();
         self.ret.into_inner()
+    }
+
+    fn record_spec_token(token: &TokenTree, format_context: &RefCell<FormatContext>) {
+        match token {
+            TokenTree::SimpleToken { tok, .. } => {
+                if *tok == Tok::Spec {
+                    format_context.borrow_mut().has_spec = true;
+                }
+            }
+            TokenTree::Nested { elements, .. } => {
+                for ele in elements {
+                    Self::record_spec_token(ele, format_context);
+                }
+            }
+        }
     }
 
     fn is_long_nested_token(current: &TokenTree) -> (bool, usize) {
@@ -1523,7 +1547,15 @@ impl Format {
                 self.cur_line.get()
             );
             tracing::debug!("SimpleToken[{:?}], add a new line", content);
+            if !is_normal_token && pre_is_normal_brace {
+                let ret_copy = self.ret.clone().into_inner();
+                if !ret_copy.trim_end_matches(' ').ends_with('\n') {
+                    self.new_line(None);
+                }
+            }
+
             self.new_line(None);
+
             return;
         }
 
@@ -2212,12 +2244,9 @@ impl Format {
     }
 
     fn get_last_line_leading_space_cnt(&self) -> usize {
-        let trim_leading_space = self
-            .last_line()
-            .clone()
-            .trim_start_matches(char::is_whitespace)
-            .len();
-        let mut leading_space_cnt = self.last_line().len() - trim_leading_space;
+        let last_line = self.last_line();
+        let trim_leading_space = last_line.trim_start_matches(char::is_whitespace).len();
+        let mut leading_space_cnt = last_line.len() - trim_leading_space;
         if leading_space_cnt > self.local_cfg.indent_size && leading_space_cnt % 2 == 1 {
             leading_space_cnt -= 1;
             let remove_pos =
@@ -2232,10 +2261,8 @@ pub fn format_entry(content: impl AsRef<str>, config: Config) -> Result<String, 
     let mut timer = Timer::start();
     let content = content.as_ref();
 
-    {
-        // https://github.com/movebit/movefmt/issues/2
-        let _ = parse_file_string(&mut get_compile_env(), FileHash::empty(), content)?;
-    }
+    // https://github.com/movebit/movefmt/issues/2
+    let (defs, _) = parse_file_string(&mut get_compile_env(), FileHash::empty(), content)?;
 
     let mut full_fmt = Format::new(
         config.clone(),
@@ -2243,7 +2270,7 @@ pub fn format_entry(content: impl AsRef<str>, config: Config) -> Result<String, 
         FormatContext::new(content.to_string()),
     );
 
-    full_fmt.generate_token_tree(content)?;
+    full_fmt.generate_token_tree(defs, content)?;
     timer = timer.done_parsing();
 
     let result = full_fmt.format_token_trees();

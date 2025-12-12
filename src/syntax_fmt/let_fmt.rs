@@ -26,7 +26,7 @@ pub struct LetHandler {
 }
 
 impl SingleSyntaxExtractor for LetHandler {
-    fn new(fmt_buffer: String) -> Self {
+    fn new(fmt_buffer: &str) -> Self {
         let this_let_extractor = Self {
             bin_op_exp_vec: vec![],
             long_bin_op_exp_vec: vec![],
@@ -34,7 +34,7 @@ impl SingleSyntaxExtractor for LetHandler {
             let_assign_rhs_exp: vec![],
             split_bin_op_vec: vec![].into(),
             break_line_by_let_rhs: HashMap::default().into(),
-            source: fmt_buffer.clone(),
+            source: fmt_buffer.to_string(),
         };
 
         this_let_extractor
@@ -483,7 +483,7 @@ impl LetHandler {
 fn get_bin_op_exp(fmt_buffer: String) {
     use move_command_line_common::files::FileHash;
     use move_compiler::parser::syntax::parse_file_string;
-    let mut let_extractor = LetHandler::new(fmt_buffer.clone());
+    let mut let_extractor = LetHandler::new(&fmt_buffer);
     let (defs, _) =
         parse_file_string(&mut get_compile_env(), FileHash::empty(), &fmt_buffer).unwrap();
     let_extractor.preprocess(&Arc::new(defs));
@@ -519,7 +519,7 @@ fn get_bin_op_exp(fmt_buffer: String) {
 fn get_long_assign(fmt_buffer: String) {
     use move_command_line_common::files::FileHash;
     use move_compiler::parser::syntax::parse_file_string;
-    let mut let_extractor = LetHandler::new(fmt_buffer.clone());
+    let mut let_extractor = LetHandler::new(&fmt_buffer);
     let (defs, _) =
         parse_file_string(&mut get_compile_env(), FileHash::empty(), &fmt_buffer).unwrap();
     let_extractor.preprocess(&Arc::new(defs));

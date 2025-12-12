@@ -32,12 +32,12 @@ pub struct CallHandler {
 }
 
 impl SingleSyntaxExtractor for CallHandler {
-    fn new(fmt_buffer: String) -> Self {
+    fn new(fmt_buffer: &str) -> Self {
         let mut this_call_extractor = Self {
             call_loc_vec: vec![],
             call_paren_loc_vec: vec![],
             pack_in_call_loc_vec: vec![],
-            source: fmt_buffer.clone(),
+            source: fmt_buffer.to_string(),
             line_mapping: FileLineMappingOneFile::default(),
         };
 
@@ -573,7 +573,7 @@ fn get_call(fmt_buffer: String) {
     use crate::tools::utils::*;
     use move_command_line_common::files::FileHash;
     use move_compiler::parser::syntax::parse_file_string;
-    let mut call_extractor = CallHandler::new(fmt_buffer.clone());
+    let mut call_extractor = CallHandler::new(&fmt_buffer);
     let (defs, _) = parse_file_string(
         &mut get_compile_env(),
         FileHash::empty(),

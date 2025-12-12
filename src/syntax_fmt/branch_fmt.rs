@@ -43,7 +43,7 @@ pub struct BranchHandler {
 }
 
 impl SingleSyntaxExtractor for BranchHandler {
-    fn new(fmt_buffer: String) -> Self {
+    fn new(fmt_buffer: &str) -> Self {
         let let_if_else = LetIfElseBlock {
             let_if_else_block_loc_vec: vec![],
             then_in_let_loc_vec: vec![],
@@ -63,14 +63,12 @@ impl SingleSyntaxExtractor for BranchHandler {
         let mut this_branch_extractor = Self {
             let_if_else,
             com_if_else,
-            source: fmt_buffer.clone(),
+            source: fmt_buffer.to_string(),
             line_mapping: FileLineMappingOneFile::default(),
             added_new_line_branch: HashMap::default().into(),
         };
 
-        this_branch_extractor
-            .line_mapping
-            .update(&fmt_buffer.clone());
+        this_branch_extractor.line_mapping.update(&fmt_buffer);
         this_branch_extractor
     }
 
