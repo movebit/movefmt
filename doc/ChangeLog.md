@@ -8,6 +8,7 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.4.5">v1.4.5</a><br/>
 <a href="#v1.4.4">v1.4.4</a><br/>
 <a href="#v1.4.3">v1.4.3</a><br/>
 <a href="#v1.4.2">v1.4.2</a><br/>
@@ -47,6 +48,16 @@
 </td>
 </tr>
 </table>
+
+
+<a id="v1.4.5"></a>
+## 2025-12-12, Version v1.4.5
+* [[`2a82a04`](https://github.com/movebit/movefmt/commit/2a82a04683f8c15a6be12223f3063eb5a957fd08)] - optimize generate_token_tree()
+* [[`9416af6`](https://github.com/movebit/movefmt/commit/9416af6f491fa4c386824a26a3c09ffb995fbe9a)] - optimize tune_module_buf()
+* [[`9834ad6`](https://github.com/movebit/movefmt/commit/9834ad66c2f3e873ad04c54d9b7bee852fa1b2ab)] - fix bug on spec brace
+* [[`db0995c`](https://github.com/movebit/movefmt/commit/db0995ccab2565a10c63b0b96c32c3b7593489df)] - remove collect_block_comment_edits
+* [[`1cac39b`](https://github.com/movebit/movefmt/commit/1cac39b825b7e228a1845c19255e412aa467deef)] - optimize Extractor::new()
+* [[`04beba6`](https://github.com/movebit/movefmt/commit/04beba60fda677e9ee2275eb58220441698dd92d)] - optimize spec_fmt::fmt_spec()
 
 
 <a id="v1.4.4"></a>
