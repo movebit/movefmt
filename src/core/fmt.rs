@@ -199,8 +199,11 @@ impl Format {
         }
     }
 
-    fn generate_token_tree(&mut self, content: &str) -> Result<String, Diagnostics> {
-        let (defs, _) = parse_file_string(&mut get_compile_env(), FileHash::empty(), content)?;
+    fn generate_token_tree(
+        &mut self,
+        defs: Vec<Definition>,
+        content: &str,
+    ) -> Result<String, Diagnostics> {
         let lexer = Lexer::new(content, FileHash::empty());
         let parse = crate::core::token_tree::Parser::new(lexer, &defs, content.to_string());
         self.token_tree = parse.parse_tokens();
@@ -2241,12 +2244,9 @@ impl Format {
     }
 
     fn get_last_line_leading_space_cnt(&self) -> usize {
-        let trim_leading_space = self
-            .last_line()
-            .clone()
-            .trim_start_matches(char::is_whitespace)
-            .len();
-        let mut leading_space_cnt = self.last_line().len() - trim_leading_space;
+        let last_line = self.last_line();
+        let trim_leading_space = last_line.trim_start_matches(char::is_whitespace).len();
+        let mut leading_space_cnt = last_line.len() - trim_leading_space;
         if leading_space_cnt > self.local_cfg.indent_size && leading_space_cnt % 2 == 1 {
             leading_space_cnt -= 1;
             let remove_pos =
@@ -2261,10 +2261,8 @@ pub fn format_entry(content: impl AsRef<str>, config: Config) -> Result<String, 
     let mut timer = Timer::start();
     let content = content.as_ref();
 
-    {
-        // https://github.com/movebit/movefmt/issues/2
-        let _ = parse_file_string(&mut get_compile_env(), FileHash::empty(), content)?;
-    }
+    // https://github.com/movebit/movefmt/issues/2
+    let (defs, _) = parse_file_string(&mut get_compile_env(), FileHash::empty(), content)?;
 
     let mut full_fmt = Format::new(
         config.clone(),
@@ -2272,7 +2270,7 @@ pub fn format_entry(content: impl AsRef<str>, config: Config) -> Result<String, 
         FormatContext::new(content.to_string()),
     );
 
-    full_fmt.generate_token_tree(content)?;
+    full_fmt.generate_token_tree(defs, content)?;
     timer = timer.done_parsing();
 
     let result = full_fmt.format_token_trees();
