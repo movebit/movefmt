@@ -32,6 +32,7 @@ const EXIST_MULTI_ADDRESS_TAG: &str = "address fmt";
 const MAX_ANALYZE_LENGTH: usize = 64;
 const MIN_BREAK_LENGTH: usize = 32;
 const MIN_NESTED_LENGTH: usize = 16;
+const BRACE_LEN_BREAK_LIMIT: usize = 46;
 
 pub struct FormatContext<'a> {
     pub content: &'a str,
@@ -674,7 +675,8 @@ impl<'a> Format<'a> {
         let fun_specifier_fmted_str =
             fun_fmt::fun_header_specifier_fmt(&cur[last_fun_idx..], &indent);
 
-        *ret = format!("{}{}", &cur[..last_fun_idx], fun_specifier_fmted_str);
+        ret.truncate(last_fun_idx);
+        ret.push_str(&fun_specifier_fmted_str);
     }
 
     fn get_break_mode_of_fun_call(
@@ -947,7 +949,7 @@ impl<'a> Format<'a> {
                 }
 
                 // case3: nested_len too long
-                new_line_mode |= nested_len as f32 > 46.0;
+                new_line_mode |= nested_len > BRACE_LEN_BREAK_LIMIT;
 
                 // case4: contains comment
                 new_line_mode |=
@@ -1665,7 +1667,6 @@ impl<'a> Format<'a> {
             self.dec_depth();
         } else if self
             .last_line()
-            .clone()
             .trim_start_matches(char::is_whitespace)
             .len()
             == 0
@@ -2234,8 +2235,8 @@ impl<'a> Format<'a> {
     fn process_last_empty_line(&mut self) {
         let mut ret_borrowed = self.ret.borrow_mut();
         let mut current_content = std::mem::take(&mut *ret_borrowed);
-        current_content = current_content.trim_end().to_string();
-        current_content.push_str("\n");
+        current_content.truncate(current_content.trim_end().len());
+        current_content.push('\n');
         *ret_borrowed = current_content;
     }
 
