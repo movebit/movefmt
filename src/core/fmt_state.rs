@@ -162,7 +162,7 @@ impl FunctionalFormat {
 
         let (defs, _) = parse_file_string(&mut get_compile_env(), FileHash::empty(), content)?;
         let lexer = Lexer::new(content, FileHash::empty());
-        let parse = crate::core::token_tree::Parser::new(lexer, &defs, content.to_string());
+        let parse = crate::core::token_tree::Parser::new(lexer, &defs, content);
         let token_tree = parse.parse_tokens();
 
         let defs = Arc::new(defs);

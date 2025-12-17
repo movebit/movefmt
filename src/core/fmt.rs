@@ -206,7 +206,7 @@ impl<'a> Format<'a> {
         content: &str,
     ) -> Result<String, Diagnostics> {
         let lexer = Lexer::new(content, FileHash::empty());
-        let parse = crate::core::token_tree::Parser::new(lexer, &defs, content.to_string());
+        let parse = crate::core::token_tree::Parser::new(lexer, &defs, content);
         self.token_tree = parse.parse_tokens();
 
         let defs = Arc::new(defs);
