@@ -8,14 +8,14 @@
 //! replacing the original mutable state design based on RefCell/Cell.
 
 use crate::core::token_tree::*;
-use crate::syntax_fmt::skip_fmt::{SkipHandler, SkipType};
-use crate::syntax_fmt::syntax_handler::SyntaxHandler;
-use crate::syntax_fmt::{expr_fmt, spec_fmt};
+use crate::syntax_fmt::bin_op_fmt::BinOpHandler;
 use crate::syntax_fmt::call_fmt::{CallHandler, ComplexCallKind};
 use crate::syntax_fmt::fun_fmt::FunHandler;
 use crate::syntax_fmt::let_fmt::LetHandler;
-use crate::syntax_fmt::bin_op_fmt::BinOpHandler;
 use crate::syntax_fmt::quant_fmt::QuantHandler;
+use crate::syntax_fmt::skip_fmt::{SkipHandler, SkipType};
+use crate::syntax_fmt::syntax_handler::SyntaxHandler;
+use crate::syntax_fmt::{expr_fmt, spec_fmt};
 use crate::tools::utils::*;
 use commentfmt::Config;
 use move_command_line_common::files::FileHash;
@@ -279,16 +279,16 @@ impl FunctionalFormat {
                 state = self.add_new_line_with_state(Some(token.end_pos()), state);
                 pound_sign_idx = None;
             }
-            
+
             // Post-process for special blocks
             if let TokenTree::Nested { kind: nkind, .. } = token {
                 if nkind.kind == NestKind_::Brace {
                     state = self.add_new_line_with_state(Some(token.end_pos()), state);
                 }
-                
+
                 let skip_handler = self.context.syntax_handler.handler_immut::<SkipHandler>();
                 let is_mod_blk = skip_handler.is_module_block(nkind);
-                
+
                 if is_mod_blk && !skip_handler.has_skipped_module_body(nkind) {
                     // Tune the module body formatting (in-place)
                     tune_module_buf(&mut state.output, &self.context.global_cfg);
@@ -559,23 +559,23 @@ impl FunctionalFormat {
         else {
             return (false, None);
         };
-            
+
         let max_len_no_add_line = self.context.local_cfg.max_len_no_add_line;
         let max_line_width = self.context.global_cfg.max_width();
-        let nested_blk_str =
-            &self.context.content[kind.start_pos as usize..kind.end_pos as usize];
+        let nested_blk_str = &self.context.content[kind.start_pos as usize..kind.end_pos as usize];
         let nested_len = self.get_kind_len_after_trim_space(kind);
-            
+
         if elements.is_empty() {
             let should_break = nested_len as f32 > max_len_no_add_line
-                || (commentfmt::comment::contains_comment(nested_blk_str) && nested_blk_str.lines().count() > 1);
+                || (commentfmt::comment::contains_comment(nested_blk_str)
+                    && nested_blk_str.lines().count() > 1);
             return (should_break, None);
         }
-    
+
         let is_stct_def = *note == Some(Note::StructDefinition);
         let is_fun_body = *note == Some(Note::FunBody);
         let is_mod_body = *note == Some(Note::ModuleDef);
-            
+
         // Module body, function body, and struct always break
         if (delimiter == Some(Delimiter::Semicolon) || is_stct_def || is_fun_body || is_mod_body)
             && kind.kind != NestKind_::Type
@@ -586,7 +586,7 @@ impl FunctionalFormat {
                 (true, None)
             };
         }
-    
+
         // Handle different kinds of nested structures
         match kind.kind {
             NestKind_::Type => {
@@ -599,7 +599,7 @@ impl FunctionalFormat {
                 {
                     return (false, None);
                 }
-                
+
                 let first_ele_len =
                     analyze_token_tree_length(&[elements[0].clone()], max_line_width);
                 let new_line_mode =
@@ -615,7 +615,7 @@ impl FunctionalFormat {
                 let is_annotation = matches!(_state.get_pre_simple_tok(), Tok::NumSign);
                 let new_line_mode = (is_annotation && nested_len > max_line_width)
                     || (!is_annotation && nested_len > MAX_ANALYZE_LENGTH);
-                        
+
                 if elements.len() > MIN_BREAK_LENGTH {
                     let mut bin_op_cnt = 0;
                     let mut complex_ele_cnt = 0;
@@ -639,16 +639,19 @@ impl FunctionalFormat {
                     return (false, None);
                 }
                 let mut new_line_mode = _state.last_line().len() + nested_len > MAX_ANALYZE_LENGTH;
-                        
+
                 let nested_and_comma_pair = get_nested_and_comma_num(elements);
-                let opt_component_break_mode =
-                    if self.context.global_cfg.prefer_one_line_for_short_lambda_para_list() {
-                        (nested_and_comma_pair.0 >= 4 || nested_and_comma_pair.1 > 2)
-                            && token.token_len() as f32 > max_len_no_add_line
-                    } else {
-                        nested_and_comma_pair.1 > 1
-                    };
-                        
+                let opt_component_break_mode = if self
+                    .context
+                    .global_cfg
+                    .prefer_one_line_for_short_lambda_para_list()
+                {
+                    (nested_and_comma_pair.0 >= 4 || nested_and_comma_pair.1 > 2)
+                        && token.token_len() as f32 > max_len_no_add_line
+                } else {
+                    nested_and_comma_pair.1 > 1
+                };
+
                 new_line_mode |= opt_component_break_mode;
                 return (new_line_mode, None);
             }
@@ -658,29 +661,29 @@ impl FunctionalFormat {
                 if nested_len > 4 {
                     // case1: over max width
                     new_line_mode |= _state.last_line().len() + nested_len > max_line_width;
-                            
+
                     // case2: has special keyword
                     let has_special = has_special_key(_state.last_line().to_string());
                     new_line_mode |= has_special;
                 }
-                        
+
                 // case3: nested_len too long
                 new_line_mode |= nested_len > BRACE_LEN_BREAK_LIMIT;
-                        
+
                 // case4: contains comment
-                new_line_mode |=
-                    commentfmt::comment::contains_comment(nested_blk_str) && nested_blk_str.lines().count() > 1;
-                        
+                new_line_mode |= commentfmt::comment::contains_comment(nested_blk_str)
+                    && nested_blk_str.lines().count() > 1;
+
                 // case5: has too much nested blks
                 let (nested_cnt, _) = get_nested_and_comma_num(elements);
                 new_line_mode |= nested_cnt >= 2 && nested_len > MIN_BREAK_LENGTH;
-                        
+
                 // For simple cases, just return basic break mode
                 return (new_line_mode, None);
             }
         }
     }
-    
+
     fn get_break_mode_begin_paren(
         &self,
         token: &TokenTree,
@@ -690,40 +693,45 @@ impl FunctionalFormat {
         let TokenTree::Nested { elements, kind, .. } = token else {
             return (false, None);
         };
-            
+
         if kind.kind != NestKind_::ParentTheses {
             return (false, None);
         }
-    
+
         let first_ele_is_nested = elements[0].simple_str().is_none();
         if elements.len() == 1 && first_ele_is_nested {
             return (false, None);
         }
-    
+
         let nested_token_len = self.get_kind_len_after_trim_space(kind);
         let mut opt_component_break_mode = nested_token_len
             + (state.depth + 1) * self.context.local_cfg.indent_size
             >= self.context.global_cfg.max_width();
-            
+
         // Handle special cases for if/while conditions
         if matches!(state.get_pre_simple_tok(), Tok::If | Tok::While) {
             return (false, Some(opt_component_break_mode));
         }
-                
+
         // Check if this is a function header parameter list
         let (is_in_fun_header, fun_len) = self
             .context
             .syntax_handler
             .handler_immut::<FunHandler>()
             .is_parameter_paren_in_fun_header(kind);
-    
+
         // If not in function header and current line is too long, break
         if !is_in_fun_header && state.last_line().len() > self.context.global_cfg.max_width() {
             return (true, Some(opt_component_break_mode));
         }
-                
+
         // Check if this is a function call that needs to be split
-        if self.context.syntax_handler.handler_immut::<CallHandler>().paren_in_call(kind) {
+        if self
+            .context
+            .syntax_handler
+            .handler_immut::<CallHandler>()
+            .paren_in_call(kind)
+        {
             return (
                 self.get_break_mode_of_fun_call(
                     token,
@@ -734,13 +742,12 @@ impl FunctionalFormat {
                 Some(opt_component_break_mode),
             );
         }
-    
-        let paren_str =
-            &self.context.content[kind.start_pos as usize..kind.end_pos as usize];
+
+        let paren_str = &self.context.content[kind.start_pos as usize..kind.end_pos as usize];
         if commentfmt::comment::contains_comment(paren_str) && paren_str.find("//").is_some() {
             return (true, Some(true));
         }
-    
+
         // Calculate current line length
         let cur_line_status = get_code_buf_len(state.last_line().to_string());
         let cur_line_len = if cur_line_status.1 {
@@ -748,44 +755,50 @@ impl FunctionalFormat {
         } else {
             state.last_line().len()
         };
-        
+
         // Get nested depth and comma count
         let (nested_dep, comma_cnt) = get_nested_and_comma_num(elements);
-        
+
         // For function headers, adjust break mode based on config
         if is_in_fun_header
-            && !self.context.global_cfg.prefer_one_line_for_short_fn_header_para_list()
+            && !self
+                .context
+                .global_cfg
+                .prefer_one_line_for_short_fn_header_para_list()
         {
             opt_component_break_mode |= comma_cnt > 1;
         }
-        
+
         // Apply nesting and comma thresholds
         opt_component_break_mode |= (nested_dep >= 4 || comma_cnt > 2)
             && nested_token_len as f32 > self.context.local_cfg.max_len_no_add_line;
-    
+
         let mut new_line_mode = fun_len > self.context.global_cfg.max_width();
         // Reserve 25% space for return type and specifier
         new_line_mode |= is_in_fun_header && cur_line_len + nested_token_len > MAX_ANALYZE_LENGTH;
         new_line_mode |= opt_component_break_mode && comma_cnt > 2;
-        
+
         if !is_in_fun_header && !new_line_mode {
             if !first_ele_is_nested {
-                new_line_mode |= cur_line_len + nested_token_len > self.context.global_cfg.max_width()
+                new_line_mode |= cur_line_len + nested_token_len
+                    > self.context.global_cfg.max_width()
                     && nested_token_len > 8;
             } else {
                 // For nested elements, analyze the first element's length
-                let first_ele_len =
-                    analyze_token_tree_length(&[elements[0].clone()], self.context.global_cfg.max_width());
-                new_line_mode |=
-                    cur_line_len + first_ele_len > self.context.global_cfg.max_width() && first_ele_len > 8;
+                let first_ele_len = analyze_token_tree_length(
+                    &[elements[0].clone()],
+                    self.context.global_cfg.max_width(),
+                );
+                new_line_mode |= cur_line_len + first_ele_len > self.context.global_cfg.max_width()
+                    && first_ele_len > 8;
             }
             new_line_mode |= comma_cnt > 2 && nested_token_len > MIN_BREAK_LENGTH;
             new_line_mode |= nested_dep > 2 && nested_token_len > MAX_ANALYZE_LENGTH;
             new_line_mode |= opt_component_break_mode && comma_cnt > 0;
         }
-        
+
         (new_line_mode, Some(opt_component_break_mode))
-    }    
+    }
     fn get_break_mode_of_fun_call(
         &self,
         token: &TokenTree,
@@ -796,7 +809,7 @@ impl FunctionalFormat {
         let TokenTree::Nested { elements, kind, .. } = token else {
             return false;
         };
-            
+
         let call_handler = self.context.syntax_handler.handler_immut::<CallHandler>();
         if call_handler.need_split_call_component(
             self.context.global_cfg.clone(),
@@ -812,7 +825,11 @@ impl FunctionalFormat {
 
             let (nested_dep, comma_cnt) = get_nested_and_comma_num(elements);
             if comma_cnt > 2 || nested_dep > 2 {
-                if self.context.global_cfg.prefer_one_line_for_short_call_para_list() {
+                if self
+                    .context
+                    .global_cfg
+                    .prefer_one_line_for_short_call_para_list()
+                {
                     *opt_component_break_mode =
                         nested_dep > 2 || nested_token_len > MIN_BREAK_LENGTH;
                 } else {
@@ -873,7 +890,7 @@ impl FunctionalFormat {
         let TokenTree::Nested { elements, kind, .. } = token else {
             return state;
         };
-        
+
         let call_handler = self.context.syntax_handler.handler_immut::<CallHandler>();
         let nested_kind_len = self.get_kind_len_after_trim_space(kind);
         let old_kind = state.cur_nested_kind;
@@ -892,7 +909,7 @@ impl FunctionalFormat {
         let last_is_comma = elements
             .last()
             .map_or(false, |t| t.get_start_tok() == Tok::Comma);
-            
+
         while token_idx < nested_ele_len {
             let mut new_line = self.need_new_line_after_cur_tok_finished(
                 token,
@@ -903,7 +920,7 @@ impl FunctionalFormat {
                 nested_kind_len,
                 &state,
             );
-            
+
             if is_call {
                 new_line |= component_break_mode
                     && call_handler.should_call_component_split(
@@ -961,8 +978,7 @@ impl FunctionalFormat {
                     self.translate_line(next_token_start_pos) > self.translate_line(token.end_pos())
                 }
                 None => {
-                    let remain_code_str =
-                        &self.context.content[token.end_pos() as usize..];
+                    let remain_code_str = &self.context.content[token.end_pos() as usize..];
                     let mut remain_code_iter = remain_code_str.split_whitespace().clone();
                     let remain_code_first_word = remain_code_iter.next().unwrap_or_default();
                     remain_code_first_word.starts_with("//")
@@ -975,10 +991,10 @@ impl FunctionalFormat {
             }
             state = self.add_new_line_with_state(None, state);
         }
-        
+
         state
     }
-    
+
     fn need_new_line_after_cur_tok_finished(
         &self,
         nested_token: &TokenTree,
@@ -1051,8 +1067,8 @@ impl FunctionalFormat {
         };
 
         if nested_kind_len > MIN_NESTED_LENGTH && kind.kind != NestKind_::Type {
-            new_line |=
-                self.check_cur_token_is_long_bin_op(t, next_t, next_tok, index, kind, &elements, state);
+            new_line |= self
+                .check_cur_token_is_long_bin_op(t, next_t, next_tok, index, kind, &elements, state);
             if !new_line && next_t.is_some() {
                 if self.check_next_token_is_long_bin_op(t, next_t, next_tok, state) {
                     return true;
@@ -1064,7 +1080,7 @@ impl FunctionalFormat {
         }
         new_line
     }
-    
+
     fn format_nested_end_with_state(
         &self,
         kind: &NestKind,
@@ -1196,20 +1212,23 @@ impl FunctionalFormat {
     ) -> FormatState {
         use move_compiler::parser::lexer::Tok;
 
-        let TokenTree::SimpleToken { pos, tok, content, .. } = token else {
+        let TokenTree::SimpleToken {
+            pos, tok, content, ..
+        } = token
+        else {
             return state;
         };
-        
+
         let pre_tok = state.get_pre_simple_tok();
         let pre_simple_token_end_pos = state.pre_simple_token.end_pos();
-        
+
         if (pre_simple_token_end_pos as usize) < MIN_NESTED_LENGTH {
             return state;
         }
 
         let token_line = self.translate_line(*pos);
         let line_diff = token_line.saturating_sub(state.cur_line);
-        
+
         // Check if we need to preserve blank lines
         if line_diff > 1 && expr_fmt::need_newline_when_trim_blank_line(&pre_tok, tok) {
             tracing::debug!(
@@ -1218,7 +1237,7 @@ impl FunctionalFormat {
                 state.cur_line,
                 content
             );
-            
+
             // Add the blank line
             if !state.output.trim_end().ends_with('\n') {
                 state = state.push_str("\n");
@@ -1229,14 +1248,14 @@ impl FunctionalFormat {
             let new_cur_line = state.cur_line + 1;
             state = state.set_cur_line(new_cur_line);
         }
-        
+
         // Handle special cases for specific token types
         if pre_tok == Tok::Semicolon && line_diff > 0 {
             // Add newline after semicolon if on different lines
-            let maybe_comment_str = &self.context.content
-                [pre_simple_token_end_pos as usize + 1..*pos as usize];
+            let maybe_comment_str =
+                &self.context.content[pre_simple_token_end_pos as usize + 1..*pos as usize];
             let has_comment = !maybe_comment_str.trim().is_empty();
-            
+
             if !state.output.trim_end().ends_with('\n') && (line_diff > 0 || has_comment) {
                 state = state.push_str("\n");
                 let indent = " ".repeat(state.depth * self.context.local_cfg.indent_size);
@@ -1245,7 +1264,7 @@ impl FunctionalFormat {
                 state = state.set_cur_line(new_cur_line);
             }
         }
-        
+
         state
     }
 
@@ -1382,7 +1401,7 @@ impl FunctionalFormat {
         }
         false
     }
-    
+
     fn check_next_tok_canbe_break(next: Option<&TokenTree>) -> bool {
         if let Some((next_tok, next_content)) = next.map(|x| match x {
             TokenTree::SimpleToken {
@@ -1406,7 +1425,7 @@ impl FunctionalFormat {
             true
         }
     }
-    
+
     fn check_cur_token_is_long_bin_op(
         &self,
         current: &TokenTree,
@@ -1455,7 +1474,7 @@ impl FunctionalFormat {
 
         false
     }
-    
+
     fn check_next_token_is_long_bin_op(
         &self,
         current: &TokenTree,
@@ -1526,7 +1545,7 @@ impl FunctionalFormat {
         }
         false
     }
-    
+
     fn check_next_token_is_quant_body(
         &self,
         current: &TokenTree,
@@ -1553,7 +1572,7 @@ impl FunctionalFormat {
         }
         false
     }
-    
+
     fn process_same_line_comment_with_state(
         &self,
         pos: u32,
@@ -1565,10 +1584,10 @@ impl FunctionalFormat {
             if comment.start_offset > pos {
                 break;
             }
-            
+
             let comment_line = self.translate_line(comment.start_offset);
             let current_line = self.translate_line(pos);
-            
+
             if comment_line == current_line {
                 if process_tail {
                     let formatted = comment.format_comment(
@@ -1605,8 +1624,7 @@ impl FunctionalFormat {
     }
 
     fn get_kind_len_after_trim_space(&self, kind: &NestKind) -> usize {
-        let nested_blk_str =
-            &self.context.content[kind.start_pos as usize..kind.end_pos as usize];
+        let nested_blk_str = &self.context.content[kind.start_pos as usize..kind.end_pos as usize];
         nested_blk_str.trim().len()
     }
 
@@ -1639,7 +1657,7 @@ fn is_bin_op(tok: Tok) -> bool {
 fn get_nested_and_comma_num(elements: &[TokenTree]) -> (usize, usize) {
     let mut nested_cnt = 0;
     let mut comma_cnt = 0;
-    
+
     for ele in elements {
         match ele {
             TokenTree::Nested { .. } => {
@@ -1652,7 +1670,7 @@ fn get_nested_and_comma_num(elements: &[TokenTree]) -> (usize, usize) {
             }
         }
     }
-    
+
     (nested_cnt, comma_cnt)
 }
 
@@ -1792,7 +1810,7 @@ module 0x1::test {
     #[test]
     fn test_compare_with_original_formatter() {
         use crate::core::fmt::format_entry;
-        
+
         let content = r#"
 module 0x1::test {
     public fun add(a: u64, b: u64): u64 {
@@ -1804,7 +1822,7 @@ module 0x1::test {
 
         // Format with original
         let original_result = format_entry(content, config.clone());
-        
+
         // Format with functional
         let functional_result = format_entry_functional(content, config);
 
@@ -1814,7 +1832,7 @@ module 0x1::test {
                 println!("{}", orig);
                 println!("\n=== Functional Formatter ===");
                 println!("{}", func);
-                
+
                 // Both should produce non-empty output
                 assert!(!orig.is_empty());
                 assert!(!func.is_empty());

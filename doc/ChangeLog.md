@@ -8,6 +8,7 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.4.6">v1.4.6</a><br/>
 <a href="#v1.4.5">v1.4.5</a><br/>
 <a href="#v1.4.4">v1.4.4</a><br/>
 <a href="#v1.4.3">v1.4.3</a><br/>
@@ -48,6 +49,14 @@
 </td>
 </tr>
 </table>
+
+
+<a id="v1.4.6"></a>
+## 2025-12-29, Version v1.4.6
+* [[`939e338`](https://github.com/movebit/movefmt/commit/939e338e743f941ccae10d8e8f03b960efce220e)] - feat: try developing fmt_state
+* [[`001ef0d`](https://github.com/movebit/movefmt/commit/001ef0d0d3d0e429167bdcfbb26afd3cac91a5ec)] - optimize token_tree
+* [[`6e878ab`](https://github.com/movebit/movefmt/commit/6e878abc1ddafd118d3257eaa84ebf5197089c34)] - performance and clarity improvements
+* [[`6a78cbc`](https://github.com/movebit/movefmt/commit/6a78cbc62b22ad599bc772ad85ee1fcf264124d8)] - refactor(fmt): switch FormatContext and Format to borrow input string instead of clone
 
 
 <a id="v1.4.5"></a>
