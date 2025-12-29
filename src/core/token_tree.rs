@@ -251,7 +251,7 @@ impl TokenTree {
 
 pub struct Parser<'a> {
     lexer: Lexer<'a>,
-    defs: &'a Vec<Definition>,
+    defs: &'a [Definition],
     type_lambda_pair: Vec<(u32, u32)>,
     type_lambda_pair_index: usize,
     struct_definitions: Vec<(u32, u32)>,
@@ -261,11 +261,11 @@ pub struct Parser<'a> {
     apple_name: HashSet<u32>,
     address_module: Vec<(u32, u32)>,
     module_body: HashSet<u32>, // end pos.
-    source: String,
+    source: &'a str,
 }
 
 impl<'a> Parser<'a> {
-    pub fn new(lexer: Lexer<'a>, defs: &'a Vec<Definition>, source: String) -> Self {
+    pub fn new(lexer: Lexer<'a>, defs: &'a [Definition], source: &'a str) -> Self {
         let mut x = Self {
             lexer,
             defs,
@@ -437,11 +437,12 @@ impl<'a> Parser<'a> {
             .for_each(|x| debug_assert!(x.0 <= x.1));
 
         self.type_lambda_pair.sort_by(|x, y| {
-            debug_assert!(x.0.cmp(&y.0) != Ordering::Equal, "{:?}?{:?}", x, y);
-            if x.0.cmp(&y.0) == Ordering::Greater {
-                Ordering::Greater
-            } else {
+            debug_assert!(x.0 != y.0, "{:?}?{:?}", x, y);
+            let ord = x.0.cmp(&y.0);
+            if ord == Ordering::Equal {
                 x.1.cmp(&y.1)
+            } else {
+                ord
             }
         });
 
@@ -544,19 +545,13 @@ impl<'a> Parser<'a> {
                         } else {
                             p.type_lambda_pair.push((name.loc.end(), e.0.loc().start()));
                         }
-                    } else {
-                        if tys.is_some() {
-                            let ty_vec = tys.clone().unwrap();
-                            let last_ty = ty_vec.last();
-                            if last_ty.is_some() {
-                                let end_str = &p.source
-                                    [last_ty.unwrap().loc.end() as usize..e.loc.end() as usize];
-                                if let Some(idx) = end_str.find('>') {
-                                    p.type_lambda_pair.push((
-                                        name.loc.end(),
-                                        last_ty.unwrap().loc.end() + idx as u32 + 1,
-                                    ));
-                                }
+                    } else if let Some(tys) = tys {
+                        if let Some(last_ty) = tys.last() {
+                            let end_str =
+                                &p.source[last_ty.loc.end() as usize..e.loc.end() as usize];
+                            if let Some(idx) = end_str.find('>') {
+                                p.type_lambda_pair
+                                    .push((name.loc.end(), last_ty.loc.end() + idx as u32 + 1));
                             }
                         }
                     }
@@ -660,11 +655,10 @@ impl<'a> Parser<'a> {
                     collect_expr(p, target.as_ref());
                     for body_item in body {
                         let (_, opt_exp, exp) = &body_item.value;
-                        if opt_exp.is_some() {
-                            let opt_condition_exp = opt_exp.clone().unwrap();
-                            collect_expr(p, &opt_condition_exp);
+                        if let Some(opt_condition_exp) = opt_exp {
+                            collect_expr(p, opt_condition_exp);
                         }
-                        collect_expr(p, &exp);
+                        collect_expr(p, exp);
                     }
                 }
                 Exp_::ExpCall(e1, e_vec) => {
@@ -1117,7 +1111,7 @@ mod comment_test {
         let filehash = FileHash::empty();
         let (defs, _) = parse_file_string(&mut get_compile_env(), filehash, content).unwrap();
         let lexer = Lexer::new(content, filehash);
-        let parse = Parser::new(lexer, &defs, content.to_string());
+        let parse = Parser::new(lexer, &defs, content);
         let token_tree = parse.parse_tokens();
         let s = serde_json::to_string(&token_tree).unwrap();
         // check this using some online json tool.
@@ -1146,7 +1140,7 @@ module test {
         let filehash = FileHash::empty();
         let (defs, _) = parse_file_string(&mut get_compile_env(), filehash, content).unwrap();
         let lexer = Lexer::new(content, filehash);
-        let parse = Parser::new(lexer, &defs, content.to_string());
+        let parse = Parser::new(lexer, &defs, content);
         let token_tree = parse.parse_tokens();
         let s = serde_json::to_string(&token_tree).unwrap();
         // check this using some online json tool.

@@ -32,9 +32,10 @@ const EXIST_MULTI_ADDRESS_TAG: &str = "address fmt";
 const MAX_ANALYZE_LENGTH: usize = 64;
 const MIN_BREAK_LENGTH: usize = 32;
 const MIN_NESTED_LENGTH: usize = 16;
+const BRACE_LEN_BREAK_LIMIT: usize = 46;
 
-pub struct FormatContext {
-    pub content: String,
+pub struct FormatContext<'a> {
+    pub content: &'a str,
     pub pre_simple_token: TokenTree,
     pub pre_token_tree: TokenTree,
     pub cur_nested_kind: NestKind,
@@ -42,8 +43,8 @@ pub struct FormatContext {
     pub has_spec: bool,
 }
 
-impl FormatContext {
-    pub fn new(content: String) -> Self {
+impl<'a> FormatContext<'a> {
+    pub fn new(content: &'a str) -> Self {
         FormatContext {
             content,
             pre_simple_token: TokenTree::default(),
@@ -59,7 +60,7 @@ impl FormatContext {
     }
 }
 
-pub struct Format {
+pub struct Format<'a> {
     pub(crate) local_cfg: FormatConfig,
     pub(crate) global_cfg: Config,
     pub(crate) depth: Cell<usize>,
@@ -69,7 +70,7 @@ pub struct Format {
     pub(crate) comments_index: Cell<usize>,
     pub(crate) ret: RefCell<String>,
     pub(crate) cur_line: Cell<u32>,
-    pub(crate) format_context: RefCell<FormatContext>,
+    pub(crate) format_context: RefCell<FormatContext<'a>>,
     pub(crate) syntax_handler: SyntaxHandler,
 }
 
@@ -176,8 +177,8 @@ fn tune_module_buf(module_body: &mut String, config: &Config, has_spec: bool) {
     remove_trailing_whitespaces(module_body);
 }
 
-impl Format {
-    fn new(global_cfg: Config, content: &str, format_context: FormatContext) -> Self {
+impl<'a> Format<'a> {
+    fn new(global_cfg: Config, content: &str, format_context: FormatContext<'a>) -> Self {
         let ce: CommentExtrator = CommentExtrator::new(content).unwrap();
         let mut line_mapping = FileLineMappingOneFile::default();
         line_mapping.update(content);
@@ -205,7 +206,7 @@ impl Format {
         content: &str,
     ) -> Result<String, Diagnostics> {
         let lexer = Lexer::new(content, FileHash::empty());
-        let parse = crate::core::token_tree::Parser::new(lexer, &defs, content.to_string());
+        let parse = crate::core::token_tree::Parser::new(lexer, &defs, content);
         self.token_tree = parse.parse_tokens();
 
         let defs = Arc::new(defs);
@@ -674,7 +675,8 @@ impl Format {
         let fun_specifier_fmted_str =
             fun_fmt::fun_header_specifier_fmt(&cur[last_fun_idx..], &indent);
 
-        *ret = format!("{}{}", &cur[..last_fun_idx], fun_specifier_fmted_str);
+        ret.truncate(last_fun_idx);
+        ret.push_str(&fun_specifier_fmted_str);
     }
 
     fn get_break_mode_of_fun_call(
@@ -947,7 +949,7 @@ impl Format {
                 }
 
                 // case3: nested_len too long
-                new_line_mode |= nested_len as f32 > 46.0;
+                new_line_mode |= nested_len > BRACE_LEN_BREAK_LIMIT;
 
                 // case4: contains comment
                 new_line_mode |=
@@ -1665,7 +1667,6 @@ impl Format {
             self.dec_depth();
         } else if self
             .last_line()
-            .clone()
             .trim_start_matches(char::is_whitespace)
             .len()
             == 0
@@ -2034,7 +2035,7 @@ impl Format {
     }
 }
 
-impl Format {
+impl<'a> Format<'a> {
     fn inc_depth(&self) {
         let old = self.depth.get();
         self.depth.set(old + 1);
@@ -2152,7 +2153,7 @@ impl Format {
     }
 }
 
-impl Format {
+impl<'a> Format<'a> {
     fn get_kind_len_after_trim_space(&self, kind: &NestKind) -> usize {
         self.format_context.borrow().content[kind.start_pos as usize..kind.end_pos as usize]
             .replace('\n', "")
@@ -2234,8 +2235,8 @@ impl Format {
     fn process_last_empty_line(&mut self) {
         let mut ret_borrowed = self.ret.borrow_mut();
         let mut current_content = std::mem::take(&mut *ret_borrowed);
-        current_content = current_content.trim_end().to_string();
-        current_content.push_str("\n");
+        current_content.truncate(current_content.trim_end().len());
+        current_content.push('\n');
         *ret_borrowed = current_content;
     }
 
@@ -2264,11 +2265,7 @@ pub fn format_entry(content: impl AsRef<str>, config: Config) -> Result<String, 
     // https://github.com/movebit/movefmt/issues/2
     let (defs, _) = parse_file_string(&mut get_compile_env(), FileHash::empty(), content)?;
 
-    let mut full_fmt = Format::new(
-        config.clone(),
-        content,
-        FormatContext::new(content.to_string()),
-    );
+    let mut full_fmt = Format::new(config.clone(), content, FormatContext::new(content));
 
     full_fmt.generate_token_tree(defs, content)?;
     timer = timer.done_parsing();
