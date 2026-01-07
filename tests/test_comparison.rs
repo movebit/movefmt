@@ -3,11 +3,11 @@ use move_command_line_common::files::FileHash;
 use move_compiler::parser::{lexer::Lexer, syntax::parse_file_string};
 use movefmt::{core::token_tree::TokenTree, tools::utils::*};
 use std::path::Path;
-use tracing_subscriber::EnvFilter;
+use walkdir::WalkDir;
 
 // Import both formatters
 use movefmt::core::fmt::format_entry as format_entry_original;
-use movefmt::core::fmt_state::format_entry_functional;
+use movefmt::core::fmt_state::format_entry;
 
 /// Print colored diff between two texts
 fn print_colored_diff(original: &str, functional: &str) {
@@ -114,7 +114,7 @@ fn test_formatter_comparison(content_origin: &str, p: impl AsRef<Path>) {
     };
 
     // Format with functional formatter
-    let result_functional = format_entry_functional(content_origin, commentfmt::Config::default());
+    let result_functional = format_entry(content_origin, commentfmt::Config::default());
     let content_functional = match result_functional {
         Ok(content) => content,
         Err(e) => {
@@ -268,4 +268,87 @@ fn extract_tokens(content: &str) -> Result<Vec<ExtractToken>, Vec<String>> {
 fn test_single_file_comparison() {
     eprintln!("================== test_single_file_comparison ===================");
     test_formatter_comparison_on_file("./tests/complex/input1.move");
+}
+
+fn scan_dir_for_comparison(dir: &str) -> usize {
+    let mut num: usize = 0;
+    for x in WalkDir::new(dir) {
+        let x = match x {
+            Ok(x) => x,
+            Err(_) => {
+                continue;
+            }
+        };
+        if x.file_type().is_file()
+            && x.file_name().to_str().unwrap().ends_with(".move")
+            && !x.file_name().to_str().unwrap().contains(".fmt")
+            && !x.file_name().to_str().unwrap().contains(".out")
+            && !x.file_name().to_str().unwrap().contains(".spec")
+        {
+            let p = x.clone().into_path();
+            let result = test_formatter_comparison_on_file(p.as_path());
+            if !result {
+                eprintln!("Skipped file: {:?}", p);
+                continue;
+            }
+            num += 1;
+        }
+    }
+    num
+}
+
+fn scan_all_dirs_for_comparison(dirs: &[&str]) -> usize {
+    let mut num: usize = 0;
+    
+    for &dir in dirs {
+        eprintln!("Scanning directory: {}", dir);
+        num += scan_dir_for_comparison(dir);
+        
+        // Also scan subdirectories within the directory
+        let base_dir = std::path::Path::new(dir);
+        for subdir in WalkDir::new(dir) {
+            let subdir = match subdir {
+                Ok(subdir) => subdir,
+                Err(_) => {
+                    continue;
+                }
+            };
+            if subdir.file_type().is_dir() && subdir.path() != base_dir {
+                eprintln!("Scanning subdirectory: {:?}", subdir.path());
+                num += scan_dir_for_comparison(subdir.path().to_str().unwrap());
+            }
+        }
+    }
+    
+    num
+}
+
+#[test]
+fn test_comparison_on_all_dirs() {
+    eprintln!("================== test_comparison_on_all_dirs ===================");
+    let start = std::time::Instant::now();
+    
+    let dirs_to_scan = [
+        "./tests/complex",
+        "./tests/complex2",
+        "./tests/complex3",
+        "./tests/complex4",
+        "./tests/complex5_fix_todo",
+        "./tests/complex6",
+        "./tests/aptos_framework_case",
+        "./tests/issues",
+        "./tests/comment",
+        "./tests/break_line",
+        "./tests/new_syntax",
+        "./tests/bug",
+        "./tests/bug2",
+        "./tests/formatter",
+    ];
+    
+    let num = scan_all_dirs_for_comparison(&dirs_to_scan);
+    
+    eprintln!("Compared {} files", num);
+    
+    let duration = start.elapsed();
+    println!("Comparison time: {:?} ms", duration.as_millis());
 }
