@@ -299,11 +299,11 @@ fn scan_dir_for_comparison(dir: &str) -> usize {
 
 fn scan_all_dirs_for_comparison(dirs: &[&str]) -> usize {
     let mut num: usize = 0;
-    
+
     for &dir in dirs {
         eprintln!("Scanning directory: {}", dir);
         num += scan_dir_for_comparison(dir);
-        
+
         // Also scan subdirectories within the directory
         let base_dir = std::path::Path::new(dir);
         for subdir in WalkDir::new(dir) {
@@ -319,7 +319,7 @@ fn scan_all_dirs_for_comparison(dirs: &[&str]) -> usize {
             }
         }
     }
-    
+
     num
 }
 
@@ -327,7 +327,7 @@ fn scan_all_dirs_for_comparison(dirs: &[&str]) -> usize {
 fn test_comparison_on_all_dirs() {
     eprintln!("================== test_comparison_on_all_dirs ===================");
     let start = std::time::Instant::now();
-    
+
     let dirs_to_scan = [
         "./tests/complex",
         "./tests/complex2",
@@ -344,11 +344,11 @@ fn test_comparison_on_all_dirs() {
         "./tests/bug2",
         "./tests/formatter",
     ];
-    
+
     let num = scan_all_dirs_for_comparison(&dirs_to_scan);
-    
+
     eprintln!("Compared {} files", num);
-    
+
     let duration = start.elapsed();
     println!("Comparison time: {:?} ms", duration.as_millis());
 }
