@@ -1222,7 +1222,6 @@ impl<'a> Format<'a> {
         if b_new_line_mode {
             return false;
         }
-        // let mut add_space;
         if elements.is_empty() {
             let nested_blk_str = &self.format_context.borrow().content
                 [kind.start_pos as usize + 1..kind.end_pos as usize];
