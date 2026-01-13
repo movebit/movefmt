@@ -177,9 +177,15 @@ impl FormatState {
         self
     }
 
+    // /// Update comment index
+    // pub fn advance_comments_index(mut self, count: usize) -> Self {
+    //     self.comments_index += count;
+    //     self
+    // }
+
     /// Update comment index
-    pub fn advance_comments_index(mut self, count: usize) -> Self {
-        self.comments_index += count;
+    pub fn advance_comment(mut self) -> Self {
+        self.comments_index += 1;
         self
     }
 
@@ -556,11 +562,7 @@ impl FunctionalFormat {
                 return false;
             }
             for nested_nested_in_current_tree in elements {
-                if let TokenTree::Nested {
-                    elements: _ele,
-                    kind: tmp_kind,
-                    ..
-                } = nested_nested_in_current_tree
+                if let TokenTree::Nested { kind: tmp_kind, .. } = nested_nested_in_current_tree
                     && nested_nested_in_current_tree.token_len() as usize > MIN_BREAK_LENGTH
                     && tmp_kind.kind == NestKind_::Brace
                 {
@@ -619,10 +621,8 @@ impl FunctionalFormat {
 
     fn check_new_line_mode_for_cur_tok(
         &self,
-        _state: &FormatState,
         kind_outer: &NestKind,
         delimiter: Option<Delimiter>,
-        _has_colon: bool,
         current: &TokenTree,
         next: Option<&TokenTree>,
     ) -> bool {
@@ -663,7 +663,6 @@ impl FunctionalFormat {
 
     fn get_new_line_mode_for_cur_tok(
         &self,
-        _state: &FormatState,
         kind_outer: &NestKind,
         current: &TokenTree,
         next: Option<&TokenTree>,
@@ -746,10 +745,10 @@ impl FunctionalFormat {
         }
 
         let mut new_line = if component_break_mode {
-            self.check_new_line_mode_for_cur_tok(state, kind, delimiter, has_colon, t, next_t)
+            self.check_new_line_mode_for_cur_tok(kind, delimiter, t, next_t)
                 || (cur_is_delimiter && d.is_some() && kind.kind != NestKind_::Type)
         } else {
-            self.get_new_line_mode_for_cur_tok(state, kind, t, next_t)
+            self.get_new_line_mode_for_cur_tok(kind, t, next_t)
         };
 
         if nested_kind_len > MIN_NESTED_LENGTH && kind.kind != NestKind_::Type {
@@ -929,7 +928,7 @@ impl FunctionalFormat {
         control_blk_cnt
     }
 
-    fn get_break_mode_begin_branch_blk(&self, _state: &FormatState, kind: &NestKind) -> bool {
+    fn get_break_mode_begin_branch_blk(&self, kind: &NestKind) -> bool {
         let branch_handler = self.syntax_handler.handler_immut::<BranchHandler>();
         if branch_handler
             .com_if_else
@@ -1071,7 +1070,7 @@ impl FunctionalFormat {
                 new_line_mode |= self.get_control_blk_cnt(elements) >= 2;
 
                 // case7: maybe in branch blk
-                new_line_mode |= self.get_break_mode_begin_branch_blk(state, &kind);
+                new_line_mode |= self.get_break_mode_begin_branch_blk(&kind);
             }
         }
         (new_line_mode, None)
@@ -1350,7 +1349,7 @@ impl FunctionalFormat {
         state.cur_nested_kind = old_kind;
         state
     }
-    
+
     fn need_space_at_bound(
         &self,
         state: &FormatState,
@@ -1418,7 +1417,7 @@ impl FunctionalFormat {
                 if c.start_offset > kind.end_pos {
                     break;
                 }
-                state = state.advance_comments_index(1);
+                state = state.advance_comment();
             }
             state = state.set_cur_line(self.translate_line(kind.end_pos));
             return (state, true);
@@ -1509,7 +1508,7 @@ impl FunctionalFormat {
         state
     }
 
-   fn maybe_begin_of_if_else(
+    fn maybe_begin_of_if_else(
         &self,
         mut state: FormatState,
         cur_nested_kind: NestKind,
@@ -1692,6 +1691,16 @@ impl FunctionalFormat {
         let pre_is_simple_token = pre_token_tree_ty == &TokenTreeType::Simple;
         let pre_is_normal_brace = pre_token_tree_ty == &TokenTreeType::NormalBrace;
 
+        /*
+        ** simple1:
+        self.translate_line(*pos) = 6
+        after processed xxx, self.cur_line.get() = 5;
+        self.translate_line(*pos) - self.cur_line.get() == 1
+        """
+        line5: // comment xxx
+        line6: simple_token
+        """
+        */
         if line_diff > 1
             && expr_fmt::need_newline_when_trim_blank_line(&pre_tok, tok)
             && (is_normal_token || tok == &Tok::Spec || pre_is_normal_brace)
@@ -1974,7 +1983,7 @@ impl FunctionalFormat {
         state
     }
 
-        fn need_inc_depth_when_cur_is_nested(
+    fn need_inc_depth_when_cur_is_nested(
         &self,
         mut state: FormatState,
         next_token: Option<&TokenTree>,
@@ -2192,7 +2201,7 @@ impl FunctionalFormat {
                     new_line_after_cmt = true;
                 }
             }
-            state = state.advance_comments_index(1);
+            state = state.advance_comment();
             state = state
                 .set_cur_line(self.translate_line(c.start_offset + (c.content.len() as u32) - 1));
             comment_nums_before_cur_simple_token += 1;
@@ -2270,7 +2279,7 @@ impl FunctionalFormat {
             }
 
             state = state.push_str(&fmted_cmt_str);
-            state = state.advance_comments_index(1);
+            state = state.advance_comment();
             state = state
                 .set_cur_line(self.translate_line(c.start_offset + (c.content.len() as u32) - 1));
 
