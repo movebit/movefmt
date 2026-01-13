@@ -280,6 +280,7 @@ fn token_to_ability(token: Tok, content: &str) -> Option<Ability_> {
 }
 
 fn tune_module_buf(module_body: &mut String, config: &Config, has_spec: bool) {
+    println!("tune_module_buf.has_spec = {}", has_spec);
     if has_spec {
         spec_fmt::fmt_spec(module_body, config.clone());
     }
@@ -328,9 +329,6 @@ impl FunctionalFormat {
                 pound_sign_idx = Some(index);
             }
             let new_line = pound_sign_idx.map_or(false, |x| (x + 1) == index);
-
-            state = Self::record_spec_token(&t, state);
-
             state = self.format_token_trees_internal(
                 state,
                 &t,
@@ -349,6 +347,8 @@ impl FunctionalFormat {
             else {
                 continue;
             };
+            state = Self::record_spec_token(&t, state);
+            println!("state.has_spec = {}", state.has_spec);
             let skip_handler = self.syntax_handler.handler_immut::<SkipHandler>();
             let is_mod_blk = skip_handler.is_module_block(&nkind);
             let is_addr_blk = note.map_or(false, |x| x == Note::ModuleAddress);
