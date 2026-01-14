@@ -177,12 +177,6 @@ impl FormatState {
         self
     }
 
-    // /// Update comment index
-    // pub fn advance_comments_index(mut self, count: usize) -> Self {
-    //     self.comments_index += count;
-    //     self
-    // }
-
     /// Update comment index
     pub fn advance_comment(mut self) -> Self {
         self.comments_index += 1;
@@ -280,7 +274,6 @@ fn token_to_ability(token: Tok, content: &str) -> Option<Ability_> {
 }
 
 fn tune_module_buf(module_body: &mut String, config: &Config, has_spec: bool) {
-    println!("tune_module_buf.has_spec = {}", has_spec);
     if has_spec {
         spec_fmt::fmt_spec(module_body, config.clone());
     }
@@ -329,26 +322,29 @@ impl FunctionalFormat {
                 pound_sign_idx = Some(index);
             }
             let new_line = pound_sign_idx.map_or(false, |x| (x + 1) == index);
-            state = self.format_token_trees_internal(
-                state,
-                &t,
-                self.token_tree.get(index + 1),
-                new_line,
-            );
-            if new_line {
-                state = self.new_line(state, Some(t.end_pos()));
-                pound_sign_idx = None;
-            }
+            let mut apply_fmt = |s: &mut FormatState| -> FormatState {
+                let mut s = self.format_token_trees_internal(
+                    s.clone(),
+                    &t,
+                    self.token_tree.get(index + 1),
+                    new_line,
+                );
+                if new_line {
+                    s = self.new_line(s, Some(t.end_pos()));
+                    pound_sign_idx = None;
+                }
+                s
+            };
 
             let mut return_buf_cp = state.output.clone();
             let TokenTree::Nested {
                 kind: nkind, note, ..
             } = t
             else {
+                state = apply_fmt(&mut state);
                 continue;
             };
             state = Self::record_spec_token(&t, state);
-            println!("state.has_spec = {}", state.has_spec);
             let skip_handler = self.syntax_handler.handler_immut::<SkipHandler>();
             let is_mod_blk = skip_handler.is_module_block(&nkind);
             let is_addr_blk = note.map_or(false, |x| x == Note::ModuleAddress);
@@ -359,6 +355,7 @@ impl FunctionalFormat {
                 state.output = EXIST_MULTI_ADDRESS_TAG.to_string();
             }
 
+            state = apply_fmt(&mut state);
             if nkind.kind == NestKind_::Brace {
                 state = self.new_line(state, Some(t.end_pos()));
             }
@@ -685,7 +682,6 @@ impl FunctionalFormat {
         state: &FormatState,
         nested_token: &TokenTree,
         delimiter: Option<Delimiter>,
-        has_colon: bool,
         index: usize,
         component_break_mode: bool,
         nested_kind_len: usize,
@@ -1284,7 +1280,6 @@ impl FunctionalFormat {
         mut state: FormatState,
         nested_token: &TokenTree,
         delimiter: Option<Delimiter>,
-        has_colon: bool,
         component_break_mode: bool,
     ) -> FormatState {
         let TokenTree::Nested { elements, kind, .. } = nested_token else {
@@ -1313,7 +1308,6 @@ impl FunctionalFormat {
                 &state,
                 nested_token,
                 delimiter,
-                has_colon,
                 token_idx,
                 need_get_break_mode_on_component,
                 nestd_kind_len,
@@ -1446,7 +1440,7 @@ impl FunctionalFormat {
             return state;
         }
 
-        let (delimiter, has_colon) = analyze_token_tree_delimiter(elements);
+        let (delimiter, _) = analyze_token_tree_delimiter(elements);
         if note.map_or(false, |x| x == Note::FunBody) {
             state = self.process_fn_header(state);
         }
@@ -1483,7 +1477,6 @@ impl FunctionalFormat {
             state,
             nested_token,
             delimiter,
-            has_colon,
             opt_component_break_mode.unwrap_or(b_new_line_mode),
         );
 

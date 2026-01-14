@@ -8,7 +8,7 @@ use getopts::{Matches, Options};
 use io::Error as IoError;
 use movefmt::{
     core::fmt::format_entry,
-    // core::fmt_state::format_entry_functional,
+    core::fmt_state::format_entry as format_entry_functional,
     tools::movefmt_diff::{DIFF_CONTEXT_SIZE, make_diff, print_mismatches_default_message},
     tools::utils::*,
 };
@@ -157,7 +157,11 @@ fn make_opts() -> Options {
     let help_topic_msg = "Show help".to_owned();
     opts.optflagopt("h", "help", &help_topic_msg, "=TOPIC");
     opts.optflag("i", "stdin", "Receive code text from stdin");
-
+    opts.optflag(
+        "f",
+        "functional",
+        "Adopt an experimental functional formatting approach.",
+    );
     opts
 }
 
@@ -222,19 +226,18 @@ fn format_string(content_origin: String, options: GetOptsOptions) -> Result<i32>
         if let Some(path) = config_path.as_ref() {
             println!("Using movefmt config file {}", path.display());
         }
-        // if options.use_functional {
-        //     println!("Using experimental functional formatter");
-        // }
+        if options.use_functional {
+            println!("Using experimental functional formatter");
+        }
     }
 
-    // TODO: This feature is expected to be available in September 2025
-    // let format_result = if options.use_functional {
-    //     format_entry_functional(content_origin.clone(), use_config.clone())
-    // } else {
-    //    format_entry(content_origin.clone(), use_config.clone())
-    // };
+    let format_result = if options.use_functional {
+        format_entry_functional(content_origin.clone(), use_config.clone())
+    } else {
+        format_entry(content_origin.clone(), use_config.clone())
+    };
 
-    match format_entry(content_origin.clone(), use_config.clone()) {
+    match format_result {
         Ok(formatted_text) => {
             let emit_mode = if let Some(op_emit) = options.emit_mode {
                 op_emit
@@ -399,14 +402,13 @@ fn format(files: Vec<(PathBuf, bool)>, options: &GetOptsOptions) -> Result<i32> 
             println!("Formatting {}", file.display());
         }
 
-        // TODO: This feature is expected to be available in September 2025
-        // let format_result = if options.use_functional {
-        //     format_entry_functional(content_origin.clone(), use_config.clone())
-        // } else {
-        //    format_entry(content_origin.clone(), use_config.clone())
-        // };
+        let format_result = if options.use_functional {
+            format_entry_functional(content_origin.clone(), use_config.clone())
+        } else {
+            format_entry(content_origin.clone(), use_config.clone())
+        };
 
-        match format_entry(content_origin.clone(), use_config.clone()) {
+        match format_result {
             Ok(formatted_text) => {
                 success_cnt += 1;
                 let emit_mode = if let Some(op_emit) = options.emit_mode {
@@ -598,7 +600,7 @@ struct GetOptsOptions {
     config_path: Option<PathBuf>,
     emit_mode: Option<EmitMode>,
     inline_config: HashMap<String, String>,
-    // use_functional: bool,
+    use_functional: bool,
 }
 
 impl GetOptsOptions {
@@ -615,7 +617,7 @@ impl GetOptsOptions {
                 None
             },
             config_path: matches.opt_str("config-path").map(PathBuf::from),
-            // use_functional: matches.opt_present("functional"),
+            use_functional: matches.opt_present("functional"),
             ..Default::default()
         };
         if options.verbose.is_some() && options.quiet.is_some() {
