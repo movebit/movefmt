@@ -9,98 +9,89 @@ permissions:
   contents: write
 
 jobs:
-  create-release:
-    runs-on: ubuntu-latest
-    outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
-    steps:
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          draft: false
-          prerelease: false
-
   build:
     strategy:
       matrix:
         include:
           - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            name: movefmt-${{ github.ref_name }}-x86_64-unknown-linux-gnu
-            archive: tar.gz
+            rust_target: x86_64-unknown-linux-gnu
+            binary_name: movefmt-${{ github.ref_name }}-x86_64-unknown-linux-gnu
           
           - os: ubuntu-latest
-            target: aarch64-unknown-linux-gnu
-            name: movefmt-${{ github.ref_name }}-aarch64-unknown-linux-gnu
-            archive: tar.gz
+            rust_target: aarch64-unknown-linux-gnu
+            binary_name: movefmt-${{ github.ref_name }}-aarch64-unknown-linux-gnu
           
           - os: macos-latest
-            target: x86_64-apple-darwin
-            name: movefmt-${{ github.ref_name }}-x86_64-apple-darwin
-            archive: tar.gz
+            rust_target: x86_64-apple-darwin
+            binary_name: movefmt-${{ github.ref_name }}-x86_64-apple-darwin
           
           - os: macos-latest
-            target: aarch64-apple-darwin
-            name: movefmt-${{ github.ref_name }}-aarch64-apple-darwin
-            archive: tar.gz
+            rust_target: aarch64-apple-darwin
+            binary_name: movefmt-${{ github.ref_name }}-aarch64-apple-darwin
           
           - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            name: movefmt-${{ github.ref_name }}-x86_64-windows.exe
-            archive: zip
+            rust_target: x86_64-pc-windows-msvc
+            binary_name: movefmt-${{ github.ref_name }}-x86_64-windows.exe
 
     runs-on: ${{ matrix.os }}
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
 
       - name: Configure cross-compilation (Linux ARM64)
-        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        if: matrix.rust_target == 'aarch64-unknown-linux-gnu'
         run: |
           sudo apt-get update
           sudo apt-get install gcc-aarch64-linux-gnu
           echo '[target.aarch64-unknown-linux-gnu]' >> ~/.cargo/config.toml
           echo 'linker = "aarch64-linux-gnu-gcc"' >> ~/.cargo/config.toml
 
-      - name: Build for target
+      - name: Install Rust toolchain
         run: |
-          cargo build --target ${{ matrix.target }} --release
+          rustup update --no-self-update stable
+          rustup component add rust-src
+          rustup target add ${{ matrix.rust_target }}
+
+      - name: Build target
+        run: |
+          cargo build --target ${{ matrix.rust_target }} --release
         env:
           RUSTFLAGS: "-C strip=symbols"
 
-      - name: Prepare artifact (Linux/macOS)
-        if: matrix.archive == 'tar.gz' && runner.os != 'Windows'
+      - name: Prepare artifact
         run: |
-          cp target/${{ matrix.target }}/release/movefmt movefmt
-          chmod +x movefmt
-          mv movefmt ${{ matrix.name }}
-          tar czf ${{ matrix.name }}.tar.gz ${{ matrix.name }}
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            cp target/${{ matrix.rust_target }}/release/movefmt.exe ${{ matrix.binary_name }}
+          else
+            cp target/${{ matrix.rust_target }}/release/movefmt ${{ matrix.binary_name }}
+            chmod +x ${{ matrix.binary_name }}
+          fi
+        shell: bash
 
-      - name: Prepare artifact (Windows)
-        if: matrix.archive == 'zip' || runner.os == 'Windows'
-        run: |
-          copy target\\${{ matrix.target }}\\release\\movefmt.exe movefmt.exe
-          ren movefmt.exe ${{ matrix.name }}
-          Compress-Archive -Path ${{ matrix.name }} -DestinationPath ${{ matrix.name }}.zip
-
-      - name: Upload binaries to release
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ${{ matrix.name }}.${{ matrix.archive }}
-          asset_name: ${{ matrix.name }}.${{ matrix.archive }}
-          asset_content_type: application/octet-stream
-    needs: create-release
+          name: ${{ matrix.binary_name }}
+          path: ${{ matrix.binary_name }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: movefmt-${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          files: |
+            */*
+
+    
