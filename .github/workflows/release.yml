@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'  # 当推送标签时触发，例如 v1.4.6
+      - 'v*'
 
 permissions:
   contents: write
@@ -77,7 +77,7 @@ jobs:
         run: |
           cargo build --target ${{ matrix.target }} --release
         env:
-          RUSTFLAGS: "-C strip=symbols" # 在支持的平台上启用符号剥离
+          RUSTFLAGS: "-C strip=symbols"
 
       - name: Prepare artifact (Linux/macOS)
         if: matrix.archive == 'tar.gz' && runner.os != 'Windows'
