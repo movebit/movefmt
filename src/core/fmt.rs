@@ -221,9 +221,6 @@ impl<'a> Format<'a> {
                 pound_sign_idx = Some(index);
             }
             let new_line = pound_sign_idx.map_or(false, |x| (x + 1) == index);
-
-            Self::record_spec_token(&t, &self.format_context);
-
             let mut fmt_operator = || {
                 self.format_token_trees_internal(&t, self.token_tree.get(index + 1), new_line);
                 if new_line {
@@ -240,6 +237,7 @@ impl<'a> Format<'a> {
                 fmt_operator();
                 continue;
             };
+            Self::record_spec_token(&t, &self.format_context);
             let skip_handler = self.syntax_handler.handler_immut::<SkipHandler>();
             let is_mod_blk = skip_handler.is_module_block(&nkind);
             let is_addr_blk = note.map_or(false, |x| x == Note::ModuleAddress);
@@ -1222,7 +1220,6 @@ impl<'a> Format<'a> {
         if b_new_line_mode {
             return false;
         }
-        // let mut add_space;
         if elements.is_empty() {
             let nested_blk_str = &self.format_context.borrow().content
                 [kind.start_pos as usize + 1..kind.end_pos as usize];
