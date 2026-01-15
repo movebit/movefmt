@@ -1,0 +1,106 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # 当推送标签时触发，例如 v1.4.6
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            name: movefmt-${{ github.ref_name }}-x86_64-unknown-linux-gnu
+            archive: tar.gz
+          
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            name: movefmt-${{ github.ref_name }}-aarch64-unknown-linux-gnu
+            archive: tar.gz
+          
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            name: movefmt-${{ github.ref_name }}-x86_64-apple-darwin
+            archive: tar.gz
+          
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            name: movefmt-${{ github.ref_name }}-aarch64-apple-darwin
+            archive: tar.gz
+          
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            name: movefmt-${{ github.ref_name }}-x86_64-windows.exe
+            archive: zip
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Configure cross-compilation (Linux ARM64)
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install gcc-aarch64-linux-gnu
+          echo '[target.aarch64-unknown-linux-gnu]' >> ~/.cargo/config.toml
+          echo 'linker = "aarch64-linux-gnu-gcc"' >> ~/.cargo/config.toml
+
+      - name: Build for target
+        run: |
+          cargo build --target ${{ matrix.target }} --release
+        env:
+          RUSTFLAGS: "-C strip=symbols" # 在支持的平台上启用符号剥离
+
+      - name: Prepare artifact (Linux/macOS)
+        if: matrix.archive == 'tar.gz' && runner.os != 'Windows'
+        run: |
+          cp target/${{ matrix.target }}/release/movefmt movefmt
+          chmod +x movefmt
+          mv movefmt ${{ matrix.name }}
+          tar czf ${{ matrix.name }}.tar.gz ${{ matrix.name }}
+
+      - name: Prepare artifact (Windows)
+        if: matrix.archive == 'zip' || runner.os == 'Windows'
+        run: |
+          copy target\\${{ matrix.target }}\\release\\movefmt.exe movefmt.exe
+          ren movefmt.exe ${{ matrix.name }}
+          Compress-Archive -Path ${{ matrix.name }} -DestinationPath ${{ matrix.name }}.zip
+
+      - name: Upload binaries to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ${{ matrix.name }}.${{ matrix.archive }}
+          asset_name: ${{ matrix.name }}.${{ matrix.archive }}
+          asset_content_type: application/octet-stream
+    needs: create-release
