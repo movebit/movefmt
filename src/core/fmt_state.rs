@@ -1450,11 +1450,13 @@ impl FunctionalFormat {
         let mut b_add_indent = true;
         for i in 0..elements.len() {
             let ele_str = elements[i].simple_str().unwrap_or_default();
-            if ele_str == &*MODULE_STR {
+            if ele_str == MODULE_STR.as_str() {
                 b_add_indent = false;
                 b_new_line_mode |= true;
                 break;
-            } else if !(ele_str == &*NUMSIGN_STR || ele_str.is_empty()) || i > MIN_NESTED_LENGTH {
+            } else if !(ele_str == NUMSIGN_STR.as_str() || ele_str.is_empty())
+                || i > MIN_NESTED_LENGTH
+            {
                 break;
             }
         }
@@ -1720,7 +1722,7 @@ impl FunctionalFormat {
         }
 
         // 1. Collect the output into a Vec<char> (allocate once).
-        let chars: Vec<char> = (state.output.chars().collect::<Vec<_>>()).to_vec();
+        let chars: Vec<char> = state.output.chars().collect();
         // 2. Take the last 36 characters, or as many as available.
         let start = chars.len().saturating_sub(36);
         let last_36: String = chars[start..].iter().collect();
