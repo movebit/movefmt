@@ -8,6 +8,7 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.4.7">v1.4.7</a><br/>
 <a href="#v1.4.6">v1.4.6</a><br/>
 <a href="#v1.4.5">v1.4.5</a><br/>
 <a href="#v1.4.4">v1.4.4</a><br/>
@@ -49,6 +50,18 @@
 </td>
 </tr>
 </table>
+
+
+<a id="v1.4.7"></a>
+## 2026-01-15, Version v1.4.7
+* [[`984f813`](https://github.com/movebit/movefmt/commit/984f813fcfc792157bd1537f701e08eca4dce749)] - add github release CI
+* [[`45a9630`](https://github.com/movebit/movefmt/commit/45a96309a0fc50984343cd1fc3d722cef8fc77e0)] - fix bug on apply_fmt, add command option(functional)
+* [[`f72e2cb`](https://github.com/movebit/movefmt/commit/f72e2cbb9b8086f717e15a5ffb4515d6040389b4)] - Improve the formatting speed of spec braces
+* [[`85b18b8`](https://github.com/movebit/movefmt/commit/85b18b87ba357e46a3c5f0a05636cb3bc5ad4fa4)] - optimize code
+* [[`f2c8097`](https://github.com/movebit/movefmt/commit/f2c80975f9821685665a5e1437cb7abe5673d169)] - refactoring struct
+* [[`f3c6ec1`](https://github.com/movebit/movefmt/commit/f3c6ec198f90deba3f6905c4bf5ab7dec7368d14)] - remove indices field
+* [[`0591673`](https://github.com/movebit/movefmt/commit/059167323950cbf831314e321a30ceb3b34b72ad)] - improve code, add test
+* [[`5d31947`](https://github.com/movebit/movefmt/commit/5d319479c292c38280bbfb2157d03c25d5a3c14a)] - impl more fun
 
 
 <a id="v1.4.6"></a>
