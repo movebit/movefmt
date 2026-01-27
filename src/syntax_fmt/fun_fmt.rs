@@ -237,6 +237,7 @@ pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &str) -> Str
     format_specifiers_optimized(specifier, &token_positions, indent_str, &arg_indent)
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Copy)]
 struct SpecTok<'a> {
     start: u32,
@@ -363,10 +364,7 @@ fn format_specifiers_optimized(
 }
 
 fn is_token_at_position(token_positions: &mut Vec<SpecTok>, pos: u32) -> bool {
-    if let Some(index) = token_positions
-        .iter()
-        .position(|x| x.start == pos)
-    {
+    if let Some(index) = token_positions.iter().position(|x| x.start == pos) {
         token_positions.remove(index);
         true
     } else {
