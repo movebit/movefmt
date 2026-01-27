@@ -5,6 +5,7 @@
 use crate::core::token_tree::*;
 use move_compiler::parser::lexer::Tok;
 use once_cell::sync::Lazy;
+use std::collections::{BTreeSet, HashSet};
 
 const NO_BREAK_TOKENS: &[Tok] = &[
     Tok::Script,
@@ -65,9 +66,29 @@ const NO_BREAK_PAIRS: &[(Tok, Tok)] = &[
     (Tok::RBrace, Tok::RBrace),
 ];
 
-static NO_BREAK_TOKENS_VEC: Lazy<Vec<Tok>> = Lazy::new(|| NO_BREAK_TOKENS.to_vec());
+static NO_BREAK_TOKENS_SET: Lazy<BTreeSet<Tok>> =
+    Lazy::new(|| NO_BREAK_TOKENS.iter().cloned().collect());
 
 static NO_BREAK_PAIRS_VEC: Lazy<Vec<(Tok, Tok)>> = Lazy::new(|| NO_BREAK_PAIRS.to_vec());
+
+static SPEC_KEYWORDS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
+    [
+        "aborts_if",
+        "ensures",
+        "include",
+        "pragma",
+        "invariant",
+        "succeeds_if",
+        "aborts_with",
+        "modifies",
+        "emits",
+        "requires",
+        "global",
+    ]
+    .iter()
+    .cloned()
+    .collect()
+});
 
 pub enum TokType {
     /// abc like token, e.g., 'if', 'let', 'my_var'
@@ -145,13 +166,13 @@ impl From<Tok> for TokType {
 }
 
 fn token_trees_to_string(trees: &[TokenTree]) -> Vec<Vec<ChainMember>> {
-    let mut all = Vec::new();
+    let mut all = Vec::with_capacity(3);
     all.push(vec![ChainMember::Field("(".to_string())]);
-    let mut buf = String::new();
+    let mut buf = String::with_capacity(256);
     for tt in trees {
         token_tree_to_string(tt, &mut buf);
     }
-    all.push(vec![ChainMember::Field(buf.clone())]);
+    all.push(vec![ChainMember::Field(buf)]);
     all.push(vec![ChainMember::Field(")".to_string())]);
     all
 }
@@ -180,29 +201,29 @@ pub enum ChainMember {
     Call(String, Vec<Vec<ChainMember>>), // function name + argument list (each arg is itself a chain)
 }
 
-struct DotChainParser {
-    toktree_vec: Vec<TokenTree>,
+struct DotChainParser<'a> {
+    toktree_vec: &'a [TokenTree],
     result: Vec<ChainMember>,
     cursor: usize,
     last_peroid_idx: usize,
 }
 
-impl<'a> DotChainParser {
-    fn new(elements: &[TokenTree]) -> Self {
+impl<'a> DotChainParser<'a> {
+    fn new(elements: &'a [TokenTree]) -> Self {
         Self {
-            toktree_vec: elements.to_vec(),
+            toktree_vec: elements,
             result: Vec::new(),
             cursor: 0,
             last_peroid_idx: 0,
         }
     }
 
-    fn current(&self) -> TokenTree {
-        self.toktree_vec[self.cursor].clone()
+    fn current(&self) -> &'a TokenTree {
+        &self.toktree_vec[self.cursor]
     }
 
-    fn current_word(&self) -> String {
-        self.current().simple_str().unwrap_or_default().to_string()
+    fn current_word(&self) -> &'a str {
+        self.current().simple_str().unwrap_or_default()
     }
 
     fn current_tok(&self) -> Tok {
@@ -222,7 +243,7 @@ impl<'a> DotChainParser {
     fn parse_chain(&mut self) -> Option<()> {
         let name = match self.current() {
             TokenTree::SimpleToken { .. } => {
-                let n = self.current_word();
+                let n = self.current_word().to_string();
                 self.advance();
                 n
             }
@@ -248,7 +269,7 @@ impl<'a> DotChainParser {
     fn parse_postfix(&mut self) -> Option<()> {
         let name = match self.current() {
             TokenTree::SimpleToken { .. } => {
-                let n = self.current_word();
+                let n = self.current_word().to_string();
                 self.advance();
                 n
             }
@@ -377,18 +398,22 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
 
     let mut is_next_tok_nested = false;
     let mut next_tok_nested_kind = NestKind_::Brace;
-    let mut next_tok_simple_content = "".to_string();
+    let next_tok_simple_content: &str;
     match next_token_tree {
         TokenTree::Nested { kind, .. } => {
             is_next_tok_nested = true;
             next_tok_nested_kind = kind.kind;
+            next_tok_simple_content = "";
         }
         TokenTree::SimpleToken { content, .. } => {
-            next_tok_simple_content = content.to_string();
+            next_tok_simple_content = content.as_str();
         }
     }
 
-    match (TokType::from(curr_start_tok), TokType::from(next_start_tok)) {
+    let curr_type = TokType::from(curr_start_tok);
+    let next_type = TokType::from(next_start_tok);
+
+    match (curr_type, next_type) {
         (
             TokType::Alphabet,
             TokType::Alphabet | TokType::String | TokType::Number | TokType::AtSign,
@@ -512,20 +537,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
             }
 
             if let Some(content) = current.simple_str() {
-                if matches!(
-                    content,
-                    "aborts_if"
-                        | "ensures"
-                        | "include"
-                        | "pragma"
-                        | "invariant"
-                        | "succeeds_if"
-                        | "aborts_with"
-                        | "modifies"
-                        | "emits"
-                        | "requires"
-                        | "global"
-                ) {
+                if SPEC_KEYWORDS.contains(content) {
                     return true;
                 }
                 if content == "assert" && next_start_tok == Tok::Exclaim {
@@ -547,5 +559,5 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
 
 // Determines whether a newline is needed for the current line when trimming blank lines.
 pub(crate) fn need_newline_when_trim_blank_line(current: &Tok, next: &Tok) -> bool {
-    !(NO_BREAK_TOKENS_VEC.contains(current) || NO_BREAK_PAIRS_VEC.contains(&(*current, *next)))
+    !(NO_BREAK_TOKENS_SET.contains(current) || NO_BREAK_PAIRS_VEC.contains(&(*current, *next)))
 }

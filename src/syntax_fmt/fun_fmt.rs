@@ -184,11 +184,9 @@ impl FunHandler {
                 };
 
                 let fun_header_len = header_str
-                    .replace('\n', "")
-                    .split_whitespace()
-                    .collect::<Vec<&str>>()
-                    .join("")
-                    .len();
+                    .bytes()
+                    .filter(|b| !b.is_ascii_whitespace())
+                    .count();
                 return (true, fun_header_len);
             }
         }
@@ -239,25 +237,37 @@ pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &str) -> Str
     format_specifiers_optimized(specifier, &token_positions, indent_str, &arg_indent)
 }
 
+#[derive(Debug, Clone, Copy)]
+struct SpecTok<'a> {
+    start: u32,
+    end: u32,
+    text: &'a str,
+    is_spec: bool,
+}
+
 /// Collect token positions and count specifiers in a single pass
-fn collect_tokens_and_count_specifiers(specifier: &str) -> (Vec<(u32, u32, String)>, usize) {
-    let mut token_positions = Vec::new();
+fn collect_tokens_and_count_specifiers<'a>(specifier: &'a str) -> (Vec<SpecTok<'a>>, usize) {
+    let mut tokens = Vec::new();
     let mut specifier_count = 0;
 
     let mut lexer = Lexer::new(specifier, FileHash::empty());
     if lexer.advance().is_ok() {
         while lexer.peek() != Tok::EOF {
-            let content = lexer.content().to_string();
-            token_positions.push((
-                lexer.start_loc() as u32,
-                (lexer.start_loc() + content.len()) as u32,
-                content.clone(),
-            ));
+            let start = lexer.start_loc() as u32;
+            let text = lexer.content(); // &str
+            let end = start + text.len() as u32;
 
-            // Count specifiers while we're at it
-            if is_fun_specifiers(&content) {
+            let is_spec = is_fun_specifiers(text);
+            if is_spec {
                 specifier_count += 1;
             }
+
+            tokens.push(SpecTok {
+                start,
+                end,
+                text,
+                is_spec,
+            });
 
             if lexer.advance().is_err() {
                 break;
@@ -265,7 +275,7 @@ fn collect_tokens_and_count_specifiers(specifier: &str) -> (Vec<(u32, u32, Strin
         }
     }
 
-    (token_positions, specifier_count)
+    (tokens, specifier_count)
 }
 
 /// Pre-calculate argument indentation to avoid repeated computation
@@ -277,7 +287,7 @@ fn calculate_arg_indent(indent_str: &str) -> String {
 /// Optimized specifier formatting with better memory management
 fn format_specifiers_optimized(
     specifier: &str,
-    token_positions: &[(u32, u32, String)],
+    token_positions: &[SpecTok],
     indent_str: &str,
     arg_indent: &str,
 ) -> String {
@@ -352,14 +362,22 @@ fn format_specifiers_optimized(
     }
 }
 
-/// Optimized token position lookup with removal
-#[allow(dead_code)]
-fn is_token_at_position(token_positions: &mut Vec<(u32, u32, String)>, pos: u32) -> bool {
+fn is_token_at_position(token_positions: &mut Vec<SpecTok>, pos: u32) -> bool {
     if let Some(index) = token_positions
         .iter()
-        .position(|(start, _, _)| *start == pos)
+        .position(|x| x.start == pos)
     {
         token_positions.remove(index);
+        true
+    } else {
+        false
+    }
+}
+
+#[allow(dead_code)]
+fn token_at_position(tokens: &[SpecTok], cursor: &mut usize, pos: u32) -> bool {
+    if *cursor < tokens.len() && tokens[*cursor].start == pos {
+        *cursor += 1;
         true
     } else {
         false

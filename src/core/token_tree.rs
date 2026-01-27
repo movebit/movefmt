@@ -308,7 +308,7 @@ impl<'a> Parser<'a> {
                 continue;
             }
             ret.push(TokenTree::SimpleToken {
-                content: self.lexer.content().to_string(),
+                content: self.lexer.content().to_owned(),
                 pos: self.lexer.start_loc() as u32,
                 tok: self.lexer.peek(),
                 note: self.add_simple_note(self.lexer.start_loc() as u32),
