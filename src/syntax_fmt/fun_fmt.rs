@@ -230,14 +230,10 @@ pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &str) -> Str
         return specifier.to_string();
     }
 
-    // Pre-calculate indent for arguments to avoid repeated computation
-    let arg_indent = calculate_arg_indent(indent_str);
-
     // Process tokens and format specifiers
-    format_specifiers_optimized(specifier, &token_positions, indent_str, &arg_indent)
+    format_specifiers_optimized(specifier, &token_positions, indent_str)
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Clone, Copy)]
 struct SpecTok<'a> {
     start: u32,
@@ -279,75 +275,40 @@ fn collect_tokens_and_count_specifiers<'a>(specifier: &'a str) -> (Vec<SpecTok<'
     (tokens, specifier_count)
 }
 
-/// Pre-calculate argument indentation to avoid repeated computation
-fn calculate_arg_indent(indent_str: &str) -> String {
-    let space_count = indent_str.chars().filter(|&c| c == ' ').count();
-    " ".repeat(space_count.saturating_add(2))
-}
-
 /// Optimized specifier formatting with better memory management
 fn format_specifiers_optimized(
     specifier: &str,
     token_positions: &[SpecTok],
     indent_str: &str,
-    arg_indent: &str,
 ) -> String {
-    let tokens: Vec<&str> = specifier.split_whitespace().collect();
-    let mut token_positions = token_positions.to_vec(); // Make mutable copy
-
     // Pre-allocate result string with estimated capacity
-    let estimated_size = specifier.len() + (tokens.len() * (indent_str.len() + 10));
+    let estimated_size = specifier.len() + (token_positions.len() * (indent_str.len() + 10));
     let mut result = String::with_capacity(estimated_size);
 
     let mut found_specifier = false;
     let mut first_specifier_idx = 0;
-    let mut current_pos = 0;
-    let mut i = 0;
 
-    while i < tokens.len() {
-        let token = tokens[i];
+    for (i, tok) in token_positions.iter().enumerate() {
+        if tok.is_spec {
+            if !found_specifier {
+                first_specifier_idx = tok.start as usize;
+                found_specifier = true;
+            }
 
-        // Find token position in original string
-        if let Some(token_idx) = specifier[current_pos..].find(token) {
-            let absolute_pos = current_pos + token_idx;
+            // Format specifier
+            result.push('\n');
+            result.push_str(indent_str);
+            result.push_str(tok.text);
 
-            // Check if token is in comment (optimized lookup)
-            let is_comment = !is_token_at_position(&mut token_positions, absolute_pos as u32);
-            current_pos = absolute_pos + token.len();
+            // Collect arguments for non-pure specifiers
+            if tok.text != "pure" {
+                let args = collect_args_from_tokens(specifier, token_positions, i);
 
-            if !is_comment && is_fun_specifiers(token) {
-                if !found_specifier {
-                    first_specifier_idx = absolute_pos;
-                    found_specifier = true;
-                }
-
-                // Format specifier
-                result.push('\n');
-                result.push_str(indent_str);
-                result.push_str(token);
-
-                // Collect arguments for non-pure specifiers
-                if token != "pure" {
-                    let args = collect_args_optimized(
-                        &tokens,
-                        i,
-                        specifier,
-                        &mut current_pos,
-                        &mut i, // This will be updated to skip processed tokens
-                        arg_indent,
-                    );
-
-                    if !args.is_empty() {
-                        result.push(' ');
-                        result.push_str(&args);
-                    }
+                if !args.is_empty() {
+                    result.push(' ');
+                    result.push_str(&args);
                 }
             }
-        }
-
-        i += 1;
-        if current_pos >= specifier.len() {
-            break;
         }
     }
 
@@ -363,61 +324,30 @@ fn format_specifiers_optimized(
     }
 }
 
-fn is_token_at_position(token_positions: &mut Vec<SpecTok>, pos: u32) -> bool {
-    if let Some(index) = token_positions.iter().position(|x| x.start == pos) {
-        token_positions.remove(index);
-        true
-    } else {
-        false
-    }
-}
-
-#[allow(dead_code)]
-fn token_at_position(tokens: &[SpecTok], cursor: &mut usize, pos: u32) -> bool {
-    if *cursor < tokens.len() && tokens[*cursor].start == pos {
-        *cursor += 1;
-        true
-    } else {
-        false
-    }
-}
-
-/// Optimized argument collection with better string handling
-#[allow(dead_code)]
-fn collect_args_optimized(
-    tokens: &[&str],
-    start_idx: usize,
+/// Collect arguments from tokens following a specifier, preserving original spacing
+fn collect_args_from_tokens(
     specifier: &str,
-    current_pos: &mut usize,
-    next_i: &mut usize,
-    arg_indent: &str,
+    token_positions: &[SpecTok],
+    spec_idx: usize,
 ) -> String {
-    let mut args = Vec::new();
+    // Find the end of current specifier
+    let spec_tok = &token_positions[spec_idx];
+    let spec_end = spec_tok.end as usize;
 
-    for (j, token) in tokens.iter().enumerate().skip(start_idx + 1) {
-        // Stop at next specifier
-        if is_fun_specifiers(token) {
-            *next_i = j - 1; // Set to process this specifier next
-            break;
-        }
+    // Find the start of next specifier (or end of string)
+    let next_spec_start = token_positions
+        .iter()
+        .skip(spec_idx + 1)
+        .find(|tok| tok.is_spec)
+        .map(|tok| tok.start as usize)
+        .unwrap_or(specifier.len());
 
-        // Find token in remaining string
-        if let Some(token_idx) = specifier[*current_pos..].find(token) {
-            let absolute_pos = *current_pos + token_idx;
-            let between_text = &specifier[*current_pos..absolute_pos];
-
-            // Handle newlines more efficiently
-            if between_text.contains('\n') {
-                args.push("\n"); // added one space with '\n' and arg_indent
-                args.push(arg_indent); // added one space with arg_indent and token
-            }
-
-            args.push(token);
-            *current_pos = absolute_pos + token.len();
-        }
+    // Extract the raw text between current and next specifier
+    if spec_end < next_spec_start {
+        specifier[spec_end..next_spec_start].trim().to_string()
+    } else {
+        String::new()
     }
-
-    args.join(" ")
 }
 
 // Return the byte start offset of each row, with an additional EOF position at the end
