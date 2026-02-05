@@ -248,27 +248,40 @@ fn collect_tokens_and_count_specifiers<'a>(specifier: &'a str) -> (Vec<SpecTok<'
     let mut specifier_count = 0;
 
     let mut lexer = Lexer::new(specifier, FileHash::empty());
-    if lexer.advance().is_ok() {
-        while lexer.peek() != Tok::EOF {
-            let start = lexer.start_loc() as u32;
-            let text = lexer.content(); // &str
-            let end = start + text.len() as u32;
+    if lexer.advance().is_err() {
+        return (tokens, specifier_count);
+    }
 
-            let is_spec = is_fun_specifiers(text);
-            if is_spec {
-                specifier_count += 1;
-            }
+    while lexer.peek() != Tok::EOF {
+        let start = lexer.start_loc() as u32;
+        let text = lexer.content();
+        let end;
+        let combined_text;
 
-            tokens.push(SpecTok {
-                start,
-                end,
-                text,
-                is_spec,
-            });
+        // Handle '!' followed by a specifier keyword
+        if text == "!" && lexer.advance().is_ok() && is_fun_specifiers(lexer.content()) {
+            // Combine '!' with the following specifier (e.g., !reads)
+            end = lexer.start_loc() as u32 + lexer.content().len() as u32;
+            combined_text = &specifier[start as usize..end as usize];
+        } else {
+            end = start + text.len() as u32;
+            combined_text = text;
+        }
 
-            if lexer.advance().is_err() {
-                break;
-            }
+        let is_spec = is_fun_specifiers(combined_text);
+        if is_spec {
+            specifier_count += 1;
+        }
+
+        tokens.push(SpecTok {
+            start,
+            end,
+            text: combined_text,
+            is_spec,
+        });
+
+        if lexer.advance().is_err() {
+            break;
         }
     }
 
@@ -516,4 +529,15 @@ fun complex_function()
     ";
     let optimized_result = fun_header_specifier_fmt(input, "    ");
     println!("optimized_result = \n{}", optimized_result);
+}
+
+#[test]
+fn test_exclamation_bug() {
+    let input = "reads 0x42::*::*, !reads 0x43::*::*";
+    let indent = "        ";
+    let result = fun_header_specifier_fmt(input, indent);
+    println!("Result: {:?}", result);
+
+    let expected = "\n        reads 0x42::*::*,\n        !reads 0x43::*::* ";
+    assert_eq!(result, expected);
 }
