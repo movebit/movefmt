@@ -426,16 +426,17 @@ impl FunctionalFormat {
     }
 
     fn record_spec_token(token: &TokenTree, mut state: FormatState) -> FormatState {
-        match token {
-            TokenTree::SimpleToken { tok, .. } => {
-                if *tok == Tok::Spec {
+        let mut stack = vec![token];
+        while let Some(t) = stack.pop() {
+            match t {
+                TokenTree::SimpleToken { tok, .. } if *tok == Tok::Spec => {
                     state.has_spec = true;
+                    return state;
                 }
-            }
-            TokenTree::Nested { elements, .. } => {
-                for ele in elements {
-                    state = Self::record_spec_token(ele, state);
+                TokenTree::Nested { elements, .. } => {
+                    stack.extend(elements);
                 }
+                _ => {}
             }
         }
         state

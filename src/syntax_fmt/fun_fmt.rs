@@ -231,7 +231,7 @@ pub(crate) fn fun_header_specifier_fmt(specifier: &str, indent_str: &str) -> Str
     }
 
     // Process tokens and format specifiers
-    format_specifiers_optimized(specifier, &token_positions, indent_str)
+    format_specifiers(specifier, &token_positions, indent_str)
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -289,7 +289,7 @@ fn collect_tokens_and_count_specifiers<'a>(specifier: &'a str) -> (Vec<SpecTok<'
 }
 
 /// Optimized specifier formatting with better memory management
-fn format_specifiers_optimized(
+fn format_specifiers(
     specifier: &str,
     token_positions: &[SpecTok],
     indent_str: &str,
