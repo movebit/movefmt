@@ -8,6 +8,7 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.4.9">v1.4.9</a><br/>
 <a href="#v1.4.8">v1.4.8</a><br/>
 <a href="#v1.4.7">v1.4.7</a><br/>
 <a href="#v1.4.6">v1.4.6</a><br/>
@@ -51,6 +52,14 @@
 </td>
 </tr>
 </table>
+
+
+<a id="v1.4.9"></a>
+## 2026-02-06, Version v1.4.9
+* [[`1dd87d4`](https://github.com/movebit/movefmt/commit/1dd87d4f478f31c452710cad4195e0df20cd5bd8)] - optimize specifier formatting, add SpecTok
+* [[`624740c`](https://github.com/movebit/movefmt/commit/624740c586c787f6ce97faa8be0b7b83e75f6ba3)] - optimize expr_fmt by BTreeSet and HashSet, make DotChainParser zero-copy
+* [[`dc5253d`](https://github.com/movebit/movefmt/commit/dc5253dd9dd79a17f4356ad46199e558a3ad85dc)] - optimize fmt_state
+* [[`f980b53`](https://github.com/movebit/movefmt/commit/f980b534b860726b52b58c2f8448cc31973d5348)] - update aptos-core dependence
 
 
 <a id="v1.4.8"></a>
