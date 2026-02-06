@@ -8,6 +8,7 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.4.9">v1.4.9</a><br/>
 <a href="#v1.4.8">v1.4.8</a><br/>
 <a href="#v1.4.7">v1.4.7</a><br/>
 <a href="#v1.4.6">v1.4.6</a><br/>
@@ -51,6 +52,14 @@
 </td>
 </tr>
 </table>
+
+
+<a id="v1.4.9"></a>
+## 2026-02-06, Version v1.4.9
+* [[`7976789`](https://github.com/movebit/movefmt/commit/797678996b67d97c39ff851903900f28ccc02311)] - optimize is_big_block_token()
+* [[`76ab2b1`](https://github.com/movebit/movefmt/commit/76ab2b17de380c222ae14e096af0c64871124d8f)] - optimize record_spec_token()
+* [[`d669184`](https://github.com/movebit/movefmt/commit/d6691849f1bc40e1bc978169b9b66770fb1e0272)] - Fix ! reads and ! writes tokenization in specifier formatting
+* [[`47a81c9`](https://github.com/movebit/movefmt/commit/47a81c90b7bb3fc87b1eb4af33949147eae588fc)] - optimize formatting on function-specifier
 
 
 <a id="v1.4.8"></a>
