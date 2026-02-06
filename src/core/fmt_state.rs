@@ -245,22 +245,28 @@ fn is_bin_op(tok: Tok) -> bool {
     BIN_OPS.contains(&tok)
 }
 
-fn is_big_block_token(token: &TokenTree, next_token: Option<&TokenTree>) -> bool {
-    let tok = token.get_end_tok();
+fn is_big_block_token(token: &TokenTree, next: Option<&TokenTree>) -> bool {
     matches!(
-        tok,
-        Tok::NumSign
-            | Tok::Struct
-            | Tok::Fun
-            | Tok::Module
-            | Tok::Spec
-            | Tok::Public
-            | Tok::Native
-            | Tok::Inline
-    ) || matches!(token.simple_str(), Some("package") | Some("entry"))
-     || (tok == Tok::Friend && next_token.is_some() && next_token.unwrap().get_start_tok() == Tok::Fun) // friend fun
-     || (tok == Tok::Friend && next_token.is_none())  // public(friend) fun
-     || (tok == Tok::Script && next_token.is_none()) // public(script) fun
+        (
+            token.get_end_tok(),
+            token.simple_str(),
+            next.map(|t| t.get_start_tok())
+        ),
+        (
+            Tok::NumSign
+                | Tok::Struct
+                | Tok::Fun
+                | Tok::Module
+                | Tok::Spec
+                | Tok::Public
+                | Tok::Native
+                | Tok::Inline,
+            _,
+            _
+        ) | (_, Some("package" | "entry"), _)
+            | (Tok::Friend, _, Some(Tok::Fun))
+            | (Tok::Friend | Tok::Script, _, None)
+    )
 }
 
 fn token_to_ability(token: Tok, content: &str) -> Option<Ability_> {
@@ -426,16 +432,17 @@ impl FunctionalFormat {
     }
 
     fn record_spec_token(token: &TokenTree, mut state: FormatState) -> FormatState {
-        match token {
-            TokenTree::SimpleToken { tok, .. } => {
-                if *tok == Tok::Spec {
+        let mut stack = vec![token];
+        while let Some(t) = stack.pop() {
+            match t {
+                TokenTree::SimpleToken { tok, .. } if *tok == Tok::Spec => {
                     state.has_spec = true;
+                    return state;
                 }
-            }
-            TokenTree::Nested { elements, .. } => {
-                for ele in elements {
-                    state = Self::record_spec_token(ele, state);
+                TokenTree::Nested { elements, .. } => {
+                    stack.extend(elements);
                 }
+                _ => {}
             }
         }
         state
