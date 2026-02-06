@@ -289,11 +289,7 @@ fn collect_tokens_and_count_specifiers<'a>(specifier: &'a str) -> (Vec<SpecTok<'
 }
 
 /// Optimized specifier formatting with better memory management
-fn format_specifiers(
-    specifier: &str,
-    token_positions: &[SpecTok],
-    indent_str: &str,
-) -> String {
+fn format_specifiers(specifier: &str, token_positions: &[SpecTok], indent_str: &str) -> String {
     // Pre-allocate result string with estimated capacity
     let estimated_size = specifier.len() + (token_positions.len() * (indent_str.len() + 10));
     let mut result = String::with_capacity(estimated_size);
