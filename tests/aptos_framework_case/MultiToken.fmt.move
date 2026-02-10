@@ -56,11 +56,15 @@ module ExperimentalFramework::MultiToken {
         global<TokenDataCollection<TokenType>>(addr).tokens
     }
 
-    spec fun is_in_tokens<TokenType>(tokens: vector<TokenData<TokenType>>, token_id: guid::ID): bool {
+    spec fun is_in_tokens<TokenType>(
+        tokens: vector<TokenData<TokenType>>, token_id: guid::ID
+    ): bool {
         exists token in tokens: token.token_id.id == token_id
     }
 
-    spec fun find_token_index_by_id<TokenType>(tokens: vector<TokenData<TokenType>>, id: guid::ID): u64 {
+    spec fun find_token_index_by_id<TokenType>(
+        tokens: vector<TokenData<TokenType>>, id: guid::ID
+    ): u64 {
         choose min i in range(tokens) where tokens[i].token_id.id == id
     }
 

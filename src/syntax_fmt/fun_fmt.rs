@@ -47,7 +47,101 @@ impl SingleSyntaxExtractor for FunHandler {
 
     fn collect_seq(&mut self, _s: &Sequence) {}
 
-    fn collect_spec(&mut self, _spec_block: &SpecBlock) {}
+    fn collect_spec(&mut self, spec_block: &SpecBlock) {
+        if let SpecBlockTarget_::Member(_member_name, Some(signature)) =
+            &spec_block.value.target.value
+        {
+            let start_line = self
+                .line_mapping
+                .translate(
+                    spec_block.value.target.loc.start(),
+                    spec_block.value.target.loc.start(),
+                )
+                .unwrap()
+                .start
+                .line;
+            let end_line = self
+                .line_mapping
+                .translate(
+                    spec_block.value.target.loc.end(),
+                    spec_block.value.target.loc.end(),
+                )
+                .unwrap()
+                .start
+                .line;
+
+            self.loc_vec.push(spec_block.value.target.loc);
+
+            if signature.parameters.is_empty() {
+                self.para_span_vec.push(Loc::new(FileHash::empty(), 0, 0));
+            } else {
+                let first_para_loc = signature.parameters.first().unwrap().0.loc();
+                let last_para_loc = signature.parameters.last().unwrap().0.loc();
+                self.para_span_vec.push(Loc::new(
+                    first_para_loc.file_hash(),
+                    first_para_loc.start(),
+                    last_para_loc.end(),
+                ));
+            }
+
+            if let Type_::Unit = signature.return_type.value {
+                self.ret_ty_loc_vec.push(Loc::new(FileHash::empty(), 0, 0));
+            } else {
+                self.ret_ty_loc_vec.push(signature.return_type.loc);
+            }
+
+            self.body_loc_vec.push(Loc::new(FileHash::empty(), 0, 0));
+            self.loc_line_vec.push((start_line, end_line));
+        }
+
+        for m in spec_block.value.members.iter() {
+            if let SpecBlockMember_::Function {
+                uninterpreted: _,
+                name: _,
+                signature,
+                body,
+            } = &m.value
+            {
+                if let FunctionBody_::Defined(..) = &body.value {
+                    let start_line = self
+                        .line_mapping
+                        .translate(m.loc.start(), m.loc.start())
+                        .unwrap()
+                        .start
+                        .line;
+                    let end_line = self
+                        .line_mapping
+                        .translate(m.loc.end(), m.loc.end())
+                        .unwrap()
+                        .start
+                        .line;
+
+                    self.loc_vec.push(m.loc);
+
+                    if signature.parameters.is_empty() {
+                        self.para_span_vec.push(Loc::new(FileHash::empty(), 0, 0));
+                    } else {
+                        let first_para_loc = signature.parameters.first().unwrap().0.loc();
+                        let last_para_loc = signature.parameters.last().unwrap().0.loc();
+                        self.para_span_vec.push(Loc::new(
+                            first_para_loc.file_hash(),
+                            first_para_loc.start(),
+                            last_para_loc.end(),
+                        ));
+                    }
+
+                    if let Type_::Unit = signature.return_type.value {
+                        self.ret_ty_loc_vec.push(Loc::new(FileHash::empty(), 0, 0));
+                    } else {
+                        self.ret_ty_loc_vec.push(signature.return_type.loc);
+                    }
+
+                    self.body_loc_vec.push(body.loc);
+                    self.loc_line_vec.push((start_line, end_line));
+                }
+            }
+        }
+    }
 
     fn collect_expr(&mut self, _e: &Exp) {}
 
@@ -93,14 +187,19 @@ impl SingleSyntaxExtractor for FunHandler {
 
     fn collect_module(&mut self, d: &ModuleDefinition) {
         for m in d.members.iter() {
-            if let ModuleMember::Function(x) = &m {
-                self.collect_function(x)
+            match m {
+                ModuleMember::Function(x) => self.collect_function(x),
+                ModuleMember::Spec(s) => self.collect_spec(s),
+                _ => {}
             }
         }
     }
 
     fn collect_script(&mut self, d: &Script) {
         self.collect_function(&d.function);
+        for s in d.specs.iter() {
+            self.collect_spec(s);
+        }
     }
 
     fn collect_definition(&mut self, d: &Definition) {
@@ -168,7 +267,6 @@ impl FunHandler {
         false
     }
 
-    // TODO: spec not covered
     pub(crate) fn is_parameter_paren_in_fun_header(&self, kind: &NestKind) -> (bool, usize) {
         if kind.kind != NestKind_::ParentTheses {
             return (false, 0);

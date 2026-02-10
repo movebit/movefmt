@@ -180,7 +180,9 @@ module std::bit_vector {
         index - start_index
     }
 
-    spec longest_set_sequence_starting_at(bitvector: &BitVector, start_index: u64): u64 {
+    spec longest_set_sequence_starting_at(
+        bitvector: &BitVector, start_index: u64
+    ): u64 {
         aborts_if start_index >= bitvector.length;
         ensures forall i in start_index..result: is_index_set(bitvector, i);
     }
