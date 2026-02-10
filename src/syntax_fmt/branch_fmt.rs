@@ -28,9 +28,9 @@ pub struct LetIfElseBlock {
 #[derive(Clone, Debug, Default)]
 pub struct ComIfElseBlock {
     pub if_else_blk_loc_vec: Vec<Loc>,
-    pub then_loc_vec: Vec<Loc>,
-    pub else_loc_vec: Vec<Loc>,
-    pub else_with_if_vec: Vec<bool>,
+    pub then_loc_map: HashMap<ByteIndex, Loc>,
+    pub else_loc_map: HashMap<ByteIndex, (Loc, usize, bool)>,
+    pub else_loc_vec_sorted: Vec<Loc>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -56,9 +56,9 @@ impl SingleSyntaxExtractor for BranchHandler {
         };
         let com_if_else = ComIfElseBlock {
             if_else_blk_loc_vec: vec![],
-            then_loc_vec: vec![],
-            else_loc_vec: vec![],
-            else_with_if_vec: vec![],
+            then_loc_map: HashMap::new(),
+            else_loc_map: HashMap::new(),
+            else_loc_vec_sorted: vec![],
         };
         let mut this_branch_extractor = Self {
             let_if_else,
@@ -161,15 +161,21 @@ impl SingleSyntaxExtractor for BranchHandler {
             }
             Exp_::IfElse(_, then_, eles_opt) => {
                 self.com_if_else.if_else_blk_loc_vec.push(e.loc);
-                self.com_if_else.then_loc_vec.push(then_.loc);
+
+                self.com_if_else
+                    .then_loc_map
+                    .insert(then_.loc.start(), then_.loc);
                 self.collect_expr(then_.as_ref());
+
                 if let Some(el) = eles_opt {
-                    self.com_if_else.else_loc_vec.push(el.loc);
-                    if let Exp_::IfElse(..) = el.value {
-                        self.com_if_else.else_with_if_vec.push(true);
-                    } else {
-                        self.com_if_else.else_with_if_vec.push(false);
-                    }
+                    let is_if_else = matches!(el.value, Exp_::IfElse(..));
+                    let idx = self.com_if_else.else_loc_vec_sorted.len();
+
+                    self.com_if_else
+                        .else_loc_map
+                        .insert(el.loc.start(), (el.loc, idx, is_if_else));
+                    self.com_if_else.else_loc_vec_sorted.push(el.loc);
+
                     self.collect_expr(el.as_ref());
                 }
             }
@@ -323,47 +329,45 @@ impl BranchHandler {
         config: Config,
         end_pos_of_if_cond_or_else: u32,
     ) -> bool {
-        for then_loc in &self.com_if_else.then_loc_vec {
-            if then_loc.start() == then_start_pos {
-                let then_body_str =
-                    &self.source[then_loc.start() as usize..then_loc.end() as usize];
-                let then_body_str_trim_multi_space = then_body_str
-                    .replace('\n', "")
-                    .split_whitespace()
-                    .collect::<Vec<&str>>()
-                    .join("");
+        if let Some(then_loc) = self.com_if_else.then_loc_map.get(&then_start_pos) {
+            let then_body_str = &self.source[then_loc.start() as usize..then_loc.end() as usize];
 
-                let mut has_added =
-                    cur_line.len() + then_body_str_trim_multi_space.len() > config.max_width();
-                if !has_added && cur_line.trim_start().len() == 0 {
-                    has_added = true;
-                }
+            let then_body_str_trim_multi_space = then_body_str
+                .replace('\n', "")
+                .split_whitespace()
+                .collect::<Vec<&str>>()
+                .join("");
 
-                // updated in 20241212: fix https://github.com/movebit/movefmt/issues/43
-                // maybe has '//' comments bewteen [end_pos_of_if_cond_or_else, then_start_pos]
-                let comment_or_space_str =
-                    &self.source[end_pos_of_if_cond_or_else as usize..then_loc.start() as usize];
-                if !has_added
-                    && contains_comment(comment_or_space_str)
-                    && comment_or_space_str.find("//").is_some()
-                {
-                    has_added = true;
-                }
-
-                let new_line_cnt = if self
-                    .added_new_line_branch
-                    .borrow()
-                    .contains_key(&then_loc.end())
-                {
-                    self.added_new_line_branch.borrow_mut()[&then_loc.end()]
-                } else {
-                    0
-                };
-                self.added_new_line_branch
-                    .borrow_mut()
-                    .insert(then_loc.end(), new_line_cnt + has_added as usize);
-                return has_added;
+            let mut has_added =
+                cur_line.len() + then_body_str_trim_multi_space.len() > config.max_width();
+            if !has_added && cur_line.trim_start().len() == 0 {
+                has_added = true;
             }
+
+            // updated in 20241212: fix https://github.com/movebit/movefmt/issues/43
+            // maybe has '//' comments bewteen [end_pos_of_if_cond_or_else, then_start_pos]
+            let comment_or_space_str =
+                &self.source[end_pos_of_if_cond_or_else as usize..then_loc.start() as usize];
+            if !has_added
+                && contains_comment(comment_or_space_str)
+                && comment_or_space_str.find("//").is_some()
+            {
+                has_added = true;
+            }
+
+            let new_line_cnt = if self
+                .added_new_line_branch
+                .borrow()
+                .contains_key(&then_loc.end())
+            {
+                self.added_new_line_branch.borrow_mut()[&then_loc.end()]
+            } else {
+                0
+            };
+            self.added_new_line_branch
+                .borrow_mut()
+                .insert(then_loc.end(), new_line_cnt + has_added as usize);
+            return has_added;
         }
         false
     }
@@ -375,63 +379,61 @@ impl BranchHandler {
         config: Config,
         end_pos_of_if_cond_or_else: u32,
     ) -> bool {
-        for (else_loc_idx, else_loc) in self.com_if_else.else_loc_vec.iter().enumerate() {
-            if else_loc.start() == else_start_pos {
-                let else_body_str =
-                    &self.source[else_loc.start() as usize..else_loc.end() as usize];
-                let else_body_str_trim_multi_space = else_body_str
-                    .replace('\n', "")
-                    .split_whitespace()
-                    .collect::<Vec<&str>>()
-                    .join("");
+        if let Some((else_loc, idx, else_with_if)) =
+            self.com_if_else.else_loc_map.get(&else_start_pos)
+        {
+            let else_body_str = &self.source[else_loc.start() as usize..else_loc.end() as usize];
+            let else_body_str_trim_multi_space = else_body_str
+                .replace('\n', "")
+                .split_whitespace()
+                .collect::<Vec<&str>>()
+                .join("");
 
-                let mut has_added =
-                    cur_line.len() + else_body_str_trim_multi_space.len() + 4 >= config.max_width();
-                if !has_added && else_loc_idx + 1 < self.com_if_else.else_loc_vec.len() {
-                    has_added = self
-                        .get_loc_range(self.com_if_else.else_loc_vec[else_loc_idx + 1])
-                        .end
-                        .line
-                        == self.get_loc_range(*else_loc).end.line;
-                }
-
-                // updated in 20241212: fix https://github.com/movebit/movefmt/issues/43
-                // maybe has '//' comments bewteen [end_pos_of_if_cond_or_else, else_start_pos]
-                let comment_or_space_str =
-                    &self.source[end_pos_of_if_cond_or_else as usize..else_start_pos as usize];
-                if !has_added
-                    && contains_comment(comment_or_space_str)
-                    && comment_or_space_str.find("//").is_some()
-                {
-                    has_added = true;
-                }
-
-                let new_line_cnt = if self
-                    .added_new_line_branch
-                    .borrow()
-                    .contains_key(&else_loc.end())
-                {
-                    self.added_new_line_branch.borrow_mut()[&else_loc.end()]
-                } else {
-                    0
-                };
-
-                if self.com_if_else.else_with_if_vec[else_loc_idx] {
-                    has_added = false;
-                }
-
-                tracing::debug!(
-                    "need_new_line_after_else --> has_added[{:?}] = {:?}, new_line_cnt = {}",
-                    cur_line,
-                    has_added,
-                    new_line_cnt
-                );
-                self.added_new_line_branch
-                    .borrow_mut()
-                    .insert(else_loc.end(), new_line_cnt + has_added as usize);
-                return has_added;
+            let mut has_added =
+                cur_line.len() + else_body_str_trim_multi_space.len() + 4 >= config.max_width();
+            if !has_added && *idx + 1 < self.com_if_else.else_loc_vec_sorted.len() {
+                let next_loc = self.com_if_else.else_loc_vec_sorted[*idx + 1];
+                has_added =
+                    self.get_loc_range(next_loc).end.line == self.get_loc_range(*else_loc).end.line;
             }
+
+            // updated in 20241212: fix https://github.com/movebit/movefmt/issues/43
+            // maybe has '//' comments bewteen [end_pos_of_if_cond_or_else, else_start_pos]
+            let comment_or_space_str =
+                &self.source[end_pos_of_if_cond_or_else as usize..else_start_pos as usize];
+            if !has_added
+                && contains_comment(comment_or_space_str)
+                && comment_or_space_str.find("//").is_some()
+            {
+                has_added = true;
+            }
+
+            let new_line_cnt = if self
+                .added_new_line_branch
+                .borrow()
+                .contains_key(&else_loc.end())
+            {
+                self.added_new_line_branch.borrow_mut()[&else_loc.end()]
+            } else {
+                0
+            };
+
+            if *else_with_if {
+                has_added = false;
+            }
+
+            tracing::debug!(
+                "need_new_line_after_else --> has_added[{:?}] = {:?}, new_line_cnt = {}",
+                cur_line,
+                has_added,
+                new_line_cnt
+            );
+            self.added_new_line_branch
+                .borrow_mut()
+                .insert(else_loc.end(), new_line_cnt + has_added as usize);
+            return has_added;
         }
+
         false
     }
 
@@ -455,46 +457,19 @@ impl BranchHandler {
         )
     }
 
-    fn added_new_line_in_then_without_brace(&self, then_end_pos: ByteIndex) -> usize {
-        for then_loc in &self.com_if_else.then_loc_vec {
-            if then_loc.end() == then_end_pos
-                && self
-                    .added_new_line_branch
-                    .borrow()
-                    .contains_key(&then_loc.end())
-            {
-                return self.added_new_line_branch.borrow_mut()[&then_loc.end()];
-            }
-        }
-        0
-    }
-
-    fn added_new_line_after_else(&self, else_end_pos: ByteIndex) -> usize {
-        for else_loc in &self.com_if_else.else_loc_vec {
-            if else_loc.end() == else_end_pos
-                && self
-                    .added_new_line_branch
-                    .borrow()
-                    .contains_key(&else_loc.end())
-            {
-                return self.added_new_line_branch.borrow_mut()[&else_loc.end()];
-            }
-        }
-        0
-    }
-
     pub fn added_new_line_after_branch(&self, branch_end_pos: ByteIndex) -> usize {
-        self.added_new_line_in_then_without_brace(branch_end_pos)
-            + self.added_new_line_after_else(branch_end_pos)
+        *self
+            .added_new_line_branch
+            .borrow()
+            .get(&branch_end_pos)
+            .unwrap_or(&0)
     }
 
     pub fn is_nested_within_an_outer_else(&self, pos: ByteIndex) -> bool {
-        for else_loc in self.com_if_else.else_loc_vec.iter() {
-            if else_loc.start() < pos && pos < else_loc.end() {
-                return true;
-            }
-        }
-        false
+        self.com_if_else
+            .else_loc_map
+            .values()
+            .any(|(loc, _, _)| loc.start() < pos && pos < loc.end())
     }
 
     pub fn else_branch_too_long(
@@ -503,20 +478,18 @@ impl BranchHandler {
         branch_start_pos: ByteIndex,
         config: Config,
     ) -> bool {
-        for (_, else_loc) in self.com_if_else.else_loc_vec.iter().enumerate() {
-            if else_loc.start() == branch_start_pos {
-                let else_body_str =
-                    &self.source[else_loc.start() as usize..else_loc.end() as usize];
-                let else_body_str_trim_multi_space = else_body_str
-                    .replace('\n', "")
-                    .split_whitespace()
-                    .collect::<Vec<&str>>()
-                    .join("");
+        if let Some((else_loc, _, _)) = self.com_if_else.else_loc_map.get(&branch_start_pos) {
+            let else_body_str = &self.source[else_loc.start() as usize..else_loc.end() as usize];
+            let else_body_str_trim_multi_space = else_body_str
+                .replace('\n', "")
+                .split_whitespace()
+                .collect::<Vec<&str>>()
+                .join("");
 
-                return cur_line.len() + else_body_str_trim_multi_space.len() + 16
-                    >= config.max_width();
-            }
+            return cur_line.len() + else_body_str_trim_multi_space.len() + 16
+                >= config.max_width();
         }
+
         false
     }
 }
