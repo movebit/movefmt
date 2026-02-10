@@ -317,6 +317,10 @@ impl Preprocessor for BranchHandler {
     }
 }
 
+fn get_trim_len(s: &str) -> usize {
+    s.chars().filter(|c| !c.is_whitespace()).count()
+}
+
 impl BranchHandler {
     fn get_loc_range(&self, loc: Loc) -> lsp_types::Range {
         self.line_mapping.translate(loc.start(), loc.end()).unwrap()
@@ -331,15 +335,8 @@ impl BranchHandler {
     ) -> bool {
         if let Some(then_loc) = self.com_if_else.then_loc_map.get(&then_start_pos) {
             let then_body_str = &self.source[then_loc.start() as usize..then_loc.end() as usize];
-
-            let then_body_str_trim_multi_space = then_body_str
-                .replace('\n', "")
-                .split_whitespace()
-                .collect::<Vec<&str>>()
-                .join("");
-
-            let mut has_added =
-                cur_line.len() + then_body_str_trim_multi_space.len() > config.max_width();
+            let trim_len = get_trim_len(then_body_str);
+            let mut has_added = cur_line.len() + trim_len > config.max_width();
             if !has_added && cur_line.trim_start().len() == 0 {
                 has_added = true;
             }
@@ -383,14 +380,9 @@ impl BranchHandler {
             self.com_if_else.else_loc_map.get(&else_start_pos)
         {
             let else_body_str = &self.source[else_loc.start() as usize..else_loc.end() as usize];
-            let else_body_str_trim_multi_space = else_body_str
-                .replace('\n', "")
-                .split_whitespace()
-                .collect::<Vec<&str>>()
-                .join("");
+            let trim_len = get_trim_len(else_body_str);
 
-            let mut has_added =
-                cur_line.len() + else_body_str_trim_multi_space.len() + 4 >= config.max_width();
+            let mut has_added = cur_line.len() + trim_len + 4 >= config.max_width();
             if !has_added && *idx + 1 < self.com_if_else.else_loc_vec_sorted.len() {
                 let next_loc = self.com_if_else.else_loc_vec_sorted[*idx + 1];
                 has_added =
@@ -480,14 +472,9 @@ impl BranchHandler {
     ) -> bool {
         if let Some((else_loc, _, _)) = self.com_if_else.else_loc_map.get(&branch_start_pos) {
             let else_body_str = &self.source[else_loc.start() as usize..else_loc.end() as usize];
-            let else_body_str_trim_multi_space = else_body_str
-                .replace('\n', "")
-                .split_whitespace()
-                .collect::<Vec<&str>>()
-                .join("");
+            let trim_len = get_trim_len(else_body_str);
 
-            return cur_line.len() + else_body_str_trim_multi_space.len() + 16
-                >= config.max_width();
+            return cur_line.len() + trim_len + 16 >= config.max_width();
         }
 
         false
