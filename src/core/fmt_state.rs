@@ -935,14 +935,12 @@ impl FunctionalFormat {
         let branch_handler = self.syntax_handler.handler_immut::<BranchHandler>();
         if branch_handler
             .com_if_else
-            .then_loc_vec
-            .iter()
-            .any(|&x| x.start() == kind.start_pos)
+            .then_loc_map
+            .contains_key(&kind.start_pos)
             || branch_handler
                 .com_if_else
-                .else_loc_vec
-                .iter()
-                .any(|&x| x.start() == kind.start_pos)
+                .else_loc_map
+                .contains_key(&kind.start_pos)
         {
             if self.global_cfg.prefer_one_line_for_short_branch_blk() {
                 return self.get_kind_len_after_trim_space(kind) > 8;

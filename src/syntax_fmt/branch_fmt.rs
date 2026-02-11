@@ -28,9 +28,9 @@ pub struct LetIfElseBlock {
 #[derive(Clone, Debug, Default)]
 pub struct ComIfElseBlock {
     pub if_else_blk_loc_vec: Vec<Loc>,
-    pub then_loc_vec: Vec<Loc>,
-    pub else_loc_vec: Vec<Loc>,
-    pub else_with_if_vec: Vec<bool>,
+    pub then_loc_map: HashMap<ByteIndex, Loc>,
+    pub else_loc_map: HashMap<ByteIndex, (Loc, usize, bool)>,
+    pub else_loc_vec_sorted: Vec<Loc>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -44,25 +44,9 @@ pub struct BranchHandler {
 
 impl SingleSyntaxExtractor for BranchHandler {
     fn new(fmt_buffer: &str) -> Self {
-        let let_if_else = LetIfElseBlock {
-            let_if_else_block_loc_vec: vec![],
-            then_in_let_loc_vec: vec![],
-            else_in_let_loc_vec: vec![],
-
-            let_if_else_block: vec![],
-            if_cond_in_let: vec![],
-            then_in_let: vec![],
-            else_in_let: vec![],
-        };
-        let com_if_else = ComIfElseBlock {
-            if_else_blk_loc_vec: vec![],
-            then_loc_vec: vec![],
-            else_loc_vec: vec![],
-            else_with_if_vec: vec![],
-        };
         let mut this_branch_extractor = Self {
-            let_if_else,
-            com_if_else,
+            let_if_else: LetIfElseBlock::default(),
+            com_if_else: ComIfElseBlock::default(),
             source: fmt_buffer.to_string(),
             line_mapping: FileLineMappingOneFile::default(),
             added_new_line_branch: HashMap::default().into(),
@@ -92,151 +76,82 @@ impl SingleSyntaxExtractor for BranchHandler {
     }
 
     fn collect_spec(&mut self, spec_block: &SpecBlock) {
-        match &spec_block.value.target.value {
-            SpecBlockTarget_::Code => {}
-            SpecBlockTarget_::Module => {}
-            SpecBlockTarget_::Member(_, _) | SpecBlockTarget_::Schema(_, _) => {}
-        }
         for m in spec_block.value.members.iter() {
             match &m.value {
-                SpecBlockMember_::Condition {
-                    kind: _,
-                    properties: _,
-                    exp,
-                    additional_exps: _,
-                } => {
-                    self.collect_expr(exp);
+                SpecBlockMember_::Condition { exp, .. } => self.collect_expr(exp),
+                SpecBlockMember_::Function { body, .. } => {
+                    if let FunctionBody_::Defined(s) = &body.value {
+                        self.collect_seq(s)
+                    }
                 }
-                SpecBlockMember_::Function {
-                    uninterpreted: _,
-                    name: _,
-                    signature: _,
-                    body,
-                } => match &body.value {
-                    FunctionBody_::Defined(s) => self.collect_seq(s),
-                    FunctionBody_::Native => {}
-                },
-                SpecBlockMember_::Variable {
-                    is_global: _,
-                    name: _,
-                    type_parameters: _,
-                    type_: _,
-                    init: _,
-                } => {}
-
-                SpecBlockMember_::Let {
-                    name: _,
-                    post_state: _,
-                    def,
-                } => self.collect_expr(def),
+                SpecBlockMember_::Let { def, .. } => self.collect_expr(def),
                 SpecBlockMember_::Update { lhs, rhs } => {
                     self.collect_expr(lhs);
                     self.collect_expr(rhs);
                 }
-                SpecBlockMember_::Include { properties: _, exp } => {
-                    self.collect_expr(exp);
-                }
-                SpecBlockMember_::Apply {
-                    exp,
-                    patterns: _,
-                    exclusion_patterns: _,
-                } => {
-                    self.collect_expr(exp);
-                }
-                SpecBlockMember_::Pragma { properties: _ } => {}
+                SpecBlockMember_::Include { exp, .. } => self.collect_expr(exp),
+                SpecBlockMember_::Apply { exp, .. } => self.collect_expr(exp),
+                _ => {}
             }
         }
     }
 
     fn collect_expr(&mut self, e: &Exp) {
         match &e.value {
-            Exp_::Call(_, _, _, es) => {
-                es.value.iter().for_each(|e| self.collect_expr(e));
-            }
-            Exp_::Pack(_, _tys, es) => {
-                es.iter().for_each(|e| self.collect_expr(&e.1));
-            }
-            Exp_::Vector(_, _tys, es) => {
-                es.value.iter().for_each(|e| self.collect_expr(e));
-            }
+            Exp_::Call(_, _, _, es) => es.value.iter().for_each(|e| self.collect_expr(e)),
+            Exp_::Pack(_, _, es) => es.iter().for_each(|e| self.collect_expr(&e.1)),
+            Exp_::Vector(_, _, es) => es.value.iter().for_each(|e| self.collect_expr(e)),
             Exp_::IfElse(_, then_, eles_opt) => {
                 self.com_if_else.if_else_blk_loc_vec.push(e.loc);
-                self.com_if_else.then_loc_vec.push(then_.loc);
+
+                self.com_if_else
+                    .then_loc_map
+                    .insert(then_.loc.start(), then_.loc);
                 self.collect_expr(then_.as_ref());
+
                 if let Some(el) = eles_opt {
-                    self.com_if_else.else_loc_vec.push(el.loc);
-                    if let Exp_::IfElse(..) = el.value {
-                        self.com_if_else.else_with_if_vec.push(true);
-                    } else {
-                        self.com_if_else.else_with_if_vec.push(false);
-                    }
+                    let is_if_else = matches!(el.value, Exp_::IfElse(..));
+                    let idx = self.com_if_else.else_loc_vec_sorted.len();
+
+                    self.com_if_else
+                        .else_loc_map
+                        .insert(el.loc.start(), (el.loc, idx, is_if_else));
+                    self.com_if_else.else_loc_vec_sorted.push(el.loc);
+
                     self.collect_expr(el.as_ref());
                 }
             }
-            // Zax 20241217 issue45
             Exp_::While(_, e, then_) => {
                 self.collect_expr(e.as_ref());
                 self.collect_expr(then_.as_ref());
             }
-            // Zax 20241217 issue45
-            Exp_::Loop(_, b) => {
-                self.collect_expr(b.as_ref());
-            }
+            Exp_::Loop(_, b) => self.collect_expr(b.as_ref()),
             Exp_::Block(b) => self.collect_seq(b),
-            // Zax 20241217 issue45
-            Exp_::Lambda(_, e, _, _) => {
-                self.collect_expr(e.as_ref());
-            }
+            Exp_::Lambda(_, e, _, _) => self.collect_expr(e.as_ref()),
             Exp_::Quant(_, _, es, e1, e2) => {
-                es.iter().for_each(|e| {
-                    for e in e.iter() {
-                        self.collect_expr(e)
-                    }
-                });
+                es.iter()
+                    .for_each(|es_inner| es_inner.iter().for_each(|e| self.collect_expr(e)));
                 if let Some(t) = e1 {
                     self.collect_expr(t.as_ref());
                 }
                 self.collect_expr(e2.as_ref());
             }
-            Exp_::ExpList(es) => {
-                es.iter().for_each(|e| self.collect_expr(e));
-            }
-            // Zax 20241217 issue45
-            Exp_::Assign(l, _bin_op, r) => {
+            Exp_::ExpList(es) => es.iter().for_each(|e| self.collect_expr(e)),
+            Exp_::Assign(l, _, r) => {
                 self.collect_expr(l.as_ref());
                 self.collect_expr(r.as_ref());
             }
-            Exp_::Return(Some(t)) => {
-                self.collect_expr(t.as_ref());
-            }
-            Exp_::Abort(e) => {
-                self.collect_expr(e.as_ref());
-            }
-            Exp_::Dereference(e) => {
-                self.collect_expr(e.as_ref());
-            }
-            Exp_::UnaryExp(_, e) => {
-                self.collect_expr(e.as_ref());
-            }
-            Exp_::BinopExp(l, _, r) => {
+            Exp_::Return(Some(t))
+            | Exp_::Abort(t)
+            | Exp_::Dereference(t)
+            | Exp_::UnaryExp(_, t)
+            | Exp_::Borrow(_, t)
+            | Exp_::Dot(t, _)
+            | Exp_::Cast(t, _)
+            | Exp_::Annotate(t, _) => self.collect_expr(t.as_ref()),
+            Exp_::BinopExp(l, _, r) | Exp_::Index(l, r) => {
                 self.collect_expr(l.as_ref());
                 self.collect_expr(r.as_ref());
-            }
-            Exp_::Borrow(_, e) => {
-                self.collect_expr(e.as_ref());
-            }
-            Exp_::Dot(e, _) => {
-                self.collect_expr(e.as_ref());
-            }
-            Exp_::Index(e, i) => {
-                self.collect_expr(e.as_ref());
-                self.collect_expr(i.as_ref());
-            }
-            Exp_::Cast(e, _) => {
-                self.collect_expr(e.as_ref());
-            }
-            Exp_::Annotate(e, _) => {
-                self.collect_expr(e.as_ref());
             }
             Exp_::Spec(s) => self.collect_spec(s),
             _ => {}
@@ -246,55 +161,35 @@ impl SingleSyntaxExtractor for BranchHandler {
     fn collect_const(&mut self, c: &Constant) {
         self.collect_expr(&c.value);
     }
-
     fn collect_struct(&mut self, _s: &StructDefinition) {}
-
     fn collect_function(&mut self, d: &Function) {
-        match &d.body.value {
-            FunctionBody_::Defined(seq) => {
-                self.collect_seq(seq);
-            }
-            FunctionBody_::Native => {}
+        if let FunctionBody_::Defined(seq) = &d.body.value {
+            self.collect_seq(seq);
         }
     }
-
     fn collect_module(&mut self, d: &ModuleDefinition) {
         for m in d.members.iter() {
-            if let ModuleMember::Function(x) = &m {
-                self.collect_function(x)
-            }
-            if let ModuleMember::Spec(s) = &m {
-                self.collect_spec(s)
-            }
-            if let ModuleMember::Constant(con) = &m {
-                self.collect_const(con);
+            match m {
+                ModuleMember::Function(x) => self.collect_function(x),
+                ModuleMember::Spec(s) => self.collect_spec(s),
+                ModuleMember::Constant(con) => self.collect_const(con),
+                _ => {}
             }
         }
     }
-
     fn collect_script(&mut self, d: &Script) {
-        for const_data in &d.constants {
-            self.collect_const(const_data);
-        }
+        d.constants.iter().for_each(|c| self.collect_const(c));
         self.collect_function(&d.function);
-        for s in d.specs.iter() {
-            self.collect_spec(s);
-        }
+        d.specs.iter().for_each(|s| self.collect_spec(s));
     }
-
     fn collect_definition(&mut self, d: &Definition) {
         match d {
             Definition::Module(x) => self.collect_module(x),
-            Definition::Address(x) => {
-                for x in x.modules.iter() {
-                    self.collect_module(x);
-                }
-            }
+            Definition::Address(x) => x.modules.iter().for_each(|m| self.collect_module(m)),
             Definition::Script(x) => self.collect_script(x),
         }
     }
 }
-
 impl Preprocessor for BranchHandler {
     fn preprocess(&mut self, module_defs: &Arc<Vec<Definition>>) {
         for d in module_defs.iter() {
@@ -311,6 +206,10 @@ impl Preprocessor for BranchHandler {
     }
 }
 
+fn get_trim_len(s: &str) -> usize {
+    s.chars().filter(|c| !c.is_whitespace()).count()
+}
+
 impl BranchHandler {
     fn get_loc_range(&self, loc: Loc) -> lsp_types::Range {
         self.line_mapping.translate(loc.start(), loc.end()).unwrap()
@@ -323,47 +222,30 @@ impl BranchHandler {
         config: Config,
         end_pos_of_if_cond_or_else: u32,
     ) -> bool {
-        for then_loc in &self.com_if_else.then_loc_vec {
-            if then_loc.start() == then_start_pos {
-                let then_body_str =
-                    &self.source[then_loc.start() as usize..then_loc.end() as usize];
-                let then_body_str_trim_multi_space = then_body_str
-                    .replace('\n', "")
-                    .split_whitespace()
-                    .collect::<Vec<&str>>()
-                    .join("");
-
-                let mut has_added =
-                    cur_line.len() + then_body_str_trim_multi_space.len() > config.max_width();
-                if !has_added && cur_line.trim_start().len() == 0 {
-                    has_added = true;
-                }
-
-                // updated in 20241212: fix https://github.com/movebit/movefmt/issues/43
-                // maybe has '//' comments bewteen [end_pos_of_if_cond_or_else, then_start_pos]
-                let comment_or_space_str =
-                    &self.source[end_pos_of_if_cond_or_else as usize..then_loc.start() as usize];
-                if !has_added
-                    && contains_comment(comment_or_space_str)
-                    && comment_or_space_str.find("//").is_some()
-                {
-                    has_added = true;
-                }
-
-                let new_line_cnt = if self
-                    .added_new_line_branch
-                    .borrow()
-                    .contains_key(&then_loc.end())
-                {
-                    self.added_new_line_branch.borrow_mut()[&then_loc.end()]
-                } else {
-                    0
-                };
-                self.added_new_line_branch
-                    .borrow_mut()
-                    .insert(then_loc.end(), new_line_cnt + has_added as usize);
-                return has_added;
+        if let Some(then_loc) = self.com_if_else.then_loc_map.get(&then_start_pos) {
+            let then_body_str = &self.source[then_loc.start() as usize..then_loc.end() as usize];
+            let trim_len = get_trim_len(then_body_str);
+            let mut has_added = cur_line.len() + trim_len > config.max_width();
+            if !has_added && cur_line.trim_start().len() == 0 {
+                has_added = true;
             }
+
+            // updated in 20241212: fix https://github.com/movebit/movefmt/issues/43
+            // maybe has '//' comments bewteen [end_pos_of_if_cond_or_else, then_start_pos]
+            let comment_or_space_str =
+                &self.source[end_pos_of_if_cond_or_else as usize..then_loc.start() as usize];
+            if !has_added
+                && contains_comment(comment_or_space_str)
+                && comment_or_space_str.find("//").is_some()
+            {
+                has_added = true;
+            }
+
+            let mut branch_map = self.added_new_line_branch.borrow_mut();
+            let entry = branch_map.entry(then_loc.end()).or_insert(0);
+            *entry += has_added as usize;
+
+            return has_added;
         }
         false
     }
@@ -375,63 +257,45 @@ impl BranchHandler {
         config: Config,
         end_pos_of_if_cond_or_else: u32,
     ) -> bool {
-        for (else_loc_idx, else_loc) in self.com_if_else.else_loc_vec.iter().enumerate() {
-            if else_loc.start() == else_start_pos {
-                let else_body_str =
-                    &self.source[else_loc.start() as usize..else_loc.end() as usize];
-                let else_body_str_trim_multi_space = else_body_str
-                    .replace('\n', "")
-                    .split_whitespace()
-                    .collect::<Vec<&str>>()
-                    .join("");
+        if let Some((else_loc, idx, else_with_if)) =
+            self.com_if_else.else_loc_map.get(&else_start_pos)
+        {
+            let else_body_str = &self.source[else_loc.start() as usize..else_loc.end() as usize];
+            let trim_len = get_trim_len(else_body_str);
 
-                let mut has_added =
-                    cur_line.len() + else_body_str_trim_multi_space.len() + 4 >= config.max_width();
-                if !has_added && else_loc_idx + 1 < self.com_if_else.else_loc_vec.len() {
-                    has_added = self
-                        .get_loc_range(self.com_if_else.else_loc_vec[else_loc_idx + 1])
-                        .end
-                        .line
-                        == self.get_loc_range(*else_loc).end.line;
-                }
-
-                // updated in 20241212: fix https://github.com/movebit/movefmt/issues/43
-                // maybe has '//' comments bewteen [end_pos_of_if_cond_or_else, else_start_pos]
-                let comment_or_space_str =
-                    &self.source[end_pos_of_if_cond_or_else as usize..else_start_pos as usize];
-                if !has_added
-                    && contains_comment(comment_or_space_str)
-                    && comment_or_space_str.find("//").is_some()
-                {
-                    has_added = true;
-                }
-
-                let new_line_cnt = if self
-                    .added_new_line_branch
-                    .borrow()
-                    .contains_key(&else_loc.end())
-                {
-                    self.added_new_line_branch.borrow_mut()[&else_loc.end()]
-                } else {
-                    0
-                };
-
-                if self.com_if_else.else_with_if_vec[else_loc_idx] {
-                    has_added = false;
-                }
-
-                tracing::debug!(
-                    "need_new_line_after_else --> has_added[{:?}] = {:?}, new_line_cnt = {}",
-                    cur_line,
-                    has_added,
-                    new_line_cnt
-                );
-                self.added_new_line_branch
-                    .borrow_mut()
-                    .insert(else_loc.end(), new_line_cnt + has_added as usize);
-                return has_added;
+            let mut has_added = cur_line.len() + trim_len + 4 >= config.max_width();
+            if !has_added && *idx + 1 < self.com_if_else.else_loc_vec_sorted.len() {
+                let next_loc = self.com_if_else.else_loc_vec_sorted[*idx + 1];
+                has_added =
+                    self.get_loc_range(next_loc).end.line == self.get_loc_range(*else_loc).end.line;
             }
+
+            // updated in 20241212: fix https://github.com/movebit/movefmt/issues/43
+            // maybe has '//' comments bewteen [end_pos_of_if_cond_or_else, else_start_pos]
+            let comment_or_space_str =
+                &self.source[end_pos_of_if_cond_or_else as usize..else_start_pos as usize];
+            if !has_added
+                && contains_comment(comment_or_space_str)
+                && comment_or_space_str.find("//").is_some()
+            {
+                has_added = true;
+            }
+
+            if *else_with_if {
+                has_added = false;
+            }
+
+            tracing::debug!(
+                "need_new_line_after_else --> has_added[{:?}] = {:?}",
+                cur_line,
+                has_added,
+            );
+            let mut branch_map = self.added_new_line_branch.borrow_mut();
+            let entry = branch_map.entry(else_loc.end()).or_insert(0);
+            *entry += has_added as usize;
+            return has_added;
         }
+
         false
     }
 
@@ -455,46 +319,19 @@ impl BranchHandler {
         )
     }
 
-    fn added_new_line_in_then_without_brace(&self, then_end_pos: ByteIndex) -> usize {
-        for then_loc in &self.com_if_else.then_loc_vec {
-            if then_loc.end() == then_end_pos
-                && self
-                    .added_new_line_branch
-                    .borrow()
-                    .contains_key(&then_loc.end())
-            {
-                return self.added_new_line_branch.borrow_mut()[&then_loc.end()];
-            }
-        }
-        0
-    }
-
-    fn added_new_line_after_else(&self, else_end_pos: ByteIndex) -> usize {
-        for else_loc in &self.com_if_else.else_loc_vec {
-            if else_loc.end() == else_end_pos
-                && self
-                    .added_new_line_branch
-                    .borrow()
-                    .contains_key(&else_loc.end())
-            {
-                return self.added_new_line_branch.borrow_mut()[&else_loc.end()];
-            }
-        }
-        0
-    }
-
     pub fn added_new_line_after_branch(&self, branch_end_pos: ByteIndex) -> usize {
-        self.added_new_line_in_then_without_brace(branch_end_pos)
-            + self.added_new_line_after_else(branch_end_pos)
+        *self
+            .added_new_line_branch
+            .borrow()
+            .get(&branch_end_pos)
+            .unwrap_or(&0)
     }
 
     pub fn is_nested_within_an_outer_else(&self, pos: ByteIndex) -> bool {
-        for else_loc in self.com_if_else.else_loc_vec.iter() {
-            if else_loc.start() < pos && pos < else_loc.end() {
-                return true;
-            }
-        }
-        false
+        self.com_if_else
+            .else_loc_map
+            .values()
+            .any(|(loc, _, _)| loc.start() < pos && pos < loc.end())
     }
 
     pub fn else_branch_too_long(
@@ -503,19 +340,11 @@ impl BranchHandler {
         branch_start_pos: ByteIndex,
         config: Config,
     ) -> bool {
-        for (_, else_loc) in self.com_if_else.else_loc_vec.iter().enumerate() {
-            if else_loc.start() == branch_start_pos {
-                let else_body_str =
-                    &self.source[else_loc.start() as usize..else_loc.end() as usize];
-                let else_body_str_trim_multi_space = else_body_str
-                    .replace('\n', "")
-                    .split_whitespace()
-                    .collect::<Vec<&str>>()
-                    .join("");
+        if let Some((else_loc, _, _)) = self.com_if_else.else_loc_map.get(&branch_start_pos) {
+            let else_body_str = &self.source[else_loc.start() as usize..else_loc.end() as usize];
+            let trim_len = get_trim_len(else_body_str);
 
-                return cur_line.len() + else_body_str_trim_multi_space.len() + 16
-                    >= config.max_width();
-            }
+            return cur_line.len() + trim_len + 16 >= config.max_width();
         }
         false
     }

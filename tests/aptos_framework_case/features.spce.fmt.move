@@ -15,7 +15,9 @@ spec std::features {
         ensures include == spec_contains(features, feature);
     }
 
-    spec apply_diff(features: &mut vector<u8>, enable: vector<u64>, disable: vector<u64>) {
+    spec apply_diff(
+        features: &mut vector<u8>, enable: vector<u64>, disable: vector<u64>
+    ) {
         aborts_if [abstract] false; // TODO(#12011)
         ensures [abstract] forall i in disable: !spec_contains(features, i);
         ensures [abstract] forall i in enable:
@@ -48,7 +50,9 @@ spec std::features {
         ) > (0 as u8) && (feature / 8) < len(features)
     }
 
-    spec change_feature_flags_internal(framework: &signer, enable: vector<u64>, disable: vector<u64>) {
+    spec change_feature_flags_internal(
+        framework: &signer, enable: vector<u64>, disable: vector<u64>
+    ) {
         pragma opaque;
         modifies global<Features>(@std);
         aborts_if signer::address_of(framework) != @std;
