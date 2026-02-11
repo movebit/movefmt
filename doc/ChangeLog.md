@@ -8,6 +8,7 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.5.0">v1.5.0</a><br/>
 <a href="#v1.4.9">v1.4.9</a><br/>
 <a href="#v1.4.8">v1.4.8</a><br/>
 <a href="#v1.4.7">v1.4.7</a><br/>
@@ -52,6 +53,15 @@
 </td>
 </tr>
 </table>
+
+
+<a id="v1.5.0"></a>
+## 2026-02-11, Version v1.5.0
+* [[`c201b23`](https://github.com/movebit/movefmt/commit/c201b23b33685b6d2c96e83507aa7e190a07b32a)] - optimize need_new_line_after_branch()
+* [[`9b2a833`](https://github.com/movebit/movefmt/commit/9b2a833abef855bce4b93e281c13299e41e9c518)] - optimize SingleSyntaxExtractor for BranchHandler
+* [[`4ddab09`](https://github.com/movebit/movefmt/commit/4ddab0902f92915aae0a284992ceb26056c62609)] - Improve[BranchHandler]: add get_trim_len() to avoid unnecessary string clone
+* [[`472c746`](https://github.com/movebit/movefmt/commit/472c7466607e924590c86e907f9228e13a82a9c7)] - perf: optimize BranchHandler lookup with HashMap
+* [[`7660b26`](https://github.com/movebit/movefmt/commit/7660b26bc27152e8d4761dd23021c441332a84f9)] - support spec on is_parameter_paren_in_fun_header()
 
 
 <a id="v1.4.9"></a>
