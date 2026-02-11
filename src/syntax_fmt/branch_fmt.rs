@@ -241,18 +241,10 @@ impl BranchHandler {
                 has_added = true;
             }
 
-            let new_line_cnt = if self
-                .added_new_line_branch
-                .borrow()
-                .contains_key(&then_loc.end())
-            {
-                self.added_new_line_branch.borrow_mut()[&then_loc.end()]
-            } else {
-                0
-            };
-            self.added_new_line_branch
-                .borrow_mut()
-                .insert(then_loc.end(), new_line_cnt + has_added as usize);
+            let mut branch_map = self.added_new_line_branch.borrow_mut();
+            let entry = branch_map.entry(then_loc.end()).or_insert(0);
+            *entry += has_added as usize;
+
             return has_added;
         }
         false
@@ -289,29 +281,18 @@ impl BranchHandler {
                 has_added = true;
             }
 
-            let new_line_cnt = if self
-                .added_new_line_branch
-                .borrow()
-                .contains_key(&else_loc.end())
-            {
-                self.added_new_line_branch.borrow_mut()[&else_loc.end()]
-            } else {
-                0
-            };
-
             if *else_with_if {
                 has_added = false;
             }
 
             tracing::debug!(
-                "need_new_line_after_else --> has_added[{:?}] = {:?}, new_line_cnt = {}",
+                "need_new_line_after_else --> has_added[{:?}] = {:?}",
                 cur_line,
                 has_added,
-                new_line_cnt
             );
-            self.added_new_line_branch
-                .borrow_mut()
-                .insert(else_loc.end(), new_line_cnt + has_added as usize);
+            let mut branch_map = self.added_new_line_branch.borrow_mut();
+            let entry = branch_map.entry(else_loc.end()).or_insert(0);
+            *entry += has_added as usize;
             return has_added;
         }
 
@@ -365,7 +346,6 @@ impl BranchHandler {
 
             return cur_line.len() + trim_len + 16 >= config.max_width();
         }
-
         false
     }
 }
