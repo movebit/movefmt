@@ -44,25 +44,9 @@ pub struct BranchHandler {
 
 impl SingleSyntaxExtractor for BranchHandler {
     fn new(fmt_buffer: &str) -> Self {
-        let let_if_else = LetIfElseBlock {
-            let_if_else_block_loc_vec: vec![],
-            then_in_let_loc_vec: vec![],
-            else_in_let_loc_vec: vec![],
-
-            let_if_else_block: vec![],
-            if_cond_in_let: vec![],
-            then_in_let: vec![],
-            else_in_let: vec![],
-        };
-        let com_if_else = ComIfElseBlock {
-            if_else_blk_loc_vec: vec![],
-            then_loc_map: HashMap::new(),
-            else_loc_map: HashMap::new(),
-            else_loc_vec_sorted: vec![],
-        };
         let mut this_branch_extractor = Self {
-            let_if_else,
-            com_if_else,
+            let_if_else: LetIfElseBlock::default(),
+            com_if_else: ComIfElseBlock::default(),
             source: fmt_buffer.to_string(),
             line_mapping: FileLineMappingOneFile::default(),
             added_new_line_branch: HashMap::default().into(),
@@ -92,73 +76,31 @@ impl SingleSyntaxExtractor for BranchHandler {
     }
 
     fn collect_spec(&mut self, spec_block: &SpecBlock) {
-        match &spec_block.value.target.value {
-            SpecBlockTarget_::Code => {}
-            SpecBlockTarget_::Module => {}
-            SpecBlockTarget_::Member(_, _) | SpecBlockTarget_::Schema(_, _) => {}
-        }
         for m in spec_block.value.members.iter() {
             match &m.value {
-                SpecBlockMember_::Condition {
-                    kind: _,
-                    properties: _,
-                    exp,
-                    additional_exps: _,
-                } => {
-                    self.collect_expr(exp);
+                SpecBlockMember_::Condition { exp, .. } => self.collect_expr(exp),
+                SpecBlockMember_::Function { body, .. } => {
+                    if let FunctionBody_::Defined(s) = &body.value {
+                        self.collect_seq(s)
+                    }
                 }
-                SpecBlockMember_::Function {
-                    uninterpreted: _,
-                    name: _,
-                    signature: _,
-                    body,
-                } => match &body.value {
-                    FunctionBody_::Defined(s) => self.collect_seq(s),
-                    FunctionBody_::Native => {}
-                },
-                SpecBlockMember_::Variable {
-                    is_global: _,
-                    name: _,
-                    type_parameters: _,
-                    type_: _,
-                    init: _,
-                } => {}
-
-                SpecBlockMember_::Let {
-                    name: _,
-                    post_state: _,
-                    def,
-                } => self.collect_expr(def),
+                SpecBlockMember_::Let { def, .. } => self.collect_expr(def),
                 SpecBlockMember_::Update { lhs, rhs } => {
                     self.collect_expr(lhs);
                     self.collect_expr(rhs);
                 }
-                SpecBlockMember_::Include { properties: _, exp } => {
-                    self.collect_expr(exp);
-                }
-                SpecBlockMember_::Apply {
-                    exp,
-                    patterns: _,
-                    exclusion_patterns: _,
-                } => {
-                    self.collect_expr(exp);
-                }
-                SpecBlockMember_::Pragma { properties: _ } => {}
+                SpecBlockMember_::Include { exp, .. } => self.collect_expr(exp),
+                SpecBlockMember_::Apply { exp, .. } => self.collect_expr(exp),
+                _ => {}
             }
         }
     }
 
     fn collect_expr(&mut self, e: &Exp) {
         match &e.value {
-            Exp_::Call(_, _, _, es) => {
-                es.value.iter().for_each(|e| self.collect_expr(e));
-            }
-            Exp_::Pack(_, _tys, es) => {
-                es.iter().for_each(|e| self.collect_expr(&e.1));
-            }
-            Exp_::Vector(_, _tys, es) => {
-                es.value.iter().for_each(|e| self.collect_expr(e));
-            }
+            Exp_::Call(_, _, _, es) => es.value.iter().for_each(|e| self.collect_expr(e)),
+            Exp_::Pack(_, _, es) => es.iter().for_each(|e| self.collect_expr(&e.1)),
+            Exp_::Vector(_, _, es) => es.value.iter().for_each(|e| self.collect_expr(e)),
             Exp_::IfElse(_, then_, eles_opt) => {
                 self.com_if_else.if_else_blk_loc_vec.push(e.loc);
 
@@ -179,70 +121,37 @@ impl SingleSyntaxExtractor for BranchHandler {
                     self.collect_expr(el.as_ref());
                 }
             }
-            // Zax 20241217 issue45
             Exp_::While(_, e, then_) => {
                 self.collect_expr(e.as_ref());
                 self.collect_expr(then_.as_ref());
             }
-            // Zax 20241217 issue45
-            Exp_::Loop(_, b) => {
-                self.collect_expr(b.as_ref());
-            }
+            Exp_::Loop(_, b) => self.collect_expr(b.as_ref()),
             Exp_::Block(b) => self.collect_seq(b),
-            // Zax 20241217 issue45
-            Exp_::Lambda(_, e, _, _) => {
-                self.collect_expr(e.as_ref());
-            }
+            Exp_::Lambda(_, e, _, _) => self.collect_expr(e.as_ref()),
             Exp_::Quant(_, _, es, e1, e2) => {
-                es.iter().for_each(|e| {
-                    for e in e.iter() {
-                        self.collect_expr(e)
-                    }
-                });
+                es.iter()
+                    .for_each(|es_inner| es_inner.iter().for_each(|e| self.collect_expr(e)));
                 if let Some(t) = e1 {
                     self.collect_expr(t.as_ref());
                 }
                 self.collect_expr(e2.as_ref());
             }
-            Exp_::ExpList(es) => {
-                es.iter().for_each(|e| self.collect_expr(e));
-            }
-            // Zax 20241217 issue45
-            Exp_::Assign(l, _bin_op, r) => {
+            Exp_::ExpList(es) => es.iter().for_each(|e| self.collect_expr(e)),
+            Exp_::Assign(l, _, r) => {
                 self.collect_expr(l.as_ref());
                 self.collect_expr(r.as_ref());
             }
-            Exp_::Return(Some(t)) => {
-                self.collect_expr(t.as_ref());
-            }
-            Exp_::Abort(e) => {
-                self.collect_expr(e.as_ref());
-            }
-            Exp_::Dereference(e) => {
-                self.collect_expr(e.as_ref());
-            }
-            Exp_::UnaryExp(_, e) => {
-                self.collect_expr(e.as_ref());
-            }
-            Exp_::BinopExp(l, _, r) => {
+            Exp_::Return(Some(t))
+            | Exp_::Abort(t)
+            | Exp_::Dereference(t)
+            | Exp_::UnaryExp(_, t)
+            | Exp_::Borrow(_, t)
+            | Exp_::Dot(t, _)
+            | Exp_::Cast(t, _)
+            | Exp_::Annotate(t, _) => self.collect_expr(t.as_ref()),
+            Exp_::BinopExp(l, _, r) | Exp_::Index(l, r) => {
                 self.collect_expr(l.as_ref());
                 self.collect_expr(r.as_ref());
-            }
-            Exp_::Borrow(_, e) => {
-                self.collect_expr(e.as_ref());
-            }
-            Exp_::Dot(e, _) => {
-                self.collect_expr(e.as_ref());
-            }
-            Exp_::Index(e, i) => {
-                self.collect_expr(e.as_ref());
-                self.collect_expr(i.as_ref());
-            }
-            Exp_::Cast(e, _) => {
-                self.collect_expr(e.as_ref());
-            }
-            Exp_::Annotate(e, _) => {
-                self.collect_expr(e.as_ref());
             }
             Exp_::Spec(s) => self.collect_spec(s),
             _ => {}
@@ -252,55 +161,35 @@ impl SingleSyntaxExtractor for BranchHandler {
     fn collect_const(&mut self, c: &Constant) {
         self.collect_expr(&c.value);
     }
-
     fn collect_struct(&mut self, _s: &StructDefinition) {}
-
     fn collect_function(&mut self, d: &Function) {
-        match &d.body.value {
-            FunctionBody_::Defined(seq) => {
-                self.collect_seq(seq);
-            }
-            FunctionBody_::Native => {}
+        if let FunctionBody_::Defined(seq) = &d.body.value {
+            self.collect_seq(seq);
         }
     }
-
     fn collect_module(&mut self, d: &ModuleDefinition) {
         for m in d.members.iter() {
-            if let ModuleMember::Function(x) = &m {
-                self.collect_function(x)
-            }
-            if let ModuleMember::Spec(s) = &m {
-                self.collect_spec(s)
-            }
-            if let ModuleMember::Constant(con) = &m {
-                self.collect_const(con);
+            match m {
+                ModuleMember::Function(x) => self.collect_function(x),
+                ModuleMember::Spec(s) => self.collect_spec(s),
+                ModuleMember::Constant(con) => self.collect_const(con),
+                _ => {}
             }
         }
     }
-
     fn collect_script(&mut self, d: &Script) {
-        for const_data in &d.constants {
-            self.collect_const(const_data);
-        }
+        d.constants.iter().for_each(|c| self.collect_const(c));
         self.collect_function(&d.function);
-        for s in d.specs.iter() {
-            self.collect_spec(s);
-        }
+        d.specs.iter().for_each(|s| self.collect_spec(s));
     }
-
     fn collect_definition(&mut self, d: &Definition) {
         match d {
             Definition::Module(x) => self.collect_module(x),
-            Definition::Address(x) => {
-                for x in x.modules.iter() {
-                    self.collect_module(x);
-                }
-            }
+            Definition::Address(x) => x.modules.iter().for_each(|m| self.collect_module(m)),
             Definition::Script(x) => self.collect_script(x),
         }
     }
 }
-
 impl Preprocessor for BranchHandler {
     fn preprocess(&mut self, module_defs: &Arc<Vec<Definition>>) {
         for d in module_defs.iter() {
