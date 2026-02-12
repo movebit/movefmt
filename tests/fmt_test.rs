@@ -252,6 +252,7 @@ fn test_dir() {
     num += scan_dir("./tests/new_syntax");
     num += scan_dir("./tests/bug");
     num += scan_dir("./tests/bug2");
+    num += scan_dir("./tests/bug3");
     eprintln!("formated {} files", num);
 
     let duration = start.elapsed();

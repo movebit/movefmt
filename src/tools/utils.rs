@@ -391,7 +391,7 @@ pub fn remove_trailing_whitespaces(s: &mut String) {
 
 pub fn get_compile_env() -> CompilationEnv {
     let mut flags = Flags::testing();
-    flags = flags.set_language_version(LanguageVersion::V2);
+    flags = flags.set_language_version(LanguageVersion::V2_5);
     CompilationEnv::new(flags, std::collections::BTreeSet::new())
 }
 

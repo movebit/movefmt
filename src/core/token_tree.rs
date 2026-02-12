@@ -526,13 +526,36 @@ impl<'a> Parser<'a> {
                         }
                     }
                 }
-                Exp_::Call(name, _, _tys, es) => {
+                Exp_::Call(name, _, tys, es) => {
                     if name.loc.end() > es.loc.start() {
                         tracing::debug!("<Exp_::Call>name loc end > exp loc end: {:?}", e);
                         tracing::debug!(
-                            "code spniet: {:?}",
-                            &p.source[es.loc.start() as usize..name.loc.end() as usize]
+                            "es code spniet: {:?}",
+                            &p.source[es.loc.start() as usize..es.loc.end() as usize]
                         );
+                        if let Some(tys) = tys
+                            && let Some(first_ty) = tys.first()
+                            && name.loc.end() < first_ty.loc.start()
+                            && let Some(last_ty) = tys.last()
+                        {
+                            let type_start = p.source
+                                [name.loc.end() as usize..first_ty.loc.start() as usize]
+                                .find('<')
+                                .map(|x| name.loc.end() + x as u32);
+                            let type_end = p.source
+                                [last_ty.loc.end() as usize..es.loc.end() as usize]
+                                .find('>')
+                                .map(|x| last_ty.loc.end() + x as u32 + 1);
+                            if let (Some(type_start), Some(type_end)) = (type_start, type_end) {
+                                tracing::debug!(
+                                    "type_start: {}, type_end: {}, source: {:?}",
+                                    type_start,
+                                    type_end,
+                                    &p.source[type_start as usize..type_end as usize]
+                                );
+                                p.type_lambda_pair.push((type_start, type_end));
+                            }
+                        }
                     } else {
                         p.type_lambda_pair.push((name.loc.end(), es.loc.start()));
                     }
