@@ -147,12 +147,24 @@ impl From<Tok> for TokType {
             Tok::LessEqual => TokType::MathSign,
             Tok::LessLess => TokType::MathSign,
             Tok::Equal => TokType::MathSign,
+            Tok::PlusEqual => TokType::MathSign,
+            Tok::SubEqual => TokType::MathSign,
+            Tok::MulEqual => TokType::MathSign,
+            Tok::ModEqual => TokType::MathSign,
+            Tok::DivEqual => TokType::MathSign,
+            Tok::BitOrEqual => TokType::MathSign,
+            Tok::BitAndEqual => TokType::MathSign,
+            Tok::XorEqual => TokType::MathSign,
+            Tok::ShlEqual => TokType::MathSign,
+            Tok::ShrEqual => TokType::MathSign,
             Tok::EqualEqual => TokType::MathSign,
+            Tok::EqualGreater => TokType::MathSign,
             Tok::EqualEqualGreater => TokType::MathSign,
             Tok::LessEqualEqualGreater => TokType::MathSign,
             Tok::Greater => TokType::MathSign,
             Tok::GreaterEqual => TokType::MathSign,
             Tok::GreaterGreater => TokType::MathSign,
+            Tok::Caret => TokType::MathSign,
             Tok::LBrace => TokType::Sign,
             Tok::Pipe => TokType::Sign,
             Tok::PipePipe => TokType::MathSign,
@@ -435,7 +447,7 @@ pub(crate) fn need_space(current: &TokenTree, next: Option<&TokenTree>) -> bool 
         (TokType::Colon, _) => true,
         (_, TokType::Less) => is_bin_next,
         (TokType::Alphabet, TokType::MathSign) => {
-            if next_tok_simple_content.contains('>') {
+            if matches!(next_start_tok, Tok::Greater | Tok::GreaterGreater) {
                 return is_bin_next;
             }
             true
