@@ -322,16 +322,15 @@ impl FunctionalFormat {
     pub fn format_token_trees(self) -> String {
         let mut state = FormatState::with_capacity(self.content.len());
         let mut pound_sign_idx = None;
-
-        for (index, t) in self.token_tree.clone().into_iter().enumerate() {
+        for (index, t) in self.token_tree.iter().enumerate() {
             if t.is_pound() {
                 pound_sign_idx = Some(index);
             }
             let new_line = pound_sign_idx.map_or(false, |x| (x + 1) == index);
-            let mut apply_fmt = |s: &mut FormatState| -> FormatState {
+            let mut apply_fmt = |input_state: FormatState| -> FormatState {
                 let mut s = self.format_token_trees_internal(
-                    s.clone(),
-                    &t,
+                    input_state,
+                    t,
                     self.token_tree.get(index + 1),
                     new_line,
                 );
@@ -347,12 +346,12 @@ impl FunctionalFormat {
                 kind: nkind, note, ..
             } = t
             else {
-                state = apply_fmt(&mut state);
+                state = apply_fmt(state);
                 continue;
             };
-            state = Self::record_spec_token(&t, state);
+            state = Self::record_spec_token(t, state);
             let skip_handler = self.syntax_handler.handler_immut::<SkipHandler>();
-            let is_mod_blk = skip_handler.is_module_block(&nkind);
+            let is_mod_blk = skip_handler.is_module_block(nkind);
             let is_addr_blk = note.map_or(false, |x| x == Note::ModuleAddress);
             if is_mod_blk {
                 state.output = EXIST_MULTI_MODULE_TAG.to_string();
@@ -361,18 +360,15 @@ impl FunctionalFormat {
                 state.output = EXIST_MULTI_ADDRESS_TAG.to_string();
             }
 
-            state = apply_fmt(&mut state);
+            state = apply_fmt(state);
             if nkind.kind == NestKind_::Brace {
                 state = self.new_line(state, Some(t.end_pos()));
             }
-            let cfg = self.global_cfg.clone();
+            let cfg = &self.global_cfg;
             // top level
             if is_mod_blk {
-                if !skip_handler.has_skipped_module_body(&nkind) {
-                    let mut current_content = state.output.clone();
-                    let has_spec = state.has_spec;
-                    tune_module_buf(&mut current_content, &cfg, has_spec);
-                    state.output = current_content;
+                if !skip_handler.has_skipped_module_body(nkind) {
+                    tune_module_buf(&mut state.output, &cfg, state.has_spec);
                 }
                 let module_body_buf = state.output.clone();
                 return_buf_cp.push_str(&module_body_buf[EXIST_MULTI_MODULE_TAG.len()..]);
@@ -398,10 +394,10 @@ impl FunctionalFormat {
                         fmt_slice.push_str("\n\n");
                         fmt_slice.push_str(this_module.trim_start());
                     }
-                    let m = &fmt_buf[mod_def.loc.start() as usize..mod_def.loc.end() as usize];
-                    let mut tuning_mod_body = m.to_string();
-                    let has_spec = state.has_spec;
-                    tune_module_buf(&mut tuning_mod_body, &cfg, has_spec);
+                    let mut tuning_mod_body = fmt_buf
+                        [mod_def.loc.start() as usize..mod_def.loc.end() as usize]
+                        .to_string();
+                    tune_module_buf(&mut tuning_mod_body, &cfg, state.has_spec);
                     fmt_slice.push_str(&tuning_mod_body);
                     last_mod_end_loc = mod_def.loc.end() as usize;
                 }
