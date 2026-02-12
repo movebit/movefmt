@@ -8,6 +8,7 @@
 </tr>
 <tr>
 <td>
+<a href="#v1.5.1">v1.5.1</a><br/>
 <a href="#v1.5.0">v1.5.0</a><br/>
 <a href="#v1.4.9">v1.4.9</a><br/>
 <a href="#v1.4.8">v1.4.8</a><br/>
@@ -53,6 +54,13 @@
 </td>
 </tr>
 </table>
+
+
+<a id="v1.5.1"></a>
+## 2026-02-12, Version v1.5.1
+* [[`6efc138`](https://github.com/movebit/movefmt/commit/6efc1382d4ccfc9bba5653164ac08cc412ce954e)] - fix issue #93: wrong spacing on compound assignment
+* [[`086bf26`](https://github.com/movebit/movefmt/commit/086bf26593a5846b80e0650684bb380cbacf50c2)] - fix issue #92: wrong formatting on Receiver call with generics
+* [[`b11253e`](https://github.com/movebit/movefmt/commit/b11253e15296215b7b81263d91550f3c3de04ba0)] - optimize format_token_trees()
 
 
 <a id="v1.5.0"></a>
