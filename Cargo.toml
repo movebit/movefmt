@@ -39,9 +39,9 @@ rayon = "1.8"
 once_cell = "1.19.0"
 memchr = "2.7.6"
 
-move-command-line-common = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "095b361b29f74d0f30b5d0a8852af2becefed92c", package = "move-command-line-common" }
-move-compiler = { git = "https://github.com/aptos-labs/aptos-core", rev = "095b361b29f74d0f30b5d0a8852af2becefed92c", package = "legacy-move-compiler", subdir = "third_party/move/move-compiler-v2/legacy-move-compiler"}
-move-ir-types = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "095b361b29f74d0f30b5d0a8852af2becefed92c", package = "move-ir-types" }
+move-command-line-common = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "6f0ffe9986f24d4b9a0d43a8194ff59bfba0e35a", package = "move-command-line-common" }
+move-compiler = { git = "https://github.com/aptos-labs/aptos-core", rev = "6f0ffe9986f24d4b9a0d43a8194ff59bfba0e35a", package = "legacy-move-compiler", subdir = "third_party/move/move-compiler-v2/legacy-move-compiler"}
+move-ir-types = { git = "https://github.com/aptos-labs/aptos-core.git", rev = "6f0ffe9986f24d4b9a0d43a8194ff59bfba0e35a", package = "move-ir-types" }
 
 [target.'cfg(not(target_os= "windows"))'.dependencies]
 pprof = { version = "0.11.0" , features = ["flamegraph" , "protobuf"]}

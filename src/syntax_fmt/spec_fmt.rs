@@ -114,6 +114,7 @@ impl SingleSyntaxExtractor for SpecExtractor {
                 name,
                 signature,
                 body,
+                ..
             } = &m.value
             {
                 if let FunctionBody_::Defined(..) = &body.value {

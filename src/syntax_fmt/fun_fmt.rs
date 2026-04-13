@@ -100,6 +100,7 @@ impl SingleSyntaxExtractor for FunHandler {
                 name: _,
                 signature,
                 body,
+                ..
             } = &m.value
             {
                 if let FunctionBody_::Defined(..) = &body.value {

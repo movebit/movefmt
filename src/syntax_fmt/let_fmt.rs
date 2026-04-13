@@ -88,6 +88,7 @@ impl SingleSyntaxExtractor for LetHandler {
                     name: _,
                     signature: _,
                     body,
+                    ..
                 } => match &body.value {
                     FunctionBody_::Defined(s) => self.collect_seq(s),
                     FunctionBody_::Native => {}
@@ -119,7 +120,7 @@ impl SingleSyntaxExtractor for LetHandler {
                 } => {
                     self.collect_expr(exp);
                 }
-                SpecBlockMember_::Pragma { properties: _ } => {}
+                _ => {}
             }
         }
     }
