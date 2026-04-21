@@ -729,6 +729,7 @@ impl<'a> Parser<'a> {
                         name,
                         signature,
                         body,
+                        ..
                     } => {
                         p.type_lambda_pair
                             .push((name.0.loc.end(), signature.return_type.loc.end()));
@@ -783,7 +784,12 @@ impl<'a> Parser<'a> {
                         }
                         collect_expr(p, exp);
                     }
-                    SpecBlockMember_::Pragma { properties: _ } => {}
+                    SpecBlockMember_::Modifies { targets } => {
+                        for tar in targets.iter() {
+                            collect_expr(p, tar);
+                        }
+                    }
+                    _ => {}
                 }
             }
         }
