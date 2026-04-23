@@ -713,86 +713,173 @@ impl<'a> Parser<'a> {
             }
 
             for m in spec_block.value.members.iter() {
-                match &m.value {
-                    SpecBlockMember_::Condition {
-                        kind,
-                        properties: _,
-                        exp,
-                        additional_exps,
-                    } => {
-                        p.type_lambda_pair.push((kind.loc.start(), kind.loc.end()));
-                        collect_expr(p, exp);
-                        additional_exps.iter().for_each(|e| collect_expr(p, e));
-                    }
-                    SpecBlockMember_::Function {
-                        uninterpreted: _,
-                        name,
-                        signature,
-                        body,
-                        ..
-                    } => {
-                        p.type_lambda_pair
-                            .push((name.0.loc.end(), signature.return_type.loc.end()));
-                        match &body.value {
-                            FunctionBody_::Defined(s) => {
-                                p.fun_body.insert(body.loc.start());
-                                collect_seq(p, s)
-                            }
-                            FunctionBody_::Native => {}
-                        }
-                    }
-                    SpecBlockMember_::Variable {
-                        is_global: _,
-                        name,
-                        type_parameters: _,
-                        type_: _,
-                        init,
-                    } => {
-                        if let Some(init) = init {
-                            p.type_lambda_pair
-                                .push((name.loc.start(), init.loc.start() - 1));
-                            collect_expr(p, init);
-                        } else {
-                            p.type_lambda_pair.push((name.loc.start(), m.loc.end()));
-                        }
-                    }
-
-                    SpecBlockMember_::Let {
-                        name: _,
-                        post_state: _,
-                        def,
-                    } => collect_expr(p, def),
-                    SpecBlockMember_::Update { lhs, rhs } => {
-                        collect_expr(p, lhs);
-                        collect_expr(p, rhs);
-                    }
-                    SpecBlockMember_::Include { properties: _, exp } => {
-                        collect_expr(p, exp);
-                    }
-                    SpecBlockMember_::Apply {
-                        exp,
-                        patterns,
-                        exclusion_patterns,
-                    } => {
-                        for pat in patterns.iter().chain(exclusion_patterns.iter()) {
-                            for n in &pat.value.name_pattern {
-                                p.apple_name.insert(n.loc.start());
-                            }
-                            if let Some(x) = pat.value.name_pattern.last() {
-                                p.type_lambda_pair.push((x.loc.end(), pat.loc.end()));
-                            }
-                        }
-                        collect_expr(p, exp);
-                    }
-                    SpecBlockMember_::Modifies { targets } => {
-                        for tar in targets.iter() {
-                            collect_expr(p, tar);
-                        }
-                    }
-                    _ => {}
-                }
+                collect_spec_member(p, m);
             }
         }
+
+        fn collect_spec_member(p: &mut Parser, m: &SpecBlockMember) {
+            match &m.value {
+                SpecBlockMember_::Condition {
+                    kind,
+                    properties: _,
+                    exp,
+                    additional_exps,
+                } => {
+                    p.type_lambda_pair.push((kind.loc.start(), kind.loc.end()));
+                    collect_expr(p, exp);
+                    additional_exps.iter().for_each(|e| collect_expr(p, e));
+                }
+                SpecBlockMember_::Function {
+                    uninterpreted: _,
+                    name,
+                    signature,
+                    body,
+                    ..
+                } => {
+                    p.type_lambda_pair
+                        .push((name.0.loc.end(), signature.return_type.loc.end()));
+                    match &body.value {
+                        FunctionBody_::Defined(s) => {
+                            p.fun_body.insert(body.loc.start());
+                            collect_seq(p, s)
+                        }
+                        FunctionBody_::Native => {}
+                    }
+                }
+                SpecBlockMember_::Variable {
+                    is_global: _,
+                    name,
+                    type_parameters: _,
+                    type_: _,
+                    init,
+                } => {
+                    if let Some(init) = init {
+                        p.type_lambda_pair
+                            .push((name.loc.start(), init.loc.start() - 1));
+                        collect_expr(p, init);
+                    } else {
+                        p.type_lambda_pair.push((name.loc.start(), m.loc.end()));
+                    }
+                }
+
+                SpecBlockMember_::Let {
+                    name: _,
+                    post_state: _,
+                    def,
+                } => collect_expr(p, def),
+                SpecBlockMember_::Update { lhs, rhs } => {
+                    collect_expr(p, lhs);
+                    collect_expr(p, rhs);
+                }
+                SpecBlockMember_::Include { properties: _, exp } => {
+                    collect_expr(p, exp);
+                }
+                SpecBlockMember_::Apply {
+                    exp,
+                    patterns,
+                    exclusion_patterns,
+                } => {
+                    for pat in patterns.iter().chain(exclusion_patterns.iter()) {
+                        for n in &pat.value.name_pattern {
+                            p.apple_name.insert(n.loc.start());
+                        }
+                        if let Some(x) = pat.value.name_pattern.last() {
+                            p.type_lambda_pair.push((x.loc.end(), pat.loc.end()));
+                        }
+                    }
+                    collect_expr(p, exp);
+                }
+                SpecBlockMember_::Modifies { targets } => {
+                    for tar in targets.iter() {
+                        collect_expr(p, tar);
+                    }
+                }
+                SpecBlockMember_::ModifiesOf { targets, .. } => {
+                    for tar in targets.iter() {
+                        collect_expr(p, tar);
+                    }
+                }
+                SpecBlockMember_::Reads { types } | SpecBlockMember_::ReadsOf { types, .. } => {
+                    for ty in types {
+                        collect_ty(p, ty);
+                    }
+                }
+                SpecBlockMember_::Proof { body } => {
+                    collect_proof(p, body);
+                }
+                SpecBlockMember_::Lemma {
+                    spec_members,
+                    proof,
+                    ..
+                } => {
+                    for m in spec_members {
+                        collect_spec_member(p, m);
+                    }
+                    if let Some(proof) = proof {
+                        collect_proof(p, proof);
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        fn collect_proof(p: &mut Parser, proof: &Proof) {
+            collect_proof_(p, &proof.value);
+        }
+
+        fn collect_proof_(p: &mut Parser, proof: &Proof_) {
+            match proof {
+                Proof_::Let(_, exp) => collect_expr(p, exp),
+                Proof_::IfElse(cond, then, opt_else) => {
+                    collect_expr(p, cond);
+                    collect_proof(p, then);
+                    if let Some(else_) = opt_else {
+                        collect_proof(p, else_);
+                    }
+                }
+                Proof_::Block(stmts) => {
+                    for stmt in stmts {
+                        collect_proof(p, stmt);
+                    }
+                }
+                Proof_::Assert(exp) | Proof_::Assume(_, exp) | Proof_::Split(exp) => {
+                    collect_expr(p, exp);
+                }
+                Proof_::Apply(_, args) => {
+                    for arg in args {
+                        collect_expr(p, arg);
+                    }
+                }
+                Proof_::ForallApply {
+                    bindings,
+                    patterns,
+                    args,
+                    ..
+                } => {
+                    for b in &bindings.value {
+                        collect_expr(p, &b.value.1);
+                    }
+                    for pat_list in patterns {
+                        for pat in pat_list {
+                            collect_expr(p, pat);
+                        }
+                    }
+                    for arg in args {
+                        collect_expr(p, arg);
+                    }
+                }
+                Proof_::Calc(steps) => {
+                    for (e, op) in steps {
+                        collect_expr(p, e);
+                        if let Some(op) = op {
+                            p.bin_op.insert(op.loc.start());
+                        }
+                    }
+                }
+                Proof_::Post(p_inner) => collect_proof(p, p_inner),
+            }
+        }
+
         fn collect_const(p: &mut Parser, c: &Constant) {
             collect_ty(p, &c.signature);
             collect_expr(p, &c.value);

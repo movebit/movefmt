@@ -7,7 +7,7 @@ module Specs::ProofBlocks {
         aborts_if 2 * x > 18446744073709551615;
         ensures result == 2 * x;
     } proof {
-        assert x + x == 2 *x;
+        assert x + x == 2 * x;
     }
 
     fun weighted_avg_x2(x: u64, y: u64): u64 {
@@ -19,7 +19,7 @@ module Specs::ProofBlocks {
         ensures result == (3 * x + y) / 4 * 2;
         ensures result <= 3 * x + y;
     } proof {
-        let wx = 3 *x;
+        let wx = 3 * x;
         let sum = wx + y;
         let half = sum / 4;
         assert half <= sum;
@@ -45,8 +45,8 @@ module Specs::ProofBlocks {
         ensures result == (x + 1) * (x + 1);
     } proof {
         let y = x + 1;
-        let r = y *y;
-        assert r == (x + 1) *(x + 1);
+        let r = y * y;
+        assert r == (x + 1) * (x + 1);
         post assert r == result;
     }
 
@@ -66,7 +66,7 @@ module Specs::ProofBlocks {
             assert a >= b;
         } else {
             post assert result == b;
-            assert b> a;
+            assert b > a;
             assert b >= b;
         }
     }
@@ -79,7 +79,7 @@ module Specs::ProofBlocks {
         requires x + x <= 18446744073709551615;
         ensures result == 2 * x;
     } proof {
-        assert x + x == 2 *x;
+        assert x + x == 2 * x;
         post assert result == x + x;
     }
 
@@ -118,7 +118,7 @@ module Specs::ProofBlocks {
         requires 2 * x + 1 <= 18446744073709551615;
         ensures result >= x;
     } proof {
-        calc(2 *x + 1 >= 2 *x >= x);
+        calc(2 * x + 1 >= 2 * x >= x);
     }
 
     fun abs_diff(a: u64, b: u64): u64 {

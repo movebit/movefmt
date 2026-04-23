@@ -549,7 +549,7 @@ impl<'a> Format<'a> {
         if current.get_end_tok() == Tok::RBrace
             && next.is_some()
             && next.unwrap().get_start_tok() == Tok::Identifier
-            && !matches!(next.unwrap().simple_str().unwrap_or_default(), "to" | "for")
+            && !matches!(next.unwrap().simple_str().unwrap_or_default(), "to" | "for" | "proof")
         {
             return true;
         }

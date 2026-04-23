@@ -84,6 +84,7 @@ static SPEC_KEYWORDS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
         "emits",
         "requires",
         "global",
+        "proof",
     ]
     .iter()
     .cloned()

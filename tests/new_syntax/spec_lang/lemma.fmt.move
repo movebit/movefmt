@@ -11,7 +11,7 @@ module Specs::Lemmas {
         requires x <= y;
         ensures sum(x) <= sum(y);
     } proof {
-        if (x<y) {
+        if (x < y) {
             assert sum(y - 1) <= sum(y);
             apply monotonicity(x, y - 1);
         }
@@ -38,13 +38,13 @@ module Specs::Lemmas {
         }
 
         lemma mul_comm(a: u64, b: u64) {
-            ensures a *b == b *a;
+            ensures a * b == b * a;
         }
     }
 
     spec lemma strict_increase(a: u64, b: u64) {
         requires b == a + 1;
-        ensures a<b;
+        ensures a < b;
     }
 
     struct Counter has drop {
@@ -59,7 +59,7 @@ module Specs::Lemmas {
         requires c.value < MAX_U64;
         ensures c.value == old(c.value) + 1;
     } proof {
-        assert c.value<MAX_U64;
+        assert c.value < MAX_U64;
         assert c.value + 1 <= MAX_U64;
     }
 
